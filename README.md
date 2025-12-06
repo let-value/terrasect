@@ -26,12 +26,44 @@ Future versions may include a configuration file for easier customization withou
 
 ## How It Works
 
-The mod uses Mixin to hook into Minecraft's world generation system at the `ChunkGenerator` level. When a chunk generator is created, the mod wraps its `BiomeSource` with a custom implementation that always returns the Plains biome for any coordinate in the world.
+The mod uses Mixin to hook into Minecraft's world generation system at the `ChunkGenerator` level. When a chunk generator is created, the mod wraps its `BiomeSource` with a custom implementation that always returns the configured biome (Plains by default) for any coordinate in the world.
+
+### Technical Details
 
 Key components:
 - **ChunkGeneratorMixin**: Intercepts chunk generator initialization and replaces the biome source
-- **SingleBiomeWrapper**: A custom BiomeSource that returns only Plains biome for all coordinates
+- **SingleBiomeWrapper**: A custom BiomeSource that returns only the configured biome for all coordinates
+- **TerrasectConfig**: Configuration class that specifies which biome to use
 - **Terrasect**: Main mod class that initializes the mod
+
+The mixin operates at world generation time, ensuring that:
+1. All chunks generate with the same biome
+2. The biome affects terrain generation, structure spawning, mob spawning, and weather
+3. The change is seamless and works with vanilla world generation
+
+### Biome Examples
+
+Here are some interesting biomes you can try:
+
+**Survival Friendly:**
+- `minecraft:plains` - Default, good for starting out
+- `minecraft:forest` - Lots of trees
+- `minecraft:savanna` - Acacia trees and villages
+
+**Challenging:**
+- `minecraft:desert` - Hot and dry, limited resources
+- `minecraft:ice_spikes` - Extremely cold with unique terrain
+- `minecraft:deep_dark` - Dark, dangerous, and full of sculk
+
+**Unique:**
+- `minecraft:mushroom_fields` - Peaceful, no hostile mobs
+- `minecraft:cherry_grove` - Beautiful pink cherry trees
+- `minecraft:badlands` - Colorful terracotta landscape
+
+**Extreme:**
+- `minecraft:basalt_deltas` - Nether biome (if used in overworld)
+- `minecraft:warped_forest` - Another nether biome option
+- `minecraft:the_end` - End dimension biome
 
 ## Building
 

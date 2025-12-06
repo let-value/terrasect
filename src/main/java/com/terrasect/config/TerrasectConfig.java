@@ -9,10 +9,24 @@ import net.minecraft.core.registries.Registries;
 /**
  * Configuration for the Terrasect mod
  * This allows specifying which biome should be used for the entire world
+ * 
+ * To change the biome, modify the targetBiomeId field below.
+ * 
+ * Popular biome options:
+ * - "minecraft:plains" (default)
+ * - "minecraft:desert"
+ * - "minecraft:jungle"
+ * - "minecraft:ice_spikes"
+ * - "minecraft:mushroom_fields"
+ * - "minecraft:cherry_grove"
+ * - "minecraft:badlands"
+ * - "minecraft:deep_dark"
+ * 
+ * See the full list at: https://minecraft.wiki/w/Biome#Biome_IDs
  */
 public class TerrasectConfig {
     
-    // Default biome to use
+    // Default biome to use - change this to any valid biome ID
     private static String targetBiomeId = "minecraft:plains";
     
     /**
