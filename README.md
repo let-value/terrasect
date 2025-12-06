@@ -7,6 +7,22 @@ A Minecraft mod for NeoForge and Forge 1.21+ that hooks into world generation an
 - **Single Biome World Generation**: Transforms the entire Minecraft world to use only one biome (Plains by default)
 - **World Generation Hook**: Uses mixins to intercept the `ChunkGenerator` and replace the biome source
 - **NeoForge/Forge Compatible**: Built for Minecraft 1.21.1+ with NeoForge (also compatible with Forge due to NeoForge's compatibility layer)
+- **Configurable**: Can be configured to use any biome (edit the config class to change the target biome)
+
+## Configuration
+
+The mod uses Plains biome by default. To change the biome:
+
+1. The target biome is set in `TerrasectConfig.java` (default: "minecraft:plains")
+2. You can modify the `targetBiomeId` field to use any valid biome identifier
+3. Examples of valid biome IDs:
+   - `minecraft:desert`
+   - `minecraft:jungle`
+   - `minecraft:ice_spikes`
+   - `minecraft:mushroom_fields`
+   - `minecraft:deep_dark`
+
+Future versions may include a configuration file for easier customization without code changes.
 
 ## How It Works
 

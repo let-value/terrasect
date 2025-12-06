@@ -1,6 +1,7 @@
 package com.terrasect.mixin;
 
 import com.terrasect.Terrasect;
+import com.terrasect.config.TerrasectConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -10,6 +11,8 @@ import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.chunk.ChunkGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -26,6 +29,7 @@ import java.util.stream.Stream;
  */
 @Mixin(ChunkGenerator.class)
 public class ChunkGeneratorMixin {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChunkGeneratorMixin.class);
     
     @Shadow
     @Final
@@ -37,10 +41,12 @@ public class ChunkGeneratorMixin {
         // Replace the biome source with our wrapper that returns only one biome
         Supplier<BiomeSource> originalSource = this.biomeSource;
         this.biomeSource = () -> new SingleBiomeWrapper(originalSource.get());
+        LOGGER.info("Terrasect: Replaced biome source with single biome wrapper (target: {})", 
+                    TerrasectConfig.getTargetBiomeId());
     }
     
     /**
-     * Wrapper BiomeSource that returns plains biome for all positions
+     * Wrapper BiomeSource that returns the configured biome for all positions
      */
     private static class SingleBiomeWrapper extends BiomeSource {
         private final BiomeSource wrapped;
@@ -57,14 +63,23 @@ public class ChunkGeneratorMixin {
         
         @Override
         public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
-            // Get target biome from wrapped source's first biome
+            // Get target biome from configuration
             if (targetBiome == null) {
+                ResourceKey<Biome> targetKey = TerrasectConfig.getTargetBiome();
                 targetBiome = wrapped.collectPossibleBiomes()
-                    .filter(holder -> holder.is(Biomes.PLAINS))
+                    .filter(holder -> holder.is(targetKey))
                     .findFirst()
-                    .orElse(wrapped.collectPossibleBiomes().findFirst().orElse(null));
+                    .orElseGet(() -> {
+                        // Fallback to plains if configured biome not found
+                        LOGGER.warn("Terrasect: Could not find configured biome {}, falling back to Plains", 
+                                   TerrasectConfig.getTargetBiomeId());
+                        return wrapped.collectPossibleBiomes()
+                            .filter(holder -> holder.is(Biomes.PLAINS))
+                            .findFirst()
+                            .orElse(wrapped.collectPossibleBiomes().findFirst().orElse(null));
+                    });
             }
-            // Return plains biome for all positions
+            // Return the target biome for all positions
             return targetBiome != null ? targetBiome : wrapped.getNoiseBiome(x, y, z, sampler);
         }
     }

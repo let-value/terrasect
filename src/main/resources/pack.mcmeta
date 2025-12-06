@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "description": "Terrasect - Single Biome World Generation",
+    "pack_format": 34,
+    "forge:resource_pack_format": 34,
+    "forge:data_pack_format": 34
+  }
+}
