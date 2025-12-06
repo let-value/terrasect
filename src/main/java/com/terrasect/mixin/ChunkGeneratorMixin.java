@@ -77,19 +77,24 @@ public class ChunkGeneratorMixin {
             java.util.List<Holder<Biome>> possibleBiomes = 
                 wrapped.collectPossibleBiomes().toList();
             
-            // Try to find the configured biome
+            // Try to find the configured biome, fallback to Plains, then to any available biome
             targetBiome = possibleBiomes.stream()
                 .filter(holder -> holder.is(targetKey))
                 .findFirst()
-                .orElseGet(() -> {
+                .or(() -> {
                     // Fallback to plains if configured biome not found
                     LOGGER.warn("Terrasect: Could not find configured biome {}, falling back to Plains", 
                                TerrasectConfig.getTargetBiomeId());
                     return possibleBiomes.stream()
                         .filter(holder -> holder.is(Biomes.PLAINS))
-                        .findFirst()
-                        .orElse(!possibleBiomes.isEmpty() ? possibleBiomes.get(0) : null);
-                });
+                        .findFirst();
+                })
+                .or(() -> {
+                    // Last resort: use first available biome
+                    LOGGER.warn("Terrasect: Could not find Plains biome, using first available biome");
+                    return possibleBiomes.stream().findFirst();
+                })
+                .orElse(null);
             
             if (targetBiome != null) {
                 LOGGER.info("Terrasect: Using biome {} for world generation", targetBiome);
