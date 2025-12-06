@@ -1,9 +1,5 @@
 package com.terrasect;
 
-import com.terrasect.worldgen.BiomeModifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biomes;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -18,9 +14,6 @@ public class Terrasect {
     
     public Terrasect(IEventBus modEventBus) {
         LOGGER.info("Terrasect mod initializing - Single biome worldgen enabled");
-        
-        // Register our biome modifier
-        BiomeModifier.register(modEventBus);
         
         // Register event listeners
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
