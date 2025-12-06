@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.terrasect.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "terrasect.refmap.json",
+  "mixins": [
+    "ChunkGeneratorMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

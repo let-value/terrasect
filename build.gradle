@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '1.0.21'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+neoForge {
+    version = neoforge_version
+    
+    parchment {
+        mappingsVersion = parchment_version
+        minecraftVersion = parchment_minecraft_version
+    }
+    
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.markers', ''
+            systemProperty 'forge.logging.console.level', 'debug'
+        }
+        
+        client {
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+        
+        server {
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+            programArgument '--nogui'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neoforge_version: neoforge_version,
+            neoforge_version_range: neoforge_version_range,
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_version: mod_version,
+            mod_author: mod_author,
+            mod_description: mod_description,
+    ]
+    
+    inputs.properties replaceProperties
+    
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
