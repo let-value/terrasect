@@ -81,20 +81,167 @@ The compiled mod JAR will be in `build/libs/`.
 ## Installation
 
 1. Install Minecraft 1.21.1
-2. Install NeoForge 21.1.72 or higher
+2. Install NeoForge 21.1.216 or higher
 3. Place the compiled JAR in your `mods` folder
 4. Launch Minecraft and create a new world
 
 ## Development
 
-The project structure:
-- `src/main/java/com/terrasect/` - Main mod code
-  - `Terrasect.java` - Main mod class
-  - `mixin/ChunkGeneratorMixin.java` - Mixin for world generation
-  - `worldgen/` - World generation components
-- `src/main/resources/` - Resources and configuration
-  - `META-INF/neoforge.mods.toml` - Mod metadata
-  - `terrasect.mixins.json` - Mixin configuration
+### Initial Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/let-value/terrasect.git
+   cd terrasect
+   ```
+
+2. **Generate IDE run configurations**:
+   
+   For IntelliJ IDEA:
+   ```bash
+   ./gradlew genIntellijRuns
+   ```
+   
+   For Eclipse:
+   ```bash
+   ./gradlew eclipse
+   ```
+   
+   For VS Code:
+   ```bash
+   ./gradlew genVSCodeRuns
+   ```
+
+3. **Import the project** into your IDE as a Gradle project.
+
+### Accessing Minecraft Source Code
+
+The NeoForge ModDev plugin automatically decompiles Minecraft source code with Parchment mappings for better readability:
+
+- **Source location**: After running any Gradle task, decompiled sources are available in your IDE
+- **Mappings**: Uses Parchment mappings for human-readable parameter names and javadocs
+- **Navigation**: You can navigate to Minecraft classes directly from your IDE (Ctrl+Click on class names)
+
+To manually trigger source decompilation:
+```bash
+./gradlew prepareRuns
+```
+
+### Running the Mod
+
+#### In-Game Testing
+
+Run the mod in a development environment:
+
+**Client (with GUI)**:
+```bash
+./gradlew runClient
+```
+
+**Server (no GUI)**:
+```bash
+./gradlew runServer
+```
+
+**Data Generation** (for generating resources):
+```bash
+./gradlew runData
+```
+
+These tasks will:
+- Launch Minecraft with your mod loaded
+- Enable hot-swapping for faster iteration (in some IDEs)
+- Provide debug logging for development
+- Create working directories in `run/client`, `run/server`, etc.
+
+#### IDE Run Configurations
+
+After running `genIntellijRuns` or similar, you'll have run configurations in your IDE:
+- **runClient** - Launch Minecraft client with mod
+- **runServer** - Launch dedicated server with mod
+- **runData** - Generate data files
+- **runGameTestServer** - Run automated game tests
+
+### Testing
+
+#### Unit Tests
+
+Run unit tests:
+```bash
+./gradlew test
+```
+
+Unit tests are located in `src/test/java/` and test core logic without requiring Minecraft to run.
+
+#### Game Tests
+
+Run automated in-game tests:
+```bash
+./gradlew runGameTestServer
+```
+
+Game tests validate mod behavior in a real Minecraft environment.
+
+### Debugging
+
+1. **Enable Mixin Debug Output**: Already enabled in `build.gradle`
+   - Debug export location: `.mixin.out/`
+   - Verbose logging: Enabled by default
+
+2. **Debug Logging**: Check `logs/debug.log` in the run directory for detailed mod behavior
+
+3. **Breakpoint Debugging**: 
+   - Use your IDE's debugger with the run configurations
+   - Set breakpoints in your mod code or Minecraft source
+   - Run debug configuration instead of regular run
+
+### Project Structure
+
+```
+terrasect/
+├── src/
+│   ├── main/
+│   │   ├── java/com/terrasect/          # Main mod code
+│   │   │   ├── Terrasect.java           # Mod entry point
+│   │   │   ├── config/                  # Configuration classes
+│   │   │   └── mixin/                   # Mixin classes for worldgen
+│   │   └── resources/
+│   │       ├── META-INF/
+│   │       │   └── neoforge.mods.toml   # Mod metadata
+│   │       └── terrasect.mixins.json    # Mixin configuration
+│   ├── test/
+│   │   └── java/com/terrasect/          # Unit tests
+│   └── generated/                       # Auto-generated resources (gitignored)
+├── run/                                  # Game run directories (gitignored)
+│   ├── client/                          # Client run workspace
+│   ├── server/                          # Server run workspace
+│   └── gametest/                        # GameTest workspace
+├── build.gradle                          # Build configuration
+├── gradle.properties                     # Project properties
+└── README.md                             # This file
+```
+
+### Common Development Tasks
+
+**Rebuild after changes**:
+```bash
+./gradlew clean build
+```
+
+**Regenerate run configurations**:
+```bash
+./gradlew genIntellijRuns
+```
+
+**View all available tasks**:
+```bash
+./gradlew tasks
+```
+
+**Check for dependency updates**:
+```bash
+./gradlew dependencies
+```
 
 ## License
 

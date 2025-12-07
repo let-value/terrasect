@@ -19,7 +19,7 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# virtual machine crash loops, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
 
@@ -41,6 +41,7 @@ runs/
 .project
 .settings/
 bin/
+.eclipse/
 
 # VS Code
 .vscode/
@@ -51,3 +52,11 @@ bin/
 # Minecraft development
 logs/
 crash-reports/
+mods/
+config/
+
+# Generated resources (these should be regenerated)
+src/generated/
+
+# Mixin debug output
+.mixin.out/

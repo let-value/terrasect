@@ -1,6 +1,9 @@
 plugins {
     id 'java'
+    id 'java-library'
     id 'net.neoforged.moddev' version '1.0.21'
+    id 'idea'
+    id 'eclipse'
 }
 
 version = mod_version
@@ -14,26 +17,42 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+    withSourcesJar()
 }
 
+// NeoForge configuration
 neoForge {
     version = neoforge_version
     
+    // Enable Parchment mappings for better parameter names and javadocs
     parchment {
         mappingsVersion = parchment_version
         minecraftVersion = parchment_minecraft_version
     }
     
+    // Validate that all AT (Access Transformer) entries have a valid target
+    validateAccessTransformers = true
+    
     runs {
         configureEach {
-            systemProperty 'forge.logging.markers', ''
+            // Enable logging for mod loading and system properties
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
-        }
-        
-        client {
+            
+            // Enable mixin debug output
+            systemProperty 'mixin.debug.export', 'true'
+            
+            // Enable game tests
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
         
+        // Client (game) run configuration
+        client {
+            // Client-specific properties
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+        }
+        
+        // Server run configuration
         server {
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
             programArgument '--nogui'
@@ -43,11 +62,50 @@ neoForge {
 
 repositories {
     mavenCentral()
+    
+    // For JUnit and testing dependencies
+    maven {
+        name = 'JitPack'
+        url = 'https://jitpack.io'
+    }
 }
 
 dependencies {
+    // Mixin dependencies (for annotation processing)
     compileOnly 'org.spongepowered:mixin:0.8.7'
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+    
+    // JUnit 5 for unit testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    
+    // Mockito for mocking
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+}
+
+// Configure test task
+test {
+    useJUnitPlatform()
+    
+    // Set test logging
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+    
+    // Ensure tests run with correct classpath
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+}
+
+// Create sourceSets for generated sources
+sourceSets {
+    main {
+        resources {
+            srcDir 'src/generated/resources'
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
