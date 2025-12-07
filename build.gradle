@@ -45,8 +45,17 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    compileOnly 'org.spongepowered:mixin:0.8.7'
+    annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs += ["-AoutRefMapFile=${layout.buildDirectory.file('generated/refmaps/terrasect.refmap.json').get().asFile.absolutePath}"]
+    doFirst {
+        layout.buildDirectory.dir('generated/refmaps').get().asFile.mkdirs()
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -55,6 +64,7 @@ tasks.named('processResources', ProcessResources).configure {
             minecraft_version_range: minecraft_version_range,
             neoforge_version: neoforge_version,
             neoforge_version_range: neoforge_version_range,
+            javafml_version_range: javafml_version_range,
             mod_id: mod_id,
             mod_name: mod_name,
             mod_version: mod_version,
@@ -67,4 +77,10 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/neoforge.mods.toml']) {
         expand replaceProperties
     }
+
+    from(layout.buildDirectory.dir('generated/refmaps')) {
+        include 'terrasect.refmap.json'
+    }
+
+    dependsOn(tasks.named('compileJava'))
 }

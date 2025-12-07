@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="${neoforge_version_range}"
+loaderVersion="${javafml_version_range}"
 license="MIT"
 issueTrackerURL="https://github.com/let-value/terrasect/issues"
 
