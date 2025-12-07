@@ -30,9 +30,9 @@ This will:
 
 #### IntelliJ IDEA (Recommended)
 
-1. Generate run configurations:
+1. Generate IDEA project files:
    ```bash
-   ./gradlew genIntellijRuns
+   ./gradlew idea
    ```
 
 2. Open IntelliJ IDEA and select "Open" (not "Import Project")
@@ -41,11 +41,11 @@ This will:
 
 4. Wait for Gradle import to complete
 
-5. Run configurations will appear in the top-right dropdown:
+5. Gradle run tasks will appear in the Gradle tool window:
    - `runClient` - Launch game client
    - `runServer` - Launch dedicated server
-   - `runData` - Generate data files
-   - `runGameTestServer` - Run game tests
+   
+   You can also run these from the command line or create run configurations manually.
 
 #### Eclipse
 
@@ -58,18 +58,17 @@ This will:
 
 3. Browse to the `terrasect` folder and import
 
+4. Run tasks from the Gradle Tasks view
+
 #### VS Code
 
 1. Install the "Extension Pack for Java" extension
 
-2. Generate run configurations:
-   ```bash
-   ./gradlew genVSCodeRuns
-   ```
+2. Open the `terrasect` folder in VS Code
 
-3. Open the `terrasect` folder in VS Code
+3. The Java extension will automatically detect the Gradle project
 
-4. Run configurations will be available in the Run and Debug panel
+4. Run Gradle tasks from the Gradle sidebar or command palette
 
 ## Working with Minecraft Source Code
 
@@ -244,8 +243,6 @@ Common tasks:
 - `./gradlew test` - Run unit tests
 - `./gradlew runClient` - Launch client
 - `./gradlew runServer` - Launch server
-- `./gradlew runData` - Generate data
-- `./gradlew runGameTestServer` - Run game tests
 - `./gradlew tasks` - List all available tasks
 
 ### Dependencies
@@ -287,9 +284,10 @@ Core dependencies (from `build.gradle`):
 3. Rebuild project in IDE
 
 **"Run configurations not showing"**:
-1. Re-run `./gradlew genIntellijRuns` (or Eclipse/VSCode equivalent)
+1. Check the Gradle tool window - tasks should be under "Tasks" → "neoforge"
 2. Refresh Gradle project
-3. Restart IDE
+3. For IntelliJ, you can manually create run configurations pointing to the Gradle tasks
+4. Restart IDE if needed
 
 ### Runtime Issues
 

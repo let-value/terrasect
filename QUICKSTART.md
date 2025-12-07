@@ -17,15 +17,18 @@ Wait for dependencies to download (~5-10 minutes first time).
 
 **IntelliJ IDEA** (recommended):
 ```bash
-./gradlew genIntellijRuns
+./gradlew idea
 ```
 Then: File → Open → Select `terrasect` folder
 
-**VS Code**:
+**Eclipse**:
 ```bash
-./gradlew genVSCodeRuns
+./gradlew eclipse
 ```
-Then: Open the `terrasect` folder
+Then: Import → Existing Projects into Workspace
+
+**VS Code**:
+Open the `terrasect` folder directly. The Java extension will auto-detect the Gradle project.
 
 ### 3. Verify Minecraft Source Access
 

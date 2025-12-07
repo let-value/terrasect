@@ -95,24 +95,21 @@ The compiled mod JAR will be in `build/libs/`.
    cd terrasect
    ```
 
-2. **Generate IDE run configurations**:
+2. **Generate IDE project files**:
    
    For IntelliJ IDEA:
    ```bash
-   ./gradlew genIntellijRuns
+   ./gradlew idea
    ```
    
    For Eclipse:
    ```bash
    ./gradlew eclipse
    ```
-   
-   For VS Code:
-   ```bash
-   ./gradlew genVSCodeRuns
-   ```
 
 3. **Import the project** into your IDE as a Gradle project.
+   
+   Note: VS Code users can open the project directly - the Java extension will detect the Gradle project automatically.
 
 ### Accessing Minecraft Source Code
 
@@ -143,11 +140,6 @@ Run the mod in a development environment:
 ./gradlew runServer
 ```
 
-**Data Generation** (for generating resources):
-```bash
-./gradlew runData
-```
-
 These tasks will:
 - Launch Minecraft with your mod loaded
 - Enable hot-swapping for faster iteration (in some IDEs)
@@ -156,11 +148,11 @@ These tasks will:
 
 #### IDE Run Configurations
 
-After running `genIntellijRuns` or similar, you'll have run configurations in your IDE:
+After importing the project in your IDE, you'll have Gradle-based run configurations:
 - **runClient** - Launch Minecraft client with mod
 - **runServer** - Launch dedicated server with mod
-- **runData** - Generate data files
-- **runGameTestServer** - Run automated game tests
+
+These configurations are automatically created by IntelliJ IDEA from the Gradle `runs` configuration. In Eclipse, you can run these tasks from the Gradle Tasks view.
 
 ### Testing
 
@@ -172,15 +164,6 @@ Run unit tests:
 ```
 
 Unit tests are located in `src/test/java/` and test core logic without requiring Minecraft to run.
-
-#### Game Tests
-
-Run automated in-game tests:
-```bash
-./gradlew runGameTestServer
-```
-
-Game tests validate mod behavior in a real Minecraft environment.
 
 ### Debugging
 
@@ -228,9 +211,10 @@ terrasect/
 ./gradlew clean build
 ```
 
-**Regenerate run configurations**:
+**Regenerate IDE project files**:
 ```bash
-./gradlew genIntellijRuns
+./gradlew idea  # For IntelliJ IDEA
+./gradlew eclipse  # For Eclipse
 ```
 
 **View all available tasks**:
