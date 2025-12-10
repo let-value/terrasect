@@ -2,9 +2,7 @@ package com.terrasect.common.generation;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
@@ -18,7 +16,6 @@ import java.util.Random;
  */
 public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.12;
-    private static final double ADJACENT_DISTANCE_RATIO = 0.22;
     private static final double JITTER_SCALE = 0.5;
     private static final double AREA_SCALAR = 1.35;
     private static final double WARP_STRENGTH = 0.09;
@@ -40,40 +37,33 @@ public final class ClusterMapGenerator {
         return Math.max(size, 96);
     }
 
-    private List<Point2D.Double> placeAnchors(List<RegionDefinition> regions, int clusterSize, long seed,
-                                              double centerX, double centerY) {
-        Map<String, Point2D.Double> lookup = new HashMap<>();
-        List<Point2D.Double> anchors = new ArrayList<>(regions.size());
-        Random random = new Random(seed * 31 + 17);
+    private Point2D.Double anchorForRegion(RegionDefinition region, ClusterSite site, int clusterSize,
+                                           List<RegionDefinition> regions) {
         double padding = clusterSize * EDGE_PADDING_RATIO;
         double maxRadius = clusterSize * 0.5 - padding;
-        for (RegionDefinition region : regions) {
-            Point2D.Double anchor = null;
-            for (String adjacency : region.adjacentTo()) {
-                if (lookup.containsKey(adjacency)) {
-                    Point2D.Double base = lookup.get(adjacency);
-                    double angle = random.nextDouble() * Math.PI * 2;
-                    double radius = clusterSize * ADJACENT_DISTANCE_RATIO;
-                    double x = base.x + Math.cos(angle) * radius;
-                    double y = base.y + Math.sin(angle) * radius;
-                    anchor = clampToRadius(centerX, centerY, x, y, maxRadius);
-                    break;
-                }
-            }
-            if (anchor == null) {
-                double angle = random.nextDouble() * Math.PI * 2;
-                double radius = padding + random.nextDouble() * (maxRadius - padding);
-                double x = centerX + Math.cos(angle) * radius;
-                double y = centerY + Math.sin(angle) * radius;
-                anchor = new Point2D.Double(x, y);
-            }
-            lookup.put(region.name(), anchor);
-            anchors.add(anchor);
+        long nameHash = region.name().hashCode();
+        double baseAngle = Math.PI * 2 * valueNoise(site.siteSeed() ^ nameHash * 31L, site.cellX(), site.cellY());
+        double biasX = 0.0;
+        double biasY = 0.0;
+        for (String adjacency : region.adjacentTo()) {
+            int adjacencyHash = adjacency.hashCode();
+            double adjacencyAngle = Math.PI * 2 * valueNoise(site.siteSeed() ^ adjacencyHash * 17L ^ nameHash, region.targetArea(), adjacencyHash);
+            biasX += Math.cos(adjacencyAngle);
+            biasY += Math.sin(adjacencyAngle);
         }
-        return anchors;
+        double combinedAngle = baseAngle;
+        if (biasX != 0.0 || biasY != 0.0) {
+            double adjacencyAngle = Math.atan2(biasY, biasX);
+            combinedAngle = lerp(baseAngle, adjacencyAngle, 0.65);
+        }
+        double baseRadiusNoise = valueNoise(site.siteSeed() ^ nameHash * 47L, region.targetArea(), regions.size());
+        double radius = padding + baseRadiusNoise * (maxRadius - padding);
+        double x = site.centerX() + Math.cos(combinedAngle) * radius;
+        double y = site.centerY() + Math.sin(combinedAngle) * radius;
+        return clampToRadius(site.centerX(), site.centerY(), x, y, maxRadius);
     }
 
-    private int resolveRegion(int x, int y, int clusterSize, List<Point2D.Double> anchors,
+    private int resolveRegion(int x, int y, int clusterSize, ClusterSite site,
                               List<RegionDefinition> regions, long seed) {
         double best = Double.MAX_VALUE;
         int bestIndex = 0;
@@ -81,8 +71,8 @@ public final class ClusterMapGenerator {
         double jitterY = jitter(seed + 41, x, y);
         double warpX = organicWarp(seed + 73, x, y, clusterSize);
         double warpY = organicWarp(seed + 109, x, y, clusterSize);
-        for (int i = 0; i < anchors.size(); i++) {
-            Point2D anchor = anchors.get(i);
+        for (int i = 0; i < regions.size(); i++) {
+            Point2D anchor = anchorForRegion(regions.get(i), site, clusterSize, regions);
             double dx = x + jitterX + warpX - anchor.getX();
             double dy = y + jitterY + warpY - anchor.getY();
             double weight = 1.0 / Math.sqrt(regions.get(i).targetArea());
@@ -167,26 +157,6 @@ public final class ClusterMapGenerator {
         return hash;
     }
 
-    private ClusterSite locateSite(int clusterSize, long seed, int x, int y, Map<Long, ClusterSite> cache) {
-        int cellX = Math.floorDiv(x, clusterSize);
-        int cellY = Math.floorDiv(y, clusterSize);
-        ClusterSite nearest = null;
-        double best = Double.MAX_VALUE;
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                int neighborX = cellX + dx;
-                int neighborY = cellY + dy;
-                ClusterSite site = siteForCell(clusterSize, seed, neighborX, neighborY, cache);
-                double distance = site.squaredDistanceTo(x, y);
-                if (distance < best) {
-                    best = distance;
-                    nearest = site;
-                }
-            }
-        }
-        return Objects.requireNonNull(nearest);
-    }
-
     private ClusterSite locateSite(int clusterSize, long seed, int x, int y) {
         int cellX = Math.floorDiv(x, clusterSize);
         int cellY = Math.floorDiv(y, clusterSize);
@@ -207,17 +177,6 @@ public final class ClusterMapGenerator {
         return Objects.requireNonNull(nearest);
     }
 
-    private ClusterSite siteForCell(int clusterSize, long seed, int cellX, int cellY, Map<Long, ClusterSite> cache) {
-        long key = (((long) cellX) << 32) ^ (cellY & 0xFFFFFFFFL);
-        ClusterSite cached = cache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-        ClusterSite site = siteForCell(clusterSize, seed, cellX, cellY);
-        cache.put(key, site);
-        return site;
-    }
-
     private ClusterSite siteForCell(int clusterSize, long seed, int cellX, int cellY) {
         long cellSeed = mixSeed(seed, cellX, cellY);
         Random random = new Random(cellSeed * 6364136223846793005L + 1442695040888963407L);
@@ -229,23 +188,12 @@ public final class ClusterMapGenerator {
         return new ClusterSite(cellX, cellY, x, y, cellSeed);
     }
 
-    private ResolvedSite resolveSite(Map<Long, ResolvedSite> resolvedCache, ClusterSite site,
-                                     List<RegionDefinition> regions, int clusterSize) {
-        ResolvedSite cached = resolvedCache.get(site.key());
-        if (cached != null) {
-            return cached;
+    private ResolvedSite resolveSite(ClusterSite site, List<RegionDefinition> regions, int clusterSize) {
+        List<Point2D.Double> anchors = new ArrayList<>(regions.size());
+        for (RegionDefinition region : regions) {
+            anchors.add(anchorForRegion(region, site, clusterSize, regions));
         }
-        List<Point2D.Double> anchors = placeAnchors(regions, clusterSize, site.siteSeed(), site.centerX(), site.centerY());
-        ResolvedSite resolved = new ResolvedSite(site, anchors);
-        resolvedCache.put(site.key(), resolved);
-        return resolved;
-    }
-
-    private int resolveRegionAt(Map<Long, ClusterSite> siteCache, Map<Long, ResolvedSite> resolvedCache,
-                                int x, int y, ClusterPattern pattern) {
-        ClusterSite site = locateSite(pattern.clusterSize(), pattern.seed(), x, y, siteCache);
-        ResolvedSite resolved = resolveSite(resolvedCache, site, pattern.regions(), pattern.clusterSize());
-        return resolveRegion(x, y, pattern.clusterSize(), resolved.anchors(), pattern.regions(), site.siteSeed());
+        return new ResolvedSite(site, anchors);
     }
 
     public record ClusterPattern(int clusterSize, List<RegionDefinition> regions, long seed) {
@@ -253,32 +201,25 @@ public final class ClusterMapGenerator {
             Objects.requireNonNull(regions, "regions");
         }
 
-        public ClusterSite siteForPoint(Map<Long, ClusterSite> cache, int x, int y) {
-            Objects.requireNonNull(cache, "cache");
-            return new ClusterMapGenerator().locateSite(clusterSize, seed, x, y, cache);
-        }
-
         public ClusterSite siteForPoint(int x, int y) {
             return new ClusterMapGenerator().locateSite(clusterSize, seed, x, y);
         }
 
-        public int regionForPoint(Map<Long, ClusterSite> siteCache, Map<Long, ResolvedSite> resolvedCache,
-                                  int x, int y) {
-            Objects.requireNonNull(siteCache, "siteCache");
-            Objects.requireNonNull(resolvedCache, "resolvedCache");
-            return new ClusterMapGenerator().resolveRegionAt(siteCache, resolvedCache, x, y, this);
-        }
-
-        public ClusterLocation locateClusterAndRegion(Map<Long, ResolvedSite> resolvedCache, int x, int y) {
-            Objects.requireNonNull(resolvedCache, "resolvedCache");
+        public int regionForPoint(int x, int y) {
             ClusterMapGenerator generator = new ClusterMapGenerator();
             ClusterSite site = generator.locateSite(clusterSize, seed, x, y);
-            ResolvedSite resolved = generator.resolveSite(resolvedCache, site, regions, clusterSize);
+            return generator.resolveRegion(x, y, clusterSize, site, regions, site.siteSeed());
+        }
+
+        public ClusterLocation locateClusterAndRegion(int x, int y) {
+            ClusterMapGenerator generator = new ClusterMapGenerator();
+            ClusterSite site = generator.locateSite(clusterSize, seed, x, y);
+            ResolvedSite resolved = generator.resolveSite(site, regions, clusterSize);
             int regionIndex = generator.resolveRegion(
                 x,
                 y,
                 clusterSize,
-                resolved.anchors(),
+                site,
                 regions,
                 site.siteSeed()
             );
