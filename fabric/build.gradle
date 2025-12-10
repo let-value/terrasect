@@ -32,6 +32,7 @@ loom {
         }
         testmodClient {
             ideConfigGenerated true
+            client()
         }
     }
 }
