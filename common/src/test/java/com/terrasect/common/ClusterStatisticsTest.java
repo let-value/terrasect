@@ -26,12 +26,20 @@ class ClusterStatisticsTest {
         ClusterMapGenerator.ClusterPattern pattern = new ClusterMapGenerator().generate(cluster, SEED);
         ClusterSnapshotSampler.SnapshotStatistics statistics = ClusterSnapshotSampler.sample(pattern, MAP_SIZE, MAP_SIZE);
 
-        System.out.printf("Cluster stats: count=%d, mean=%.2f, std=%.2f, cv=%.2f, targetRatio=%.2f%n",
+        System.out.printf("Cluster stats: count=%d, mean=%.2f, std=%.2f, cv=%.2f%n",
             statistics.clusters().categoryCount(),
             statistics.clusters().mean(),
             statistics.clusters().standardDeviation(),
-            statistics.clusters().coefficientOfVariation(),
-            statistics.clusterMeanToTargetRatio());
+            statistics.clusters().coefficientOfVariation());
+        System.out.printf("Cluster deviation: observed=%d, target=%d, meanRatio=%.2f, stdRatio=%.2f, cv=%.2f, minRatio=%.2f, maxRatio=%.2f, meanAbsError=%.2f%n",
+            statistics.clusterDeviation().observedClusters(),
+            statistics.clusterDeviation().targetArea(),
+            statistics.clusterDeviation().meanRatio(),
+            statistics.clusterDeviation().standardDeviationRatio(),
+            statistics.clusterDeviation().coefficientOfVariation(),
+            statistics.clusterDeviation().minRatio(),
+            statistics.clusterDeviation().maxRatio(),
+            statistics.clusterDeviation().meanAbsoluteError());
         System.out.printf("Region stats: count=%d, mean=%.2f, std=%.2f, cv=%.2f%n",
             statistics.regions().categoryCount(),
             statistics.regions().mean(),
@@ -43,8 +51,10 @@ class ClusterStatisticsTest {
         assertTrue(statistics.clusters().categoryCount() >= 9, "Expect multiple clusters across the map");
         assertTrue(statistics.clusters().coefficientOfVariation() < 1.3,
             "Cluster sizing should remain within a reasonable spread for tuning");
-        assertTrue(statistics.clusterMeanToTargetRatio() > 0.2 && statistics.clusterMeanToTargetRatio() < 4.0,
+        assertTrue(statistics.clusterDeviation().meanRatio() > 0.2 && statistics.clusterDeviation().meanRatio() < 4.0,
             "Mean cluster area should stay in a tunable range compared to the target");
+        assertTrue(statistics.clusterDeviation().maxRatio() < 6.5,
+            "Outlier clusters should not exceed a tolerable multiple of the target size");
         assertTrue(statistics.regions().coefficientOfVariation() < 1.05,
             "Region sizing spread should remain manageable for bias tuning");
     }

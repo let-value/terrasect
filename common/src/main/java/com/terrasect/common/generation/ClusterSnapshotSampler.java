@@ -38,11 +38,9 @@ public final class ClusterSnapshotSampler {
         DistributionStatistics clusterStats = computeStats(clusterAreas);
         DistributionStatistics regionStats = computeStats(regionAreas);
         double targetMeanArea = pattern.targetClusterArea();
-        double clusterMeanToTargetRatio = targetMeanArea == 0.0
-            ? 0.0
-            : clusterStats.mean() / targetMeanArea;
+        TargetDeviationStatistics clusterDeviation = computeDeviationStats(clusterAreas, targetMeanArea);
 
-        return new SnapshotStatistics(width * height, clusterStats, regionStats, clusterMeanToTargetRatio);
+        return new SnapshotStatistics(width * height, clusterStats, regionStats, clusterDeviation);
     }
 
     private static DistributionStatistics computeStats(Map<?, LongAdder> areas) {
@@ -70,6 +68,41 @@ public final class ClusterSnapshotSampler {
         );
     }
 
+    private static TargetDeviationStatistics computeDeviationStats(Map<?, LongAdder> areas, double targetArea) {
+        if (targetArea <= 0.0 || areas.isEmpty()) {
+            return new TargetDeviationStatistics(0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        }
+
+        DoubleSummaryStatistics ratios = areas.values().stream()
+            .mapToDouble(v -> v.sum() / targetArea)
+            .summaryStatistics();
+
+        double meanRatio = ratios.getAverage();
+        double varianceRatio = meanRatio == 0.0
+            ? 0.0
+            : areas.values().stream()
+                .flatMapToDouble(v -> DoubleStream.of(Math.pow((v.sum() / targetArea) - meanRatio, 2)))
+                .sum() / ratios.getCount();
+        double stdDevRatio = Math.sqrt(varianceRatio);
+        double coefficientOfVariation = meanRatio == 0.0 ? 0.0 : stdDevRatio / meanRatio;
+
+        double meanAbsoluteError = areas.values().stream()
+            .mapToDouble(v -> Math.abs(v.sum() - targetArea))
+            .average()
+            .orElse(0.0);
+
+        return new TargetDeviationStatistics(
+            ratios.getCount(),
+            Math.round(targetArea),
+            meanRatio,
+            stdDevRatio,
+            coefficientOfVariation,
+            ratios.getMin(),
+            ratios.getMax(),
+            meanAbsoluteError
+        );
+    }
+
     /**
      * Aggregated statistics for a set of sampled areas.
      * @param categoryCount number of clusters/regions seen in the sample
@@ -89,9 +122,25 @@ public final class ClusterSnapshotSampler {
      * @param totalSamples number of pixels sampled from the snapshot
      * @param clusters statistics about cluster footprint size distribution
      * @param regions statistics about region footprint size distribution
-     * @param clusterMeanToTargetRatio comparison of the mean sampled cluster size relative to the configured target
+     * @param clusterDeviation dispersion of actual cluster sizes compared to the configured target area
      */
     public record SnapshotStatistics(long totalSamples, DistributionStatistics clusters,
-                                     DistributionStatistics regions, double clusterMeanToTargetRatio) {
+                                     DistributionStatistics regions, TargetDeviationStatistics clusterDeviation) {
+    }
+
+    /**
+     * Comparison metrics for measured cluster areas relative to their requested target area.
+     * @param observedClusters number of clusters with sampled area
+     * @param targetArea target area requested for each cluster
+     * @param meanRatio average ratio of observed cluster area to the target area (1.0 equals target)
+     * @param standardDeviationRatio standard deviation of the ratios to show spread in over/under sizing
+     * @param coefficientOfVariation normalized dispersion of the ratios
+     * @param minRatio smallest observed ratio (under-sized clusters)
+     * @param maxRatio largest observed ratio (over-sized clusters)
+     * @param meanAbsoluteError average absolute difference between observed area and target area
+     */
+    public record TargetDeviationStatistics(long observedClusters, long targetArea, double meanRatio,
+                                            double standardDeviationRatio, double coefficientOfVariation,
+                                            double minRatio, double maxRatio, double meanAbsoluteError) {
     }
 }
