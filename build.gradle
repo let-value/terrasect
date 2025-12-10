@@ -1,0 +1,29 @@
+plugins {
+    id 'base'
+}
+
+subprojects {
+    group = property('maven_group')
+    version = property('mod_version')
+
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+    }
+
+    plugins.withType(JavaPlugin).configureEach {
+        extensions.configure(JavaPluginExtension) { ext ->
+            ext.toolchain {
+                languageVersion = JavaLanguageVersion.of((property('java_version') as String).toInteger())
+            }
+            ext.withSourcesJar()
+        }
+    }
+}
+
+tasks.register('checkAll') {
+    group = 'verification'
+    description = 'Runs lint and unit tests for every module.'
+    dependsOn(subprojects.collect { it.tasks.matching { task -> task.name == 'check' } })
+}
