@@ -21,17 +21,26 @@ public final class ClusterSnapshotRenderer {
         Objects.requireNonNull(pattern, "pattern");
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int clusterSize = pattern.clusterSize();
-        int[][] regionMap = pattern.regionMap();
-        boolean[][] outlineMask = pattern.outlineMask();
         List<RegionDefinition> regions = pattern.regions();
         int[] regionColors = computeRegionColors(regions);
-        for (int y = 0; y < height; y++) {
-            int cy = Math.floorMod(y, clusterSize);
-            for (int x = 0; x < width; x++) {
-                int cx = Math.floorMod(x, clusterSize);
-                int regionIndex = regionMap[cy][cx];
-                int argb = outlineMask[cy][cx] ? Color.BLACK.getRGB() : regionColors[regionIndex];
-                image.setRGB(x, y, argb);
+        int tilesX = (int) Math.ceil(width / (double) clusterSize);
+        int tilesY = (int) Math.ceil(height / (double) clusterSize);
+        for (int tileY = 0; tileY < tilesY; tileY++) {
+            for (int tileX = 0; tileX < tilesX; tileX++) {
+                ClusterMapGenerator.TilePattern tile = pattern.tile(tileX, tileY);
+                int startX = tileX * clusterSize;
+                int startY = tileY * clusterSize;
+                int maxX = Math.min(startX + clusterSize, width);
+                int maxY = Math.min(startY + clusterSize, height);
+                for (int y = startY; y < maxY; y++) {
+                    int cy = y - startY;
+                    for (int x = startX; x < maxX; x++) {
+                        int cx = x - startX;
+                        int regionIndex = tile.regionMap()[cy][cx];
+                        int argb = tile.outlineMask()[cy][cx] ? Color.BLACK.getRGB() : regionColors[regionIndex];
+                        image.setRGB(x, y, argb);
+                    }
+                }
             }
         }
         return image;
