@@ -10,9 +10,9 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Produces tiled cluster maps using deterministic pseudo-random noise. Each cluster is treated as a
- * square tile that can be repeated across a larger surface while keeping region adjacency and blob
- * like shapes based on the world seed.
+ * Produces cluster maps using deterministic pseudo-random noise. Region anchors are placed relative
+ * to jittered cluster sites so Voronoi ownership and organic warping can flow without rigid square
+ * tiling artifacts while preserving adjacency hints.
  */
 public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.12;
@@ -38,11 +38,14 @@ public final class ClusterMapGenerator {
         return Math.max(size, 96);
     }
 
-    private List<Point2D.Double> placeAnchors(List<RegionDefinition> regions, int clusterSize, long seed) {
+    private List<Point2D.Double> placeAnchors(List<RegionDefinition> regions, int clusterSize, long seed,
+                                              double centerX, double centerY) {
         Map<String, Point2D.Double> lookup = new HashMap<>();
         List<Point2D.Double> anchors = new ArrayList<>(regions.size());
         Random random = new Random(seed * 31 + 17);
         double padding = clusterSize * EDGE_PADDING_RATIO;
+        double offsetX = centerX - clusterSize * 0.5;
+        double offsetY = centerY - clusterSize * 0.5;
         for (RegionDefinition region : regions) {
             Point2D.Double anchor = null;
             for (String adjacency : region.adjacentTo()) {
@@ -52,14 +55,14 @@ public final class ClusterMapGenerator {
                     double radius = clusterSize * ADJACENT_DISTANCE_RATIO;
                     double x = clamp(base.x + Math.cos(angle) * radius, padding, clusterSize - padding);
                     double y = clamp(base.y + Math.sin(angle) * radius, padding, clusterSize - padding);
-                    anchor = new Point2D.Double(x, y);
+                    anchor = new Point2D.Double(offsetX + x, offsetY + y);
                     break;
                 }
             }
             if (anchor == null) {
                 double x = padding + random.nextDouble() * (clusterSize - padding * 2);
                 double y = padding + random.nextDouble() * (clusterSize - padding * 2);
-                anchor = new Point2D.Double(x, y);
+                anchor = new Point2D.Double(offsetX + x, offsetY + y);
             }
             lookup.put(region.name(), anchor);
             anchors.add(anchor);
@@ -177,11 +180,15 @@ public final class ClusterMapGenerator {
     public TilePattern generateTilePattern(List<RegionDefinition> regions, int clusterSize, long seed,
                                            int tileX, int tileY) {
         long tileSeed = mixSeed(seed, tileX, tileY);
-        List<Point2D.Double> anchors = placeAnchors(regions, clusterSize, tileSeed);
+        double centerX = tileX * (double) clusterSize + clusterSize * 0.5;
+        double centerY = tileY * (double) clusterSize + clusterSize * 0.5;
+        List<Point2D.Double> anchors = placeAnchors(regions, clusterSize, tileSeed, centerX, centerY);
         int[][] map = new int[clusterSize][clusterSize];
         for (int y = 0; y < clusterSize; y++) {
             for (int x = 0; x < clusterSize; x++) {
-                map[y][x] = resolveRegion(x, y, clusterSize, anchors, regions, tileSeed);
+                int worldX = (int) Math.floor(centerX - clusterSize * 0.5 + x);
+                int worldY = (int) Math.floor(centerY - clusterSize * 0.5 + y);
+                map[y][x] = resolveRegion(worldX, worldY, clusterSize, anchors, regions, tileSeed);
             }
         }
         boolean[][] outlines = computeOutlines(map);
@@ -258,6 +265,18 @@ public final class ClusterMapGenerator {
 
         public TilePattern tileForSite(ClusterSite site) {
             return new ClusterMapGenerator().generateTilePattern(regions, clusterSize, seed, site.cellX(), site.cellY());
+        }
+
+        public List<Point2D.Double> anchorsForSite(Map<Long, List<Point2D.Double>> cache, ClusterSite site) {
+            Objects.requireNonNull(cache, "cache");
+            Objects.requireNonNull(site, "site");
+            return cache.computeIfAbsent(site.key(), key -> new ClusterMapGenerator()
+                .placeAnchors(regions, clusterSize, site.siteSeed(), site.centerX(), site.centerY()));
+        }
+
+        public int regionForSite(Map<Long, List<Point2D.Double>> anchorCache, ClusterSite site, int x, int y) {
+            List<Point2D.Double> anchors = anchorsForSite(anchorCache, site);
+            return new ClusterMapGenerator().resolveRegion(x, y, clusterSize, anchors, regions, seed);
         }
     }
 
