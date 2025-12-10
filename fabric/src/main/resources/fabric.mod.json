@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "terrasect",
+  "version": "${version}",
+  "name": "Terrasect",
+  "description": "Multi-loader mod foundation for Terrasect",
+  "authors": ["Terrasect Team"],
+  "contact": {
+    "sources": "https://example.com/terrasect"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.terrasect.fabric.TerrasectFabric"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": ">=${minecraft_version}",
+    "java": ">=${java_version}"
+  }
+}

@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = property('archives_base_name')
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.neoforged.net/releases' }
+}
+
+dependencies {
+    implementation project(':common')
+    implementation "net.neoforged:neoforge:${property('neoforge_version')}"
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'terrasect',
+                'Specification-Vendor'    : 'terrasect',
+                'Specification-Version'   : project.version,
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : 'terrasect'
+        ])
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+tasks.withType(ProcessResources).configureEach {
+    filesMatching('META-INF/mods.toml') {
+        expand(rootProject.properties)
+    }
+}

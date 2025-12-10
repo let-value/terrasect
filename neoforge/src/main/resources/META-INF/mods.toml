@@ -1,0 +1,19 @@
+modLoader="javafml"
+loaderVersion="[1, )"
+license="MIT"
+issueTrackerURL="https://example.com/terrasect/issues"
+
+[[mods]]
+modId="terrasect"
+version="${mod_version}"
+displayName="Terrasect"
+description='''
+Multi-loader Terrasect mod foundation for Fabric and NeoForge.
+'''
+
+authors=["Terrasect Team"]
+
+dependencies = [
+  { modId="minecraft", type="required", versionRange=">=${minecraft_version}" },
+  { modId="neoforge", type="required", versionRange=">=${neoforge_version}" }
+]

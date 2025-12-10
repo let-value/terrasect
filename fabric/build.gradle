@@ -1,0 +1,59 @@
+plugins {
+    id 'fabric-loom' version '1.8.13'
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${property('minecraft_version')}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
+
+    implementation project(':common')
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        create('terrasect') {
+            sourceSet(sourceSets.main)
+            sourceSet(project(':common').sourceSets.main)
+        }
+    }
+    runs {
+        client {
+            ideConfigGenerated true
+            runDir "runs/fabric-client"
+            client()
+        }
+        server {
+            ideConfigGenerated true
+            runDir "runs/fabric-server"
+            server()
+        }
+        testmodClient {
+            ideConfigGenerated true
+        }
+    }
+}
+
+processResources {
+    inputs.properties([
+        version: project.version,
+        minecraft_version: project.property('minecraft_version'),
+        fabric_loader_version: project.property('fabric_loader_version'),
+        java_version: project.property('java_version')
+    ])
+    filesMatching("fabric.mod.json") {
+        expand([
+            version: project.version,
+            minecraft_version: project.property('minecraft_version'),
+            fabric_loader_version: project.property('fabric_loader_version'),
+            java_version: project.property('java_version')
+        ])
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
