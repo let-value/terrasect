@@ -21,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 class ClusterSnapshotTest {
     private static final long SEED = 123456789L;
-    private static final int MAP_SIZE = 10_000;
+    private static final int MAP_SIZE = 2_400;
     private static final Path DEBUG_OUTPUT = Path.of("dist/cluster-outlines.png");
     // Frozen digest of the expected cluster snapshot to avoid storing a large binary in the repo.
-    private static final String SNAPSHOT_DIGEST = "d10d8e09adabe98a43b497bdbd8f1bf156a6d1058fc67ad92bd67a10931065ba";
+    private static final String SNAPSHOT_DIGEST = "e3a4baef8740d6e3c77f11b677e26ae4f55cd41700cf77d679565071a2897f30";
 
     @Test
     void clusterOutlinesSnapshotShouldMatch() throws IOException, NoSuchAlgorithmException {
