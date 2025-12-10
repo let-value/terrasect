@@ -4,15 +4,15 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 
 /**
- * Produces organic cluster maps using deterministic pseudo-random noise. Clusters are placed with a
- * Voronoi-style spread and populated with soft-edged regional blobs derived from the world seed.
+ * Produces organic cluster maps using deterministic pseudo-random noise. Clusters are carved out of
+ * flowing basins in a ridged noise field instead of rigid Voronoi cells, then populated with
+ * soft-edged regional blobs derived from the world seed.
  *
- * <p>The cluster a coordinate belongs to is derived directly from math (jittered Voronoi sites) so
- * a caller can identify the owning cluster before doing any heavier per-cluster work, which mirrors
- * how chunk-based world generation streams in Minecraft.</p>
+ * <p>The cluster a coordinate belongs to is derived directly from math (noise basins resolved on
+ * the fly) so a caller can identify the owning cluster before doing any heavier per-cluster work,
+ * which mirrors how chunk-based world generation streams in Minecraft.</p>
  */
 public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.12;
@@ -21,6 +21,11 @@ public final class ClusterMapGenerator {
     private static final double WARP_STRENGTH = 0.09;
     private static final double WARP_SCALE = 7.0;
     private static final double CELL_JITTER_RATIO = 0.38;
+    private static final double BASIN_STEP_RATIO = 0.55;
+    private static final double BASIN_STEP_FALLOFF = 0.5;
+    private static final double BASIN_PULL = 0.85;
+    private static final double BASIN_FIELD_SCALE = 0.8;
+    private static final int BASIN_RELAX_STEPS = 3;
 
     public ClusterPattern generate(ClusterDefinition definition, long seed) {
         Objects.requireNonNull(definition, "definition");
@@ -158,34 +163,48 @@ public final class ClusterMapGenerator {
     }
 
     private ClusterSite locateSite(int clusterSize, long seed, int x, int y) {
-        int cellX = Math.floorDiv(x, clusterSize);
-        int cellY = Math.floorDiv(y, clusterSize);
-        ClusterSite nearest = null;
-        double best = Double.MAX_VALUE;
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                int neighborX = cellX + dx;
-                int neighborY = cellY + dy;
-                ClusterSite site = siteForCell(clusterSize, seed, neighborX, neighborY);
-                double distance = site.squaredDistanceTo(x, y);
-                if (distance < best) {
-                    best = distance;
-                    nearest = site;
+        double step = Math.max(clusterSize * BASIN_STEP_RATIO, 8.0);
+        double cx = x;
+        double cy = y;
+        for (int i = 0; i < BASIN_RELAX_STEPS; i++) {
+            double bestX = cx;
+            double bestY = cy;
+            double bestValue = basinNoise(seed, clusterSize, cx, cy);
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (Math.abs(dx) + Math.abs(dy) != 1) {
+                        continue;
+                    }
+                    double nx = cx + dx * step;
+                    double ny = cy + dy * step;
+                    double candidate = basinNoise(seed, clusterSize, nx, ny);
+                    if (candidate < bestValue) {
+                        bestValue = candidate;
+                        bestX = nx;
+                        bestY = ny;
+                    }
                 }
             }
+            cx = lerp(cx, bestX, BASIN_PULL);
+            cy = lerp(cy, bestY, BASIN_PULL);
+            step *= BASIN_STEP_FALLOFF;
         }
-        return Objects.requireNonNull(nearest);
+        int anchorX = (int) Math.round(cx);
+        int anchorY = (int) Math.round(cy);
+        long siteSeed = mixSeed(seed, anchorX, anchorY);
+        int cellX = Math.floorDiv(anchorX, clusterSize);
+        int cellY = Math.floorDiv(anchorY, clusterSize);
+        return new ClusterSite(cellX, cellY, anchorX, anchorY, siteSeed);
     }
 
-    private ClusterSite siteForCell(int clusterSize, long seed, int cellX, int cellY) {
-        long cellSeed = mixSeed(seed, cellX, cellY);
-        Random random = new Random(cellSeed * 6364136223846793005L + 1442695040888963407L);
-        double jitter = clusterSize * CELL_JITTER_RATIO;
-        double baseX = cellX * (double) clusterSize + clusterSize * 0.5;
-        double baseY = cellY * (double) clusterSize + clusterSize * 0.5;
-        double x = baseX + (random.nextDouble() - 0.5) * jitter;
-        double y = baseY + (random.nextDouble() - 0.5) * jitter;
-        return new ClusterSite(cellX, cellY, x, y, cellSeed);
+    private double basinNoise(long seed, int clusterSize, double x, double y) {
+        double scale = BASIN_FIELD_SCALE / clusterSize;
+        double nx = x * scale;
+        double ny = y * scale;
+        double ridge = 1.0 - Math.abs(fbm(seed + 211, nx * 1.7, ny * 1.7, 3) * 2.0 - 1.0);
+        double base = fbm(seed + 389, nx, ny, 4);
+        double flow = fbm(seed - 947, nx * 0.6, ny * 0.6, 2);
+        return base * 0.55 + ridge * 0.35 + flow * 0.10;
     }
 
     private ResolvedSite resolveSite(ClusterSite site, List<RegionDefinition> regions, int clusterSize) {
