@@ -21,6 +21,7 @@ public final class ClusterMapGenerator {
     private static final double AREA_SCALAR = 1.35;
     private static final double WARP_STRENGTH = 0.09;
     private static final double WARP_SCALE = 7.0;
+    private static final double CELL_JITTER_RATIO = 0.38;
 
     public ClusterPattern generate(ClusterDefinition definition, long seed) {
         Objects.requireNonNull(definition, "definition");
@@ -197,6 +198,44 @@ public final class ClusterMapGenerator {
         return hash;
     }
 
+    private ClusterSite locateSite(int clusterSize, long seed, int x, int y, Map<Long, ClusterSite> cache) {
+        int cellX = Math.floorDiv(x, clusterSize);
+        int cellY = Math.floorDiv(y, clusterSize);
+        ClusterSite nearest = null;
+        double best = Double.MAX_VALUE;
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                int neighborX = cellX + dx;
+                int neighborY = cellY + dy;
+                ClusterSite site = siteForCell(clusterSize, seed, neighborX, neighborY, cache);
+                double distance = site.squaredDistanceTo(x, y);
+                if (distance < best) {
+                    best = distance;
+                    nearest = site;
+                }
+            }
+        }
+        return Objects.requireNonNull(nearest);
+    }
+
+    private ClusterSite siteForCell(int clusterSize, long seed, int cellX, int cellY, Map<Long, ClusterSite> cache) {
+        long key = (((long) cellX) << 32) ^ (cellY & 0xFFFFFFFFL);
+        ClusterSite cached = cache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        long cellSeed = mixSeed(seed, cellX, cellY);
+        Random random = new Random(cellSeed * 6364136223846793005L + 1442695040888963407L);
+        double jitter = clusterSize * CELL_JITTER_RATIO;
+        double baseX = cellX * (double) clusterSize + clusterSize * 0.5;
+        double baseY = cellY * (double) clusterSize + clusterSize * 0.5;
+        double x = baseX + (random.nextDouble() - 0.5) * jitter;
+        double y = baseY + (random.nextDouble() - 0.5) * jitter;
+        ClusterSite site = new ClusterSite(cellX, cellY, x, y, cellSeed);
+        cache.put(key, site);
+        return site;
+    }
+
     public record ClusterPattern(int clusterSize, List<RegionDefinition> regions, long seed) {
         public ClusterPattern {
             Objects.requireNonNull(regions, "regions");
@@ -211,12 +250,33 @@ public final class ClusterMapGenerator {
             int cy = Math.floorMod(y, clusterSize);
             return new Point(cx, cy);
         }
+
+        public ClusterSite siteForPoint(Map<Long, ClusterSite> cache, int x, int y) {
+            Objects.requireNonNull(cache, "cache");
+            return new ClusterMapGenerator().locateSite(clusterSize, seed, x, y, cache);
+        }
+
+        public TilePattern tileForSite(ClusterSite site) {
+            return new ClusterMapGenerator().generateTilePattern(regions, clusterSize, seed, site.cellX(), site.cellY());
+        }
     }
 
     public record TilePattern(int[][] regionMap, boolean[][] outlineMask) {
         public TilePattern {
             Objects.requireNonNull(regionMap, "regionMap");
             Objects.requireNonNull(outlineMask, "outlineMask");
+        }
+    }
+
+    public record ClusterSite(int cellX, int cellY, double centerX, double centerY, long siteSeed) {
+        public double squaredDistanceTo(double x, double y) {
+            double dx = x - centerX;
+            double dy = y - centerY;
+            return dx * dx + dy * dy;
+        }
+
+        public long key() {
+            return (((long) cellX) << 32) ^ (cellY & 0xFFFFFFFFL);
         }
     }
 }

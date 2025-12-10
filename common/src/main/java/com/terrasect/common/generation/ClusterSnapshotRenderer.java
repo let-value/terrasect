@@ -5,8 +5,11 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -23,27 +26,71 @@ public final class ClusterSnapshotRenderer {
         int clusterSize = pattern.clusterSize();
         List<RegionDefinition> regions = pattern.regions();
         int[] regionColors = computeRegionColors(regions);
-        int tilesX = (int) Math.ceil(width / (double) clusterSize);
-        int tilesY = (int) Math.ceil(height / (double) clusterSize);
-        for (int tileY = 0; tileY < tilesY; tileY++) {
-            for (int tileX = 0; tileX < tilesX; tileX++) {
-                ClusterMapGenerator.TilePattern tile = pattern.tile(tileX, tileY);
-                int startX = tileX * clusterSize;
-                int startY = tileY * clusterSize;
-                int maxX = Math.min(startX + clusterSize, width);
-                int maxY = Math.min(startY + clusterSize, height);
-                for (int y = startY; y < maxY; y++) {
-                    int cy = y - startY;
-                    for (int x = startX; x < maxX; x++) {
-                        int cx = x - startX;
-                        int regionIndex = tile.regionMap()[cy][cx];
-                        int argb = tile.outlineMask()[cy][cx] ? Color.BLACK.getRGB() : regionColors[regionIndex];
-                        image.setRGB(x, y, argb);
+        Map<Long, ClusterMapGenerator.TilePattern> tileCache = new LinkedHashMap<>(32, 0.75f, true) {
+            private static final int MAX_ENTRIES = 48;
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Long, ClusterMapGenerator.TilePattern> eldest) {
+                return size() > MAX_ENTRIES;
+            }
+        };
+        Map<Long, ClusterMapGenerator.ClusterSite> siteCache = new HashMap<>();
+        ClusterMapGenerator.ClusterSite[] nextRowSites = new ClusterMapGenerator.ClusterSite[width];
+        ClusterMapGenerator.ClusterSite[] currentRowSites = new ClusterMapGenerator.ClusterSite[width];
+
+        for (int y = 0; y < height; y++) {
+            currentRowSites = nextRowSites;
+            if (y < height - 1) {
+                nextRowSites = computeSitesForRow(pattern, siteCache, width, y + 1);
+            } else {
+                nextRowSites = new ClusterMapGenerator.ClusterSite[width];
+            }
+            if (currentRowSites[0] == null) {
+                currentRowSites = computeSitesForRow(pattern, siteCache, width, y);
+            }
+
+            for (int x = 0; x < width; x++) {
+                ClusterMapGenerator.ClusterSite site = currentRowSites[x];
+                ClusterMapGenerator.TilePattern tile = tileCache.computeIfAbsent(site.key(), key -> pattern.tileForSite(site));
+                int localX = clampToTile(x, site.centerX(), clusterSize);
+                int localY = clampToTile(y, site.centerY(), clusterSize);
+                int regionIndex = tile.regionMap()[localY][localX];
+                boolean outline = tile.outlineMask()[localY][localX];
+                if (!outline) {
+                    if (x + 1 < width && currentRowSites[x + 1] != site) {
+                        outline = true;
+                    }
+                    if (y + 1 < height && nextRowSites[x] != null && nextRowSites[x] != site) {
+                        outline = true;
                     }
                 }
+                int argb = outline ? Color.BLACK.getRGB() : regionColors[regionIndex];
+                image.setRGB(x, y, argb);
             }
         }
         return image;
+    }
+
+    private static ClusterMapGenerator.ClusterSite[] computeSitesForRow(ClusterMapGenerator.ClusterPattern pattern,
+                                                                        Map<Long, ClusterMapGenerator.ClusterSite> cache,
+                                                                        int width, int y) {
+        ClusterMapGenerator.ClusterSite[] row = new ClusterMapGenerator.ClusterSite[width];
+        for (int x = 0; x < width; x++) {
+            row[x] = pattern.siteForPoint(cache, x, y);
+        }
+        return row;
+    }
+
+    private static int clampToTile(int worldCoord, double centerCoord, int clusterSize) {
+        double local = worldCoord - centerCoord + clusterSize / 2.0;
+        int coord = (int) Math.floor(local);
+        if (coord < 0) {
+            return 0;
+        }
+        if (coord >= clusterSize) {
+            return clusterSize - 1;
+        }
+        return coord;
     }
 
     public static byte[] toPngBytes(BufferedImage image) throws IOException {
