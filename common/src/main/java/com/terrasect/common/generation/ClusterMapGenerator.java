@@ -21,11 +21,11 @@ public final class ClusterMapGenerator {
     private static final double WARP_STRENGTH = 0.09;
     private static final double WARP_SCALE = 7.0;
     private static final double CELL_JITTER_RATIO = 0.38;
-    private static final double BASIN_STEP_RATIO = 0.55;
-    private static final double BASIN_STEP_FALLOFF = 0.5;
-    private static final double BASIN_PULL = 0.85;
-    private static final double BASIN_FIELD_SCALE = 0.8;
-    private static final int BASIN_RELAX_STEPS = 3;
+    private static final double BASIN_STEP_RATIO = 0.75;
+    private static final double BASIN_STEP_FALLOFF = 0.6;
+    private static final double BASIN_PULL = 0.9;
+    private static final double BASIN_FIELD_SCALE = 0.08;
+    private static final int BASIN_RELAX_STEPS = 4;
 
     public ClusterPattern generate(ClusterDefinition definition, long seed) {
         Objects.requireNonNull(definition, "definition");
