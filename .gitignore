@@ -50,3 +50,6 @@ fabric/runs
 
 # MacOS
 .DS_Store
+
+# artifacts
+common/dist

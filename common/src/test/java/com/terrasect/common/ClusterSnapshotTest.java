@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ClusterSnapshotTest {
     private static final long SEED = 123456789L;
     private static final int MAP_SIZE = 10_000;
-    private static final Path DEBUG_OUTPUT = Path.of("build/test-snapshots/cluster-outlines.png");
+    private static final Path DEBUG_OUTPUT = Path.of("dist/cluster-outlines.png");
     // Frozen digest of the expected cluster snapshot to avoid storing a large binary in the repo.
     private static final String SNAPSHOT_DIGEST = "d10d8e09adabe98a43b497bdbd8f1bf156a6d1058fc67ad92bd67a10931065ba";
 
@@ -41,9 +41,11 @@ class ClusterSnapshotTest {
         BufferedImage image = ClusterSnapshotRenderer.render(pattern, MAP_SIZE, MAP_SIZE);
         byte[] png = ClusterSnapshotRenderer.toPngBytes(image);
         String digest = sha256(png);
+
+        Files.createDirectories(DEBUG_OUTPUT.getParent());
+        ImageIO.write(image, "png", DEBUG_OUTPUT.toFile());
+
         if (!digest.equals(SNAPSHOT_DIGEST)) {
-            Files.createDirectories(DEBUG_OUTPUT.getParent());
-            ImageIO.write(image, "png", DEBUG_OUTPUT.toFile());
             fail("Cluster snapshot differed; wrote debug image to " + DEBUG_OUTPUT.toAbsolutePath());
         }
         assertEquals(SNAPSHOT_DIGEST, digest, "Snapshot digest should be stable");
