@@ -43,6 +43,7 @@ debug/
 
 # Fabric
 .fabric/
+fabric/runs
 
 # NeoForge
 .neoforge/
