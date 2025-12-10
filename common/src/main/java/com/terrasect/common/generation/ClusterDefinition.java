@@ -38,4 +38,8 @@ public final class ClusterDefinition {
     public int clusterSize() {
         return clusterSize;
     }
+
+    public long totalTargetArea() {
+        return regions.stream().mapToLong(RegionDefinition::targetArea).sum();
+    }
 }

@@ -19,6 +19,7 @@ public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.12;
     private static final double JITTER_SCALE = 0.5;
     private static final double AREA_SCALAR = 1.35;
+    private static final double CLUSTER_AREA_RANDOMNESS = 0.22;
     private static final double WARP_STRENGTH = 0.09;
     private static final double WARP_SCALE = 7.0;
     private static final double CELL_JITTER_RATIO = 0.38;
@@ -33,13 +34,21 @@ public final class ClusterMapGenerator {
         if (clusterSize == 0) {
             clusterSize = autoSize(definition.regions());
         }
-        return new ClusterPattern(clusterSize, definition.regions(), seed);
+        return new ClusterPattern(clusterSize, definition.regions(), definition.totalTargetArea(), seed);
     }
 
     private int autoSize(List<RegionDefinition> regions) {
         long total = regions.stream().mapToLong(RegionDefinition::targetArea).sum();
         int size = (int) Math.ceil(Math.sqrt(total * AREA_SCALAR));
         return Math.max(size, 96);
+    }
+
+    private double clusterRadiusScale(long targetClusterArea, int clusterSize, long seed, int cellX, int cellY) {
+        double normalizedArea = targetClusterArea / (double) (clusterSize * clusterSize);
+        double baseScale = Math.sqrt(Math.max(normalizedArea, 0.0001));
+        double wobble = (valueNoise(seed ^ 0x9E3779B97F4A7C15L, cellX, cellY) - 0.5) * 2.0 * CLUSTER_AREA_RANDOMNESS;
+        double scale = baseScale * (1.0 + wobble);
+        return Math.max(0.35, scale);
     }
 
     private Point2D.Double anchorForRegion(RegionDefinition region, ClusterSite site, int clusterSize,
@@ -162,7 +171,7 @@ public final class ClusterMapGenerator {
         return hash;
     }
 
-    private ClusterSite locateSite(int clusterSize, long seed, int x, int y) {
+    private ClusterSite locateSite(int clusterSize, long seed, long targetClusterArea, int x, int y) {
         int cellX = Math.floorDiv(x, clusterSize);
         int cellY = Math.floorDiv(y, clusterSize);
         ClusterSite strongest = null;
@@ -172,7 +181,7 @@ public final class ClusterMapGenerator {
             for (int dx = -radius; dx <= radius; dx++) {
                 int neighborX = cellX + dx;
                 int neighborY = cellY + dy;
-                ClusterSite site = siteForCell(clusterSize, seed, neighborX, neighborY);
+                ClusterSite site = siteForCell(clusterSize, seed, targetClusterArea, neighborX, neighborY);
                 double influence = influence(site, x, y, clusterSize);
                 if (influence > strongestInfluence) {
                     strongestInfluence = influence;
@@ -183,7 +192,7 @@ public final class ClusterMapGenerator {
         return Objects.requireNonNull(strongest);
     }
 
-    private ClusterSite siteForCell(int clusterSize, long seed, int cellX, int cellY) {
+    private ClusterSite siteForCell(int clusterSize, long seed, long targetClusterArea, int cellX, int cellY) {
         long cellSeed = mixSeed(seed, cellX, cellY);
         Random random = new Random(cellSeed * 6364136223846793005L + 1442695040888963407L);
         double jitter = clusterSize * CELL_JITTER_RATIO;
@@ -191,16 +200,17 @@ public final class ClusterMapGenerator {
         double baseY = cellY * (double) clusterSize + clusterSize * 0.5;
         double x = baseX + (random.nextDouble() - 0.5) * jitter;
         double y = baseY + (random.nextDouble() - 0.5) * jitter;
+        double radiusScale = clusterRadiusScale(targetClusterArea, clusterSize, seed, cellX, cellY);
         double weight = 1.0 + (random.nextDouble() - 0.5) * INFLUENCE_WEIGHT_NOISE;
         double orientation = random.nextDouble() * Math.PI * 2.0;
         double anisotropy = 1.0 + (random.nextDouble() - 0.5) * INFLUENCE_ANISO_NOISE;
-        return new ClusterSite(cellX, cellY, x, y, cellSeed, weight, orientation, anisotropy);
+        return new ClusterSite(cellX, cellY, x, y, cellSeed, radiusScale, weight, orientation, anisotropy);
     }
 
     private double influence(ClusterSite site, double x, double y, int clusterSize) {
         double dx = x - site.centerX();
         double dy = y - site.centerY();
-        double radius = clusterSize * INFLUENCE_RADIUS_RATIO;
+        double radius = clusterSize * INFLUENCE_RADIUS_RATIO * site.radiusScale();
         double cos = Math.cos(site.orientation());
         double sin = Math.sin(site.orientation());
         double rx = dx * cos + dy * sin;
@@ -220,24 +230,24 @@ public final class ClusterMapGenerator {
         return new ResolvedSite(site, anchors);
     }
 
-    public record ClusterPattern(int clusterSize, List<RegionDefinition> regions, long seed) {
+    public record ClusterPattern(int clusterSize, List<RegionDefinition> regions, long targetClusterArea, long seed) {
         public ClusterPattern {
             Objects.requireNonNull(regions, "regions");
         }
 
         public ClusterSite siteForPoint(int x, int y) {
-            return new ClusterMapGenerator().locateSite(clusterSize, seed, x, y);
+            return new ClusterMapGenerator().locateSite(clusterSize, seed, targetClusterArea, x, y);
         }
 
         public int regionForPoint(int x, int y) {
             ClusterMapGenerator generator = new ClusterMapGenerator();
-            ClusterSite site = generator.locateSite(clusterSize, seed, x, y);
+            ClusterSite site = generator.locateSite(clusterSize, seed, targetClusterArea, x, y);
             return generator.resolveRegion(x, y, clusterSize, site, regions, site.siteSeed());
         }
 
         public ClusterLocation locateClusterAndRegion(int x, int y) {
             ClusterMapGenerator generator = new ClusterMapGenerator();
-            ClusterSite site = generator.locateSite(clusterSize, seed, x, y);
+            ClusterSite site = generator.locateSite(clusterSize, seed, targetClusterArea, x, y);
             ResolvedSite resolved = generator.resolveSite(site, regions, clusterSize);
             int regionIndex = generator.resolveRegion(
                 x,
@@ -254,7 +264,7 @@ public final class ClusterMapGenerator {
     }
 
     public record ClusterSite(int cellX, int cellY, double centerX, double centerY, long siteSeed,
-                              double weight, double orientation, double anisotropy) {
+                              double radiusScale, double weight, double orientation, double anisotropy) {
         public double squaredDistanceTo(double x, double y) {
             double dx = x - centerX;
             double dy = y - centerY;

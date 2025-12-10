@@ -24,7 +24,7 @@ class ClusterSnapshotTest {
     private static final int MAP_SIZE = 3_000;
     private static final Path DEBUG_OUTPUT = Path.of("dist/cluster-outlines.png");
     // Frozen digest of the expected cluster snapshot to avoid storing a large binary in the repo.
-    private static final String SNAPSHOT_DIGEST = "f601d574ea3adb6af53868453c296236069465132a6b1ba6fabcffa7f2cd229b";
+    private static final String SNAPSHOT_DIGEST = "a751fcaeadb5727c4784e1de196ca3b47b0904f4c504e2fcdfaa2f82bb55f3f8";
 
     @Test
     void clusterOutlinesSnapshotShouldMatch() throws IOException, NoSuchAlgorithmException {
