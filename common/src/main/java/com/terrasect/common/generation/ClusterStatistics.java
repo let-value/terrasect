@@ -20,6 +20,11 @@ public final class ClusterStatistics {
     private final double samplesPerSiteStdDev;
     private final double edgeChangeRatio;
     private final double meanSquaredDistanceToSite;
+    private final int uniqueRegions;
+    private final long minSamplesPerRegion;
+    private final long maxSamplesPerRegion;
+    private final double meanSamplesPerRegion;
+    private final double samplesPerRegionStdDev;
 
     private ClusterStatistics(
         int width,
@@ -31,7 +36,12 @@ public final class ClusterStatistics {
         double meanSamplesPerSite,
         double samplesPerSiteStdDev,
         double edgeChangeRatio,
-        double meanSquaredDistanceToSite
+        double meanSquaredDistanceToSite,
+        int uniqueRegions,
+        long minSamplesPerRegion,
+        long maxSamplesPerRegion,
+        double meanSamplesPerRegion,
+        double samplesPerRegionStdDev
     ) {
         this.width = width;
         this.height = height;
@@ -43,6 +53,11 @@ public final class ClusterStatistics {
         this.samplesPerSiteStdDev = samplesPerSiteStdDev;
         this.edgeChangeRatio = edgeChangeRatio;
         this.meanSquaredDistanceToSite = meanSquaredDistanceToSite;
+        this.uniqueRegions = uniqueRegions;
+        this.minSamplesPerRegion = minSamplesPerRegion;
+        this.maxSamplesPerRegion = maxSamplesPerRegion;
+        this.meanSamplesPerRegion = meanSamplesPerRegion;
+        this.samplesPerRegionStdDev = samplesPerRegionStdDev;
     }
 
     /**
@@ -50,7 +65,8 @@ public final class ClusterStatistics {
         */
     public static ClusterStatistics gather(ClusterMapGenerator.ClusterPattern pattern, int width, int height) {
         long samples = (long) width * height;
-        Map<Long, Long> counts = new HashMap<>();
+        Map<Long, Long> siteCounts = new HashMap<>();
+        Map<RegionKey, Long> regionCounts = new HashMap<>();
 
         long[] previousRow = new long[width];
         boolean hasPreviousRow = false;
@@ -61,9 +77,11 @@ public final class ClusterStatistics {
         for (int y = 0; y < height; y++) {
             long lastKey = Long.MIN_VALUE;
             for (int x = 0; x < width; x++) {
-                ClusterMapGenerator.ClusterSite site = pattern.siteForPoint(x, y);
+                ClusterMapGenerator.ClusterLocation location = pattern.locateClusterAndRegion(x, y);
+                ClusterMapGenerator.ClusterSite site = location.site();
                 long key = site.key();
-                counts.merge(key, 1L, Long::sum);
+                siteCounts.merge(key, 1L, Long::sum);
+                regionCounts.merge(new RegionKey(key, location.regionIndex()), 1L, Long::sum);
 
                 if (x > 0 && key != lastKey) {
                     horizontalTransitions++;
@@ -79,19 +97,8 @@ public final class ClusterStatistics {
             hasPreviousRow = true;
         }
 
-        int uniqueSites = counts.size();
-        long minSamplesPerSite = Long.MAX_VALUE;
-        long maxSamplesPerSite = Long.MIN_VALUE;
-        double sumSquares = 0.0;
-        for (long count : counts.values()) {
-            minSamplesPerSite = Math.min(minSamplesPerSite, count);
-            maxSamplesPerSite = Math.max(maxSamplesPerSite, count);
-            sumSquares += (double) count * count;
-        }
-
-        double meanSamplesPerSite = counts.isEmpty() ? 0.0 : (double) samples / uniqueSites;
-        double variance = counts.isEmpty() ? 0.0 : sumSquares / uniqueSites - meanSamplesPerSite * meanSamplesPerSite;
-        double stdDev = Math.sqrt(Math.max(variance, 0.0));
+        StatsSummary siteSummary = summarizeCounts(siteCounts, samples);
+        StatsSummary regionSummary = summarizeCounts(regionCounts, samples);
 
         long adjacencyPairs = (long) (width - 1) * height + (long) width * (height - 1);
         double edgeChangeRatio = adjacencyPairs == 0 ? 0.0 : (horizontalTransitions + verticalTransitions) / (double) adjacencyPairs;
@@ -101,14 +108,37 @@ public final class ClusterStatistics {
             width,
             height,
             samples,
-            uniqueSites,
-            counts.isEmpty() ? 0L : minSamplesPerSite,
-            counts.isEmpty() ? 0L : maxSamplesPerSite,
-            meanSamplesPerSite,
-            stdDev,
+            siteSummary.unique,
+            siteSummary.min,
+            siteSummary.max,
+            siteSummary.mean,
+            siteSummary.stdDev,
             edgeChangeRatio,
-            meanSquaredDistanceToSite
+            meanSquaredDistanceToSite,
+            regionSummary.unique,
+            regionSummary.min,
+            regionSummary.max,
+            regionSummary.mean,
+            regionSummary.stdDev
         );
+    }
+
+    private static StatsSummary summarizeCounts(Map<?, Long> counts, long samples) {
+        long min = Long.MAX_VALUE;
+        long max = Long.MIN_VALUE;
+        double sumSquares = 0.0;
+        for (long count : counts.values()) {
+            min = Math.min(min, count);
+            max = Math.max(max, count);
+            sumSquares += (double) count * count;
+        }
+
+        int unique = counts.size();
+        double mean = unique == 0 ? 0.0 : (double) samples / unique;
+        double variance = unique == 0 ? 0.0 : sumSquares / unique - mean * mean;
+        double stdDev = Math.sqrt(Math.max(variance, 0.0));
+
+        return new StatsSummary(unique, unique == 0 ? 0L : min, unique == 0 ? 0L : max, mean, stdDev);
     }
 
     public int width() {
@@ -151,6 +181,26 @@ public final class ClusterStatistics {
         return meanSquaredDistanceToSite;
     }
 
+    public int uniqueRegions() {
+        return uniqueRegions;
+    }
+
+    public long minSamplesPerRegion() {
+        return minSamplesPerRegion;
+    }
+
+    public long maxSamplesPerRegion() {
+        return maxSamplesPerRegion;
+    }
+
+    public double meanSamplesPerRegion() {
+        return meanSamplesPerRegion;
+    }
+
+    public double samplesPerRegionStdDev() {
+        return samplesPerRegionStdDev;
+    }
+
     @Override
     public String toString() {
         return "ClusterStatistics{" +
@@ -164,6 +214,17 @@ public final class ClusterStatistics {
             ", samplesPerSiteStdDev=" + String.format("%.2f", samplesPerSiteStdDev) +
             ", edgeChangeRatio=" + String.format("%.4f", edgeChangeRatio) +
             ", meanSquaredDistanceToSite=" + String.format("%.2f", meanSquaredDistanceToSite) +
+            ", uniqueRegions=" + uniqueRegions +
+            ", minSamplesPerRegion=" + minSamplesPerRegion +
+            ", maxSamplesPerRegion=" + maxSamplesPerRegion +
+            ", meanSamplesPerRegion=" + String.format("%.2f", meanSamplesPerRegion) +
+            ", samplesPerRegionStdDev=" + String.format("%.2f", samplesPerRegionStdDev) +
             '}';
+    }
+
+    private record RegionKey(long siteKey, int regionIndex) {
+    }
+
+    private record StatsSummary(int unique, long min, long max, double mean, double stdDev) {
     }
 }

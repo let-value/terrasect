@@ -29,8 +29,9 @@ class ClusterStatisticsTest {
 
         System.out.println(stats);
         assertTrue(stats.uniqueSites() > 0, "Statistics should see at least one cluster site");
-        assertTrue(stats.uniqueSites() <= 10, "Cluster basins should stay coarse-grained over the sample");
-        assertTrue(stats.minSamplesPerSite() >= 1_000, "Each basin should cover a meaningful footprint");
+        assertTrue(stats.uniqueSites() <= 8, "Cluster basins should stay coarse-grained over the sample");
+        assertTrue(stats.minSamplesPerSite() >= 50_000, "Each basin should cover a meaningful footprint");
+        assertTrue(stats.minSamplesPerRegion() >= 200, "Regions should avoid collapsing into single-pixel noise");
         assertTrue(stats.edgeChangeRatio() < 0.05, "Cluster ownership should not flip every few pixels");
     }
 }
