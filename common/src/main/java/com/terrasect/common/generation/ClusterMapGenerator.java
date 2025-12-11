@@ -19,9 +19,9 @@ public final class ClusterMapGenerator {
     private static final double JITTER_SCALE = 0.32;
     private static final double AREA_SCALAR = 1.55;
     private static final double CLUSTER_AREA_RANDOMNESS = 0.18;
-    private static final double CELL_JITTER_RATIO = 0.33;
-    private static final double INFLUENCE_RADIUS_RATIO = 1.65;
-    private static final double INFLUENCE_SHARPNESS = 0.52;
+    private static final double CELL_JITTER_RATIO = 0.22;
+    private static final double INFLUENCE_RADIUS_RATIO = 1.75;
+    private static final double INFLUENCE_SHARPNESS = 0.44;
     private static final double JOURNEY_RING_RATIO = 0.46;
     private static final double JOURNEY_RING_VARIANCE = 0.22;
     private static final double JOURNEY_ARC_BEND = 0.35;
@@ -183,6 +183,10 @@ public final class ClusterMapGenerator {
         return a + (b - a) * t;
     }
 
+    private double clamp01(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
+    }
+
     private long mixSeed(long seed, int tileX, int tileY) {
         long hash = seed;
         hash ^= (long) tileX * 0x9e3779b97f4a7c15L;
@@ -246,8 +250,9 @@ public final class ClusterMapGenerator {
         double band = 1.0 + Math.cos(theta * 2.0 + site.chapterPhase()) * JOURNEY_BAND_STRENGTH;
         double warpedRadius = radius * band;
         double softness = Math.exp(-Math.pow(distance / Math.max(warpedRadius, 0.001), INFLUENCE_SHARPNESS));
-        double weave = 0.9 + fbm(site.siteSeed() ^ 0x52f3a5L, dx / 11.0, dy / 11.0, 3) * 0.18;
-        return Math.log(site.weight() * softness * weave);
+        double bandBlend = 0.65 + 0.35 * fade(clamp01(1.0 - distance / radius));
+        double baseInfluence = site.weight() * softness * bandBlend;
+        return Math.log(baseInfluence);
     }
 
     private ResolvedSite resolveSite(ClusterSite site, List<RegionDefinition> regions, int clusterSize,
