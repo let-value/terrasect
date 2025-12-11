@@ -19,14 +19,14 @@ public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.12;
     private static final double JITTER_SCALE = 0.5;
     private static final double AREA_SCALAR = 1.35;
-    private static final double CLUSTER_AREA_RANDOMNESS = 0.22;
+    private static final double CLUSTER_AREA_RANDOMNESS = 0.1;
     private static final double WARP_STRENGTH = 0.09;
     private static final double WARP_SCALE = 7.0;
-    private static final double CELL_JITTER_RATIO = 0.38;
+    private static final double CELL_JITTER_RATIO = 0.25;
     private static final double INFLUENCE_RADIUS_RATIO = 1.8;
     private static final double INFLUENCE_SHARPNESS = 0.55;
-    private static final double INFLUENCE_WEIGHT_NOISE = 0.35;
-    private static final double INFLUENCE_ANISO_NOISE = 0.2;
+    private static final double INFLUENCE_WEIGHT_NOISE = 0.18;
+    private static final double INFLUENCE_ANISO_NOISE = 0.1;
 
     public ClusterPattern generate(ClusterDefinition definition, long seed) {
         Objects.requireNonNull(definition, "definition");
