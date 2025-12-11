@@ -31,9 +31,9 @@ public final class ClusterSnapshotRenderer {
         IntStream.range(0, height).parallel().forEach(y -> {
             for (int x = 0; x < width; x++) {
                 int idx = y * width + x;
-                ClusterMapGenerator.ClusterSite site = pattern.siteForPoint(x, y);
-                siteKeys[idx] = site.key();
-                regionGrid[idx] = pattern.regionForPoint(x, y);
+                ClusterMapGenerator.ClusterLocation location = pattern.locateClusterAndRegion(x, y);
+                siteKeys[idx] = location.site().key();
+                regionGrid[idx] = location.regionIndex();
             }
         });
 
