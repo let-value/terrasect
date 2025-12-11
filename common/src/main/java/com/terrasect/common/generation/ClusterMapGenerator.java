@@ -16,7 +16,7 @@ import java.util.Random;
  */
 public final class ClusterMapGenerator {
     private static final double EDGE_PADDING_RATIO = 0.1;
-    private static final double JITTER_SCALE = 0.45;
+    private static final double JITTER_SCALE = 0.32;
     private static final double AREA_SCALAR = 1.55;
     private static final double CLUSTER_AREA_RANDOMNESS = 0.18;
     private static final double CELL_JITTER_RATIO = 0.33;
@@ -122,19 +122,16 @@ public final class ClusterMapGenerator {
     }
 
     private double jitter(long seed, int x, int y) {
-        long hash = seed;
-        hash ^= (long) x * 341873128712L;
-        hash ^= (long) y * 132897987541L;
-        hash ^= (hash << 13);
-        hash ^= (hash >>> 7);
-        hash ^= (hash << 17);
-        double normalized = (hash & 0xFFFFFFFFL) / (double) 0xFFFFFFFFL;
-        return (normalized - 0.5) * JITTER_SCALE;
+        double scale = 0.18;
+        double nx = x * scale;
+        double ny = y * scale;
+        double noise = fbm(seed, nx, ny, 3);
+        return (noise - 0.5) * 2.0 * JITTER_SCALE;
     }
 
     private double organicWarp(long seed, int x, int y, int clusterSize) {
         double scale = Math.max(clusterSize / WARP_SCALE, 1.0);
-        double noise = fbm(seed, x / scale, y / scale, 4);
+        double noise = fbm(seed, x / scale, y / scale, 5);
         return (noise - 0.5) * clusterSize * WARP_STRENGTH;
     }
 
@@ -143,8 +140,8 @@ public final class ClusterMapGenerator {
         double amplitude = 0.5;
         double frequency = 1.0;
         for (int i = 0; i < octaves; i++) {
-            value += amplitude * valueNoise(seed + i * 57L, (int) Math.floor(x * frequency), (int) Math.floor(y * frequency));
-            amplitude *= 0.5;
+            value += amplitude * smoothValueNoise(seed + i * 57L, x * frequency, y * frequency);
+            amplitude *= 0.55;
             frequency *= 2.0;
         }
         return value;
@@ -157,6 +154,29 @@ public final class ClusterMapGenerator {
         hash = (hash ^ (hash >> 15)) * 0xd168aae7L;
         hash ^= (hash >> 15);
         return (hash & 0xFFFFFFFFL) / (double) 0xFFFFFFFFL;
+    }
+
+    private double smoothValueNoise(long seed, double x, double y) {
+        int x0 = (int) Math.floor(x);
+        int y0 = (int) Math.floor(y);
+        int x1 = x0 + 1;
+        int y1 = y0 + 1;
+
+        double tx = fade(x - x0);
+        double ty = fade(y - y0);
+
+        double n00 = valueNoise(seed, x0, y0);
+        double n10 = valueNoise(seed, x1, y0);
+        double n01 = valueNoise(seed, x0, y1);
+        double n11 = valueNoise(seed, x1, y1);
+
+        double nx0 = lerp(n00, n10, tx);
+        double nx1 = lerp(n01, n11, tx);
+        return lerp(nx0, nx1, ty);
+    }
+
+    private double fade(double t) {
+        return t * t * (3.0 - 2.0 * t);
     }
 
     private double lerp(double a, double b, double t) {
@@ -226,7 +246,7 @@ public final class ClusterMapGenerator {
         double band = 1.0 + Math.cos(theta * 2.0 + site.chapterPhase()) * JOURNEY_BAND_STRENGTH;
         double warpedRadius = radius * band;
         double softness = Math.exp(-Math.pow(distance / Math.max(warpedRadius, 0.001), INFLUENCE_SHARPNESS));
-        double weave = 0.85 + fbm(site.siteSeed() ^ 0x52f3a5L, (int) Math.round(dx / 7.0), (int) Math.round(dy / 7.0), 2) * 0.3;
+        double weave = 0.9 + fbm(site.siteSeed() ^ 0x52f3a5L, dx / 11.0, dy / 11.0, 3) * 0.18;
         return Math.log(site.weight() * softness * weave);
     }
 
