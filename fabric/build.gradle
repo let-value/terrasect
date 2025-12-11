@@ -9,6 +9,9 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
 
     implementation project(':common')
+
+    testImplementation(platform('org.junit:junit-bom:5.10.3'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
 }
 
 loom {
@@ -35,6 +38,10 @@ loom {
             client()
         }
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 processResources {
