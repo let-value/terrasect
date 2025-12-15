@@ -1,0 +1,31 @@
+package com.terrasect.common.generation;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MathUtilsTest {
+
+    @Test
+    public void testFloorDiv() {
+        assertEquals(1, MathUtils.floorDiv(3, 2));
+        assertEquals(-1, MathUtils.floorDiv(-1, 2));
+        assertEquals(-2, MathUtils.floorDiv(-3, 2));
+        assertEquals(0, MathUtils.floorDiv(1, 2));
+        assertEquals(-1, MathUtils.floorDiv(-2, 2));
+    }
+
+    @Test
+    public void testMod() {
+        assertEquals(1, MathUtils.mod(1, 5));
+        assertEquals(4, MathUtils.mod(-1, 5));
+        assertEquals(0, MathUtils.mod(5, 5));
+        assertEquals(0, MathUtils.mod(-5, 5));
+    }
+    
+    @Test
+    public void testHash64Determinism() {
+        long h1 = MathUtils.hash64(123L, 10, 20, 30L);
+        long h2 = MathUtils.hash64(123L, 10, 20, 30L);
+        assertEquals(h1, h2);
+    }
+}
