@@ -1,0 +1,43 @@
+package com.terrasect.common.generation;
+
+import org.junit.jupiter.api.Test;
+import java.util.stream.IntStream;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class RegionFieldTest {
+
+    @Test
+    public void testDeterminism() {
+        long seed = 12345L;
+        int x = 100;
+        int z = 200;
+
+        long regionData1 = RegionField.getRegionData(x, z, seed);
+        long regionData2 = RegionField.getRegionData(x, z, seed);
+        assertEquals(regionData1, regionData2, "Region data should be deterministic");
+    }
+
+    @Test
+    public void testParallelStability() {
+        long seed = 67890L;
+        int size = 100;
+        
+        long[] sequential = new long[size];
+        for (int i = 0; i < size; i++) {
+            sequential[i] = RegionField.getRegionData(i * 10, i * 10, seed);
+        }
+
+        long[] parallel = IntStream.range(0, size).parallel().mapToLong(i -> {
+            return RegionField.getRegionData(i * 10, i * 10, seed);
+        }).toArray();
+
+        assertArrayEquals(sequential, parallel, "Parallel execution should match sequential");
+    }
+    
+    @Test
+    public void testUnpack() {
+        long packed = ((long) 123 << 32) | (Float.floatToRawIntBits(45.6f) & 0xFFFFFFFFL);
+        assertEquals(123, RegionField.unpackRegionId(packed));
+        assertEquals(45.6f, RegionField.unpackEdge(packed), 0.0001f);
+    }
+}
