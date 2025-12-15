@@ -37,7 +37,6 @@ public class SnapshotTest {
     public void generateRealNoiseSnapshots() throws IOException {
         // Setup NarrativeWorld regions for testing
         Region civilization = Region.builder("CIVILIZATION")
-            .budget(100)
             .addChildren(
                 Region.builder("RUINS").budget(50000).adjacentTo("PILGRIMAGE_PATH").build(),
                 Region.builder("HARBOR").budget(30000).adjacentTo("PILGRIMAGE_PATH").build(),
@@ -45,14 +44,12 @@ public class SnapshotTest {
             ).build();
 
         Region wilderness = Region.builder("WILDERNESS")
-            .budget(100)
             .addChildren(
                 Region.builder("FORBIDDEN_WOODS").budget(60000).adjacentTo("PLAINS_OF_ASH").build(),
                 Region.builder("PLAINS_OF_ASH").budget(40000).adjacentTo("FORBIDDEN_WOODS").build()
             ).build();
 
         Region highlands = Region.builder("HIGHLANDS")
-            .budget(100)
             .addChildren(
                 Region.builder("MOUNTAIN_PASS").budget(40000).adjacentTo("CRYSTAL_CANYON").build(),
                 Region.builder("CRYSTAL_CANYON").budget(30000).adjacentTo("MOUNTAIN_PASS").build()

@@ -72,14 +72,14 @@ public class NarrGenCommand {
                         int color = 0;
                         
                         if (layer.equals("region")) {
-                            long regionData = RegionField.getRegionData(wx, wz, seed);
+                            long regionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
                             int regionId = RegionField.unpackRegionId(regionData);
                             int r = (int) (MathUtils.hash64(regionId, 1, 0, 0) & 0xFF);
                             int g = (int) (MathUtils.hash64(regionId, 2, 0, 0) & 0xFF);
                             int b = (int) (MathUtils.hash64(regionId, 3, 0, 0) & 0xFF);
                             color = (r << 16) | (g << 8) | b;
                         } else if (layer.equals("edge")) {
-                            long regionData = RegionField.getRegionData(wx, wz, seed);
+                            long regionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
                             float edge = RegionField.unpackEdge(regionData);
                             int val = (int) (MathUtils.clamp01(edge / Config.EDGE_SCALE) * 255);
                             color = (val << 16) | (val << 8) | val;

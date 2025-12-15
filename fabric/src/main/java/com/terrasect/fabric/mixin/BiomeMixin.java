@@ -37,7 +37,7 @@ public class BiomeMixin {
         int blockX = x << 2;
         int blockZ = z << 2;
         Region region = World.getRegion(blockX, blockZ, context);
-        long regionData = RegionField.getRegionData(blockX, blockZ, seed);
+        long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
         float edge = RegionField.unpackEdge(regionData);
         float edgeFactor = edge / Config.EDGE_SCALE;
 

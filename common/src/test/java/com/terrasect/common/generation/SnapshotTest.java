@@ -18,11 +18,65 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Placeholder digest - update after first run
-    private static final String EXPECTED_DIGEST = "a48633a0d7d029827b4f65d4d3d3cd7c7e5090bc52e2165a511cce2b3d688bc2"; 
+    private static final String EXPECTED_DIGEST = "3ab4f5b05d39fb65c43e4405cfacf7d7c2649ec082e63458e6e4856b0ea91391"; 
 
-    private static class MockContext implements Strategy {
+    @Test
+    public void testRegionDistribution() {
+        // Setup same regions as generateSnapshots
+        // Scaled down budgets to match desired hex size (Total ~675)
+        Region civilization = Region.builder("CIVILIZATION")
+            .addChildren(
+                Region.builder("RUINS").adjacentTo("PILGRIMAGE_PATH")
+                    .addChildren(
+                        Region.builder("SHRINE").budget(25).build(),
+                        Region.builder("CATACOMBS").budget(100).build()
+                    ).build(),
+                Region.builder("HARBOR").budget(75).adjacentTo("PILGRIMAGE_PATH").build(),
+                Region.builder("PILGRIMAGE_PATH").budget(50).adjacentTo("RUINS", "HARBOR").build()
+            ).build();
+
+        Region wilderness = Region.builder("WILDERNESS")
+            .addChildren(
+                Region.builder("FORBIDDEN_WOODS").budget(150).adjacentTo("PLAINS_OF_ASH").build(),
+                Region.builder("PLAINS_OF_ASH").budget(100).adjacentTo("FORBIDDEN_WOODS").build()
+            ).build();
+
+        Region highlands = Region.builder("HIGHLANDS")
+            .addChildren(
+                Region.builder("MOUNTAIN_PASS").budget(100).adjacentTo("CRYSTAL_CANYON").build(),
+                Region.builder("CRYSTAL_CANYON").budget(75).adjacentTo("MOUNTAIN_PASS").build()
+            ).build();
+
+        Region root = Region.builder("ROOT")
+            .addChildren(civilization, wilderness, highlands)
+            .build();
+            
+        Region universe = Region.builder("UNIVERSE")
+            .addChildren(root)
+            .build();
+            
+        World.setRoot(universe);
+        
+        long seed = 987654321L;
+        Strategy context = new MockStrategy(seed);
+        
+        // Sample a large area
+        int width = 100000;
+        int height = 100000;
+        int step = 100;
+        
+        System.out.println("Sampling Depth 1 (Children of ROOT):");
+        java.util.Map<String, Integer> counts = RegionSampler.sample(0, 0, width, height, step, 1, context);
+        counts.forEach((name, count) -> System.out.println(name + ": " + count));
+        
+        System.out.println("\nSampling Depth 2 (Grandchildren of ROOT):");
+        counts = RegionSampler.sample(0, 0, width, height, step, 2, context);
+        counts.forEach((name, count) -> System.out.println(name + ": " + count));
+    }
+
+    static class MockStrategy implements Strategy {
         private final long seed;
-        public MockContext(long seed) { this.seed = seed; }
+        public MockStrategy(long seed) { this.seed = seed; }
         @Override public long getSeed() { return seed; }
         @Override public float getRiverInfluence(int x, int z) { return NoiseUtils.riverMask(x, z, seed); }
         @Override public float getRidgeInfluence(int x, int z) { return NoiseUtils.ridgeMask(x, z, seed); }
@@ -31,36 +85,42 @@ public class SnapshotTest {
     @Test
     public void generateSnapshots() throws IOException, NoSuchAlgorithmException {
         // Setup NarrativeWorld regions for testing
+        // Scaled down budgets to match desired hex size (Total ~675)
         Region civilization = Region.builder("CIVILIZATION")
-            .budget(100)
             .addChildren(
-                Region.builder("RUINS").budget(50000).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("HARBOR").budget(30000).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("PILGRIMAGE_PATH").budget(20000).adjacentTo("RUINS", "HARBOR").build()
+                Region.builder("RUINS").adjacentTo("PILGRIMAGE_PATH")
+                    .addChildren(
+                        Region.builder("SHRINE").budget(25).build(),
+                        Region.builder("CATACOMBS").budget(100).build()
+                    ).build(),
+                Region.builder("HARBOR").budget(75).adjacentTo("PILGRIMAGE_PATH").build(),
+                Region.builder("PILGRIMAGE_PATH").budget(50).adjacentTo("RUINS", "HARBOR").build()
             ).build();
 
         Region wilderness = Region.builder("WILDERNESS")
-            .budget(100)
             .addChildren(
-                Region.builder("FORBIDDEN_WOODS").budget(60000).adjacentTo("PLAINS_OF_ASH").build(),
-                Region.builder("PLAINS_OF_ASH").budget(40000).adjacentTo("FORBIDDEN_WOODS").build()
+                Region.builder("FORBIDDEN_WOODS").budget(150).adjacentTo("PLAINS_OF_ASH").build(),
+                Region.builder("PLAINS_OF_ASH").budget(100).adjacentTo("FORBIDDEN_WOODS").build()
             ).build();
 
         Region highlands = Region.builder("HIGHLANDS")
-            .budget(100)
             .addChildren(
-                Region.builder("MOUNTAIN_PASS").budget(40000).adjacentTo("CRYSTAL_CANYON").build(),
-                Region.builder("CRYSTAL_CANYON").budget(30000).adjacentTo("MOUNTAIN_PASS").build()
+                Region.builder("MOUNTAIN_PASS").budget(100).adjacentTo("CRYSTAL_CANYON").build(),
+                Region.builder("CRYSTAL_CANYON").budget(75).adjacentTo("MOUNTAIN_PASS").build()
             ).build();
 
         Region root = Region.builder("ROOT")
             .addChildren(civilization, wilderness, highlands)
             .build();
             
-        World.setRoot(root);
+        Region universe = Region.builder("UNIVERSE")
+            .addChildren(root)
+            .build();
+            
+        World.setRoot(universe);
 
         long seed = 987654321L;
-        Strategy context = new MockContext(seed);
+        Strategy context = new MockStrategy(seed);
         int width = 512;
         int height = 512;
         int step = 4; // Sample every 4 blocks to cover 2048x2048 area
@@ -83,31 +143,54 @@ public class SnapshotTest {
                 int wz = y * step;
 
                 // Raw noise for background reference (default scale)
-                long rawRegionData = RegionField.getRegionData(wx, wz, seed);
+                long rawRegionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
                 int rawRegionId = RegionField.unpackRegionId(rawRegionData);
                 
                 float river = context.getRiverInfluence(wx, wz);
                 float ridge = context.getRidgeInfluence(wx, wz);
                 
                 // Get full hierarchy
-                List<World.TraversalStep> steps = World.getRegionHierarchy(wx, wz, context);
+                List<Region> regions = new ArrayList<>();
+                List<Long> seeds = new ArrayList<>();
+                
+                // We want to capture regions at each depth
+                // Depth 0 (User): Root (Infinite Tiling) -> returns Root
+                // Depth 1 (User): Children (Local Partitioning) -> returns Civ/Wild/High
+                // Depth 2 (User): Grandchildren -> returns Ruins/Harbor etc.
+                
+                // We skip the actual root (Universe) which is just a container
+                
+                regions.add(World.getRegionAtDepth(wx, wz, context, 1));
+                seeds.add(World.getRegionSeedAtDepth(wx, wz, context, 1));
+                
+                regions.add(World.getRegionAtDepth(wx, wz, context, 2));
+                seeds.add(World.getRegionSeedAtDepth(wx, wz, context, 2));
+                
+                regions.add(World.getRegionAtDepth(wx, wz, context, 3));
+                seeds.add(World.getRegionSeedAtDepth(wx, wz, context, 3));
                 
                 // Ensure we have enough images for the depth
-                while (depthImages.size() < steps.size()) {
+                while (depthImages.size() < regions.size()) {
                     depthImages.add(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB));
                 }
                 
-                Region leafRegion = steps.get(steps.size() - 1).region();
+                Region leafRegion = regions.get(regions.size() - 1);
                 
-                // Combined edge distance (min of all layers to show all boundaries)
-                float combinedEdge = Float.MAX_VALUE;
-                for (World.TraversalStep s : steps) {
-                    combinedEdge = Math.min(combinedEdge, s.edgeDistance());
+                // Edge detection by sampling neighbors
+                float combinedEdge = 100.0f; // Dummy value if not edge
+                boolean isEdge = false;
+                
+                // Check leaf edge
+                Region right = World.getRegion(wx + step, wz, context);
+                Region down = World.getRegion(wx, wz + step, context);
+                if (!leafRegion.name().equals(right.name()) || !leafRegion.name().equals(down.name())) {
+                    combinedEdge = 0.0f;
+                    isEdge = true;
                 }
 
                 // Update digest with raw values to be independent of rendering colors
                 updateDigest(digest, rawRegionId);
-                updateDigest(digest, combinedEdge);
+                updateDigest(digest, isEdge ? 1.0f : 0.0f);
                 updateDigest(digest, river);
                 updateDigest(digest, ridge);
                 updateDigest(digest, leafRegion.name().hashCode());
@@ -120,9 +203,45 @@ public class SnapshotTest {
                 imgVoronoi.setRGB(x, y, (r << 16) | (g << 8) | b);
 
                 // Depth layers
-                for (int i = 0; i < steps.size(); i++) {
-                    Region region = steps.get(i).region();
+                for (int i = 0; i < regions.size(); i++) {
+                    Region region = regions.get(i);
+                    long regionSeed = seeds.get(i);
                     int color = getGenericRegionColor(region);
+                    
+                    // Check neighbors for edge of current layer
+                    // We check both region name AND seed to detect edges between identical regions (e.g. Root tiles)
+                    Region layerRight = World.getRegionAtDepth(wx + step, wz, context, i + 1);
+                    long seedRight = World.getRegionSeedAtDepth(wx + step, wz, context, i + 1);
+                    
+                    Region layerDown = World.getRegionAtDepth(wx, wz + step, context, i + 1);
+                    long seedDown = World.getRegionSeedAtDepth(wx, wz + step, context, i + 1);
+                    
+                    if (!region.name().equals(layerRight.name()) || regionSeed != seedRight ||
+                        !region.name().equals(layerDown.name()) || regionSeed != seedDown) {
+                         // Darken color for edge
+                         int cr = (color >> 16) & 0xFF;
+                         int cg = (color >> 8) & 0xFF;
+                         int cb = color & 0xFF;
+                         color = ((cr/2) << 16) | ((cg/2) << 8) | (cb/2);
+                    }
+                    
+                    // Overlay parent edges on child layers
+                    if (i > 0) {
+                        Region parent = regions.get(i - 1);
+                        long parentSeed = seeds.get(i - 1);
+                        
+                        Region parentRight = World.getRegionAtDepth(wx + step, wz, context, i);
+                        long parentSeedRight = World.getRegionSeedAtDepth(wx + step, wz, context, i);
+                        
+                        Region parentDown = World.getRegionAtDepth(wx, wz + step, context, i);
+                        long parentSeedDown = World.getRegionSeedAtDepth(wx, wz + step, context, i);
+                        
+                        if (!parent.name().equals(parentRight.name()) || parentSeed != parentSeedRight ||
+                            !parent.name().equals(parentDown.name()) || parentSeed != parentSeedDown) {
+                            color = 0xFFFFFF; // White edge for parent
+                        }
+                    }
+                    
                     depthImages.get(i).setRGB(x, y, color);
                 }
 
@@ -216,6 +335,10 @@ public class SnapshotTest {
             case "MOUNTAIN_PASS": return 0xFFFFFF;
             case "PLAINS_OF_ASH": return 0x444444;
             case "CRYSTAL_CANYON": return 0x00FFFF;
+            case "SHRINE": return 0xFF00FF; // Magenta
+            case "CATACOMBS": return 0x440044; // Dark Magenta
+            case "ROOT": return 0x555555; // Dark Gray
+            case "UNIVERSE": return 0xFFFFFF; // White
             default: return 0x000000;
         }
     }
