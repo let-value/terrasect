@@ -32,7 +32,7 @@ public record Region(
 
     public static class Builder {
         private final String name;
-        private int areaBudget = 10000;
+        private Integer areaBudget = null;
         private Set<String> allowedStructures = Collections.emptySet();
         private Set<String> blockedStructures = Collections.emptySet();
         private Set<String> requiredStructures = Collections.emptySet();
@@ -74,7 +74,15 @@ public record Region(
         }
 
         public Region build() {
-            return new Region(name, areaBudget, allowedStructures, blockedStructures, requiredStructures, adjacentTo, children);
+            int finalBudget;
+            if (areaBudget != null) {
+                finalBudget = areaBudget;
+            } else if (!children.isEmpty()) {
+                finalBudget = children.stream().mapToInt(Region::areaBudget).sum();
+            } else {
+                finalBudget = 10000;
+            }
+            return new Region(name, finalBudget, allowedStructures, blockedStructures, requiredStructures, adjacentTo, children);
         }
     }
 }

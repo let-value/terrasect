@@ -24,18 +24,18 @@ public class NoiseUtils {
     }
 
     // Warp noise 1 (X displacement)
-    public static float warpNoise1(int x, int z, long seed) {
+    public static float warpNoise1(int x, int z, long seed, int scale) {
         // Octave 1: Large scale for broad distortion
-        float n1 = valueNoise(x, z, seed, 1001, 400);
+        float n1 = valueNoise(x, z, seed, 1001, scale);
         // Octave 2: Smaller scale detail
-        float n2 = valueNoise(x, z, seed, 1002, 200) * 0.5f;
+        float n2 = valueNoise(x, z, seed, 1002, scale / 2) * 0.5f;
         return n1 + n2;
     }
 
     // Warp noise 2 (Z displacement)
-    public static float warpNoise2(int x, int z, long seed) {
-        float n1 = valueNoise(x, z, seed, 2001, 400);
-        float n2 = valueNoise(x, z, seed, 2002, 200) * 0.5f;
+    public static float warpNoise2(int x, int z, long seed, int scale) {
+        float n1 = valueNoise(x, z, seed, 2001, scale);
+        float n2 = valueNoise(x, z, seed, 2002, scale / 2) * 0.5f;
         return n1 + n2;
     }
 

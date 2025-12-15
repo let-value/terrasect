@@ -12,8 +12,8 @@ public class RegionFieldTest {
         int x = 100;
         int z = 200;
 
-        long regionData1 = RegionField.getRegionData(x, z, seed);
-        long regionData2 = RegionField.getRegionData(x, z, seed);
+        long regionData1 = RegionField.getRegionData(x, z, seed, 512, 200.0f, 2048);
+        long regionData2 = RegionField.getRegionData(x, z, seed, 512, 200.0f, 2048);
         assertEquals(regionData1, regionData2, "Region data should be deterministic");
     }
 
@@ -24,11 +24,11 @@ public class RegionFieldTest {
         
         long[] sequential = new long[size];
         for (int i = 0; i < size; i++) {
-            sequential[i] = RegionField.getRegionData(i * 10, i * 10, seed);
+            sequential[i] = RegionField.getRegionData(i * 10, i * 10, seed, 512, 200.0f, 2048);
         }
 
         long[] parallel = IntStream.range(0, size).parallel().mapToLong(i -> {
-            return RegionField.getRegionData(i * 10, i * 10, seed);
+            return RegionField.getRegionData(i * 10, i * 10, seed, 512, 200.0f, 2048);
         }).toArray();
 
         assertArrayEquals(sequential, parallel, "Parallel execution should match sequential");
