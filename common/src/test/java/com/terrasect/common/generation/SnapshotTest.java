@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class SnapshotTest {
 
-    // Placeholder digest - update after first run
-    private static final String EXPECTED_DIGEST = "858540367318f3ea24aa252e231b6d7c1737c2eda9f1911738cf4cc24047f7cc";
+    // Single deterministic digest for the current snapshot generation
+    private static final String EXPECTED_DIGEST = "8d7aea94758314dd41fcfde64c874a5467f6851d6ebd9eeda8d226fa263de6fc";
 
     @Test
     public void testRegionDistribution() {
@@ -220,6 +220,8 @@ public class SnapshotTest {
         for (int i = 0; i < depthImages.size(); i++) {
             ImageIO.write(depthImages.get(i), "png", new File(outDir, "depth_" + i + ".png"));
         }
+
+        System.out.println("Snapshot digest: " + actualDigest);
 
         if (!EXPECTED_DIGEST.equals(actualDigest)) {
             fail("Snapshot digest mismatch! Actual: " + actualDigest);
