@@ -1,11 +1,12 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.Config;
-import com.terrasect.common.generation.World;
+import com.terrasect.common.generation.EdgeSpice;
 import com.terrasect.common.generation.Region;
 import com.terrasect.common.generation.RegionField;
+import com.terrasect.common.generation.Strategy;
+import com.terrasect.common.generation.World;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.BiomeTags;
@@ -37,12 +38,12 @@ public class BiomeMixin {
         int blockX = x << 2;
         int blockZ = z << 2;
         Region region = World.getRegion(blockX, blockZ, context);
-        long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
-        float edge = RegionField.unpackEdge(regionData);
-        float edgeFactor = edge / Config.EDGE_SCALE;
+        long regionData = RegionField.getRegionData(blockX, blockZ, seed, Config.REGION_CELL_SIZE, Config.REGION_WARP_AMPLITUDE,
+            Config.REGION_POCKET_SIZE);
+        float edgeDistance = RegionField.unpackEdge(regionData);
 
-        // TODO: Apply climate modifications based on region properties
-        
-        return original;
+        // Remix the climate target point using the vanilla-inspired edge statistics. This keeps
+        // region borders lively without calling the sampler at runtime.
+        return EdgeSpice.apply(original, seed ^ region.name().hashCode(), blockX, blockZ, edgeDistance);
     }
 }
