@@ -9,13 +9,15 @@ public record RegionDefinition(
     ClimateSettings climate,
     SelectionRules biomes,
     StructureRules structures,
-    SelectionRules mobs
+    SelectionRules mobs,
+    GenerationStrategyType generationStrategy
 ) {
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
         if (biomes == null) biomes = SelectionRules.empty();
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
+        if (generationStrategy == null) generationStrategy = GenerationStrategyType.VORONOI;
     }
 
     public static RegionDefinition empty() {
@@ -28,7 +30,8 @@ public record RegionDefinition(
             climate.resolveWithParent(parent.climate),
             biomes.resolveWithParent(parent.biomes),
             structures.resolveWithParent(parent.structures),
-            mobs.resolveWithParent(parent.mobs)
+            mobs.resolveWithParent(parent.mobs),
+            generationStrategy
         );
     }
 
@@ -41,6 +44,7 @@ public record RegionDefinition(
         private SelectionRules biomes = SelectionRules.empty();
         private StructureRules structures = StructureRules.empty();
         private SelectionRules mobs = SelectionRules.empty();
+        private GenerationStrategyType generationStrategy = GenerationStrategyType.VORONOI;
 
         public Builder climate(Consumer<ClimateSettings.Builder> consumer) {
             ClimateSettings.Builder builder = ClimateSettings.builder().copyFrom(climate);
@@ -72,8 +76,13 @@ public record RegionDefinition(
             return this;
         }
 
+        public Builder strategy(GenerationStrategyType generationStrategy) {
+            this.generationStrategy = generationStrategy;
+            return this;
+        }
+
         public RegionDefinition build() {
-            return new RegionDefinition(climate, biomes, structures, mobs);
+            return new RegionDefinition(climate, biomes, structures, mobs, generationStrategy);
         }
     }
 }
