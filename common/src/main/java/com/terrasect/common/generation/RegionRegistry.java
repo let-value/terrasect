@@ -1,6 +1,7 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.Terrasect;
+import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.RegionDefinition;
 
 import java.util.ArrayList;
@@ -31,6 +32,8 @@ public class RegionRegistry {
             return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of());
         }
 
+        rootDraft.definitionBuilder.strategy(GenerationStrategyType.HEX);
+
         Map<String, List<String>> childIndex = indexChildren();
         if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
             Terrasect.LOGGER.warn("Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootDraft.parent);
@@ -46,7 +49,10 @@ public class RegionRegistry {
         Set<String> visiting = new HashSet<>();
         drafts.values().stream()
             .filter(draft -> draft.parent == null || draft.parent.isBlank())
-            .forEach(draft -> roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting)));
+            .forEach(draft -> {
+                draft.definitionBuilder.strategy(GenerationStrategyType.HEX);
+                roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
+            });
         return roots;
     }
 
