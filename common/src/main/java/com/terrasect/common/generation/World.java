@@ -10,6 +10,7 @@ import java.util.Set;
 
 public class World {
 
+    private static final ThreadLocal<WarpResult> WARP_SCRATCH = ThreadLocal.withInitial(WarpResult::new);
     private static Region root;
 
     public static void setRoot(Region newRoot) {
@@ -38,9 +39,9 @@ public class World {
         Region current = getRoot();
         
         // 1. Warping
-        float[] warped = getWarpedCoordinates(x, z, context);
-        float wx = warped[0];
-        float wz = warped[1];
+        WarpResult warped = getWarpedCoordinates(x, z, context);
+        float wx = warped.x;
+        float wz = warped.z;
         
         long currentSeed = context.getSeed();
         int currentDepth = 0;
@@ -142,9 +143,9 @@ public class World {
     public static long getRegionSeedAtDepth(int x, int z, Strategy context, int targetDepth) {
         Region current = getRoot();
         
-        float[] warped = getWarpedCoordinates(x, z, context);
-        float wx = warped[0];
-        float wz = warped[1];
+        WarpResult warped = getWarpedCoordinates(x, z, context);
+        float wx = warped.x;
+        float wz = warped.z;
         
         long currentSeed = context.getSeed();
         int currentDepth = 0;
@@ -262,52 +263,45 @@ public class World {
         return children.get(0);
     }
 
-    private static float[] getWarpedCoordinates(int x, int z, Strategy context) {
+    private static WarpResult getWarpedCoordinates(int x, int z, Strategy context) {
+        WarpResult result = WARP_SCRATCH.get();
+
         float river = context.getRiverInfluence(x, z);
         float ridge = context.getRidgeInfluence(x, z);
         long seed = context.getSeed();
-        
-        // Dampen warping near origin (0,0) to preserve the "Center Region" shape
-        // Ramp up from 0% to 100% warping over 600 blocks
-        float dist = (float) Math.sqrt(x*x + z*z);
+
+        float dist = (float) Math.sqrt(x * x + z * z);
         float dampFactor = Math.min(1.0f, dist / 600.0f);
-        
-        // 1. Macro Warp (Continental Drift)
-        // We limit Amplitude < Scale/2 to ensure the coordinate mapping is monotonic.
-        // This prevents "folding" of space which causes exclaves and disconnected regions.
-        // Scale 4000, Amplitude 1500 => 1500 < 2000 (Safe)
+
         float m1 = NoiseUtils.valueNoise(x, z, seed, 10001, 4000);
         float m2 = NoiseUtils.valueNoise(x, z, seed, 10002, 4000);
-        
+
         float mx = x + (m1 - 0.5f) * 1500.0f * dampFactor;
         float mz = z + (m2 - 0.5f) * 1500.0f * dampFactor;
-        
-        // 2. Base Warp (Organic Borders)
-        // Applied on top of the macro coordinates
-        // Increased scale to 600 (was 350) and reduced amplitude to 120 (was 250)
-        // This prevents local coordinate folding which causes micro-exclaves
-        float n1 = NoiseUtils.warpNoise1((int)mx, (int)mz, seed, 600);
-        float n2 = NoiseUtils.warpNoise2((int)mx, (int)mz, seed, 600);
-        
-        // 3. Micro Warp (Added for more randomness/roughness)
-        // Scale 150 for finer detail
-        float r1 = NoiseUtils.valueNoise((int)mx, (int)mz, seed, 5001, 150);
-        float r2 = NoiseUtils.valueNoise((int)mx, (int)mz, seed, 5002, 150);
-        
-        float baseAmp = 42.0f; 
-        float microAmp = 15.0f; 
-        float influenceAmp = 55.0f; // Balanced to allow some distortion but prevent enclaves
-        
-        // Use noise to determine direction of river/ridge warp to scramble coordinates locally
-        // This helps align boundaries with rivers by creating a "noisy" zone around them
-        float warpAngle = NoiseUtils.valueNoise(x, z, seed, 9999, 350) * (float)Math.PI * 2.0f;
-        float riverWarpX = (float)Math.cos(warpAngle) * (river + ridge) * influenceAmp;
-        float riverWarpZ = (float)Math.sin(warpAngle) * (river + ridge) * influenceAmp;
-        
-        float wx = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor;
-        float wz = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor;
-        
-        return new float[] { wx, wz };
+
+        float n1 = NoiseUtils.warpNoise1((int) mx, (int) mz, seed, 600);
+        float n2 = NoiseUtils.warpNoise2((int) mx, (int) mz, seed, 600);
+
+        float r1 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5001, 150);
+        float r2 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5002, 150);
+
+        float baseAmp = 42.0f;
+        float microAmp = 15.0f;
+        float influenceAmp = 55.0f;
+
+        float warpAngle = NoiseUtils.valueNoise(x, z, seed, 9999, 350) * (float) Math.PI * 2.0f;
+        float riverWarpX = (float) Math.cos(warpAngle) * (river + ridge) * influenceAmp;
+        float riverWarpZ = (float) Math.sin(warpAngle) * (river + ridge) * influenceAmp;
+
+        result.x = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor;
+        result.z = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor;
+
+        return result;
+    }
+
+    private static class WarpResult {
+        float x;
+        float z;
     }
 
     private static class Site {
