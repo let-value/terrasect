@@ -1,8 +1,9 @@
 package com.terrasect.fabric;
 
+import com.terrasect.common.generation.Region;
+import com.terrasect.common.generation.RegionRegistry;
 import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.World;
-import com.terrasect.common.generation.Region;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -35,31 +36,7 @@ public class SnapshotTest {
 
     @Test
     public void generateRealNoiseSnapshots() throws IOException {
-        // Setup NarrativeWorld regions for testing
-        Region civilization = Region.builder("CIVILIZATION")
-            .addChildren(
-                Region.builder("RUINS").budget(50000).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("HARBOR").budget(30000).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("PILGRIMAGE_PATH").budget(20000).adjacentTo("RUINS", "HARBOR").build()
-            ).build();
-
-        Region wilderness = Region.builder("WILDERNESS")
-            .addChildren(
-                Region.builder("FORBIDDEN_WOODS").budget(60000).adjacentTo("PLAINS_OF_ASH").build(),
-                Region.builder("PLAINS_OF_ASH").budget(40000).adjacentTo("FORBIDDEN_WOODS").build()
-            ).build();
-
-        Region highlands = Region.builder("HIGHLANDS")
-            .addChildren(
-                Region.builder("MOUNTAIN_PASS").budget(40000).adjacentTo("CRYSTAL_CANYON").build(),
-                Region.builder("CRYSTAL_CANYON").budget(30000).adjacentTo("MOUNTAIN_PASS").build()
-            ).build();
-
-        Region root = Region.builder("ROOT")
-            .addChildren(civilization, wilderness, highlands)
-            .build();
-            
-        World.setRoot(root);
+        World.setRoot(buildRoot());
 
         long seed = 987654321L;
         
@@ -159,6 +136,23 @@ public class SnapshotTest {
         ImageIO.write(imgRiver, "png", new File(outDir, "real_river.png"));
         ImageIO.write(imgRidge, "png", new File(outDir, "real_ridge.png"));
         ImageIO.write(imgCombined, "png", new File(outDir, "real_combined.png"));
+    }
+
+    private Region buildRoot() {
+        RegionRegistry registry = new RegionRegistry();
+        registry.region("ROOT")
+            .child("CIVILIZATION", civ -> civ
+                .child("RUINS", ruins -> ruins.budget(50000).adjacentTo("PILGRIMAGE_PATH"))
+                .child("HARBOR", harbor -> harbor.budget(30000).adjacentTo("PILGRIMAGE_PATH"))
+                .child("PILGRIMAGE_PATH", path -> path.budget(20000).adjacentTo("RUINS", "HARBOR")))
+            .child("WILDERNESS", wild -> wild
+                .child("FORBIDDEN_WOODS", woods -> woods.budget(60000).adjacentTo("PLAINS_OF_ASH"))
+                .child("PLAINS_OF_ASH", plains -> plains.budget(40000).adjacentTo("FORBIDDEN_WOODS")))
+            .child("HIGHLANDS", high -> high
+                .child("MOUNTAIN_PASS", pass -> pass.budget(40000).adjacentTo("CRYSTAL_CANYON"))
+                .child("CRYSTAL_CANYON", canyon -> canyon.budget(30000).adjacentTo("MOUNTAIN_PASS")));
+
+        return registry.build("ROOT");
     }
 
     private int getRegionColor(Region region) {

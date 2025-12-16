@@ -13,33 +13,15 @@ public class RegionBudgetTest {
 
     @Test
     public void testRegionBudgetDistribution() {
-        // 1. Setup World with known budgets
-        Region city = Region.builder("CITY")
-            .budget(1000)
-            .adjacentTo("FARMLAND")
-            .build();
-            
-        Region farmland = Region.builder("FARMLAND")
-            .budget(3000)
-            .adjacentTo("CITY", "FOREST")
-            .build();
-            
-        Region forest = Region.builder("FOREST")
-            .budget(1000)
-            .adjacentTo("FARMLAND")
-            .build();
+        RegionRegistry registry = new RegionRegistry();
+        registry.region("ROOT")
+            .child("CIVILIZATION", civ -> civ
+                .child("CITY", city -> city.budget(1000).adjacentTo("FARMLAND"))
+                .child("FARMLAND", farm -> farm.budget(3000).adjacentTo("CITY", "FOREST"))
+                .child("FOREST", forest -> forest.budget(1000).adjacentTo("FARMLAND")))
+            .child("WILDERNESS", wild -> wild.budget(1000));
 
-        Region civilization = Region.builder("CIVILIZATION")
-            .addChildren(city, farmland, forest)
-            .build();
-
-        Region wilderness = Region.builder("WILDERNESS").budget(1000).build();
-
-        Region root = Region.builder("ROOT")
-            .addChildren(civilization, wilderness)
-            .build();
-            
-        World.setRoot(root);
+        World.setRoot(registry.build("ROOT"));
         
         // Test across multiple seeds to ensure stability
         long[] seeds = {12345L, 98765L, 112233L, 55555L, 999999L, 101010L, 424242L, 777777L, 314159L, 271828L};
