@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Placeholder digest - update after first run
-    private static final String EXPECTED_DIGEST = "26748cd862eb8ba58e9d17fe09417df171887960e817f842511f99a9adbfe8d3";
+    private static final String EXPECTED_DIGEST = "335b6fe35ce2330ec53a61ff58ccc733abeacbbcd7cf0870f4ccb1db1b4b771b";
 
     @Test
     public void testRegionDistribution() {

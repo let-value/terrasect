@@ -270,6 +270,8 @@ public class World {
         float ridge = context.getRidgeInfluence(x, z);
         long seed = context.getSeed();
 
+        EdgeStatistics stats = EdgeStatistics.vanillaOverworld();
+
         float dist = (float) Math.sqrt(x * x + z * z);
         float dampFactor = Math.min(1.0f, dist / 600.0f);
 
@@ -293,8 +295,17 @@ public class World {
         float riverWarpX = (float) Math.cos(warpAngle) * (river + ridge) * influenceAmp;
         float riverWarpZ = (float) Math.sin(warpAngle) * (river + ridge) * influenceAmp;
 
-        result.x = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor;
-        result.z = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor;
+        float coarseScale = stats.coarseAverageRunBlocks() * 0.5f;
+        float coarseAmplitude = stats.coarseTransitionDensity() * Config.EDGE_SCALE * 2.5f;
+
+        float macroEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9201, (int) coarseScale) - 0.5f) * coarseAmplitude;
+        float macroEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9202, (int) coarseScale) - 0.5f) * coarseAmplitude;
+
+        float microEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9203, 8) - 0.5f) * stats.fineHorizontalJitter();
+        float microEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9204, 8) - 0.5f) * stats.fineVerticalJitter();
+
+        result.x = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor + macroEdgeX + microEdgeX;
+        result.z = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor + macroEdgeZ + microEdgeZ;
 
         return result;
     }

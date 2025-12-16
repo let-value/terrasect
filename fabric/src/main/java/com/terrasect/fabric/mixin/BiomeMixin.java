@@ -26,12 +26,12 @@ public class BiomeMixin {
     @Redirect(method = "getNoiseBiome", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/Climate$Sampler;sample(III)Lnet/minecraft/world/level/biome/Climate$TargetPoint;"))
     private Climate.TargetPoint redirectSample(Climate.Sampler instance, int x, int y, int z) {
         Climate.TargetPoint original = instance.sample(x, y, z);
-        
+
         Strategy context = FabricNarrGenContext.get(instance);
         if (context == null) {
             return original;
         }
-        
+
         long seed = context.getSeed();
 
         int blockX = x << 2;
@@ -42,7 +42,7 @@ public class BiomeMixin {
         float edgeFactor = edge / Config.EDGE_SCALE;
 
         // TODO: Apply climate modifications based on region properties
-        
+
         return original;
     }
 }
