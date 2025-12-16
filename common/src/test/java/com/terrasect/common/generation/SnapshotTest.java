@@ -18,44 +18,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Placeholder digest - update after first run
-    private static final String EXPECTED_DIGEST = "3ceeecbdb1e1935c111c65e2afc2ab1044da6712f2f3dea837235f7fd8f035bc";
+    private static final String EXPECTED_DIGEST = "26748cd862eb8ba58e9d17fe09417df171887960e817f842511f99a9adbfe8d3";
 
     @Test
     public void testRegionDistribution() {
-        // Setup same regions as generateSnapshots
-        // Scaled down budgets to match desired hex size (Total ~675)
-        Region civilization = Region.builder("CIVILIZATION")
-            .addChildren(
-                Region.builder("RUINS").adjacentTo("PILGRIMAGE_PATH")
-                    .addChildren(
-                        Region.builder("SHRINE").budget(25).build(),
-                        Region.builder("CATACOMBS").budget(100).build()
-                    ).build(),
-                Region.builder("HARBOR").budget(75).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("PILGRIMAGE_PATH").budget(50).adjacentTo("RUINS", "HARBOR").build()
-            ).build();
-
-        Region wilderness = Region.builder("WILDERNESS")
-            .addChildren(
-                Region.builder("FORBIDDEN_WOODS").budget(150).adjacentTo("PLAINS_OF_ASH").build(),
-                Region.builder("PLAINS_OF_ASH").budget(100).adjacentTo("FORBIDDEN_WOODS").build()
-            ).build();
-
-        Region highlands = Region.builder("HIGHLANDS")
-            .addChildren(
-                Region.builder("MOUNTAIN_PASS").budget(100).adjacentTo("CRYSTAL_CANYON").build(),
-                Region.builder("CRYSTAL_CANYON").budget(75).adjacentTo("MOUNTAIN_PASS").build()
-            ).build();
-
-        Region root = Region.builder("ROOT")
-            .addChildren(civilization, wilderness, highlands)
-            .build();
-            
-        Region universe = Region.builder("UNIVERSE")
-            .addChildren(root)
-            .build();
-            
-        World.setRoot(universe);
+        World.setRoot(buildUniverse());
         
         long seed = 987654321L;
         Strategy context = new MockStrategy(seed);
@@ -84,40 +51,7 @@ public class SnapshotTest {
 
     @Test
     public void generateSnapshots() throws IOException, NoSuchAlgorithmException {
-        // Setup NarrativeWorld regions for testing
-        // Scaled down budgets to match desired hex size (Total ~675)
-        Region civilization = Region.builder("CIVILIZATION")
-            .addChildren(
-                Region.builder("RUINS").adjacentTo("PILGRIMAGE_PATH")
-                    .addChildren(
-                        Region.builder("SHRINE").budget(25).build(),
-                        Region.builder("CATACOMBS").budget(100).build()
-                    ).build(),
-                Region.builder("HARBOR").budget(75).adjacentTo("PILGRIMAGE_PATH").build(),
-                Region.builder("PILGRIMAGE_PATH").budget(50).adjacentTo("RUINS", "HARBOR").build()
-            ).build();
-
-        Region wilderness = Region.builder("WILDERNESS")
-            .addChildren(
-                Region.builder("FORBIDDEN_WOODS").budget(150).adjacentTo("PLAINS_OF_ASH").build(),
-                Region.builder("PLAINS_OF_ASH").budget(100).adjacentTo("FORBIDDEN_WOODS").build()
-            ).build();
-
-        Region highlands = Region.builder("HIGHLANDS")
-            .addChildren(
-                Region.builder("MOUNTAIN_PASS").budget(100).adjacentTo("CRYSTAL_CANYON").build(),
-                Region.builder("CRYSTAL_CANYON").budget(75).adjacentTo("MOUNTAIN_PASS").build()
-            ).build();
-
-        Region root = Region.builder("ROOT")
-            .addChildren(civilization, wilderness, highlands)
-            .build();
-            
-        Region universe = Region.builder("UNIVERSE")
-            .addChildren(root)
-            .build();
-            
-        World.setRoot(universe);
+        World.setRoot(buildUniverse());
 
         long seed = 987654321L;
         Strategy context = new MockStrategy(seed);
@@ -290,6 +224,26 @@ public class SnapshotTest {
         if (!EXPECTED_DIGEST.equals(actualDigest)) {
             fail("Snapshot digest mismatch! Actual: " + actualDigest);
         }
+    }
+
+    private Region buildUniverse() {
+        RegionRegistry registry = new RegionRegistry();
+        registry.region("UNIVERSE")
+            .child("ROOT", root -> root
+                .child("CIVILIZATION", civ -> civ
+                    .child("RUINS", ruins -> ruins.adjacentTo("PILGRIMAGE_PATH")
+                        .child("SHRINE", shrine -> shrine.budget(25))
+                        .child("CATACOMBS", catacombs -> catacombs.budget(100)))
+                    .child("HARBOR", harbor -> harbor.budget(75).adjacentTo("PILGRIMAGE_PATH"))
+                    .child("PILGRIMAGE_PATH", path -> path.budget(50).adjacentTo("RUINS", "HARBOR")))
+                .child("WILDERNESS", wild -> wild
+                    .child("FORBIDDEN_WOODS", woods -> woods.budget(150).adjacentTo("PLAINS_OF_ASH"))
+                    .child("PLAINS_OF_ASH", plains -> plains.budget(100).adjacentTo("FORBIDDEN_WOODS")))
+                .child("HIGHLANDS", high -> high
+                    .child("MOUNTAIN_PASS", pass -> pass.budget(100).adjacentTo("CRYSTAL_CANYON"))
+                    .child("CRYSTAL_CANYON", canyon -> canyon.budget(75).adjacentTo("MOUNTAIN_PASS"))));
+
+        return registry.build("UNIVERSE");
     }
 
     private void updateDigest(MessageDigest digest, int val) {
