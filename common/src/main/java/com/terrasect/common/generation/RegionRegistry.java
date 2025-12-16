@@ -29,7 +29,7 @@ public class RegionRegistry {
         DraftRegion rootDraft = drafts.get(rootName);
         if (rootDraft == null) {
             Terrasect.LOGGER.error("Unknown region root '{}'; returning empty region", rootName);
-            return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of());
+            return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of());
         }
 
         rootDraft.definitionBuilder.strategy(GenerationStrategyType.HEX);
@@ -76,7 +76,7 @@ public class RegionRegistry {
         DraftRegion draft = drafts.get(name);
         if (draft == null) {
             Terrasect.LOGGER.error("Missing draft for region '{}'; creating empty placeholder", name);
-            return new Region(name, 10000, inherited, Collections.emptySet(), List.of());
+            return new Region(name, 10000, inherited, Collections.emptySet(), List.of(), List.of());
         }
 
         if (!visiting.add(name)) {
@@ -101,7 +101,7 @@ public class RegionRegistry {
         }
 
         visiting.remove(name);
-        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children);
+        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children, List.of());
     }
 
     private static class DraftRegion {

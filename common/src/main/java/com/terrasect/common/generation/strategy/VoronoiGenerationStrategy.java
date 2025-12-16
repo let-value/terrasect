@@ -5,6 +5,7 @@ import com.terrasect.common.generation.Region;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,13 +77,16 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
     }
 
     private List<Site> computeNarrativeLayout(List<Region> children, long seed, float hexRadius) {
-        sites.clear();
-        if (children.isEmpty()) return sites;
+        List<Region> orderedChildren = new ArrayList<>(children);
+        orderedChildren.sort(Comparator.comparing(Region::name));
 
-        Region hub = children.get(0);
+        sites.clear();
+        if (orderedChildren.isEmpty()) return sites;
+
+        Region hub = orderedChildren.get(0);
         int maxScore = -1;
 
-        for (Region r : children) {
+        for (Region r : orderedChildren) {
             int score = r.adjacentTo().size();
             if (score > maxScore) {
                 maxScore = score;
@@ -104,9 +108,9 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
             Region current = queue.get(queueIndex++);
             int currentShell = shells.get(current);
 
-            for (String neighborName : current.adjacentTo()) {
+            for (String neighborName : current.sortedAdjacentTo()) {
                 if (!visited.contains(neighborName)) {
-                    for (Region r : children) {
+                    for (Region r : orderedChildren) {
                         if (r.name().equals(neighborName)) {
                             visited.add(neighborName);
                             shells.put(r, currentShell + 1);
@@ -121,7 +125,7 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         int maxShell = 0;
         for (int s : shells.values()) maxShell = Math.max(maxShell, s);
 
-        for (Region r : children) {
+        for (Region r : orderedChildren) {
             if (!shells.containsKey(r)) {
                 shells.put(r, maxShell + 1);
             }
@@ -130,12 +134,12 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         for (List<Region> list : byShell.values()) {
             list.clear();
         }
-        for (Map.Entry<Region, Integer> entry : shells.entrySet()) {
-            byShell.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey());
-        }
+        shells.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey(Comparator.comparing(Region::name)))
+            .forEach(entry -> byShell.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey()));
         byShell.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
-        float totalBudget = getTotalWeight(children);
+        float totalBudget = getTotalWeight(orderedChildren);
         float currentInnerRadius = 0;
 
         sortedShells.clear();
@@ -145,6 +149,7 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         int siteIndex = 0;
         for (int shell : sortedShells) {
             List<Region> shellRegions = byShell.get(shell);
+            shellRegions.sort(Comparator.comparing(Region::name));
 
             float shellBudget = 0;
             for (Region r : shellRegions) shellBudget += r.areaBudget();
