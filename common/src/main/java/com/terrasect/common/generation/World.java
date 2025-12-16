@@ -295,10 +295,11 @@ public class World {
         float riverWarpX = (float) Math.cos(warpAngle) * (river + ridge) * influenceAmp;
         float riverWarpZ = (float) Math.sin(warpAngle) * (river + ridge) * influenceAmp;
 
-        float macroEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9201, (int) stats.coarseAverageRunBlocks()) - 0.5f)
-            * stats.coarseTransitionDensity() * Config.EDGE_SCALE;
-        float macroEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9202, (int) stats.coarseAverageRunBlocks()) - 0.5f)
-            * stats.coarseTransitionDensity() * Config.EDGE_SCALE;
+        float coarseScale = stats.coarseAverageRunBlocks() * 0.5f;
+        float coarseAmplitude = stats.coarseTransitionDensity() * Config.EDGE_SCALE * 2.5f;
+
+        float macroEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9201, (int) coarseScale) - 0.5f) * coarseAmplitude;
+        float macroEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9202, (int) coarseScale) - 0.5f) * coarseAmplitude;
 
         float microEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9203, 8) - 0.5f) * stats.fineHorizontalJitter();
         float microEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9204, 8) - 0.5f) * stats.fineVerticalJitter();

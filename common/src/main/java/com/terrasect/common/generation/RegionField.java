@@ -23,12 +23,13 @@ public class RegionField {
         float warp1 = NoiseUtils.warpNoise1(x, z, pocketSeed, warpScale);
         float warp2 = NoiseUtils.warpNoise2(x, z, pocketSeed, warpScale);
 
-        float macroX = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
-            * EDGE_STATS.coarseTransitionDensity() * cellSize;
-        float macroZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9102, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
-            * EDGE_STATS.coarseTransitionDensity() * cellSize;
+        float coarseScale = EDGE_STATS.coarseAverageRunBlocks() * 0.5f;
+        float coarseAmplitude = EDGE_STATS.coarseTransitionDensity() * cellSize * 2.5f;
 
-        float microX = (NoiseUtils.valueNoise(x, z, worldSeed, 9103, 16) - 0.5f) * EDGE_STATS.fineHorizontalJitter();
+        float macroX = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, (int) coarseScale) - 0.5f) * coarseAmplitude;
+        float macroZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9102, (int) coarseScale) - 0.5f) * coarseAmplitude;
+
+        float microX = (NoiseUtils.valueNoise(x, z, worldSeed, 9103, 16) - 0.5f) * EDGE_STATS.fineHorizontalJitter() * 0.5f;
         float microZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9104, 16) - 0.5f) * EDGE_STATS.fineVerticalJitter();
 
         int xw = (int) (x + warpAmp * (warp1 * 2.0f - 1.0f) + macroX + microX);
@@ -67,8 +68,8 @@ public class RegionField {
 
         float rawEdge = (float) (Math.sqrt(secondBestD) - Math.sqrt(bestD));
 
-        float fineDensity = (NoiseUtils.valueNoise(x, z, worldSeed, 9105, 32) - 0.5f) * EDGE_STATS.fineTransitionDensity();
-        float coarseDensity = (NoiseUtils.valueNoise(z, x, worldSeed, 9106, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
+        float fineDensity = (NoiseUtils.valueNoise(x, z, worldSeed, 9105, 32) - 0.5f) * EDGE_STATS.fineTransitionDensity() * 2.5f;
+        float coarseDensity = (NoiseUtils.valueNoise(z, x, worldSeed, 9106, (int) coarseScale) - 0.5f)
             * EDGE_STATS.coarseTransitionDensity();
 
         float edge = Math.max(0.0f, rawEdge * (1.0f + fineDensity + coarseDensity));
