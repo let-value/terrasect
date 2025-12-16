@@ -1,11 +1,29 @@
 plugins {
     id 'java'
+    id 'fabric-loom' version '1.8.13'
 }
 
 dependencies {
     implementation('org.slf4j:slf4j-api:2.0.16')
+
+    minecraft "com.mojang:minecraft:${property('minecraft_version')}"
+    mappings loom.officialMojangMappings()
+
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
+}
+
+loom {
+    runs {
+        testmodServer {
+            server()
+        }
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
 }
 
 test {
