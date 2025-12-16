@@ -4,6 +4,7 @@ public class RegionField {
 
     public static final int REPEAT_PERIOD_POCKETS = 5;
     private static final float INV_U16 = 1.0f / 65535.0f;
+    private static final EdgeStatistics EDGE_STATS = EdgeStatistics.vanillaOverworld();
 
     /**
      * Computes the region ID and edge distance for a given world coordinate.
@@ -22,8 +23,16 @@ public class RegionField {
         float warp1 = NoiseUtils.warpNoise1(x, z, pocketSeed, warpScale);
         float warp2 = NoiseUtils.warpNoise2(x, z, pocketSeed, warpScale);
 
-        int xw = (int) (x + warpAmp * (warp1 * 2.0f - 1.0f));
-        int zw = (int) (z + warpAmp * (warp2 * 2.0f - 1.0f));
+        float macroX = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
+            * EDGE_STATS.coarseTransitionDensity() * cellSize;
+        float macroZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9102, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
+            * EDGE_STATS.coarseTransitionDensity() * cellSize;
+
+        float microX = (NoiseUtils.valueNoise(x, z, worldSeed, 9103, 16) - 0.5f) * EDGE_STATS.fineHorizontalJitter();
+        float microZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9104, 16) - 0.5f) * EDGE_STATS.fineVerticalJitter();
+
+        int xw = (int) (x + warpAmp * (warp1 * 2.0f - 1.0f) + macroX + microX);
+        int zw = (int) (z + warpAmp * (warp2 * 2.0f - 1.0f) + macroZ + microZ);
 
         int gx = MathUtils.floorDiv(xw, cellSize);
         int gz = MathUtils.floorDiv(zw, cellSize);
@@ -56,7 +65,13 @@ public class RegionField {
             }
         }
 
-        float edge = (float) (Math.sqrt(secondBestD) - Math.sqrt(bestD));
+        float rawEdge = (float) (Math.sqrt(secondBestD) - Math.sqrt(bestD));
+
+        float fineDensity = (NoiseUtils.valueNoise(x, z, worldSeed, 9105, 32) - 0.5f) * EDGE_STATS.fineTransitionDensity();
+        float coarseDensity = (NoiseUtils.valueNoise(z, x, worldSeed, 9106, (int) EDGE_STATS.coarseAverageRunBlocks()) - 0.5f)
+            * EDGE_STATS.coarseTransitionDensity();
+
+        float edge = Math.max(0.0f, rawEdge * (1.0f + fineDensity + coarseDensity));
 
         return ((long) bestId << 32) | (Float.floatToRawIntBits(edge) & 0xFFFFFFFFL);
     }
