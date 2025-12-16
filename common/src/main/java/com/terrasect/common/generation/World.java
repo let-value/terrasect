@@ -10,6 +10,23 @@ import java.util.Set;
 
 public class World {
 
+    private static final float WORLD_ORIGIN_DAMP_RADIUS = 600.0f;
+    private static final int MACRO_WARP_NOISE_SCALE = 4000;
+    private static final float DOMAIN_WARP_AMPLITUDE = 1500.0f;
+    private static final int DOMAIN_WARP_NOISE_SCALE = 600;
+    private static final int MICRO_WARP_NOISE_SCALE = 150;
+    private static final int EDGE_MICRO_NOISE_SCALE = 8;
+    private static final float BASE_WARP_AMPLITUDE = 42.0f;
+    private static final float MICRO_WARP_AMPLITUDE = 15.0f;
+    private static final float INFLUENCE_WARP_AMPLITUDE = 55.0f;
+    private static final int WARP_ANGLE_NOISE_SCALE = 350;
+    private static final float NARRATIVE_AREA_SCALE = 0.06f;
+    private static final float SHELL_PLACEMENT_RADIUS_SCALE = 0.70f;
+    private static final float ANGLE_JITTER_SCALE = 0.5f;
+    private static final float RADIUS_JITTER_SCALE = 0.2f;
+    private static final float COARSE_SCALE_FACTOR = 0.5f;
+    private static final float COARSE_EDGE_AMPLITUDE_SCALE = 2.5f;
+
     private static final ThreadLocal<WarpResult> WARP_SCRATCH = ThreadLocal.withInitial(WarpResult::new);
     private static Region root;
 
@@ -93,7 +110,7 @@ public class World {
                  
                  float totalBudget = getTotalWeight(children);
                  // Reduced areaScale to prevent central hub from consuming neighbors
-                 float areaScale = currentRadius * currentRadius * 0.06f;
+                 float areaScale = currentRadius * currentRadius * NARRATIVE_AREA_SCALE;
                  
                  Region bestChild = null;
                  float minMetric = Float.MAX_VALUE;
@@ -273,36 +290,36 @@ public class World {
         EdgeStatistics stats = EdgeStatistics.vanillaOverworld();
 
         float dist = (float) Math.sqrt(x * x + z * z);
-        float dampFactor = Math.min(1.0f, dist / 600.0f);
+        float dampFactor = Math.min(1.0f, dist / WORLD_ORIGIN_DAMP_RADIUS);
 
-        float m1 = NoiseUtils.valueNoise(x, z, seed, 10001, 4000);
-        float m2 = NoiseUtils.valueNoise(x, z, seed, 10002, 4000);
+        float m1 = NoiseUtils.valueNoise(x, z, seed, 10001, MACRO_WARP_NOISE_SCALE);
+        float m2 = NoiseUtils.valueNoise(x, z, seed, 10002, MACRO_WARP_NOISE_SCALE);
 
-        float mx = x + (m1 - 0.5f) * 1500.0f * dampFactor;
-        float mz = z + (m2 - 0.5f) * 1500.0f * dampFactor;
+        float mx = x + (m1 - 0.5f) * DOMAIN_WARP_AMPLITUDE * dampFactor;
+        float mz = z + (m2 - 0.5f) * DOMAIN_WARP_AMPLITUDE * dampFactor;
 
-        float n1 = NoiseUtils.warpNoise1((int) mx, (int) mz, seed, 600);
-        float n2 = NoiseUtils.warpNoise2((int) mx, (int) mz, seed, 600);
+        float n1 = NoiseUtils.warpNoise1((int) mx, (int) mz, seed, DOMAIN_WARP_NOISE_SCALE);
+        float n2 = NoiseUtils.warpNoise2((int) mx, (int) mz, seed, DOMAIN_WARP_NOISE_SCALE);
 
-        float r1 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5001, 150);
-        float r2 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5002, 150);
+        float r1 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5001, MICRO_WARP_NOISE_SCALE);
+        float r2 = NoiseUtils.valueNoise((int) mx, (int) mz, seed, 5002, MICRO_WARP_NOISE_SCALE);
 
-        float baseAmp = 42.0f;
-        float microAmp = 15.0f;
-        float influenceAmp = 55.0f;
+        float baseAmp = BASE_WARP_AMPLITUDE;
+        float microAmp = MICRO_WARP_AMPLITUDE;
+        float influenceAmp = INFLUENCE_WARP_AMPLITUDE;
 
-        float warpAngle = NoiseUtils.valueNoise(x, z, seed, 9999, 350) * (float) Math.PI * 2.0f;
+        float warpAngle = NoiseUtils.valueNoise(x, z, seed, 9999, WARP_ANGLE_NOISE_SCALE) * (float) Math.PI * 2.0f;
         float riverWarpX = (float) Math.cos(warpAngle) * (river + ridge) * influenceAmp;
         float riverWarpZ = (float) Math.sin(warpAngle) * (river + ridge) * influenceAmp;
 
-        float coarseScale = stats.coarseAverageRunBlocks() * 0.5f;
-        float coarseAmplitude = stats.coarseTransitionDensity() * Config.EDGE_SCALE * 2.5f;
+        float coarseScale = stats.coarseAverageRunBlocks() * COARSE_SCALE_FACTOR;
+        float coarseAmplitude = stats.coarseTransitionDensity() * Config.EDGE_SCALE * COARSE_EDGE_AMPLITUDE_SCALE;
 
         float macroEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9201, (int) coarseScale) - 0.5f) * coarseAmplitude;
         float macroEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9202, (int) coarseScale) - 0.5f) * coarseAmplitude;
 
-        float microEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9203, 8) - 0.5f) * stats.fineHorizontalJitter();
-        float microEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9204, 8) - 0.5f) * stats.fineVerticalJitter();
+        float microEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9203, EDGE_MICRO_NOISE_SCALE) - 0.5f) * stats.fineHorizontalJitter();
+        float microEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9204, EDGE_MICRO_NOISE_SCALE) - 0.5f) * stats.fineVerticalJitter();
 
         result.x = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor + macroEdgeX + microEdgeX;
         result.z = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor + macroEdgeZ + microEdgeZ;
@@ -406,7 +423,7 @@ public class World {
             } else {
                 // Place sites closer to the center of their area share to ensure they are within the hex
                 // Using 0.70 of the outer radius of the shell seems to work well for hex containment
-                placementRadius = nextInnerRadius * 0.70f;
+                placementRadius = nextInnerRadius * SHELL_PLACEMENT_RADIUS_SCALE;
             }
             
             float angleStep = (float) (2 * Math.PI / shellRegions.size());
@@ -416,11 +433,11 @@ public class World {
                 Region r = shellRegions.get(i);
                 
                 // Add jitter to angle (up to 50% of the step)
-                float angleJitter = ((MathUtils.hash64(seed, shell, i, 1) & 0xFFFF) / 65536.0f - 0.5f) * angleStep * 0.5f;
+                float angleJitter = ((MathUtils.hash64(seed, shell, i, 1) & 0xFFFF) / 65536.0f - 0.5f) * angleStep * ANGLE_JITTER_SCALE;
                 float angle = angleOffset + i * angleStep + angleJitter;
                 
                 // Add jitter to radius (up to 20% of the shell width)
-                float radiusJitter = ((MathUtils.hash64(seed, shell, i, 2) & 0xFFFF) / 65536.0f - 0.5f) * (nextInnerRadius - currentInnerRadius) * 0.2f;
+                float radiusJitter = ((MathUtils.hash64(seed, shell, i, 2) & 0xFFFF) / 65536.0f - 0.5f) * (nextInnerRadius - currentInnerRadius) * RADIUS_JITTER_SCALE;
                 float rRadius = placementRadius + radiusJitter;
                 
                 Site site = new Site();
