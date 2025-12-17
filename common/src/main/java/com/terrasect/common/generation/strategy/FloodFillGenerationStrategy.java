@@ -27,6 +27,15 @@ public class FloodFillGenerationStrategy implements RegionGenerationStrategy {
     private static final float RADIUS_JITTER_SCALE = 0.15f;
     private static final float RIVER_INFLUENCE_WEIGHT = 0.3f;
     private static final float RIDGE_INFLUENCE_WEIGHT = 0.2f;
+    
+    /** Small epsilon to prevent division by zero when computing budget fractions */
+    private static final float MIN_BUDGET_EPSILON = 0.01f;
+    /** Hash salt for generating next seed in traversal */
+    private static final int TRAVERSAL_HASH_SALT = 777;
+    /** Bit mask for extracting 16-bit hash component */
+    private static final int HASH_MASK_16BIT = 0xFFFF;
+    /** Normalizer to convert 16-bit hash to [0, 1) float */
+    private static final float INV_16BIT = 1.0f / 65536.0f;
 
     private final List<SeedPoint> seedPoints = new ArrayList<>();
 
@@ -77,7 +86,7 @@ public class FloodFillGenerationStrategy implements RegionGenerationStrategy {
 
             // Weight by inverse of area budget fraction - larger budget regions expand faster
             float budgetFraction = seed.region.areaBudget() / totalBudget;
-            float budgetWeight = 1.0f / (budgetFraction + 0.01f);
+            float budgetWeight = 1.0f / (budgetFraction + MIN_BUDGET_EPSILON);
 
             // Apply environmental influence as expansion resistance
             // Rivers and ridges act as barriers that slow down flooding
@@ -106,7 +115,7 @@ public class FloodFillGenerationStrategy implements RegionGenerationStrategy {
             }
         }
 
-        long nextSeed = MathUtils.hash64(scratch.currentSeed(), bestChild.name().hashCode(), bestIndex, 777);
+        long nextSeed = MathUtils.hash64(scratch.currentSeed(), bestChild.name().hashCode(), bestIndex, TRAVERSAL_HASH_SALT);
 
         float centerX = scratch.centerX();
         float centerZ = scratch.centerZ();
@@ -144,7 +153,7 @@ public class FloodFillGenerationStrategy implements RegionGenerationStrategy {
         List<Region> orderedByAdjacency = orderByAdjacency(orderedChildren, hub);
 
         float angleStep = (float) (2 * Math.PI / orderedByAdjacency.size());
-        float angleOffset = (MathUtils.hash64(seed, 0, 0, 0) & 0xFFFF) / 65536.0f * (float) Math.PI;
+        float angleOffset = (MathUtils.hash64(seed, 0, 0, 0) & HASH_MASK_16BIT) * INV_16BIT * (float) Math.PI;
 
         int siteIndex = 0;
         for (int i = 0; i < orderedByAdjacency.size(); i++) {
@@ -152,12 +161,12 @@ public class FloodFillGenerationStrategy implements RegionGenerationStrategy {
             float budgetFraction = region.areaBudget() / totalBudget;
 
             // Add angle jitter for organic placement
-            float angleJitter = ((MathUtils.hash64(seed, i, 0, 1) & 0xFFFF) / 65536.0f - 0.5f)
+            float angleJitter = ((MathUtils.hash64(seed, i, 0, 1) & HASH_MASK_16BIT) * INV_16BIT - 0.5f)
                 * angleStep * ANGLE_JITTER_SCALE;
             float angle = angleOffset + i * angleStep + angleJitter;
 
             // Add radius jitter to scatter points slightly inward/outward
-            float radiusJitter = ((MathUtils.hash64(seed, i, 0, 2) & 0xFFFF) / 65536.0f - 0.5f)
+            float radiusJitter = ((MathUtils.hash64(seed, i, 0, 2) & HASH_MASK_16BIT) * INV_16BIT - 0.5f)
                 * parentRadius * RADIUS_JITTER_SCALE;
 
             // Smaller budget regions are placed further out (on boundary)
