@@ -10,11 +10,11 @@ import java.util.List;
 public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
     private static final float NARRATIVE_AREA_SCALE = 0.24f;
-    private static final float COVERAGE_PRIOR = 0.30f;
-    private static final float BUDGET_POWER = 0.60f;
-    private static final float BUDGET_PULL = 0.50f;
-    private static final float MIN_SPREAD = 0.65f;
-    private static final float MAX_SPREAD = 0.88f;
+    private static final float COVERAGE_PRIOR = 0.25f;
+    private static final float BUDGET_POWER = 1.0f;
+    private static final float BUDGET_PULL = 2.00f;
+    private static final float MIN_SPREAD = 0.80f;
+    private static final float MAX_SPREAD = 0.80f;
     private static final float DISTANCE_PENALTY = 1.20f;
     private static final float EDGE_NOISE_SCALE = 0.0f;
     private static final float FLOW_WARP = 0.0f;
@@ -53,10 +53,11 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
             float terrainPenalty = 1.0f + ridgeInfluence * RIDGE_PUSH - riverInfluence * RIVER_PULL;
             float budgetTilt = (float) Math.pow(site.weight + COVERAGE_PRIOR, BUDGET_POWER);
+            float budgetScale = 1.0f + budgetTilt * BUDGET_PULL;
 
-            float metric = distance - budgetTilt * BUDGET_PULL;
-            metric = Math.max(metric, 0.0f);
+            float metric = distance;
             metric *= terrainPenalty;
+            metric /= budgetScale;
             metric *= 1.0f + signedNoise(scratch.currentSeed(), scratch.warpedX(), scratch.warpedZ(), spreadRadius * 0.95f + 1.0f, site.index * 13 + 3) * EDGE_NOISE_SCALE;
 
             float score = -metric;
@@ -95,30 +96,23 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         float totalBudget = getTotalWeight(orderedChildren);
         float radiusScale = hexRadius * (float) Math.sqrt(NARRATIVE_AREA_SCALE);
 
-        int siteCount = 0;
-        List<Integer> siteMultiplicity = new ArrayList<>(orderedChildren.size());
-        for (Region region : orderedChildren) {
-            float budgetFraction = region.areaBudget() / totalBudget;
-            int slots = Math.max(1, Math.round(budgetFraction * orderedChildren.size()));
-            siteMultiplicity.add(slots);
-            siteCount += slots;
-        }
+        int siteCount = orderedChildren.size();
 
         ensureSiteCapacity(siteCount);
 
         int siteCursor = 0;
         for (int i = 0; i < orderedChildren.size(); i++) {
             Region region = orderedChildren.get(i);
-            int slots = siteMultiplicity.get(i);
             float budgetFraction = region.areaBudget() / totalBudget;
-            float slotWeight = budgetFraction / slots;
-            float baseSpread = MathUtils.lerp(MIN_SPREAD, MAX_SPREAD, (float) Math.sqrt(MathUtils.clamp01(budgetFraction)));
-            float slotSpread = baseSpread;
+            int slots = 1;
+            float slotWeight = budgetFraction;
+            float baseSpread = MIN_SPREAD;
+            float budgetSpreadScale = 1.0f;
+            float slotSpread = baseSpread * budgetSpreadScale;
 
             for (int s = 0; s < slots; s++) {
-                float radialT = (s + 0.5f) / slots;
-                float angle = (float) ((s + 0.5f) * 2.39996323 + MathUtils.randomFloat(seed, i, s, 11) * Math.PI * 2.0);
-                float r = (float) Math.sqrt(radialT) * radiusScale;
+                float angle = (float) (i * (Math.PI * 2.0 / orderedChildren.size()));
+                float r = radiusScale;
 
                 float x = (float) (Math.cos(angle) * r);
                 float z = (float) (Math.sin(angle) * r);
