@@ -11,10 +11,10 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
     private static final float NARRATIVE_AREA_SCALE = 0.24f;
     private static final float COVERAGE_PRIOR = 0.25f;
-    private static final float BUDGET_POWER = 1.0f;
-    private static final float BUDGET_PULL = 2.00f;
-    private static final float MIN_SPREAD = 0.80f;
-    private static final float MAX_SPREAD = 0.80f;
+    private static final float BUDGET_POWER = 1.6f;
+    private static final float BUDGET_PULL = 1.0f;
+    private static final float MIN_SPREAD = 0.70f;
+    private static final float MAX_SPREAD = 1.20f;
     private static final float DISTANCE_PENALTY = 1.20f;
     private static final float EDGE_NOISE_SCALE = 0.0f;
     private static final float FLOW_WARP = 0.0f;
@@ -52,8 +52,9 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
             float distance = distSq / (spreadRadius * spreadRadius + 0.0001f);
 
             float terrainPenalty = 1.0f + ridgeInfluence * RIDGE_PUSH - riverInfluence * RIVER_PULL;
-            float budgetTilt = (float) Math.pow(site.weight + COVERAGE_PRIOR, BUDGET_POWER);
-            float budgetScale = 1.0f + budgetTilt * BUDGET_PULL;
+            float budgetBase = (site.weight + COVERAGE_PRIOR) / COVERAGE_PRIOR;
+            float budgetTilt = (float) Math.pow(budgetBase, BUDGET_POWER);
+            float budgetScale = budgetTilt * BUDGET_PULL;
 
             float metric = distance;
             metric *= terrainPenalty;
@@ -106,9 +107,7 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
             float budgetFraction = region.areaBudget() / totalBudget;
             int slots = 1;
             float slotWeight = budgetFraction;
-            float baseSpread = MIN_SPREAD;
-            float budgetSpreadScale = 1.0f;
-            float slotSpread = baseSpread * budgetSpreadScale;
+            float slotSpread = MathUtils.lerp(slotWeight, MIN_SPREAD, MAX_SPREAD);
 
             for (int s = 0; s < slots; s++) {
                 float angle = (float) (i * (Math.PI * 2.0 / orderedChildren.size()));
