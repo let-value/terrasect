@@ -9,45 +9,56 @@ import java.util.List;
 
 public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
-    private static final float NARRATIVE_AREA_SCALE = 0.25f;
-    private static final float ANGLE_JITTER_SCALE = 0.25f;
-    private static final float GOLDEN_ANGLE = (float) (Math.PI * (3 - Math.sqrt(5)));
-    private static final float WEIGHT_PRIORITY = 0.30f;
-    private static final float COVERAGE_PRIOR = 0.12f;
-    private static final float BUDGET_BIAS = 0.9f;
-    private static final float MIN_SPREAD = 0.6f;
-    private static final float DISTANCE_PENALTY = 1.25f;
-    private static final float MAX_SPREAD = 0.95f;
-    private static final float MIN_RADIUS_WEIGHT = 0.65f;
-    private static final float MAX_RADIUS_WEIGHT = 1.15f;
+    private static final float NARRATIVE_AREA_SCALE = 0.24f;
+    private static final float COVERAGE_PRIOR = 0.30f;
+    private static final float BUDGET_POWER = 0.55f;
+    private static final float HEAVY_WEIGHT_DRAG = 0.90f;
+    private static final float MIN_SPREAD = 0.55f;
+    private static final float MAX_SPREAD = 0.90f;
+    private static final float DISTANCE_PENALTY = 1.20f;
+    private static final float EDGE_NOISE_SCALE = 0.01f;
+    private static final float FLOW_WARP = 0.03f;
+    private static final float FLOW_SCALE = 850.0f;
+    private static final float RIVER_PULL = 0.10f;
+    private static final float RIDGE_PUSH = 0.05f;
 
     private final List<Site> sites = new ArrayList<>();
-    private float lastRotation;
 
     @Override
     public void traverse(List<Region> children, TraversalScratch scratch) {
         List<Site> layout = computeNarrativeLayout(children, scratch.currentSeed(), scratch.currentRadius());
-
         float totalBudget = getTotalWeight(children);
+
         Region bestChild = layout.isEmpty() ? children.get(0) : layout.get(0).region;
         int bestChildIndex = layout.isEmpty() ? 0 : layout.get(0).index;
         Site bestSite = null;
 
+        float riverInfluence = scratch.worldContext() == null ? 0.0f : scratch.worldContext().getRiverInfluence((int) scratch.warpedX(), (int) scratch.warpedZ());
+        float ridgeInfluence = scratch.worldContext() == null ? 0.0f : scratch.worldContext().getRidgeInfluence((int) scratch.warpedX(), (int) scratch.warpedZ());
+
         for (Site site : layout) {
             site.score = Float.NEGATIVE_INFINITY;
+
             float dx = scratch.warpedX() - (scratch.centerX() + site.x);
             float dz = scratch.warpedZ() - (scratch.centerZ() + site.z);
+
+            // Domain-warp the evaluation point to create blobby, non-linear fronts without angular spokes.
+            float warpScale = scratch.currentRadius() * FLOW_WARP * site.spread;
+            dx += signedNoise(scratch.currentSeed(), dx, dz, FLOW_SCALE, site.index * 31 + 7) * warpScale;
+            dz += signedNoise(scratch.currentSeed(), dx + 17.0f, dz + 13.0f, FLOW_SCALE, site.index * 17 + 11) * warpScale;
+
             float distSq = dx * dx + dz * dz;
+            float spreadRadius = scratch.currentRadius() * site.spread;
+            float distance = (float) Math.sqrt(distSq) / (spreadRadius + 0.0001f);
 
-            float weight = site.region.areaBudget() / totalBudget;
-            float spread = MathUtils.lerp(MIN_SPREAD, MAX_SPREAD, (float) Math.sqrt(MathUtils.clamp01(weight)));
-            float normDist = (float) Math.sqrt(distSq) / (scratch.currentRadius() * spread + 0.0001f);
+            float terrainPenalty = 1.0f + ridgeInfluence * RIDGE_PUSH - riverInfluence * RIVER_PULL;
+            float budgetScale = (float) Math.sqrt(site.weight + COVERAGE_PRIOR);
 
-            // Gaussian-like falloff keeps territories round while honoring area budgets.
-            float distPenalty = normDist * normDist;
-            float influence = (float) Math.exp(-distPenalty * 0.5f);
-            float budgetTilt = (float) Math.sqrt(weight + COVERAGE_PRIOR) * BUDGET_BIAS + weight * WEIGHT_PRIORITY;
-            float score = budgetTilt + influence - distPenalty * DISTANCE_PENALTY;
+            float metric = distance / (budgetScale + 0.0001f);
+            metric *= terrainPenalty;
+            metric *= 1.0f + signedNoise(scratch.currentSeed(), scratch.warpedX(), scratch.warpedZ(), spreadRadius * 0.95f + 1.0f, site.index * 13 + 3) * EDGE_NOISE_SCALE;
+
+            float score = -metric;
 
             if (score > (bestSite == null ? Float.NEGATIVE_INFINITY : bestSite.score)) {
                 bestChild = site.region;
@@ -80,33 +91,45 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         sites.clear();
         if (orderedChildren.isEmpty()) return sites;
 
-        lastRotation = (MathUtils.hash64(seed, orderedChildren.size(), 0, 0) & 0xFFFF) / 65535.0f * (float) (Math.PI * 2);
         float totalBudget = getTotalWeight(orderedChildren);
         float radiusScale = hexRadius * (float) Math.sqrt(NARRATIVE_AREA_SCALE);
 
-        ensureSiteCapacity(orderedChildren.size());
+        int siteCount = 0;
+        for (Region region : orderedChildren) {
+            siteCount += 1;
+        }
 
+        ensureSiteCapacity(siteCount);
+
+        int siteCursor = 0;
         for (int i = 0; i < orderedChildren.size(); i++) {
             Region region = orderedChildren.get(i);
             float budgetFraction = region.areaBudget() / totalBudget;
+            float baseSpread = MathUtils.lerp(MIN_SPREAD, MAX_SPREAD, (float) Math.sqrt(MathUtils.clamp01(budgetFraction)));
+            float x = 0.0f;
+            float z = 0.0f;
 
-            float radiusWeight = MathUtils.lerp(MIN_RADIUS_WEIGHT, MAX_RADIUS_WEIGHT, MathUtils.clamp01((float) Math.sqrt(budgetFraction)));
-            float radialNoise = (MathUtils.hash64(seed, i, 1, 0) & 0xFFFF) / 65535.0f;
-            float radius = radiusScale * radiusWeight * (0.5f + 0.5f * radialNoise);
+            // Rejection sample a scatter point inside the disk; deterministic jitter per child.
+            for (int attempt = 0; attempt < 6; attempt++) {
+                float rx = (MathUtils.randomFloat(seed, i, attempt * 2, 0) * 2.0f - 1.0f) * radiusScale;
+                float rz = (MathUtils.randomFloat(seed, i, attempt * 2 + 1, 0) * 2.0f - 1.0f) * radiusScale;
+                if (rx * rx + rz * rz <= radiusScale * radiusScale) {
+                    x = rx;
+                    z = rz;
+                    break;
+                }
+            }
 
-            // Golden-angle spiral provides even angular spacing; hash-based jitter fans sites out
-            // so blobs originate from throughout the disk instead of the center.
-            float jitter = ((MathUtils.hash64(seed, i, 0, 0) & 0xFFFF) / 65535.0f - 0.5f) * ANGLE_JITTER_SCALE * GOLDEN_ANGLE;
-            float angle = lastRotation + GOLDEN_ANGLE * i + jitter;
-
-            Site site = sites.get(i);
-            site.x = (float) Math.cos(angle) * radius;
-            site.z = (float) Math.sin(angle) * radius;
+            Site site = sites.get(siteCursor++);
+            site.x = x;
+            site.z = z;
+            site.spread = baseSpread;
+            site.weight = budgetFraction;
             site.region = region;
             site.index = children.indexOf(region);
         }
 
-        trimSites(orderedChildren.size());
+        trimSites(siteCount);
         return sites;
     }
 
@@ -128,11 +151,39 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         }
     }
 
+    private float signedNoise(long seed, float x, float z, float scale, int salt) {
+        return smoothNoise(seed, x, z, scale, salt) * 2.0f - 1.0f;
+    }
+
+    private float smoothNoise(long seed, float x, float z, float scale, int salt) {
+        float scaledX = x / scale;
+        float scaledZ = z / scale;
+
+        int x0 = (int) Math.floor(scaledX);
+        int z0 = (int) Math.floor(scaledZ);
+        int x1 = x0 + 1;
+        int z1 = z0 + 1;
+
+        float tx = scaledX - x0;
+        float tz = scaledZ - z0;
+
+        float n00 = MathUtils.randomFloat(seed, x0, z0, salt);
+        float n10 = MathUtils.randomFloat(seed, x1, z0, salt);
+        float n01 = MathUtils.randomFloat(seed, x0, z1, salt);
+        float n11 = MathUtils.randomFloat(seed, x1, z1, salt);
+
+        float nx0 = MathUtils.lerp(tx, n00, n10);
+        float nx1 = MathUtils.lerp(tx, n01, n11);
+        return MathUtils.lerp(tz, nx0, nx1);
+    }
+
     private static class Site {
         float x, z;
         Region region;
         int index;
         float score;
+        float spread;
+        float weight;
     }
 }
 
