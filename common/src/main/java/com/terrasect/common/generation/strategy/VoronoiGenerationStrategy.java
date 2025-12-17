@@ -4,192 +4,117 @@ import com.terrasect.common.generation.MathUtils;
 import com.terrasect.common.generation.Region;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
-    private static final float NARRATIVE_AREA_SCALE = 0.06f;
-    private static final float SHELL_PLACEMENT_RADIUS_SCALE = 0.70f;
-    private static final float ANGLE_JITTER_SCALE = 0.5f;
-    private static final float RADIUS_JITTER_SCALE = 0.2f;
+    private static final float BASE_SEED_COUNT = 5.0f;
+    private static final float SEED_WEIGHT_EXPONENT = 0.5f;
+    private static final float SEED_RING_JITTER = 0.12f;
+    private static final float ANGLE_JITTER_SCALE = 0.35f;
+    private static final float GROWTH_BASE_SPEED = 0.60f;
+    private static final float AREA_GROWTH_SCALE = 1.10f;
+    private static final float INFLUENCE_RESISTANCE = 0.6f;
+    private static final float CONTAINMENT_STRENGTH = 1.4f;
+    private static final float CENTER_PULLBACK = 0.35f;
 
-    private final List<Site> sites = new ArrayList<>();
-    private final Map<Region, Integer> shells = new HashMap<>();
-    private final List<Region> queue = new ArrayList<>();
-    private final Set<String> visited = new HashSet<>();
-    private final Map<Integer, List<Region>> byShell = new HashMap<>();
-    private final List<Integer> sortedShells = new ArrayList<>();
+    private final List<FloodSeed> seeds = new ArrayList<>();
 
     @Override
     public void traverse(List<Region> children, TraversalScratch scratch) {
-        List<Site> layout = computeNarrativeLayout(children, scratch.currentSeed(), scratch.currentRadius());
+        if (children.isEmpty()) return;
 
         float totalBudget = getTotalWeight(children);
-        float areaScale = scratch.currentRadius() * scratch.currentRadius() * NARRATIVE_AREA_SCALE;
+        buildSeeds(children, scratch.currentSeed(), scratch.currentRadius());
 
-        Region bestChild = null;
-        float minMetric = Float.MAX_VALUE;
-        int bestChildIndex = -1;
-        Site bestSite = null;
+        float river = scratch.worldContext().getRiverInfluence((int) scratch.warpedX(), (int) scratch.warpedZ());
+        float ridge = scratch.worldContext().getRidgeInfluence((int) scratch.warpedX(), (int) scratch.warpedZ());
+        float influenceResistance = 1.0f + (river + ridge) * INFLUENCE_RESISTANCE;
 
-        for (Site site : layout) {
-            float distSq = (scratch.warpedX() - (scratch.centerX() + site.x)) * (scratch.warpedX() - (scratch.centerX() + site.x))
-                + (scratch.warpedZ() - (scratch.centerZ() + site.z)) * (scratch.warpedZ() - (scratch.centerZ() + site.z));
-            float weight = (site.region.areaBudget() / totalBudget) * areaScale;
-            float metric = distSq - weight;
+        float distToCenter = (float) Math.sqrt((scratch.warpedX() - scratch.centerX()) * (scratch.warpedX() - scratch.centerX())
+            + (scratch.warpedZ() - scratch.centerZ()) * (scratch.warpedZ() - scratch.centerZ()));
+        float containmentFactor = 1.0f + (float) Math.pow(Math.max(0.0f, distToCenter / scratch.currentRadius()), 2) * CONTAINMENT_STRENGTH;
 
-            if (metric < minMetric) {
-                minMetric = metric;
-                bestChild = site.region;
-                bestChildIndex = site.index;
-                bestSite = site;
+        Region bestChild = children.get(0);
+        FloodSeed bestSeed = null;
+        float bestScore = Float.MAX_VALUE;
+
+        for (FloodSeed seed : seeds) {
+            float dx = scratch.warpedX() - (scratch.centerX() + seed.x);
+            float dz = scratch.warpedZ() - (scratch.centerZ() + seed.z);
+            float distance = (float) Math.sqrt(dx * dx + dz * dz) + 0.001f;
+
+            float budgetFraction = seed.region.areaBudget() / totalBudget;
+            float growthSpeed = GROWTH_BASE_SPEED + (float) Math.pow(budgetFraction, 0.6f) * AREA_GROWTH_SCALE;
+
+            float travelCost = distance / growthSpeed;
+            float score = travelCost * influenceResistance * containmentFactor;
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestChild = seed.region;
+                bestSeed = seed;
             }
         }
 
-        if (bestChild == null) {
-            bestChild = children.get(0);
-            for (Site s : layout) {
-                if (s.region == bestChild) {
-                    bestSite = s;
-                    break;
-                }
-            }
-        }
-
-        long nextSeed = MathUtils.hash64(scratch.currentSeed(), bestChild.name().hashCode(), bestChildIndex, 999);
+        int bestIndex = children.indexOf(bestChild);
+        long nextSeed = MathUtils.hash64(scratch.currentSeed(), bestChild.name().hashCode(), bestIndex, 999);
 
         float centerX = scratch.centerX();
         float centerZ = scratch.centerZ();
-        float radius = scratch.currentRadius();
-        if (bestSite != null) {
-            centerX += bestSite.x;
-            centerZ += bestSite.z;
-            radius = radius * (float) Math.sqrt(bestChild.areaBudget() / totalBudget);
+        float radius = scratch.currentRadius() * (float) Math.sqrt(bestChild.areaBudget() / totalBudget);
+
+        if (bestSeed != null) {
+            centerX += bestSeed.x * CENTER_PULLBACK;
+            centerZ += bestSeed.z * CENTER_PULLBACK;
         }
 
-        scratch.select(bestChild, bestChildIndex, nextSeed, centerX, centerZ, radius);
+        scratch.select(bestChild, bestIndex, nextSeed, centerX, centerZ, radius);
     }
 
-    private List<Site> computeNarrativeLayout(List<Region> children, long seed, float hexRadius) {
-        List<Region> orderedChildren = new ArrayList<>(children);
-        orderedChildren.sort(Comparator.comparing(Region::name));
+    private void buildSeeds(List<Region> children, long seed, float parentRadius) {
+        seeds.clear();
 
-        sites.clear();
-        if (orderedChildren.isEmpty()) return sites;
+        List<Region> sortedChildren = new ArrayList<>(children);
+        sortedChildren.sort(Comparator.comparing(Region::name));
 
-        Region hub = orderedChildren.get(0);
-        int maxScore = -1;
+        float totalBudget = getTotalWeight(sortedChildren);
+        int totalSeedCount = 0;
+        for (Region child : sortedChildren) {
+            float weight = (float) Math.pow(child.areaBudget() / totalBudget, SEED_WEIGHT_EXPONENT);
+            totalSeedCount += Math.max(1, Math.round(BASE_SEED_COUNT * weight));
+        }
 
-        for (Region r : orderedChildren) {
-            int score = r.adjacentTo().size();
-            if (score > maxScore) {
-                maxScore = score;
-                hub = r;
+        if (totalSeedCount == 0) {
+            totalSeedCount = sortedChildren.size();
+        }
+
+        float angleStep = (float) (Math.PI * 2 / totalSeedCount);
+        float baseAngle = ((seed & 0xFFFF) / 65536.0f) * (float) Math.PI * 2.0f;
+
+        int placed = 0;
+        for (Region child : sortedChildren) {
+            float weight = (float) Math.pow(child.areaBudget() / totalBudget, SEED_WEIGHT_EXPONENT);
+            int seedCount = Math.max(1, Math.round(BASE_SEED_COUNT * weight));
+
+            for (int i = 0; i < seedCount; i++) {
+                float jitter = ((MathUtils.hash64(seed, placed, i, 1) & 0xFFFF) / 65536.0f - 0.5f) * angleStep * ANGLE_JITTER_SCALE;
+                float angle = baseAngle + placed * angleStep + jitter;
+
+                float radiusJitter = ((MathUtils.hash64(seed, placed, i, 2) & 0xFFFF) / 65536.0f - 0.5f) * SEED_RING_JITTER;
+                float r = parentRadius * (1.0f + radiusJitter);
+
+                ensureSeedCapacity(placed + 1);
+                FloodSeed floodSeed = seeds.get(placed);
+                floodSeed.x = (float) Math.cos(angle) * r;
+                floodSeed.z = (float) Math.sin(angle) * r;
+                floodSeed.region = child;
+                placed++;
             }
         }
 
-        shells.clear();
-        shells.put(hub, 0);
-
-        queue.clear();
-        queue.add(hub);
-
-        visited.clear();
-        visited.add(hub.name());
-
-        int queueIndex = 0;
-        while (queueIndex < queue.size()) {
-            Region current = queue.get(queueIndex++);
-            int currentShell = shells.get(current);
-
-            for (String neighborName : current.sortedAdjacentTo()) {
-                if (!visited.contains(neighborName)) {
-                    for (Region r : orderedChildren) {
-                        if (r.name().equals(neighborName)) {
-                            visited.add(neighborName);
-                            shells.put(r, currentShell + 1);
-                            queue.add(r);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        int maxShell = 0;
-        for (int s : shells.values()) maxShell = Math.max(maxShell, s);
-
-        for (Region r : orderedChildren) {
-            if (!shells.containsKey(r)) {
-                shells.put(r, maxShell + 1);
-            }
-        }
-
-        for (List<Region> list : byShell.values()) {
-            list.clear();
-        }
-        shells.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey(Comparator.comparing(Region::name)))
-            .forEach(entry -> byShell.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey()));
-        byShell.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
-        float totalBudget = getTotalWeight(orderedChildren);
-        float currentInnerRadius = 0;
-
-        sortedShells.clear();
-        sortedShells.addAll(byShell.keySet());
-        Collections.sort(sortedShells);
-
-        int siteIndex = 0;
-        for (int shell : sortedShells) {
-            List<Region> shellRegions = byShell.get(shell);
-            shellRegions.sort(Comparator.comparing(Region::name));
-
-            float shellBudget = 0;
-            for (Region r : shellRegions) shellBudget += r.areaBudget();
-
-            float budgetFraction = shellBudget / totalBudget;
-
-            float nextInnerRadius = (float) Math.sqrt(currentInnerRadius * currentInnerRadius + hexRadius * hexRadius * budgetFraction);
-
-            float placementRadius = shell == 0 ? 0 : nextInnerRadius * SHELL_PLACEMENT_RADIUS_SCALE;
-
-            float angleStep = (float) (2 * Math.PI / shellRegions.size());
-            float angleOffset = (MathUtils.hash64(seed, shell, 0, 0) & 0xFFFF) / 65536.0f * (float) Math.PI;
-
-            for (int i = 0; i < shellRegions.size(); i++) {
-                Region region = shellRegions.get(i);
-
-                float angleJitter = ((MathUtils.hash64(seed, shell, i, 1) & 0xFFFF) / 65536.0f - 0.5f) * angleStep * ANGLE_JITTER_SCALE;
-                float angle = angleOffset + i * angleStep + angleJitter;
-
-                float radiusJitter = ((MathUtils.hash64(seed, shell, i, 2) & 0xFFFF) / 65536.0f - 0.5f) * (nextInnerRadius - currentInnerRadius) * RADIUS_JITTER_SCALE;
-                float rRadius = placementRadius + radiusJitter;
-
-                ensureSiteCapacity(siteIndex + 1);
-                Site site = sites.get(siteIndex++);
-                if (shell == 0) {
-                    site.x = 0;
-                    site.z = 0;
-                } else {
-                    site.x = (float) Math.cos(angle) * rRadius;
-                    site.z = (float) Math.sin(angle) * rRadius;
-                }
-                site.region = region;
-                site.index = children.indexOf(region);
-            }
-
-            currentInnerRadius = nextInnerRadius;
-        }
-
-        trimSites(siteIndex);
-        return sites;
+        trimSeeds(placed);
     }
 
     private float getTotalWeight(List<Region> regions) {
@@ -198,22 +123,22 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         return sum;
     }
 
-    private void ensureSiteCapacity(int size) {
-        while (sites.size() < size) {
-            sites.add(new Site());
+    private void ensureSeedCapacity(int size) {
+        while (seeds.size() < size) {
+            seeds.add(new FloodSeed());
         }
     }
 
-    private void trimSites(int size) {
-        if (sites.size() > size) {
-            sites.subList(size, sites.size()).clear();
+    private void trimSeeds(int size) {
+        if (seeds.size() > size) {
+            seeds.subList(size, seeds.size()).clear();
         }
     }
 
-    private static class Site {
-        float x, z;
+    private static class FloodSeed {
+        float x;
+        float z;
         Region region;
-        int index;
     }
 }
 
