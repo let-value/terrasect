@@ -4,61 +4,53 @@ import com.terrasect.common.generation.MathUtils;
 import com.terrasect.common.generation.Region;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
-    private static final float NARRATIVE_AREA_SCALE = 0.06f;
-    private static final float SHELL_PLACEMENT_RADIUS_SCALE = 0.70f;
-    private static final float ANGLE_JITTER_SCALE = 0.5f;
-    private static final float RADIUS_JITTER_SCALE = 0.2f;
+    private static final float NARRATIVE_AREA_SCALE = 0.25f;
+    private static final float ANGLE_JITTER_SCALE = 0.55f;
+    private static final float GOLDEN_ANGLE = (float) (Math.PI * (3 - Math.sqrt(5)));
+    private static final float WEIGHT_PRIORITY = 0.2f;
+    private static final float MIN_SPREAD = 0.35f;
+    private static final float MAX_SPREAD = 0.95f;
+    private static final float MIN_RADIUS_WEIGHT = 0.65f;
+    private static final float MAX_RADIUS_WEIGHT = 1.15f;
 
     private final List<Site> sites = new ArrayList<>();
-    private final Map<Region, Integer> shells = new HashMap<>();
-    private final List<Region> queue = new ArrayList<>();
-    private final Set<String> visited = new HashSet<>();
-    private final Map<Integer, List<Region>> byShell = new HashMap<>();
-    private final List<Integer> sortedShells = new ArrayList<>();
+    private float lastRotation;
 
     @Override
     public void traverse(List<Region> children, TraversalScratch scratch) {
         List<Site> layout = computeNarrativeLayout(children, scratch.currentSeed(), scratch.currentRadius());
 
         float totalBudget = getTotalWeight(children);
-        float areaScale = scratch.currentRadius() * scratch.currentRadius() * NARRATIVE_AREA_SCALE;
-
-        Region bestChild = null;
-        float minMetric = Float.MAX_VALUE;
-        int bestChildIndex = -1;
+        Region bestChild = layout.isEmpty() ? children.get(0) : layout.get(0).region;
+        int bestChildIndex = layout.isEmpty() ? 0 : layout.get(0).index;
         Site bestSite = null;
 
         for (Site site : layout) {
-            float distSq = (scratch.warpedX() - (scratch.centerX() + site.x)) * (scratch.warpedX() - (scratch.centerX() + site.x))
-                + (scratch.warpedZ() - (scratch.centerZ() + site.z)) * (scratch.warpedZ() - (scratch.centerZ() + site.z));
-            float weight = (site.region.areaBudget() / totalBudget) * areaScale;
-            float metric = distSq - weight;
+            site.score = Float.NEGATIVE_INFINITY;
+            float dx = scratch.warpedX() - (scratch.centerX() + site.x);
+            float dz = scratch.warpedZ() - (scratch.centerZ() + site.z);
+            float distSq = dx * dx + dz * dz;
 
-            if (metric < minMetric) {
-                minMetric = metric;
+            float weight = site.region.areaBudget() / totalBudget;
+            float spread = MathUtils.lerp(MIN_SPREAD, MAX_SPREAD, (float) Math.sqrt(MathUtils.clamp01(weight)));
+            float normDist = (float) Math.sqrt(distSq) / (scratch.currentRadius() * spread + 0.0001f);
+
+            // Gaussian-like falloff keeps territories round while honoring area budgets.
+            float influence = (float) Math.exp(-normDist * normDist * 0.5f);
+            float score = influence * (1.0f + weight * WEIGHT_PRIORITY);
+
+            if (score > (bestSite == null ? Float.NEGATIVE_INFINITY : bestSite.score)) {
                 bestChild = site.region;
                 bestChildIndex = site.index;
                 bestSite = site;
-            }
-        }
-
-        if (bestChild == null) {
-            bestChild = children.get(0);
-            for (Site s : layout) {
-                if (s.region == bestChild) {
-                    bestSite = s;
-                    break;
-                }
+                site.score = score;
+            } else {
+                site.score = Float.NEGATIVE_INFINITY;
             }
         }
 
@@ -83,112 +75,33 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         sites.clear();
         if (orderedChildren.isEmpty()) return sites;
 
-        Region hub = orderedChildren.get(0);
-        int maxScore = -1;
-
-        for (Region r : orderedChildren) {
-            int score = r.adjacentTo().size();
-            if (score > maxScore) {
-                maxScore = score;
-                hub = r;
-            }
-        }
-
-        shells.clear();
-        shells.put(hub, 0);
-
-        queue.clear();
-        queue.add(hub);
-
-        visited.clear();
-        visited.add(hub.name());
-
-        int queueIndex = 0;
-        while (queueIndex < queue.size()) {
-            Region current = queue.get(queueIndex++);
-            int currentShell = shells.get(current);
-
-            for (String neighborName : current.sortedAdjacentTo()) {
-                if (!visited.contains(neighborName)) {
-                    for (Region r : orderedChildren) {
-                        if (r.name().equals(neighborName)) {
-                            visited.add(neighborName);
-                            shells.put(r, currentShell + 1);
-                            queue.add(r);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        int maxShell = 0;
-        for (int s : shells.values()) maxShell = Math.max(maxShell, s);
-
-        for (Region r : orderedChildren) {
-            if (!shells.containsKey(r)) {
-                shells.put(r, maxShell + 1);
-            }
-        }
-
-        for (List<Region> list : byShell.values()) {
-            list.clear();
-        }
-        shells.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey(Comparator.comparing(Region::name)))
-            .forEach(entry -> byShell.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey()));
-        byShell.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
+        lastRotation = (MathUtils.hash64(seed, orderedChildren.size(), 0, 0) & 0xFFFF) / 65535.0f * (float) (Math.PI * 2);
         float totalBudget = getTotalWeight(orderedChildren);
-        float currentInnerRadius = 0;
+        float radiusScale = hexRadius * (float) Math.sqrt(NARRATIVE_AREA_SCALE);
 
-        sortedShells.clear();
-        sortedShells.addAll(byShell.keySet());
-        Collections.sort(sortedShells);
+        ensureSiteCapacity(orderedChildren.size());
 
-        int siteIndex = 0;
-        for (int shell : sortedShells) {
-            List<Region> shellRegions = byShell.get(shell);
-            shellRegions.sort(Comparator.comparing(Region::name));
+        for (int i = 0; i < orderedChildren.size(); i++) {
+            Region region = orderedChildren.get(i);
+            float budgetFraction = region.areaBudget() / totalBudget;
 
-            float shellBudget = 0;
-            for (Region r : shellRegions) shellBudget += r.areaBudget();
+            float radiusWeight = MathUtils.lerp(MAX_RADIUS_WEIGHT, MIN_RADIUS_WEIGHT, MathUtils.clamp01((float) Math.sqrt(budgetFraction)));
+            float radialNoise = (MathUtils.hash64(seed, i, 1, 0) & 0xFFFF) / 65535.0f;
+            float radius = radiusScale * radiusWeight * (0.5f + 0.5f * radialNoise);
 
-            float budgetFraction = shellBudget / totalBudget;
+            // Golden-angle spiral provides even angular spacing; hash-based jitter fans sites out
+            // so blobs originate from throughout the disk instead of the center.
+            float jitter = ((MathUtils.hash64(seed, i, 0, 0) & 0xFFFF) / 65535.0f - 0.5f) * ANGLE_JITTER_SCALE * GOLDEN_ANGLE;
+            float angle = lastRotation + GOLDEN_ANGLE * i + jitter;
 
-            float nextInnerRadius = (float) Math.sqrt(currentInnerRadius * currentInnerRadius + hexRadius * hexRadius * budgetFraction);
-
-            float placementRadius = shell == 0 ? 0 : nextInnerRadius * SHELL_PLACEMENT_RADIUS_SCALE;
-
-            float angleStep = (float) (2 * Math.PI / shellRegions.size());
-            float angleOffset = (MathUtils.hash64(seed, shell, 0, 0) & 0xFFFF) / 65536.0f * (float) Math.PI;
-
-            for (int i = 0; i < shellRegions.size(); i++) {
-                Region region = shellRegions.get(i);
-
-                float angleJitter = ((MathUtils.hash64(seed, shell, i, 1) & 0xFFFF) / 65536.0f - 0.5f) * angleStep * ANGLE_JITTER_SCALE;
-                float angle = angleOffset + i * angleStep + angleJitter;
-
-                float radiusJitter = ((MathUtils.hash64(seed, shell, i, 2) & 0xFFFF) / 65536.0f - 0.5f) * (nextInnerRadius - currentInnerRadius) * RADIUS_JITTER_SCALE;
-                float rRadius = placementRadius + radiusJitter;
-
-                ensureSiteCapacity(siteIndex + 1);
-                Site site = sites.get(siteIndex++);
-                if (shell == 0) {
-                    site.x = 0;
-                    site.z = 0;
-                } else {
-                    site.x = (float) Math.cos(angle) * rRadius;
-                    site.z = (float) Math.sin(angle) * rRadius;
-                }
-                site.region = region;
-                site.index = children.indexOf(region);
-            }
-
-            currentInnerRadius = nextInnerRadius;
+            Site site = sites.get(i);
+            site.x = (float) Math.cos(angle) * radius;
+            site.z = (float) Math.sin(angle) * radius;
+            site.region = region;
+            site.index = children.indexOf(region);
         }
 
-        trimSites(siteIndex);
+        trimSites(orderedChildren.size());
         return sites;
     }
 
@@ -214,6 +127,7 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
         float x, z;
         Region region;
         int index;
+        float score;
     }
 }
 
