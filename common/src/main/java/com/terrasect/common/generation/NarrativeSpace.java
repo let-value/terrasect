@@ -1,6 +1,7 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.generation.strategy.FloodFillGenerationStrategy;
 import com.terrasect.common.generation.strategy.HexGenerationStrategy;
 import com.terrasect.common.generation.strategy.RegionGenerationStrategy;
 import com.terrasect.common.generation.strategy.TraversalScratch;
@@ -34,6 +35,7 @@ final class NarrativeSpace {
     private final EdgeStatistics edgeStats = EdgeStatistics.vanillaOverworld();
     private final RegionGenerationStrategy hexStrategy = new HexGenerationStrategy();
     private final RegionGenerationStrategy voronoiStrategy = new VoronoiGenerationStrategy();
+    private final RegionGenerationStrategy floodFillStrategy = new FloodFillGenerationStrategy();
 
     Region getRegionAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
         TraversalScratch scratch = traverseToDepth(root, x, z, context, targetDepth);
@@ -66,7 +68,11 @@ final class NarrativeSpace {
     }
 
     private RegionGenerationStrategy selectStrategy(GenerationStrategyType type) {
-        return type == GenerationStrategyType.HEX ? hexStrategy : voronoiStrategy;
+        return switch (type) {
+            case HEX -> hexStrategy;
+            case FLOOD_FILL -> floodFillStrategy;
+            default -> voronoiStrategy;
+        };
     }
 
     private WarpResult getWarpedCoordinates(int x, int z, Strategy context) {
