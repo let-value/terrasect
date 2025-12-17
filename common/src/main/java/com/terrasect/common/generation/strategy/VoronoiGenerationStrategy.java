@@ -10,10 +10,13 @@ import java.util.List;
 public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
 
     private static final float NARRATIVE_AREA_SCALE = 0.25f;
-    private static final float ANGLE_JITTER_SCALE = 0.55f;
+    private static final float ANGLE_JITTER_SCALE = 0.25f;
     private static final float GOLDEN_ANGLE = (float) (Math.PI * (3 - Math.sqrt(5)));
-    private static final float WEIGHT_PRIORITY = 0.2f;
-    private static final float MIN_SPREAD = 0.35f;
+    private static final float WEIGHT_PRIORITY = 0.30f;
+    private static final float COVERAGE_PRIOR = 0.12f;
+    private static final float BUDGET_BIAS = 0.9f;
+    private static final float MIN_SPREAD = 0.6f;
+    private static final float DISTANCE_PENALTY = 1.25f;
     private static final float MAX_SPREAD = 0.95f;
     private static final float MIN_RADIUS_WEIGHT = 0.65f;
     private static final float MAX_RADIUS_WEIGHT = 1.15f;
@@ -41,8 +44,10 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
             float normDist = (float) Math.sqrt(distSq) / (scratch.currentRadius() * spread + 0.0001f);
 
             // Gaussian-like falloff keeps territories round while honoring area budgets.
-            float influence = (float) Math.exp(-normDist * normDist * 0.5f);
-            float score = influence * (1.0f + weight * WEIGHT_PRIORITY);
+            float distPenalty = normDist * normDist;
+            float influence = (float) Math.exp(-distPenalty * 0.5f);
+            float budgetTilt = (float) Math.sqrt(weight + COVERAGE_PRIOR) * BUDGET_BIAS + weight * WEIGHT_PRIORITY;
+            float score = budgetTilt + influence - distPenalty * DISTANCE_PENALTY;
 
             if (score > (bestSite == null ? Float.NEGATIVE_INFINITY : bestSite.score)) {
                 bestChild = site.region;
@@ -85,7 +90,7 @@ public class VoronoiGenerationStrategy implements RegionGenerationStrategy {
             Region region = orderedChildren.get(i);
             float budgetFraction = region.areaBudget() / totalBudget;
 
-            float radiusWeight = MathUtils.lerp(MAX_RADIUS_WEIGHT, MIN_RADIUS_WEIGHT, MathUtils.clamp01((float) Math.sqrt(budgetFraction)));
+            float radiusWeight = MathUtils.lerp(MIN_RADIUS_WEIGHT, MAX_RADIUS_WEIGHT, MathUtils.clamp01((float) Math.sqrt(budgetFraction)));
             float radialNoise = (MathUtils.hash64(seed, i, 1, 0) & 0xFFFF) / 65535.0f;
             float radius = radiusScale * radiusWeight * (0.5f + 0.5f * radialNoise);
 

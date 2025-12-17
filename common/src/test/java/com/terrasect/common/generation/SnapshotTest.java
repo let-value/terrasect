@@ -13,12 +13,13 @@ import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
-    private static final String EXPECTED_DIGEST = "e097c1bb3f82f5a7bcf3e9dc6f1c0b307d53591c9db3a15049526440cfe21348";
+    private static final String EXPECTED_DIGEST = "0a7c8b5153df21000be39bda7e10f81c199819b49f36f46cb0f8516391f2abd6";
 
     @Test
     public void testRegionDistribution() {
@@ -225,6 +226,42 @@ public class SnapshotTest {
 
         if (!EXPECTED_DIGEST.equals(actualDigest)) {
             fail("Snapshot digest mismatch! Actual: " + actualDigest);
+        }
+    }
+
+    @Test
+    public void depthTwoRegionsRoughlyMatchBudgets() {
+        Region universe = buildUniverse();
+        World.setRoot(universe);
+
+        long seed = 987654321L;
+        Strategy context = new MockStrategy(seed);
+
+        int width = 60000;
+        int height = 60000;
+        int step = 75;
+
+        java.util.Map<String, Integer> counts = RegionSampler.sample(0, 0, width, height, step, 2, context);
+
+        java.util.List<Region> depthTwo = new java.util.ArrayList<>();
+        for (Region child : universe.children()) {
+            depthTwo.addAll(child.children());
+        }
+
+        int totalBudget = depthTwo.stream().mapToInt(Region::areaBudget).sum();
+        int totalSamples = counts.values().stream().mapToInt(Integer::intValue).sum();
+
+        for (Region region : depthTwo) {
+            int sampled = counts.getOrDefault(region.name(), 0);
+            double expectedShare = (double) region.areaBudget() / totalBudget;
+            double actualShare = (double) sampled / totalSamples;
+
+            assertTrue(sampled > 0, "Region " + region.name() + " never sampled");
+            assertTrue(
+                actualShare >= expectedShare * 0.35,
+                "Region " + region.name() + " under-represented: expected at least " +
+                    expectedShare + " got " + actualShare
+            );
         }
     }
 
