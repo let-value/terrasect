@@ -1,8 +1,11 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.Terrasect;
+import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.RegionDefinition;
+import com.terrasect.common.generation.definition.SelectionRules;
+import com.terrasect.common.generation.definition.StructureRules;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,27 +20,31 @@ import java.util.function.Consumer;
 /**
  * Collects region definitions before baking them into a fully resolved tree in a single pass.
  * Supports both nested (declarative) and flat (parent reference) registration styles.
+ * <p>
+ * Use {@link #region(String)} to get a {@link RegionRegistration} for configuring a region.
+ * All properties (budget, adjacency, strategy, climate, biomes, structures, mobs) can be set
+ * directly on the registration object using a fluent API.
  */
 public class RegionRegistry {
-    private final Map<String, DraftRegion> drafts = new LinkedHashMap<>();
+    private final Map<String, RegionRegistration> registrations = new LinkedHashMap<>();
 
     public RegionRegistration region(String name) {
-        return drafts.computeIfAbsent(name, DraftRegion::new).registration(this);
+        return registrations.computeIfAbsent(name, n -> new RegionRegistration(this, n));
     }
 
     public Region build(String rootName) {
-        DraftRegion rootDraft = drafts.get(rootName);
-        if (rootDraft == null) {
+        RegionRegistration rootReg = registrations.get(rootName);
+        if (rootReg == null) {
             Terrasect.LOGGER.error("Unknown region root '{}'; returning empty region", rootName);
             return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of());
         }
 
-        rootDraft.definitionBuilder.strategy(GenerationStrategyType.HEX);
+        rootReg.definitionBuilder.strategy(GenerationStrategyType.HEX);
 
         Map<String, List<String>> childIndex = indexChildren();
-        if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
-            Terrasect.LOGGER.warn("Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootDraft.parent);
-            rootDraft.parent = null;
+        if (rootReg.parent != null && !rootReg.parent.isBlank()) {
+            Terrasect.LOGGER.warn("Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootReg.parent);
+            rootReg.parent = null;
         }
 
         return buildResolved(rootName, RegionDefinition.empty(), childIndex, new HashSet<>());
@@ -47,35 +54,35 @@ public class RegionRegistry {
         Map<String, List<String>> childIndex = indexChildren();
         List<Region> roots = new ArrayList<>();
         Set<String> visiting = new HashSet<>();
-        drafts.values().stream()
-            .filter(draft -> draft.parent == null || draft.parent.isBlank())
-            .forEach(draft -> {
-                draft.definitionBuilder.strategy(GenerationStrategyType.HEX);
-                roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
+        registrations.values().stream()
+            .filter(reg -> reg.parent == null || reg.parent.isBlank())
+            .forEach(reg -> {
+                reg.definitionBuilder.strategy(GenerationStrategyType.HEX);
+                roots.add(buildResolved(reg.name, RegionDefinition.empty(), childIndex, visiting));
             });
         return roots;
     }
 
     private Map<String, List<String>> indexChildren() {
         Map<String, List<String>> childIndex = new LinkedHashMap<>();
-        drafts.values().forEach(draft -> {
-            if (draft.parent != null && !draft.parent.isBlank()) {
-                DraftRegion parentDraft = drafts.get(draft.parent);
-                if (parentDraft == null) {
-                    Terrasect.LOGGER.error("Region '{}' references unknown parent '{}'; treating it as a root", draft.name, draft.parent);
-                    draft.parent = null;
+        registrations.values().forEach(reg -> {
+            if (reg.parent != null && !reg.parent.isBlank()) {
+                RegionRegistration parentReg = registrations.get(reg.parent);
+                if (parentReg == null) {
+                    Terrasect.LOGGER.error("Region '{}' references unknown parent '{}'; treating it as a root", reg.name, reg.parent);
+                    reg.parent = null;
                     return;
                 }
-                childIndex.computeIfAbsent(draft.parent, key -> new ArrayList<>()).add(draft.name);
+                childIndex.computeIfAbsent(reg.parent, key -> new ArrayList<>()).add(reg.name);
             }
         });
         return childIndex;
     }
 
     private Region buildResolved(String name, RegionDefinition inherited, Map<String, List<String>> childIndex, Set<String> visiting) {
-        DraftRegion draft = drafts.get(name);
-        if (draft == null) {
-            Terrasect.LOGGER.error("Missing draft for region '{}'; creating empty placeholder", name);
+        RegionRegistration reg = registrations.get(name);
+        if (reg == null) {
+            Terrasect.LOGGER.error("Missing registration for region '{}'; creating empty placeholder", name);
             return new Region(name, 10000, inherited, Collections.emptySet(), List.of(), List.of());
         }
 
@@ -84,7 +91,7 @@ public class RegionRegistry {
             return null;
         }
 
-        RegionDefinition resolvedDefinition = draft.definitionBuilder.build().resolveInherited(inherited);
+        RegionDefinition resolvedDefinition = reg.definitionBuilder.build().resolveInherited(inherited);
 
         List<Region> children = childIndex.getOrDefault(name, Collections.emptyList()).stream()
             .map(childName -> buildResolved(childName, resolvedDefinition, childIndex, visiting))
@@ -92,8 +99,8 @@ public class RegionRegistry {
             .toList();
 
         int budget;
-        if (draft.areaBudget != null) {
-            budget = draft.areaBudget;
+        if (reg.areaBudget != null) {
+            budget = reg.areaBudget;
         } else if (!children.isEmpty()) {
             budget = children.stream().mapToInt(Region::areaBudget).sum();
         } else {
@@ -101,62 +108,96 @@ public class RegionRegistry {
         }
 
         visiting.remove(name);
-        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children, List.of());
+        return new Region(name, budget, resolvedDefinition, reg.adjacentTo, children, List.of());
     }
 
-    private static class DraftRegion {
-        private final String name;
-        private Integer areaBudget = null;
-        private final RegionDefinition.Builder definitionBuilder = RegionDefinition.builder();
-        private Set<String> adjacentTo = Collections.emptySet();
-        private String parent = null;
+    /**
+     * Fluent registration for configuring a region's properties.
+     * All region properties can be set directly without needing intermediate classes.
+     */
+    public static class RegionRegistration {
+        private final RegionRegistry registry;
+        final String name;
+        Integer areaBudget = null;
+        final RegionDefinition.Builder definitionBuilder = RegionDefinition.builder();
+        Set<String> adjacentTo = Collections.emptySet();
+        String parent = null;
 
-        private DraftRegion(String name) {
+        private RegionRegistration(RegionRegistry registry, String name) {
+            this.registry = registry;
             this.name = name;
         }
 
-        private RegionRegistration registration(RegionRegistry registry) {
-            return new RegionRegistration(registry, this);
-        }
-    }
-
-    public static class RegionRegistration {
-        private final RegionRegistry registry;
-        private final DraftRegion draft;
-
-        private RegionRegistration(RegionRegistry registry, DraftRegion draft) {
-            this.registry = registry;
-            this.draft = draft;
-        }
-
         public RegionRegistration parent(String parentName) {
-            if (draft.parent != null && !draft.parent.equals(parentName)) {
-                Terrasect.LOGGER.warn("Region '{}' already has parent '{}'; ignoring new parent '{}'.", draft.name, draft.parent, parentName);
+            if (this.parent != null && !this.parent.equals(parentName)) {
+                Terrasect.LOGGER.warn("Region '{}' already has parent '{}'; ignoring new parent '{}'.", this.name, this.parent, parentName);
                 return this;
             }
-            draft.parent = parentName;
+            this.parent = parentName;
             return this;
         }
 
         public RegionRegistration budget(int areaBudget) {
-            draft.areaBudget = areaBudget;
+            this.areaBudget = areaBudget;
             return this;
         }
 
         public RegionRegistration definition(Consumer<RegionDefinition.Builder> consumer) {
-            consumer.accept(draft.definitionBuilder);
+            consumer.accept(this.definitionBuilder);
             return this;
         }
 
         public RegionRegistration adjacentTo(String... regions) {
-            draft.adjacentTo = Set.of(regions);
+            this.adjacentTo = Set.of(regions);
             return this;
         }
 
         public RegionRegistration child(String childName, Consumer<RegionRegistration> consumer) {
             RegionRegistration child = registry.region(childName);
-            child.parent(draft.name);
+            child.parent(this.name);
             consumer.accept(child);
+            return this;
+        }
+
+        // ========== Convenience methods for direct property configuration ==========
+
+        /**
+         * Set the generation strategy for this region directly.
+         */
+        public RegionRegistration strategy(GenerationStrategyType strategyType) {
+            this.definitionBuilder.strategy(strategyType);
+            return this;
+        }
+
+        /**
+         * Configure climate settings for this region directly.
+         */
+        public RegionRegistration climate(Consumer<ClimateSettings.Builder> consumer) {
+            this.definitionBuilder.climate(consumer);
+            return this;
+        }
+
+        /**
+         * Configure biome selection rules for this region directly.
+         */
+        public RegionRegistration biomes(Consumer<SelectionRules.Builder> consumer) {
+            this.definitionBuilder.biomes(consumer);
+            return this;
+        }
+
+        /**
+         * Configure structure rules for this region directly.
+         */
+        public RegionRegistration structures(Consumer<StructureRules.Builder> consumer) {
+            this.definitionBuilder.structures(consumer);
+            return this;
+        }
+
+        /**
+         * Configure mob selection rules for this region directly.
+         */
+        public RegionRegistration mobs(Consumer<SelectionRules.Builder> consumer) {
+            this.definitionBuilder.mobs(consumer);
             return this;
         }
     }
