@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
-    private static final String EXPECTED_DIGEST = "8d7aea94758314dd41fcfde64c874a5467f6851d6ebd9eeda8d226fa263de6fc";
+    private static final String EXPECTED_DIGEST = "a04989cd3c24b5aa0512e02a258409872865cb0c56bd324295ee1fb89f8ec76c";
 
     @Test
     public void testRegionDistribution() {
@@ -243,7 +243,11 @@ public class SnapshotTest {
                     .child("PLAINS_OF_ASH", plains -> plains.budget(100).adjacentTo("FORBIDDEN_WOODS")))
                 .child("HIGHLANDS", high -> high
                     .child("MOUNTAIN_PASS", pass -> pass.budget(100).adjacentTo("CRYSTAL_CANYON"))
-                    .child("CRYSTAL_CANYON", canyon -> canyon.budget(75).adjacentTo("MOUNTAIN_PASS"))));
+                    .child("CRYSTAL_CANYON", canyon -> canyon.budget(75).adjacentTo("MOUNTAIN_PASS")))
+                .child("FACTORY", high -> high
+                    .child("MEKA", pass -> pass.budget(200).adjacentTo("CRYSTAL_CANYON"))
+                    .child("CREATE", canyon -> canyon.budget(50).adjacentTo("MOUNTAIN_PASS")))
+                );
 
         return registry.build("UNIVERSE");
     }

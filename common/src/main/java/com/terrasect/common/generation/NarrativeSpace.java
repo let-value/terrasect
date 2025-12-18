@@ -1,10 +1,8 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.generation.definition.GenerationStrategyType;
-import com.terrasect.common.generation.strategy.HexGenerationStrategy;
-import com.terrasect.common.generation.strategy.RegionGenerationStrategy;
-import com.terrasect.common.generation.strategy.TraversalScratch;
-import com.terrasect.common.generation.strategy.VoronoiGenerationStrategy;
+import com.terrasect.common.generation.strategy.HexStrategy;
+import com.terrasect.common.generation.strategy.VoronoiStrategy;
 
 import java.util.List;
 
@@ -28,53 +26,69 @@ final class NarrativeSpace {
     private static final float COARSE_SCALE_FACTOR = 0.5f;
     private static final float COARSE_EDGE_AMPLITUDE_SCALE = 2.5f;
 
-    private static final ThreadLocal<WarpResult> WARP_SCRATCH = ThreadLocal.withInitial(WarpResult::new);
-    private static final ThreadLocal<TraversalScratch> TRAVERSAL_SCRATCH = ThreadLocal.withInitial(TraversalScratch::new);
-
     private final EdgeStatistics edgeStats = EdgeStatistics.vanillaOverworld();
-    private final RegionGenerationStrategy hexStrategy = new HexGenerationStrategy();
-    private final RegionGenerationStrategy voronoiStrategy = new VoronoiGenerationStrategy();
 
     Region getRegionAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
-        TraversalScratch scratch = traverseToDepth(root, x, z, context, targetDepth);
-        return scratch.selectedRegion();
+        return (Region) traverse(root, x, z, context, targetDepth, false);
     }
 
     long getRegionSeedAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
-        TraversalScratch scratch = traverseToDepth(root, x, z, context, targetDepth);
-        return scratch.currentSeed();
+        return (Long) traverse(root, x, z, context, targetDepth, true);
     }
 
-    private TraversalScratch traverseToDepth(Region root, int x, int z, Strategy context, int targetDepth) {
-        WarpResult warped = getWarpedCoordinates(x, z, context);
-        TraversalScratch scratch = TRAVERSAL_SCRATCH.get();
-        scratch.reset(warped.x, warped.z, (float) root.areaBudget(), context.getSeed(), context, root);
+    private Object traverse(Region root, int x, int z, Strategy context, int targetDepth, boolean returnSeed) {
+        long packedWarp = getWarpedPoint(x, z, context.getSeed(), context);
+        float wx = Float.intBitsToFloat((int) (packedWarp >> 32));
+        float wz = Float.intBitsToFloat((int) packedWarp);
+
+        Region currentRegion = root;
+        long currentSeed = context.getSeed();
+        float cx = 0;
+        float cz = 0;
+        float radius = (float) root.areaBudget();
 
         int currentDepth = 0;
-        Region current = root;
-        while (current.hasChildren() && currentDepth < targetDepth) {
-            List<Region> children = current.children();
-            RegionGenerationStrategy generationStrategy = selectStrategy(current.definition().generationStrategy());
+        while (currentRegion.hasChildren() && currentDepth < targetDepth) {
+            GenerationStrategyType type = currentRegion.definition().generationStrategy();
+            List<Region> children = currentRegion.children();
 
-            generationStrategy.traverse(children, scratch);
+            Region nextRegion;
+            long nextSeed;
+            float nextCx, nextCz, nextRadius;
 
-            current = scratch.selectedRegion();
+            if (type == GenerationStrategyType.HEX) {
+                long hexPacked = HexStrategy.getCell(wx, wz, radius);
+                
+                nextRegion = HexStrategy.getRegion(children, currentSeed, hexPacked);
+                nextSeed = HexStrategy.getSeed(currentSeed, hexPacked);
+                nextCx = HexStrategy.getNextCx(cx, radius, hexPacked);
+                nextCz = HexStrategy.getNextCz(cz, radius, hexPacked);
+                nextRadius = radius;
+            } else {
+                float[] layout = VoronoiStrategy.getLayout(currentSeed, children);
+                int bestIndex = VoronoiStrategy.getCell(layout, wx - cx, wz - cz, radius);
+                
+                nextRegion = VoronoiStrategy.getRegion(children, layout, bestIndex);
+                nextSeed = VoronoiStrategy.getSeed(currentSeed, layout, bestIndex, nextRegion);
+                nextCx = VoronoiStrategy.getNextCx(cx, radius, layout, bestIndex);
+                nextCz = VoronoiStrategy.getNextCz(cz, radius, layout, bestIndex);
+                nextRadius = VoronoiStrategy.getNextRadius(radius, children, nextRegion);
+            }
+
+            currentRegion = nextRegion;
+            currentSeed = nextSeed;
+            cx = nextCx;
+            cz = nextCz;
+            radius = nextRadius;
             currentDepth++;
         }
 
-        return scratch;
+        return returnSeed ? currentSeed : currentRegion;
     }
 
-    private RegionGenerationStrategy selectStrategy(GenerationStrategyType type) {
-        return type == GenerationStrategyType.HEX ? hexStrategy : voronoiStrategy;
-    }
-
-    private WarpResult getWarpedCoordinates(int x, int z, Strategy context) {
-        WarpResult result = WARP_SCRATCH.get();
-
+    private long getWarpedPoint(int x, int z, long seed, Strategy context) {
         float river = context.getRiverInfluence(x, z);
         float ridge = context.getRidgeInfluence(x, z);
-        long seed = context.getSeed();
 
         float dist = (float) Math.sqrt(x * x + z * z);
         float dampFactor = Math.min(1.0f, dist / WORLD_ORIGIN_DAMP_RADIUS);
@@ -108,16 +122,9 @@ final class NarrativeSpace {
         float microEdgeX = (NoiseUtils.valueNoise(x, z, seed, 9203, EDGE_MICRO_NOISE_SCALE) - 0.5f) * edgeStats.fineHorizontalJitter();
         float microEdgeZ = (NoiseUtils.valueNoise(z, x, seed, 9204, EDGE_MICRO_NOISE_SCALE) - 0.5f) * edgeStats.fineVerticalJitter();
 
-        result.x = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor + macroEdgeX + microEdgeX;
-        result.z = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor + macroEdgeZ + microEdgeZ;
+        float wx = mx + ((n1 - 0.5f) * baseAmp + (r1 - 0.5f) * microAmp) * dampFactor + riverWarpX * dampFactor + macroEdgeX + microEdgeX;
+        float wz = mz + ((n2 - 0.5f) * baseAmp + (r2 - 0.5f) * microAmp) * dampFactor + riverWarpZ * dampFactor + macroEdgeZ + microEdgeZ;
 
-        return result;
+        return ((long) Float.floatToRawIntBits(wx) << 32) | (Float.floatToRawIntBits(wz) & 0xFFFFFFFFL);
     }
-
-    private static class WarpResult {
-        float x;
-        float z;
-    }
-
-
 }

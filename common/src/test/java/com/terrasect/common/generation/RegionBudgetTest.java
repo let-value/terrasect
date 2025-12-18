@@ -16,7 +16,9 @@ public class RegionBudgetTest {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
             .child("CIVILIZATION", civ -> civ
-                .child("CITY", city -> city.budget(1000).adjacentTo("FARMLAND"))
+                .child("CITY", city -> city.budget(1000).adjacentTo("FARMLAND")
+                    .child("DOWNTOWN", d -> d.budget(500))
+                    .child("SUBURBS", s -> s.budget(500)))
                 .child("FARMLAND", farm -> farm.budget(3000).adjacentTo("CITY", "FOREST"))
                 .child("FOREST", forest -> forest.budget(1000).adjacentTo("FARMLAND")))
             .child("WILDERNESS", wild -> wild.budget(1000));
@@ -73,14 +75,18 @@ public class RegionBudgetTest {
         Region targetRegion = World.getRegionAtDepth(centerX, centerZ, context, 1);
 
         // 3. Scan and Sample
-        // Scale range based on hex size (budget)
-        int range = (int) (World.getRoot().areaBudget() * 1.2f);
+        // Scale range based on hex size (budget) + warping buffer
+        // Hex radius is ~6000, Warp is ~1500. 1.2x is 7200, which might clip the edges.
+        // Using 2.0x (12000) ensures we capture the entire warped region.
+        int range = (int) (World.getRoot().areaBudget() * 2.0f);
         int step = 100; // Increase step for larger area
         
         Map<String, Integer> counts = new HashMap<>();
+        Map<String, Integer> cityCounts = new HashMap<>();
         Set<Long> uniqueRegionInstances = new HashSet<>();
         Map<Long, Set<Point>> regionPixels = new HashMap<>();
         long totalSamplesInTarget = 0;
+        long citySamples = 0;
 
         for (int z = centerZ - range; z <= centerZ + range; z += step) {
             for (int x = centerX - range; x <= centerX + range; x += step) {
@@ -94,6 +100,12 @@ public class RegionBudgetTest {
                     uniqueRegionInstances.add(childId);
                     regionPixels.computeIfAbsent(childId, k -> new HashSet<>()).add(new Point(x, z));
                     totalSamplesInTarget++;
+
+                    if (child.name().equals("CITY")) {
+                        Region grandChild = World.getRegionAtDepth(x, z, context, 3);
+                        cityCounts.put(grandChild.name(), cityCounts.getOrDefault(grandChild.name(), 0) + 1);
+                        citySamples++;
+                    }
                 }
             }
         }
@@ -121,6 +133,12 @@ public class RegionBudgetTest {
             assertDistribution(counts, totalSamplesInTarget, "CITY", 0.20f, tolerance);
             assertDistribution(counts, totalSamplesInTarget, "FARMLAND", 0.60f, tolerance);
             assertDistribution(counts, totalSamplesInTarget, "FOREST", 0.20f, tolerance);
+            
+            if (citySamples > 0) {
+                System.out.println("    Checking CITY internals (Depth 3)");
+                assertDistribution(cityCounts, citySamples, "DOWNTOWN", 0.50f, tolerance);
+                assertDistribution(cityCounts, citySamples, "SUBURBS", 0.50f, tolerance);
+            }
             
             // Check Connectivity (Enclaves/Exclaves)
             for (Long regionId : uniqueRegionInstances) {
