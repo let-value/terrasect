@@ -45,7 +45,7 @@ public final class LayoutStrategies {
         
         switch (type) {
             case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, scratch);
-            case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, scratch);
+            case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, scratch);
             case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, scratch);
             default -> queryVoronoi(seed, children, dx, dz, radius, scratch); // VORONOI
         }
@@ -98,84 +98,26 @@ public final class LayoutStrategies {
 
     private static void queryVoronoi(long seed, List<Region> children, float dx, float dz, 
                                       float radius, float[] out) {
-        float[] layout = VoronoiStrategy.getLayout(seed, children);
-        int index = VoronoiStrategy.getCell(layout, dx, dz, radius);
-        
-        if (index < 0 || index >= layout.length) {
-            out[0] = 0;
-            out[1] = 0;
-            out[2] = 0;
-            out[3] = 0.5f;
-            return;
-        }
-        
-        int childIndex = (int) layout[index + 3];
-        Region region = children.get(childIndex);
-        
-        out[0] = childIndex;
-        out[1] = layout[index];      // normalized centerX
-        out[2] = layout[index + 1];  // normalized centerZ
-        
-        // Voronoi uses budget-based radius
-        float totalBudget = VoronoiStrategy.getTotalWeight(children);
-        out[3] = (float) Math.sqrt(region.areaBudget() / totalBudget);
+        VoronoiStrategy.query(seed, children, dx, dz, radius, out);
     }
 
     private static void querySubdivision(long seed, List<Region> children, float dx, float dz, 
-                                          float radius, float[] out) {
-        float[] layout = SubdivisionStrategy.getLayout(seed, children);
-        int index = SubdivisionStrategy.getCell(layout, dx, dz, radius);
-        
-        if (index < 0 || index >= layout.length) {
-            out[0] = 0;
-            out[1] = 0;
-            out[2] = 0;
-            out[3] = 0.5f;
-            return;
+                                          float radius, StrategySettings settings, float[] out) {
+        float jitter = 0.05f;  // Default jitter
+        if (settings != null && settings.subdivision() != null) {
+            jitter = settings.subdivision().jitter();
         }
-        
-        int childIndex = (int) layout[index + 4];
-        float minX = layout[index];
-        float minZ = layout[index + 1];
-        float maxX = layout[index + 2];
-        float maxZ = layout[index + 3];
-        
-        out[0] = childIndex;
-        out[1] = (minX + maxX) / 2.0f;  // normalized centerX
-        out[2] = (minZ + maxZ) / 2.0f;  // normalized centerZ
-        
-        // Use smaller dimension as radius
-        float width = (maxX - minX) / 2.0f;
-        float height = (maxZ - minZ) / 2.0f;
-        out[3] = Math.min(width, height);
+        SubdivisionStrategy.query(seed, children, dx, dz, radius, jitter, out);
     }
 
     private static void queryTemplate(long seed, List<Region> children, float dx, float dz, 
                                        float radius, StrategySettings settings, float[] out) {
-        // Extract template settings
         StrategySettings.TemplateType templateType = null;
         StrategySettings.CenterSurroundSettings centerSurroundSettings = null;
         if (settings != null && settings.template() != null) {
             templateType = settings.template().type();
             centerSurroundSettings = settings.template().centerSurround();
         }
-        
-        float[] layout = TemplateStrategy.getLayout(seed, children, templateType, centerSurroundSettings);
-        int index = TemplateStrategy.getCell(layout, dx, dz, radius);
-        
-        if (index < 0 || index >= layout.length) {
-            out[0] = 0;
-            out[1] = 0;
-            out[2] = 0;
-            out[3] = 0.5f;
-            return;
-        }
-        
-        int childIndex = (int) layout[index + 3];
-        
-        out[0] = childIndex;
-        out[1] = layout[index];      // normalized centerX
-        out[2] = layout[index + 1];  // normalized centerZ
-        out[3] = layout[index + 2];  // normalized radius
+        TemplateStrategy.query(seed, children, dx, dz, radius, templateType, centerSurroundSettings, out);
     }
 }

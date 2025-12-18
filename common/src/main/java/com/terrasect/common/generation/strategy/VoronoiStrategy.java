@@ -3,202 +3,183 @@ package com.terrasect.common.generation.strategy;
 import com.terrasect.common.generation.MathUtils;
 import com.terrasect.common.generation.Region;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 
+/**
+ * Cache-free power diagram strategy with inline relaxation.
+ * 
+ * Uses deterministic initial placement followed by a few quick relaxation
+ * iterations to achieve budget-weighted Voronoi cells. The relaxation is
+ * fast because n is small (typically 2-8 children).
+ * 
+ * All computations are O(n²·k) where n = children, k = iterations (default 5).
+ */
 public final class VoronoiStrategy {
 
-    // Cache for Voronoi layouts: Key = combined seed + children hash, Value = float[] (interleaved x, z, radius, regionIndex)
-    private static final int CACHE_SIZE = 4096;
-    private static final Map<Long, float[]> VORONOI_CACHE = Collections.synchronizedMap(new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Long, float[]> eldest) {
-            return size() > CACHE_SIZE;
-        }
-    });
+    private static final int RELAXATION_ITERATIONS = 5;
 
     private VoronoiStrategy() {}
 
-    public static float[] getLayout(long seed, List<Region> children) {
-        long cacheKey = computeCacheKey(seed, children);
-        float[] layout = VORONOI_CACHE.get(cacheKey);
-        if (layout == null) {
-            layout = computeVoronoiLayout(children, seed);
-            VORONOI_CACHE.put(cacheKey, layout);
+    /**
+     * Query which child region contains the point, writing results to scratch buffer.
+     */
+    public static void query(long seed, List<Region> children, float dx, float dz, 
+                             float radius, float[] scratch) {
+        if (children.isEmpty()) {
+            scratch[0] = 0;
+            scratch[1] = 0;
+            scratch[2] = 0;
+            scratch[3] = 0.5f;
+            return;
         }
-        return layout;
-    }
 
-    private static long computeCacheKey(long seed, List<Region> children) {
-        long hash = seed;
-        for (Region child : children) {
-            hash = hash * 31 + child.name().hashCode();
-            hash = hash * 31 + child.areaBudget();
+        int count = children.size();
+        if (count == 1) {
+            scratch[0] = 0;
+            scratch[1] = 0;
+            scratch[2] = 0;
+            scratch[3] = 1.0f;
+            return;
         }
-        return hash;
-    }
 
-    public static int getCell(float[] layout, float dx, float dz, float radius) {
-        return getBestIndex(layout, dx, dz, radius);
-    }
+        // Normalize query point
+        float nx = dx / radius;
+        float nz = dz / radius;
 
-    public static Region getRegion(List<Region> children, float[] layout, int index) {
-        if (index == -1) return children.get(0);
-        int childIndex = (int) layout[index + 3];
-        return children.get(childIndex);
-    }
+        // Compute total budget and radii
+        float totalBudget = 0;
+        for (int i = 0; i < count; i++) {
+            totalBudget += children.get(i).areaBudget();
+        }
 
-    public static long getSeed(long parentSeed, float[] layout, int index, Region region) {
-        if (index == -1) return MathUtils.hash64(parentSeed, region.name().hashCode(), 0, 999);
-        int childIndex = (int) layout[index + 3];
-        return MathUtils.hash64(parentSeed, region.name().hashCode(), childIndex, 999);
-    }
+        float[] radii = new float[count];
+        for (int i = 0; i < count; i++) {
+            radii[i] = (float) Math.sqrt(children.get(i).areaBudget() / totalBudget);
+        }
 
-    public static float getNextCx(float cx, float radius, float[] layout, int index) {
-        if (index == -1) return cx;
-        return cx + layout[index] * radius;
-    }
+        // Compute relaxed site positions (2 floats per site: x, z)
+        float[] sites = computeRelaxedSites(seed, count, radii);
 
-    public static float getNextCz(float cz, float radius, float[] layout, int index) {
-        if (index == -1) return cz;
-        return cz + layout[index + 1] * radius;
-    }
-
-    public static float getNextRadius(float radius, List<Region> children, Region nextRegion) {
-        float totalBudget = getTotalWeight(children);
-        return radius * (float) Math.sqrt(nextRegion.areaBudget() / totalBudget);
-    }
-
-    public static float getTotalWeight(List<Region> regions) {
-        float sum = 0;
-        for (Region r : regions) sum += r.areaBudget();
-        return sum;
-    }
-
-    public static int getBestIndex(float[] layout, float relX, float relZ, float radius) {
+        // Find best cell using power diagram metric
+        int bestIndex = 0;
         float bestMetric = Float.MAX_VALUE;
-        int bestIndex = -1;
+        float bestX = 0, bestZ = 0;
 
-        for (int i = 0; i < layout.length; i += 4) {
-            float sx = layout[i] * radius;
-            float sz = layout[i+1] * radius;
-            float sr = layout[i+2] * radius;
-            
-            float dx = relX - sx;
-            float dz = relZ - sz;
-            float distSq = dx * dx + dz * dz;
-            
-            // Metric = d^2 - r^2
-            float metric = distSq - (sr * sr);
-            
+        for (int i = 0; i < count; i++) {
+            float sx = sites[i * 2];
+            float sz = sites[i * 2 + 1];
+            float r = radii[i];
+
+            float ddx = nx - sx;
+            float ddz = nz - sz;
+            float distSq = ddx * ddx + ddz * ddz;
+            float metric = distSq - r * r;
+
             if (metric < bestMetric) {
                 bestMetric = metric;
                 bestIndex = i;
+                bestX = sx;
+                bestZ = sz;
             }
         }
-        return bestIndex;
+
+        scratch[0] = bestIndex;
+        scratch[1] = bestX;
+        scratch[2] = bestZ;
+        scratch[3] = radii[bestIndex];
     }
 
-    private static float[] computeVoronoiLayout(List<Region> children, long seed) {
-        if (children.isEmpty()) return new float[0];
-
-        Random rng = new Random(seed);
-        float totalBudget = getTotalWeight(children);
-        int count = children.size();
+    /**
+     * Compute relaxed site positions deterministically.
+     * Uses initial ring placement + quick push-apart relaxation.
+     */
+    private static float[] computeRelaxedSites(long seed, int count, float[] radii) {
+        float[] sites = new float[count * 2];
         
-        // 4 floats per site: x, z, radius, childIndex
-        float[] layout = new float[count * 4];
-        
-        // 1. Initialize sites in a Ring
+        // Initial placement: ring distribution
+        float baseAngle = hashToFloat(seed, 0) * (float) (Math.PI * 2);
         for (int i = 0; i < count; i++) {
-            Region r = children.get(i);
-            float rNorm = (float) Math.sqrt(r.areaBudget() / totalBudget); // Normalized radius (for parent radius=1)
-
-            float angle = (i / (float) count) * (float) Math.PI * 2;
-            angle += rng.nextFloat() * (float) Math.PI * 2;
-            
-            float dist = 0.3f; // Normalized distance
-            dist += (rng.nextFloat() - 0.5f) * 0.05f;
-            angle += (rng.nextFloat() - 0.5f) * 0.2f;
-
-            layout[i*4] = dist * (float) Math.cos(angle);     // x
-            layout[i*4+1] = dist * (float) Math.sin(angle);   // z
-            layout[i*4+2] = rNorm;                            // radius
-            layout[i*4+3] = i;                                // childIndex
+            float angle = baseAngle + i * (float) (Math.PI * 2) / count;
+            float dist = 0.35f;
+            sites[i * 2] = dist * (float) Math.cos(angle);
+            sites[i * 2 + 1] = dist * (float) Math.sin(angle);
         }
 
-        // 2. Relax sites
-        int iterations = 15;
-        for (int iter = 0; iter < iterations; iter++) {
+        // Quick relaxation: push sites apart based on their radii
+        for (int iter = 0; iter < RELAXATION_ITERATIONS; iter++) {
             for (int i = 0; i < count; i++) {
-                float x1 = layout[i*4];
-                float z1 = layout[i*4+1];
-                float r1 = layout[i*4+2];
-                
+                float x1 = sites[i * 2];
+                float z1 = sites[i * 2 + 1];
+                float r1 = radii[i];
+
                 for (int j = i + 1; j < count; j++) {
-                    float x2 = layout[j*4];
-                    float z2 = layout[j*4+1];
-                    float r2 = layout[j*4+2];
-                    
+                    float x2 = sites[j * 2];
+                    float z2 = sites[j * 2 + 1];
+                    float r2 = radii[j];
+
                     float dx = x1 - x2;
                     float dz = z1 - z2;
-                    float dSq = dx*dx + dz*dz;
-                    float d = (float) Math.sqrt(dSq);
-                    
-                    float desiredDist = (r1 + r2) * 0.9f;
-                    
-                    if (d < desiredDist) {
-                        if (d < 0.0001f) {
-                            d = 0.0001f;
-                            dx = 0.0001f;
-                        }
+                    float distSq = dx * dx + dz * dz;
+                    float dist = (float) Math.sqrt(distSq);
 
-                        float push = (desiredDist - d) * 0.5f;
-                        float pushX = (dx / d) * push;
-                        float pushZ = (dz / d) * push;
-                        
-                        layout[i*4] += pushX;
-                        layout[i*4+1] += pushZ;
-                        layout[j*4] -= pushX;
-                        layout[j*4+1] -= pushZ;
-                        
-                        // Update local vars for next inner loop check
-                        x1 = layout[i*4];
-                        z1 = layout[i*4+1];
+                    // Desired distance based on radii
+                    float desiredDist = (r1 + r2) * 0.85f;
+
+                    if (dist < desiredDist && dist > 0.0001f) {
+                        float push = (desiredDist - dist) * 0.5f;
+                        float pushX = (dx / dist) * push;
+                        float pushZ = (dz / dist) * push;
+
+                        sites[i * 2] += pushX;
+                        sites[i * 2 + 1] += pushZ;
+                        sites[j * 2] -= pushX;
+                        sites[j * 2 + 1] -= pushZ;
+
+                        x1 = sites[i * 2];
+                        z1 = sites[i * 2 + 1];
                     }
                 }
-                
-                // Boundary & Centering
-                float distFromCenter = (float) Math.sqrt(x1*x1 + z1*z1);
-                float maxDist = 1.0f - r1 * 0.5f; // Parent radius is 1.0
-                
+
+                // Boundary constraint and centering
+                float distFromCenter = (float) Math.sqrt(x1 * x1 + z1 * z1);
+                float maxDist = 0.85f - r1 * 0.3f;
                 if (distFromCenter > maxDist && distFromCenter > 0.0001f) {
                     float pull = distFromCenter - maxDist;
-                    layout[i*4] -= (x1 / distFromCenter) * pull;
-                    layout[i*4+1] -= (z1 / distFromCenter) * pull;
+                    sites[i * 2] -= (x1 / distFromCenter) * pull;
+                    sites[i * 2 + 1] -= (z1 / distFromCenter) * pull;
                 }
-                
-                layout[i*4] *= 0.98f;
-                layout[i*4+1] *= 0.98f;
+
+                // Slight centering pull
+                sites[i * 2] *= 0.97f;
+                sites[i * 2 + 1] *= 0.97f;
             }
         }
-        
-        // 3. Center
+
+        // Center the sites
         float cx = 0, cz = 0;
         for (int i = 0; i < count; i++) {
-            cx += layout[i*4];
-            cz += layout[i*4+1];
+            cx += sites[i * 2];
+            cz += sites[i * 2 + 1];
         }
         cx /= count;
         cz /= count;
         for (int i = 0; i < count; i++) {
-            layout[i*4] -= cx;
-            layout[i*4+1] -= cz;
+            sites[i * 2] -= cx;
+            sites[i * 2 + 1] -= cz;
         }
-        
-        return layout;
+
+        return sites;
+    }
+
+    /**
+     * Compute child seed deterministically.
+     */
+    public static long getSeed(long parentSeed, int childIndex, Region region) {
+        return MathUtils.hash64(parentSeed, region.name().hashCode(), childIndex, 999);
+    }
+
+    private static float hashToFloat(long seed, int a) {
+        long h = MathUtils.hash64(seed, a, 0, 0);
+        return (h & 0xFFFF) / 65536.0f;
     }
 }
