@@ -8,23 +8,40 @@ import java.util.List;
 /**
  * Cache-free power diagram strategy with inline relaxation.
  * 
- * Uses deterministic initial placement followed by a few quick relaxation
+ * Uses deterministic initial placement followed by configurable relaxation
  * iterations to achieve budget-weighted Voronoi cells. The relaxation is
  * fast because n is small (typically 2-8 children).
  * 
- * All computations are O(n²·k) where n = children, k = iterations (default 5).
+ * All computations are O(n²·k) where n = children, k = relaxation iterations.
  */
 public final class VoronoiStrategy {
 
-    private static final int RELAXATION_ITERATIONS = 5;
+    private static final int DEFAULT_RELAXATION_ITERATIONS = 5;
 
     private VoronoiStrategy() {}
 
     /**
      * Query which child region contains the point, writing results to scratch buffer.
+     * Uses default relaxation iterations.
      */
     public static void query(long seed, List<Region> children, float dx, float dz, 
                              float radius, float[] scratch) {
+        query(seed, children, dx, dz, radius, DEFAULT_RELAXATION_ITERATIONS, scratch);
+    }
+
+    /**
+     * Query which child region contains the point, writing results to scratch buffer.
+     * 
+     * @param seed Parent region seed
+     * @param children List of child regions
+     * @param dx X offset from parent center
+     * @param dz Z offset from parent center
+     * @param radius Parent region radius
+     * @param relaxationIterations Number of relaxation iterations (0-20)
+     * @param scratch Output buffer: [childIndex, cellX, cellZ, cellRadius]
+     */
+    public static void query(long seed, List<Region> children, float dx, float dz, 
+                             float radius, int relaxationIterations, float[] scratch) {
         if (children.isEmpty()) {
             scratch[0] = 0;
             scratch[1] = 0;
@@ -58,7 +75,7 @@ public final class VoronoiStrategy {
         }
 
         // Compute relaxed site positions (2 floats per site: x, z)
-        float[] sites = computeRelaxedSites(seed, count, radii);
+        float[] sites = computeRelaxedSites(seed, count, radii, relaxationIterations);
 
         // Find best cell using power diagram metric
         int bestIndex = 0;
@@ -84,16 +101,39 @@ public final class VoronoiStrategy {
         }
 
         scratch[0] = bestIndex;
-        scratch[1] = bestX;
+        // Voronoi cells have irregular shapes. To ensure children are properly
+        // subdivided within each cell, we transform to cell-local coordinates.
+        // Center at the site, radius based on distance to nearest neighbor.
+        float minNeighborDist = Float.MAX_VALUE;
+        for (int i = 0; i < count; i++) {
+            if (i != bestIndex) {
+                float sx = sites[i * 2];
+                float sz = sites[i * 2 + 1];
+                float ddx = bestX - sx;
+                float ddz = bestZ - sz;
+                float dist = (float) Math.sqrt(ddx * ddx + ddz * ddz);
+                if (dist < minNeighborDist) {
+                    minNeighborDist = dist;
+                }
+            }
+        }
+        // Cell "radius" is half distance to nearest neighbor (Voronoi edge is at midpoint)
+        // Use 0.45x for some safety margin
+        float cellRadius = Math.max(minNeighborDist * 0.45f, 0.15f);
+        
+        scratch[1] = bestX;    // Center at voronoi site
         scratch[2] = bestZ;
-        scratch[3] = radii[bestIndex];
+        scratch[3] = cellRadius; // Approximate cell radius
+        // Store site position for seed uniqueness
+        scratch[4] = bestX;
+        scratch[5] = bestZ;
     }
 
     /**
      * Compute relaxed site positions deterministically.
      * Uses initial ring placement + quick push-apart relaxation.
      */
-    private static float[] computeRelaxedSites(long seed, int count, float[] radii) {
+    private static float[] computeRelaxedSites(long seed, int count, float[] radii, int iterations) {
         float[] sites = new float[count * 2];
         
         // Initial placement: ring distribution
@@ -106,7 +146,7 @@ public final class VoronoiStrategy {
         }
 
         // Quick relaxation: push sites apart based on their radii
-        for (int iter = 0; iter < RELAXATION_ITERATIONS; iter++) {
+        for (int iter = 0; iter < iterations; iter++) {
             for (int i = 0; i < count; i++) {
                 float x1 = sites[i * 2];
                 float z1 = sites[i * 2 + 1];

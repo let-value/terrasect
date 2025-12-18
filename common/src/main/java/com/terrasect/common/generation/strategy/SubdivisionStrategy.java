@@ -91,12 +91,22 @@ public final class SubdivisionStrategy {
             // Leaf node - this is our region
             int originalIdx = indices[start];
             scratch[0] = originalIdx;
-            scratch[1] = (minX + maxX) / 2.0f;  // centerX normalized
-            scratch[2] = (minZ + maxZ) / 2.0f;  // centerZ normalized
-            // Use smaller dimension as radius scale
-            float width = (maxX - minX) / 2.0f;
-            float height = (maxZ - minZ) / 2.0f;
-            scratch[3] = Math.min(width, height);
+            
+            // Subdivision produces rectangles. Transform to cell-local coordinates.
+            float centerX = (minX + maxX) / 2.0f;
+            float centerZ = (minZ + maxZ) / 2.0f;
+            float halfWidth = (maxX - minX) / 2.0f;
+            float halfHeight = (maxZ - minZ) / 2.0f;
+            // Use the smaller dimension as the "radius" for circular child layout
+            float cellRadius = Math.min(halfWidth, halfHeight);
+            cellRadius = Math.max(cellRadius, 0.1f); // Minimum size
+            
+            scratch[1] = centerX;
+            scratch[2] = centerZ;
+            scratch[3] = cellRadius;
+            // Store cell center for seed uniqueness
+            scratch[4] = centerX;
+            scratch[5] = centerZ;
             return;
         }
 
@@ -137,30 +147,25 @@ public final class SubdivisionStrategy {
         float height = maxZ - minZ;
         boolean splitVertical = (width > height) ^ (hashToFloat(seed, depth, 1) > 0.7f);
 
-        // Compute split position with edge warp
+        // Compute split position (no warp for debugging)
         if (splitVertical) {
             float splitX = minX + width * splitRatio;
-            // Add warp to the split line
-            float warp = edgeWarp(pz, seed, depth);
-            float warpedSplitX = splitX + warp;
             
             long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
             long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
             
-            if (px < warpedSplitX) {
+            if (px < splitX) {
                 traverseBSP(px, pz, budgets, indices, start, mid, minX, minZ, splitX, maxZ, leftSeed, depth + 1, jitterAmount, scratch);
             } else {
                 traverseBSP(px, pz, budgets, indices, mid, end, splitX, minZ, maxX, maxZ, rightSeed, depth + 1, jitterAmount, scratch);
             }
         } else {
             float splitZ = minZ + height * splitRatio;
-            float warp = edgeWarp(px, seed, depth);
-            float warpedSplitZ = splitZ + warp;
             
             long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
             long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
             
-            if (pz < warpedSplitZ) {
+            if (pz < splitZ) {
                 traverseBSP(px, pz, budgets, indices, start, mid, minX, minZ, maxX, splitZ, leftSeed, depth + 1, jitterAmount, scratch);
             } else {
                 traverseBSP(px, pz, budgets, indices, mid, end, minX, splitZ, maxX, maxZ, rightSeed, depth + 1, jitterAmount, scratch);

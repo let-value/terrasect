@@ -34,9 +34,12 @@ final class NarrativeSpace {
     }
 
     private Object traverse(Region root, int x, int z, Strategy context, int targetDepth, boolean returnSeed) {
-        long packedWarp = getWarpedPoint(x, z, context.getSeed(), context);
-        float wx = Float.intBitsToFloat((int) (packedWarp >> 32));
-        float wz = Float.intBitsToFloat((int) packedWarp);
+        // CLEAN TRAVERSAL: Use unwarped coordinates for the ENTIRE hierarchy.
+        // This guarantees children stay within parent bounds because all geometry
+        // is perfect (hexes are regular hexagons, voronoi cells are clean polygons).
+        // 
+        // Warping affects WHERE terrain features appear, but NOT which region
+        // contains a point. The region hierarchy is purely geometric.
 
         Region currentRegion = root;
         long currentSeed = context.getSeed();
@@ -48,8 +51,13 @@ final class NarrativeSpace {
         while (currentRegion.hasChildren() && currentDepth < targetDepth) {
             GenerationStrategyType type = currentRegion.definition().generationStrategy();
 
+            // Always use UNWARPED coordinates relative to parent center
+            // This keeps all geometry clean and ensures children stay in parent bounds
+            float dx = x - cx;
+            float dz = z - cz;
+
             // All strategies use unified interface
-            int regionIndex = LayoutStrategies.query(currentRegion, currentSeed, wx - cx, wz - cz, radius);
+            int regionIndex = LayoutStrategies.query(currentRegion, currentSeed, dx, dz, radius);
             
             currentRegion = currentRegion.children().get(regionIndex);
             currentSeed = LayoutStrategies.getSeed(type, currentSeed, regionIndex, currentRegion);

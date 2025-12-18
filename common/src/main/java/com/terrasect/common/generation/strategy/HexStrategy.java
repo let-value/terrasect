@@ -14,15 +14,19 @@ import java.util.List;
  * infinitely across the world. Each hex cell picks a child region weighted
  * by budget, with the origin hex (0,0) always getting the first child.
  * 
- * Supports optional "ring" regions - buffer zones between hex cells that
- * resolve to a separate region (like wilderness between story hexes).
+ * Supports optional "ring" regions - buffer zones BETWEEN hex cells that
+ * act as spacing/borders. The ring increases hex grid spacing rather than
+ * reducing interior area, so children get full budget space.
+ * 
+ * Ring model:
+ * - Interior radius = radius parameter (children use this full space)
+ * - Ring width = derived from ring region's budget (e.g., 30 = 30% of interior)
+ * - Hex grid spacing = interior + ring (hexes are farther apart)
+ * - Points outside any hex's interior circle belong to the ring
  * 
  * Best for root level to create repeating narrative "stories" across the world.
  */
 public final class HexStrategy {
-
-    // Ring is ~15% of hex radius (the gap between inscribed circle and hex edge)
-    private static final float RING_FRACTION = 0.15f;
 
     private HexStrategy() {}
 
@@ -33,71 +37,86 @@ public final class HexStrategy {
      * @param children Child regions  
      * @param dx X offset from parent center
      * @param dz Z offset from parent center
-     * @param radius Hex cell size
+     * @param radius Interior hex cell size (children use this full space)
      * @param settings Strategy settings (may be HexSettings with ring region)
      * @param out Output array: [childIndex, centerX, centerZ, radiusScale, hexQ, hexR, isRing]
+     *            centerX/centerZ are relative to parent center (normalized), not absolute hex coords
      */
     public static void query(long seed, List<Region> children, float dx, float dz,
                               float radius, StrategySettings settings, float[] out) {
-        // Get hex cell from world position
-        long packedHex = RegionField.getHexCell(dx, dz, radius);
+        
+        // Determine ring configuration
+        String ringRegionName = null;
+        float ringWidth = 0;  // As fraction of interior radius
+        int ringIndex = -1;
+        
+        if (settings != null && settings.hex() != null) {
+            ringRegionName = settings.hex().ringRegionName();
+        }
+        
+        if (ringRegionName != null) {
+            ringIndex = findChildByName(children, ringRegionName);
+            if (ringIndex >= 0) {
+                // Ring budget as percentage of interior (30 = 30% of interior radius)
+                float ringBudget = children.get(ringIndex).areaBudget();
+                ringWidth = ringBudget / 100.0f;
+                ringWidth = Math.max(0.05f, Math.min(0.5f, ringWidth));
+            }
+        }
+        
+        // Effective hex size for grid spacing = interior + ring
+        float gridRadius = radius * (1.0f + ringWidth);
+        
+        // Get hex cell using the larger grid spacing
+        long packedHex = RegionField.getHexCell(dx, dz, gridRadius);
         int q = (int) (packedHex >> 32);
         int r = (int) packedHex;
         
         // Store hex coords for seed calculation
         out[4] = q;
         out[5] = r;
-        out[6] = 0; // Not a ring by default
+        out[6] = 0;
         
-        // Calculate hex center
-        float hexCenterX = (float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r;
-        float hexCenterZ = 3.0f / 2.0f * r;
+        // Calculate hex center in world space (using grid spacing)
+        float hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
+        float hexCenterWorldZ = (3.0f / 2.0f * r) * gridRadius;
         
-        // Check if in ring zone (if ring region is configured)
-        String ringRegionName = null;
-        if (settings != null && settings.hex() != null) {
-            ringRegionName = settings.hex().ringRegionName();
+        // Distance from hex center (in world units)
+        float offsetX = dx - hexCenterWorldX;
+        float offsetZ = dz - hexCenterWorldZ;
+        float distFromCenter = (float) Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
+        
+        // Check if in ring zone (outside interior circle but inside hex boundary)
+        // Interior uses the original radius, ring fills the gap
+        if (ringIndex >= 0 && distFromCenter > radius) {
+            // In the ring zone - this is the space between hex interiors
+            out[0] = ringIndex;
+            // Normalize by radius so traverse computes correct world position
+            out[1] = hexCenterWorldX / radius;
+            out[2] = hexCenterWorldZ / radius;
+            out[3] = ringWidth;  // Ring's effective radius
+            out[6] = 1;
+            return;
         }
         
-        if (ringRegionName != null) {
-            // Distance from hex center (normalized to radius)
-            float localX = dx / radius - hexCenterX;
-            float localZ = dz / radius - hexCenterZ;
-            float distFromCenter = (float) Math.sqrt(localX * localX + localZ * localZ);
-            
-            // Inscribed circle radius is sqrt(3)/2 ≈ 0.866 of the outer radius
-            float inscribedRadius = 0.866f;
-            
-            if (distFromCenter > inscribedRadius) {
-                // We're in the ring zone - find the ring region
-                int ringIndex = findChildByName(children, ringRegionName);
-                if (ringIndex >= 0) {
-                    out[0] = ringIndex;
-                    out[1] = hexCenterX;
-                    out[2] = hexCenterZ;
-                    out[3] = 1.0f;
-                    out[6] = 1; // Mark as ring region
-                    return;
-                }
-            }
-        }
-        
-        // Normal hex cell - pick child weighted by budget
+        // Inside hex interior - pick child weighted by budget
         int hexDist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
         
         int childIndex;
         if (hexDist == 0) {
-            // Origin hex always gets first child
-            childIndex = 0;
+            childIndex = 0;  // Origin hex gets first child
         } else {
-            // Other hexes pick weighted by budget (excluding ring region if present)
             childIndex = pickChildWeighted(children, ringRegionName, MathUtils.hash64(seed, q, r, 9999));
         }
         
         out[0] = childIndex;
-        out[1] = hexCenterX;
-        out[2] = hexCenterZ;
-        out[3] = 1.0f; // Hex doesn't change radius scale
+        // Hex center normalized by radius (so traverse computes correct world position)
+        out[1] = hexCenterWorldX / radius;
+        out[2] = hexCenterWorldZ / radius;
+        // Children fill the entire hex interior circle (radius).
+        // The ring check already ensures we only get here for points within the interior.
+        // Using 1.0 means child strategies work in the full interior space.
+        out[3] = 1.0f;
     }
 
     /**

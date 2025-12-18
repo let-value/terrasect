@@ -148,9 +148,13 @@ public final class TemplateStrategy {
         }
 
         scratch[0] = bestIndex;
-        scratch[1] = bestX;
+        // Template cells have explicit centers and radii. Transform to cell-local coordinates.
+        scratch[1] = bestX;    // Center at template cell
         scratch[2] = bestZ;
-        scratch[3] = bestR;
+        scratch[3] = Math.max(bestR, 0.1f);    // Cell's normalized radius
+        // Store cell center for seed uniqueness
+        scratch[4] = bestX;
+        scratch[5] = bestZ;
     }
 
     private enum TemplateType { BINARY, TRIANGLE, CENTER_SURROUND, RADIAL }

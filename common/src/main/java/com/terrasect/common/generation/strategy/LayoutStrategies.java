@@ -47,7 +47,7 @@ public final class LayoutStrategies {
             case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, scratch);
             case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, scratch);
             case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, scratch);
-            default -> queryVoronoi(seed, children, dx, dz, radius, scratch); // VORONOI
+            default -> queryVoronoi(seed, children, dx, dz, radius, settings, scratch); // VORONOI
         }
         
         return (int) scratch[0];
@@ -72,19 +72,26 @@ public final class LayoutStrategies {
      * Compute seed for the child region.
      */
     public static long getSeed(GenerationStrategyType type, long parentSeed, int regionIndex, Region region) {
+        float[] scratch = SCRATCH.get();
+        
         if (type == GenerationStrategyType.HEX) {
             // HEX uses q,r coords stored in scratch during query
-            float[] scratch = SCRATCH.get();
             int q = (int) scratch[4];
             int r = (int) scratch[5];
             return HexStrategy.getSeed(parentSeed, q, r);
         }
+        
+        // For voronoi/subdivision/template, use site position from scratch[4,5]
+        // to make each cell's children unique
+        int siteX = Float.floatToIntBits(scratch[4]);
+        int siteZ = Float.floatToIntBits(scratch[5]);
+        
         int salt = switch (type) {
             case SUBDIVISION -> 777;
             case TEMPLATE -> 888;
             default -> 999; // VORONOI
         };
-        return MathUtils.hash64(parentSeed, region.name().hashCode(), regionIndex, salt);
+        return MathUtils.hash64(parentSeed, siteX ^ siteZ, regionIndex, salt);
     }
 
     /**
@@ -97,8 +104,12 @@ public final class LayoutStrategies {
     // ========== Strategy-specific query implementations ==========
 
     private static void queryVoronoi(long seed, List<Region> children, float dx, float dz, 
-                                      float radius, float[] out) {
-        VoronoiStrategy.query(seed, children, dx, dz, radius, out);
+                                      float radius, StrategySettings settings, float[] out) {
+        int relaxationIterations = 5;  // Default relaxation
+        if (settings != null && settings.voronoi() != null) {
+            relaxationIterations = settings.voronoi().relaxationIterations();
+        }
+        VoronoiStrategy.query(seed, children, dx, dz, radius, relaxationIterations, out);
     }
 
     private static void querySubdivision(long seed, List<Region> children, float dx, float dz, 
