@@ -1,10 +1,7 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.generation.definition.GenerationStrategyType;
-import com.terrasect.common.generation.strategy.HexStrategy;
 import com.terrasect.common.generation.strategy.LayoutStrategies;
-
-import java.util.List;
 
 /**
  * Encapsulates the math for traversing the region hierarchy. Separating this from
@@ -50,26 +47,15 @@ final class NarrativeSpace {
         int currentDepth = 0;
         while (currentRegion.hasChildren() && currentDepth < targetDepth) {
             GenerationStrategyType type = currentRegion.definition().generationStrategy();
-            List<Region> children = currentRegion.children();
 
-            if (type == GenerationStrategyType.HEX) {
-                // HexStrategy is special - uses packed hex coords, not float[] layout
-                long hexPacked = HexStrategy.getCell(wx, wz, radius);
-                currentRegion = HexStrategy.getRegion(children, currentSeed, hexPacked);
-                currentSeed = HexStrategy.getSeed(currentSeed, hexPacked);
-                cx = HexStrategy.getNextCx(cx, radius, hexPacked);
-                cz = HexStrategy.getNextCz(cz, radius, hexPacked);
-                // radius unchanged for hex
-            } else {
-                // All layout-based strategies use unified interface
-                int regionIndex = LayoutStrategies.query(type, currentSeed, children, wx - cx, wz - cz, radius);
-                
-                currentRegion = children.get(regionIndex);
-                currentSeed = LayoutStrategies.getSeed(type, currentSeed, regionIndex, currentRegion);
-                cx += LayoutStrategies.getLastCenterX() * radius;
-                cz += LayoutStrategies.getLastCenterZ() * radius;
-                radius *= LayoutStrategies.getLastRadius();
-            }
+            // All strategies use unified interface
+            int regionIndex = LayoutStrategies.query(currentRegion, currentSeed, wx - cx, wz - cz, radius);
+            
+            currentRegion = currentRegion.children().get(regionIndex);
+            currentSeed = LayoutStrategies.getSeed(type, currentSeed, regionIndex, currentRegion);
+            cx += LayoutStrategies.getLastCenterX() * radius;
+            cz += LayoutStrategies.getLastCenterZ() * radius;
+            radius *= LayoutStrategies.getLastRadius();
 
             currentDepth++;
         }

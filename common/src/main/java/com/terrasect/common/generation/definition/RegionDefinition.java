@@ -10,7 +10,8 @@ public record RegionDefinition(
     SelectionRules biomes,
     StructureRules structures,
     SelectionRules mobs,
-    GenerationStrategyType generationStrategy
+    GenerationStrategyType generationStrategy,
+    StrategySettings strategySettings
 ) {
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
@@ -18,6 +19,7 @@ public record RegionDefinition(
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
         if (generationStrategy == null) generationStrategy = GenerationStrategyType.VORONOI;
+        // strategySettings can be null - strategies use defaults
     }
 
     public static RegionDefinition empty() {
@@ -31,7 +33,8 @@ public record RegionDefinition(
             biomes.resolveWithParent(parent.biomes),
             structures.resolveWithParent(parent.structures),
             mobs.resolveWithParent(parent.mobs),
-            generationStrategy
+            generationStrategy,
+            strategySettings
         );
     }
 
@@ -52,6 +55,7 @@ public record RegionDefinition(
         protected StructureRules structures = StructureRules.empty();
         protected SelectionRules mobs = SelectionRules.empty();
         protected GenerationStrategyType generationStrategy = GenerationStrategyType.VORONOI;
+        protected StrategySettings strategySettings = null;
 
         protected abstract T self();
 
@@ -90,8 +94,24 @@ public record RegionDefinition(
             return self();
         }
 
+        public T settings(StrategySettings settings) {
+            this.strategySettings = settings;
+            return self();
+        }
+
+        /**
+         * Configure settings using a builder.
+         * Example: .settings(s -> s.ring("WILDERNESS").template(TemplateType.RADIAL))
+         */
+        public T settings(java.util.function.Consumer<StrategySettings.Builder> consumer) {
+            StrategySettings.Builder builder = StrategySettings.builder();
+            consumer.accept(builder);
+            this.strategySettings = builder.build();
+            return self();
+        }
+
         public RegionDefinition build() {
-            return new RegionDefinition(climate, biomes, structures, mobs, generationStrategy);
+            return new RegionDefinition(climate, biomes, structures, mobs, generationStrategy, strategySettings);
         }
     }
 }

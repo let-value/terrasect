@@ -2,6 +2,7 @@ package com.terrasect.common.generation.strategy;
 
 import com.terrasect.common.generation.MathUtils;
 import com.terrasect.common.generation.Region;
+import com.terrasect.common.generation.definition.StrategySettings;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -38,20 +39,34 @@ public final class TemplateStrategy {
     private TemplateStrategy() {}
 
     public static float[] getLayout(long seed, List<Region> children) {
-        long cacheKey = computeCacheKey(seed, children);
+        return getLayout(seed, children, null, null);
+    }
+
+    public static float[] getLayout(long seed, List<Region> children, 
+                                     StrategySettings.TemplateType templateType,
+                                     StrategySettings.CenterSurroundSettings centerSurroundSettings) {
+        long cacheKey = computeCacheKey(seed, children, templateType, centerSurroundSettings);
         float[] layout = LAYOUT_CACHE.get(cacheKey);
         if (layout == null) {
-            layout = computeLayout(children, seed);
+            layout = computeLayout(children, seed, templateType, centerSurroundSettings);
             LAYOUT_CACHE.put(cacheKey, layout);
         }
         return layout;
     }
 
-    private static long computeCacheKey(long seed, List<Region> children) {
+    private static long computeCacheKey(long seed, List<Region> children, 
+                                          StrategySettings.TemplateType templateType,
+                                          StrategySettings.CenterSurroundSettings centerSurroundSettings) {
         long hash = seed;
         for (Region child : children) {
             hash = hash * 31 + child.name().hashCode();
             hash = hash * 31 + child.areaBudget();
+        }
+        if (templateType != null) {
+            hash = hash * 31 + templateType.ordinal();
+        }
+        if (centerSurroundSettings != null && centerSurroundSettings.centerRegionName() != null) {
+            hash = hash * 31 + centerSurroundSettings.centerRegionName().hashCode();
         }
         return hash;
     }
@@ -128,7 +143,9 @@ public final class TemplateStrategy {
 
     // ========== Layout Computation ==========
 
-    private static float[] computeLayout(List<Region> children, long seed) {
+    private static float[] computeLayout(List<Region> children, long seed, 
+                                          StrategySettings.TemplateType templateType,
+                                          StrategySettings.CenterSurroundSettings centerSurroundSettings) {
         if (children.isEmpty()) return new float[0];
 
         int count = children.size();
@@ -146,8 +163,59 @@ public final class TemplateStrategy {
             radii[i] = (float) Math.sqrt(budgets[i] / totalBudget);
         }
 
-        // Choose template based on count and budget distribution
+        // Use explicit template if specified, otherwise auto-select
+        if (templateType != null) {
+            return applyExplicitTemplate(templateType, count, radii, budgets, children, 
+                                         centerSurroundSettings, seed);
+        }
+        
         return selectAndApplyTemplate(count, radii, budgets, totalBudget, seed);
+    }
+
+    private static float[] applyExplicitTemplate(StrategySettings.TemplateType templateType, 
+                                                   int count, float[] radii, float[] budgets,
+                                                   List<Region> children,
+                                                   StrategySettings.CenterSurroundSettings centerSurroundSettings,
+                                                   long seed) {
+        return switch (templateType) {
+            case BINARY -> templateBinary(radii, seed);
+            case TRIANGLE -> templateTriangle(radii, seed);
+            case CENTER_SURROUND -> {
+                int centerIndex = findCenterIndex(children, budgets, centerSurroundSettings);
+                yield templateCenterSurround(count, radii, centerIndex, seed);
+            }
+            case RADIAL -> templateRadial(radii, seed);
+        };
+    }
+
+    /**
+     * Find the index of the center region for CENTER_SURROUND template.
+     * If centerSurroundSettings specifies a region name, use that.
+     * Otherwise, fall back to highest budget region.
+     */
+    private static int findCenterIndex(List<Region> children, float[] budgets,
+                                        StrategySettings.CenterSurroundSettings settings) {
+        // Check if user specified a center region by name
+        if (settings != null && settings.centerRegionName() != null) {
+            String targetName = settings.centerRegionName();
+            for (int i = 0; i < children.size(); i++) {
+                if (children.get(i).name().equals(targetName)) {
+                    return i;
+                }
+            }
+            // Name not found, fall through to budget-based selection
+        }
+        
+        // Default: find region with highest budget
+        int dominant = 0;
+        float maxBudget = 0;
+        for (int i = 0; i < budgets.length; i++) {
+            if (budgets[i] > maxBudget) {
+                maxBudget = budgets[i];
+                dominant = i;
+            }
+        }
+        return dominant;
     }
 
     private static float[] selectAndApplyTemplate(int count, float[] radii, float[] budgets, 
