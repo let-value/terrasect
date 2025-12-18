@@ -39,46 +39,55 @@ public record RegionDefinition(
         return new Builder();
     }
 
-    public static class Builder {
-        private ClimateSettings climate = ClimateSettings.empty();
-        private SelectionRules biomes = SelectionRules.empty();
-        private StructureRules structures = StructureRules.empty();
-        private SelectionRules mobs = SelectionRules.empty();
-        private GenerationStrategyType generationStrategy = GenerationStrategyType.VORONOI;
+    public static class Builder extends AbstractBuilder<Builder> {
+        @Override
+        protected Builder self() {
+            return this;
+        }
+    }
 
-        public Builder climate(Consumer<ClimateSettings.Builder> consumer) {
+    public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
+        protected ClimateSettings climate = ClimateSettings.empty();
+        protected SelectionRules biomes = SelectionRules.empty();
+        protected StructureRules structures = StructureRules.empty();
+        protected SelectionRules mobs = SelectionRules.empty();
+        protected GenerationStrategyType generationStrategy = GenerationStrategyType.VORONOI;
+
+        protected abstract T self();
+
+        public T climate(Consumer<ClimateSettings.Builder> consumer) {
             ClimateSettings.Builder builder = ClimateSettings.builder().copyFrom(climate);
             consumer.accept(builder);
             climate = builder.build();
-            return this;
+            return self();
         }
 
-        public Builder biomes(Consumer<SelectionRules.Builder> consumer) {
+        public T biomes(Consumer<SelectionRules.Builder> consumer) {
             SelectionRules.Builder builder = SelectionRules.builder().copyFrom(biomes);
             consumer.accept(builder);
             biomes = builder.build();
-            return this;
+            return self();
         }
 
-        public Builder structures(Consumer<StructureRules.Builder> consumer) {
+        public T structures(Consumer<StructureRules.Builder> consumer) {
             StructureRules.Builder builder = StructureRules.builder();
             builder.selection(SelectionRules.builder().copyFrom(structures.selection()).build());
             structures.requiredStructures().forEach(builder::requireStructures);
             consumer.accept(builder);
             structures = builder.build();
-            return this;
+            return self();
         }
 
-        public Builder mobs(Consumer<SelectionRules.Builder> consumer) {
+        public T mobs(Consumer<SelectionRules.Builder> consumer) {
             SelectionRules.Builder builder = SelectionRules.builder().copyFrom(mobs);
             consumer.accept(builder);
             mobs = builder.build();
-            return this;
+            return self();
         }
 
-        public Builder strategy(GenerationStrategyType generationStrategy) {
+        public T strategy(GenerationStrategyType generationStrategy) {
             this.generationStrategy = generationStrategy;
-            return this;
+            return self();
         }
 
         public RegionDefinition build() {

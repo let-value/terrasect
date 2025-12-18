@@ -14,15 +14,15 @@ public class RegionRegistryTest {
     public void buildsTreeFromFlatAndNestedRegistrations() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-            .definition(def -> def.biomes(biomes -> biomes.allowMods("minecraft")))
+            .biomes(biomes -> biomes.allowMods("minecraft"))
             .child("NESTED", child -> child
                 .budget(200)
-                .definition(def -> def.biomes(biomes -> biomes.allowNames("custom:grove"))));
+                .biomes(biomes -> biomes.allowNames("custom:grove")));
 
         registry.region("FLAT")
             .parent("ROOT")
             .budget(150)
-            .definition(def -> def.biomes(biomes -> biomes.blockMods("minecraft").allowTags("#mystic")));
+            .biomes(biomes -> biomes.blockMods("minecraft").allowTags("#mystic"));
 
         Region root = registry.build("ROOT");
 

@@ -13,20 +13,18 @@ public class RegionDefinitionTest {
     public void inheritsAndBlocksParentDefinitions() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-            .definition(def -> def
-                .climate(climate -> climate.temperature(0.9f).humidity(0.7f))
-                .biomes(biomes -> biomes.allowMods("minecraft").allowTags("#overworld"))
-                .structures(structures -> structures
-                    .allowMods("minecraft")
-                    .requireStructures("minecraft:village"))
-                .mobs(mobs -> mobs.allowTags("#passive")))
+            .climate(climate -> climate.temperature(0.9f).humidity(0.7f))
+            .biomes(biomes -> biomes.allowMods("minecraft").allowTags("#overworld"))
+            .structures(structures -> structures
+                .allowMods("minecraft")
+                .requireStructures("minecraft:village"))
+            .mobs(mobs -> mobs.allowTags("#passive"))
             .child("CHILD", child -> child
-                .definition(def -> def
-                    .biomes(biomes -> biomes.blockTags("#overworld").allowNames("custom:glowing_grove"))
-                    .structures(structures -> structures
-                        .blockNames("minecraft:village")
-                        .requireStructures("custom:scripted_camp"))
-                    .mobs(mobs -> mobs.blockMods("minecraft").allowNames("custom:wisp"))));
+                .biomes(biomes -> biomes.blockTags("#overworld").allowNames("custom:glowing_grove"))
+                .structures(structures -> structures
+                    .blockNames("minecraft:village")
+                    .requireStructures("custom:scripted_camp"))
+                .mobs(mobs -> mobs.blockMods("minecraft").allowNames("custom:wisp")));
 
         Region root = registry.build("ROOT");
 
