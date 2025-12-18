@@ -9,16 +9,11 @@ public class RegionField {
 
     public static final int REPEAT_PERIOD_POCKETS = 5;
     private static final float INV_U16 = 1.0f / 65535.0f;
-    private static final EdgeStatistics EDGE_STATS = EdgeStatistics.vanillaOverworld();
     private static final long POCKET_SEED_SALT = 0x12345L;
     private static final long CELL_ID_SALT = 0x9E3779B97F4A7C15L;
-    private static final float DOMAIN_WARP_AMPLITUDE = 2.0f;
-    private static final float COARSE_SCALE_FACTOR = 0.5f;
-    private static final float COARSE_AMPLITUDE_SCALE = 2.5f;
-    private static final float MICRO_JITTER_SCALE = 0.5f;
-    private static final float EDGE_DENSITY_SCALE = 2.5f;
-    private static final int MICRO_JITTER_SAMPLE_SCALE = 16;
-    private static final int EDGE_FINE_DENSITY_SCALE = 32;
+    
+    // Simplified warp: just smooth noise, no EdgeStatistics complexity
+    private static final int WARP_DETAIL_SCALE = 32;
 
     /**
      * Computes the region ID and edge distance for a given world coordinate.
@@ -33,21 +28,14 @@ public class RegionField {
 
         long pocketSeed = MathUtils.hash64(worldSeed, rpx, rpz, POCKET_SEED_SALT);
 
-        int warpScale = cellSize;
-        float warp1 = NoiseUtils.warpNoise1(x, z, pocketSeed, warpScale);
-        float warp2 = NoiseUtils.warpNoise2(x, z, pocketSeed, warpScale);
+        // Simple 2-layer warp: base + detail
+        float warp1 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1001, cellSize) - 0.5f) * 2.0f;
+        float warp2 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1002, cellSize) - 0.5f) * 2.0f;
+        float detail1 = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, WARP_DETAIL_SCALE) - 0.5f) * 0.3f;
+        float detail2 = (NoiseUtils.valueNoise(x, z, worldSeed, 9102, WARP_DETAIL_SCALE) - 0.5f) * 0.3f;
 
-        float coarseScale = EDGE_STATS.coarseAverageRunBlocks() * COARSE_SCALE_FACTOR;
-        float coarseAmplitude = EDGE_STATS.coarseTransitionDensity() * cellSize * COARSE_AMPLITUDE_SCALE;
-
-        float macroX = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, (int) coarseScale) - 0.5f) * coarseAmplitude;
-        float macroZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9102, (int) coarseScale) - 0.5f) * coarseAmplitude;
-
-        float microX = (NoiseUtils.valueNoise(x, z, worldSeed, 9103, MICRO_JITTER_SAMPLE_SCALE) - 0.5f) * EDGE_STATS.fineHorizontalJitter() * MICRO_JITTER_SCALE;
-        float microZ = (NoiseUtils.valueNoise(z, x, worldSeed, 9104, MICRO_JITTER_SAMPLE_SCALE) - 0.5f) * EDGE_STATS.fineVerticalJitter();
-
-        int xw = (int) (x + warpAmp * (warp1 * DOMAIN_WARP_AMPLITUDE - 1.0f) + macroX + microX);
-        int zw = (int) (z + warpAmp * (warp2 * DOMAIN_WARP_AMPLITUDE - 1.0f) + macroZ + microZ);
+        int xw = (int) (x + warpAmp * (warp1 + detail1));
+        int zw = (int) (z + warpAmp * (warp2 + detail2));
 
         int gx = MathUtils.floorDiv(xw, cellSize);
         int gz = MathUtils.floorDiv(zw, cellSize);
@@ -82,11 +70,9 @@ public class RegionField {
 
         float rawEdge = (float) (Math.sqrt(secondBestD) - Math.sqrt(bestD));
 
-        float fineDensity = (NoiseUtils.valueNoise(x, z, worldSeed, 9105, EDGE_FINE_DENSITY_SCALE) - 0.5f) * EDGE_STATS.fineTransitionDensity() * EDGE_DENSITY_SCALE;
-        float coarseDensity = (NoiseUtils.valueNoise(z, x, worldSeed, 9106, (int) coarseScale) - 0.5f)
-            * EDGE_STATS.coarseTransitionDensity();
-
-        float edge = Math.max(0.0f, rawEdge * (1.0f + fineDensity + coarseDensity));
+        // Simple edge modulation for natural-looking boundaries
+        float edgeNoise = NoiseUtils.valueNoise(x, z, worldSeed, 9105, WARP_DETAIL_SCALE);
+        float edge = Math.max(0.0f, rawEdge * (0.8f + edgeNoise * 0.4f));
 
         return ((long) bestId << 32) | (Float.floatToRawIntBits(edge) & 0xFFFFFFFFL);
     }
@@ -115,13 +101,12 @@ public class RegionField {
         // 3. Compute pocket seed
         long pocketSeed = MathUtils.hash64(worldSeed, rpx, rpz, POCKET_SEED_SALT);
 
-        // 4. Domain warp
-        int warpScale = cellSize; 
-        float warp1 = NoiseUtils.warpNoise1(x, z, pocketSeed, warpScale);
-        float warp2 = NoiseUtils.warpNoise2(x, z, pocketSeed, warpScale);
+        // 4. Simple domain warp
+        float warp1 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1001, cellSize) - 0.5f) * 2.0f;
+        float warp2 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1002, cellSize) - 0.5f) * 2.0f;
         
-        int xw = (int) (x + warpAmp * (warp1 * DOMAIN_WARP_AMPLITUDE - 1.0f));
-        int zw = (int) (z + warpAmp * (warp2 * DOMAIN_WARP_AMPLITUDE - 1.0f));
+        int xw = (int) (x + warpAmp * warp1);
+        int zw = (int) (z + warpAmp * warp2);
 
         // 5. Grid cell
         int gx = MathUtils.floorDiv(xw, cellSize);

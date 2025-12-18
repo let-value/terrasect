@@ -11,7 +11,7 @@ import java.util.Random;
 
 public final class VoronoiStrategy {
 
-    // Cache for Voronoi layouts: Key = Seed, Value = float[] (interleaved x, z, radius, regionIndex)
+    // Cache for Voronoi layouts: Key = combined seed + children hash, Value = float[] (interleaved x, z, radius, regionIndex)
     private static final int CACHE_SIZE = 4096;
     private static final Map<Long, float[]> VORONOI_CACHE = Collections.synchronizedMap(new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
         @Override
@@ -23,12 +23,22 @@ public final class VoronoiStrategy {
     private VoronoiStrategy() {}
 
     public static float[] getLayout(long seed, List<Region> children) {
-        float[] layout = VORONOI_CACHE.get(seed);
+        long cacheKey = computeCacheKey(seed, children);
+        float[] layout = VORONOI_CACHE.get(cacheKey);
         if (layout == null) {
             layout = computeVoronoiLayout(children, seed);
-            VORONOI_CACHE.put(seed, layout);
+            VORONOI_CACHE.put(cacheKey, layout);
         }
         return layout;
+    }
+
+    private static long computeCacheKey(long seed, List<Region> children) {
+        long hash = seed;
+        for (Region child : children) {
+            hash = hash * 31 + child.name().hashCode();
+            hash = hash * 31 + child.areaBudget();
+        }
+        return hash;
     }
 
     public static int getCell(float[] layout, float dx, float dz, float radius) {

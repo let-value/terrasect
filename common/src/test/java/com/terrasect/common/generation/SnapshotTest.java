@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
-    private static final String EXPECTED_DIGEST = "a04989cd3c24b5aa0512e02a258409872865cb0c56bd324295ee1fb89f8ec76c";
+    private static final String EXPECTED_DIGEST = "6ee8874096994c6b9bd263d0b6e463a77608c5010fcd7a9c63a046490386cb48";
 
     @Test
     public void testRegionDistribution() {
