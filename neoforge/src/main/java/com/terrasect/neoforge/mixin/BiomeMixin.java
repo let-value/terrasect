@@ -103,7 +103,7 @@ public class BiomeMixin {
     @Unique
     private String terrasect$getBiomeId(Holder<Biome> biome) {
         return biome.unwrapKey()
-            .map(key -> key.location().toString())
+            .map(key -> key.identifier().toString())
             .orElse("unknown");
     }
     

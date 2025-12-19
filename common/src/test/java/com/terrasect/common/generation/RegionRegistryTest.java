@@ -16,17 +16,18 @@ public class RegionRegistryTest {
         registry.region("ROOT")
             .biomes(biomes -> biomes.allowMods("minecraft"))
             .child("NESTED", child -> child
-                .budget(200)
+                .radius(14)  // 14^2 = 196 area
                 .biomes(biomes -> biomes.allowNames("custom:grove")));
 
         registry.region("FLAT")
             .parent("ROOT")
-            .budget(150)
+            .radius(12)  // 12^2 = 144 area
             .biomes(biomes -> biomes.blockMods("minecraft").allowTags("#mystic"));
 
         Region root = registry.build("ROOT");
 
-        assertEquals(350, root.areaBudget());
+        // Root budget is sum of children: 196 + 144 = 340
+        assertEquals(340, root.areaBudget());
 
         Region flatChild = root.children().stream().filter(r -> r.name().equals("FLAT")).findFirst().orElseThrow();
         Region nestedChild = root.children().stream().filter(r -> r.name().equals("NESTED")).findFirst().orElseThrow();
@@ -53,6 +54,7 @@ public class RegionRegistryTest {
         Region orphan = registry.build("ORPHAN");
         assertEquals("ORPHAN", orphan.name());
         assertTrue(orphan.children().isEmpty());
+        // Default radius is 100 -> area = 100^2 = 10000
         assertEquals(10000, orphan.areaBudget());
 
         Region loopA = registry.build("LOOP_A");

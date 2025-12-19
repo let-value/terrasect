@@ -36,6 +36,9 @@ public class ClimateMixin {
     
     @Unique
     private static int terrasect$noContextCount = 0;
+    
+    @Unique
+    private static int terrasect$totalCalls = 0;
 
     /**
      * Redirect the sampler.sample() call to apply region-based climate modifications.
@@ -49,6 +52,19 @@ public class ClimateMixin {
         )
     )
     private Climate.TargetPoint terrasect$modifyClimate(Climate.Sampler sampler, int x, int y, int z) {
+        terrasect$totalCalls++;
+        
+        // Log first call to confirm mixin is working
+        if (terrasect$totalCalls == 1) {
+            Terrasect.LOGGER.info("ClimateMixin: FIRST CALL - Mixin is active! Quart coords: ({}, {}, {})", x, y, z);
+        }
+        
+        // Log every 5000 calls for debugging
+        if (terrasect$totalCalls % 5000 == 0) {
+            Terrasect.LOGGER.info("ClimateMixin: Stats - total={}, modified={}, noContext={}", 
+                terrasect$totalCalls, terrasect$modifiedCount, terrasect$noContextCount);
+        }
+        
         // Get the original sample
         Climate.TargetPoint original = sampler.sample(x, y, z);
         

@@ -39,26 +39,27 @@ public class StrategySnapshotTest {
     private static final Map<String, String> COLLECTED_DIGESTS = new ConcurrentHashMap<>();
     
     // Expected digests for each test - update when intentionally changing output
+    // Updated for MC 1.21.11 (different RNG/float behavior)
     private static final Map<String, String> EXPECTED_DIGESTS = Map.ofEntries(
-        Map.entry("deeply_nested", "97c3f2d2950afd830941b421d07d297d3c3d9af3526dcf255f56f2cf7e0bf200"),
-        Map.entry("hex_default", "1fbb801aa6981d5e0cc09b0f15c8808297c54bb05790ad52e5cbed3dc0eceb53"),
-        Map.entry("hex_with_ring", "a26bcf6d84a208bb0ef42c7f587c1aa7edf0a88da91aef5adead1e343bda8b94"),
-        Map.entry("kitchen_sink", "ad933c037516f973535d280b1a8b1f3e0e30df008eb47f76ec0ee4ac4af43e10"),
-        Map.entry("nested_hex_subdivision", "617d4128ed9fab6d6c4538582b677e60979891f217e069c73ddb6a768afa320e"),
-        Map.entry("nested_hex_voronoi", "d86bf121b485ab20a08006c7523513c00e59dfde917ef480f75bfa3a9f1a9953"),
-        Map.entry("nested_subdivision_template", "30403b298daf7892881df794e1092d3cbe74ad8eb71a15d70f70da3f622af6a3"),
-        Map.entry("nested_voronoi_template", "34094964eba1b6e9121d5255ceac998f4f3660d3c511deb50868bbe42b4f6fcc"),
-        Map.entry("subdivision_default", "bd138da3a55781fba3a29f1ce63ae9c4d0c5af5502341226c0b0dc8b80f1bb44"),
-        Map.entry("subdivision_high_jitter", "36425c61452219054e103bbc5d0528d9d1faf32495beaedf77c7a59f1a7d750c"),
-        Map.entry("subdivision_low_jitter", "2b4c75d330d3d38dcc3a9a0a6a4c5610537d981cc410c9f52e8f68c3040b6375"),
-        Map.entry("template_binary", "50bdb0c3e88e225c17ba62c868f32be6f496ec20a61f4352efa77fd7a4feb6e0"),
-        Map.entry("template_center_surround", "eabd53fc8ac6ff9f3a4f8383e08c5ada44d3f8442b1578c042bc3daedc47d56b"),
-        Map.entry("template_center_surround_named", "87c59d04bdf62151a6bb87935ac40171bdd4749838f5f7e757c69e49844d5d1a"),
-        Map.entry("template_radial", "b58f0677117d00dbc057d2e6040cf9d301b499b343debbe076e81d3c1d040d93"),
-        Map.entry("template_triangle", "5a38adf078868b8b89cc34163660aedb584ede59c50f51058c58490e14b51a8d"),
-        Map.entry("voronoi_default", "0acfa45f932a6dc77723e54381cb9119e420b2e37843a3c9a592003804b1f646"),
-        Map.entry("voronoi_high_relaxation", "4b70ac44608894eaf8eeac11cdee7ed061deab5cfe265869b5899195e276b488"),
-        Map.entry("voronoi_low_relaxation", "1094199b16388dd4a7b42eb822378d9f92f6d87c2c029d23071b6370a77fcfcc")
+        Map.entry("deeply_nested", "725fa7e78a003349a9fa6cfc92c1098c8129e6982c89d66d94f3092dfcdb95b8"),
+        Map.entry("hex_default", "daea2757afd03d5cda055e3e543f839b56ab09c2523fc93c68c576717b08bccf"),
+        Map.entry("hex_with_ring", "89347d4692bfdc6777dc347349d70ac1f06087e1d384c880f85d00c0d695e918"),
+        Map.entry("kitchen_sink", "88cbde12bb2b0ae2e3e8cc4d24fc4cd22d3f9d56fc43101b29d8b8af1c58910c"),
+        Map.entry("nested_hex_subdivision", "7c4aef940fd87d74ceec7298c2bf0e81308c57bda83ee9825dd888daef727e4e"),
+        Map.entry("nested_hex_voronoi", "19f329a886221c52f21dd6c429612461fb26ec6b04cda5134eb87bc4165833bb"),
+        Map.entry("nested_subdivision_template", "24445a9f8c7df37282bee453df72b9da27bf7e338b2ce0e83164f757a064bdbc"),
+        Map.entry("nested_voronoi_template", "cbd3c2646b2191aad105efd5e39f52a779c76757250cbfb9407d38dfad7740dd"),
+        Map.entry("subdivision_default", "edf7f4f6fcd1b396ffd545581016a89e423ab67226754c35bb5c52fe20972eef"),
+        Map.entry("subdivision_high_jitter", "24fb584e3e18c743ea5666c1aa3d45710fd6d3186018a239beb851737f80faa3"),
+        Map.entry("subdivision_low_jitter", "645f5acb38c57baa4a774ecac6918195c0e294064acdbd4a1123eb2d53d01e1e"),
+        Map.entry("template_binary", "1b72ceddb39467b63963b7a2f283c6230197e5270fc41dc5312694941cdb3a84"),
+        Map.entry("template_center_surround", "c121e545b763f3ce6810cfe6b81a66c1d82fac839d7ae9dd08863dc86de17c68"),
+        Map.entry("template_center_surround_named", "5342b59ae1409170e65a4646c5aad6cc487137b8eed7376bd0042f95ad0c56e0"),
+        Map.entry("template_radial", "bc3f721a138706ebf25cf4498eacce8fb610788c143ac89dd82c5fac7b9c611a"),
+        Map.entry("template_triangle", "b658db5e291c8339195b015b6d3dea0d2bf832898d1acc43655f5b6cbbb097d3"),
+        Map.entry("voronoi_default", "ed1bc60ab571763030a92cde30d557dc04a273f1293a9feaddd572026bb98e44"),
+        Map.entry("voronoi_high_relaxation", "047b8b2772aba328176b48f1a06ef4170dc61eff5be5a4072ff96cf04904a7e9"),
+        Map.entry("voronoi_low_relaxation", "54d6fb0ee23b44d53147a95bb43b64e7919e593764d5b347fffc5c7b5890c0c9")
     );
 
     private File outDir;

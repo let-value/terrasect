@@ -100,7 +100,8 @@ public class RegionRegistry {
         } else if (!children.isEmpty()) {
             budget = children.stream().mapToInt(Region::areaBudget).sum();
         } else {
-            budget = 10000;
+            // Default radius of 100 blocks = area of 10000
+            budget = 100 * 100;
         }
 
         visiting.remove(name);
@@ -133,6 +134,16 @@ public class RegionRegistry {
             return this;
         }
 
+        public DraftRegion radius(int radius) {
+            // User defines radius, we store area (radius^2) internally
+            this.areaBudget = radius * radius;
+            return this;
+        }
+
+        /**
+         * @deprecated Use {@link #radius(int)} instead. Budget is now interpreted as radius squared.
+         */
+        @Deprecated
         public DraftRegion budget(int areaBudget) {
             this.areaBudget = areaBudget;
             return this;

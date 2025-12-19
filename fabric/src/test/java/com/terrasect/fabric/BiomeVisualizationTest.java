@@ -37,12 +37,16 @@ import java.util.Set;
  * 3. Filter overlay showing which biomes were blocked/replaced
  * 
  * Output is saved to build/biome-snapshots/
+ * 
+ * Note: This test is slow due to biome sampling. Run manually with:
+ * ./gradlew :fabric:test --tests "*.BiomeVisualizationTest"
  */
+@org.junit.jupiter.api.Tag("slow")
 public class BiomeVisualizationTest {
 
-    private static final int WIDTH = 512;
-    private static final int HEIGHT = 512;
-    private static final int SCALE = 4; // blocks per pixel
+    private static final int WIDTH = 256;  // Reduced from 512 for faster tests
+    private static final int HEIGHT = 256;
+    private static final int SCALE = 8;    // Increased from 4 - fewer samples
 
     @BeforeAll
     public static void setup() {
@@ -254,15 +258,19 @@ public class BiomeVisualizationTest {
     
     private String getBiomeId(Holder<Biome> biome) {
         return biome.unwrapKey()
-            .map(key -> key.location().toString())
+            .map(key -> key.identifier().toString())
             .orElse("unknown");
     }
     
     private Set<String> getBiomeTags(Holder<Biome> biome) {
         Set<String> tags = new HashSet<>();
-        // In test environment, biome.tags() may be empty because tags aren't bound
-        // So we also infer tags from known biome categories
-        biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
+        // In test environment, biome.tags() may throw because tags aren't bound
+        // So we use try-catch and fall back to inferring tags from biome name
+        try {
+            biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
+        } catch (IllegalStateException e) {
+            // Tags not bound - this is expected in test environment
+        }
         
         // Add inferred tags based on biome name for test purposes
         String biomeId = getBiomeId(biome);
@@ -326,7 +334,9 @@ public class BiomeVisualizationTest {
                 int qx = x >> 2;
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
-                return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
+                // Use biome ID check instead of tags - tags aren't bound in test environment
+                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
             @Override
@@ -370,7 +380,7 @@ public class BiomeVisualizationTest {
      */
     private int biomeToColor(Holder<Biome> biome) {
         String name = biome.unwrapKey()
-            .map(key -> key.location().toString())
+            .map(key -> key.identifier().toString())
             .orElse("unknown");
         
         // Create a hash-based color

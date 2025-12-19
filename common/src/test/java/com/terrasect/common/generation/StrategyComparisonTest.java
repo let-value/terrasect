@@ -38,17 +38,18 @@ public class StrategyComparisonTest {
         registry.region("ROOT")
             .child("CIVILIZATION", civ -> civ
                 .strategy(strategy)
-                .child("CITY", city -> city.budget(1000)
+                .child("CITY", city -> city.radius(1000)
                     .strategy(strategy)
-                    .child("DOWNTOWN", d -> d.budget(500))
-                    .child("SUBURBS", s -> s.budget(500)))
-                .child("FARMLAND", farm -> farm.budget(3000))
-                .child("FOREST", forest -> forest.budget(1000)))
-            .child("WILDERNESS", wild -> wild.budget(1000));
+                    .child("DOWNTOWN", d -> d.radius(700))
+                    .child("SUBURBS", s -> s.radius(700)))
+                .child("FARMLAND", farm -> farm.radius(1732))
+                .child("FOREST", forest -> forest.radius(1000)))
+            .child("WILDERNESS", wild -> wild.radius(1000));
 
         World.setRoot(registry.build("ROOT"));
 
-        float hexSize = (float) World.getRoot().areaBudget();
+        // areaBudget is radius^2, so sqrt gives us the actual radius
+        float hexSize = (float) Math.sqrt(World.getRoot().areaBudget());
         
         // Sample the center hex
         int range = (int) (hexSize * 1.5f);
@@ -102,13 +103,13 @@ public class StrategyComparisonTest {
         registry.region("ROOT")
             .child("CIVILIZATION", civ -> civ
                 .strategy(GenerationStrategyType.SUBDIVISION)
-                .child("CITY", city -> city.budget(1000)
+                .child("CITY", city -> city.radius(1000)
                     .strategy(GenerationStrategyType.SUBDIVISION)
-                    .child("DOWNTOWN", d -> d.budget(500))
-                    .child("SUBURBS", s -> s.budget(500)))
-                .child("FARMLAND", farm -> farm.budget(3000))
-                .child("FOREST", forest -> forest.budget(1000)))
-            .child("WILDERNESS", wild -> wild.budget(1000));
+                    .child("DOWNTOWN", d -> d.radius(700))
+                    .child("SUBURBS", s -> s.radius(700)))
+                .child("FARMLAND", farm -> farm.radius(1732))
+                .child("FOREST", forest -> forest.radius(1000)))
+            .child("WILDERNESS", wild -> wild.radius(1000));
 
         World.setRoot(registry.build("ROOT"));
 
@@ -118,7 +119,8 @@ public class StrategyComparisonTest {
 
         for (long seed : seeds) {
             Strategy context = new SnapshotTest.MockStrategy(seed);
-            float hexSize = (float) World.getRoot().areaBudget();
+            // areaBudget is radius^2, so sqrt gives us the actual radius
+            float hexSize = (float) Math.sqrt(World.getRoot().areaBudget());
             int range = (int) (hexSize * 1.2f);
             int step = 100;
 

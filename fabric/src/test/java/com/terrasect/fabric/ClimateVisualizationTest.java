@@ -35,12 +35,16 @@ import java.io.IOException;
  * 3. Region boundaries overlay
  * 
  * Output is saved to build/climate-snapshots/
+ * 
+ * Note: This test is slow due to climate sampling. Run manually with:
+ * ./gradlew :fabric:test --tests "*.ClimateVisualizationTest"
  */
+@org.junit.jupiter.api.Tag("slow")
 public class ClimateVisualizationTest {
 
-    private static final int WIDTH = 512;
-    private static final int HEIGHT = 512;
-    private static final int SCALE = 4; // blocks per pixel
+    private static final int WIDTH = 256;  // Reduced from 512 for faster tests
+    private static final int HEIGHT = 256;
+    private static final int SCALE = 8;    // Increased from 4 - fewer samples
 
     @BeforeAll
     public static void setup() {
@@ -270,7 +274,9 @@ public class ClimateVisualizationTest {
                 int qx = x >> 2;
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
-                return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
+                // In test environment, tags aren't bound - use biome ID check
+                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
             @Override
@@ -388,7 +394,7 @@ public class ClimateVisualizationTest {
      */
     private int biomeToColor(Holder<Biome> biome) {
         String name = biome.unwrapKey()
-            .map(key -> key.location().toString())
+            .map(key -> key.identifier().toString())
             .orElse("unknown");
         
         // Create a hash-based color

@@ -13,15 +13,22 @@ public class RegionBudgetTest {
 
     @Test
     public void testRegionBudgetDistribution() {
+        // Using radius() - user defines radius in blocks, internally stored as radius^2
+        // Root has no explicit radius, so it's calculated from children's areas
+        // Using larger regions to avoid warp effects dominating (warp amplitude is ~200 blocks)
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
             .child("CIVILIZATION", civ -> civ
-                .child("CITY", city -> city.budget(1000).adjacentTo("FARMLAND")
-                    .child("DOWNTOWN", d -> d.budget(500))
-                    .child("SUBURBS", s -> s.budget(500)))
-                .child("FARMLAND", farm -> farm.budget(3000).adjacentTo("CITY", "FOREST"))
-                .child("FOREST", forest -> forest.budget(1000).adjacentTo("FARMLAND")))
-            .child("WILDERNESS", wild -> wild.budget(1000));
+                // CITY: radius 1000 blocks
+                .child("CITY", city -> city.radius(1000).adjacentTo("FARMLAND")
+                    .child("DOWNTOWN", d -> d.radius(700))
+                    .child("SUBURBS", s -> s.radius(700)))
+                // FARMLAND: radius 1732 blocks (3x area of CITY)
+                .child("FARMLAND", farm -> farm.radius(1732).adjacentTo("CITY", "FOREST"))
+                // FOREST: radius 1000 blocks
+                .child("FOREST", forest -> forest.radius(1000).adjacentTo("FARMLAND")))
+            // WILDERNESS: radius 1000 blocks
+            .child("WILDERNESS", wild -> wild.radius(1000));
 
         World.setRoot(registry.build("ROOT"));
         
@@ -48,7 +55,8 @@ public class RegionBudgetTest {
 
     private void checkSeed(long seed) {
         Strategy context = new SnapshotTest.MockStrategy(seed);
-        float hexSize = (float) World.getRoot().areaBudget();
+        // areaBudget is radius^2, so we take sqrt to get actual radius
+        float hexSize = (float) Math.sqrt(World.getRoot().areaBudget());
 
         // Center + 6 Neighbors
         int[][] hexes = {
@@ -75,11 +83,11 @@ public class RegionBudgetTest {
         Region targetRegion = World.getRegionAtDepth(centerX, centerZ, context, 1);
 
         // 3. Scan and Sample
-        // Scale range based on hex size (budget) + warping buffer
-        // Hex radius is ~6000, Warp is ~1500. 1.2x is 7200, which might clip the edges.
-        // Using 2.0x (12000) ensures we capture the entire warped region.
-        int range = (int) (World.getRoot().areaBudget() * 2.0f);
-        int step = 100; // Increase step for larger area
+        // Scale range based on root radius + warping buffer
+        // Using 2.0x ensures we capture the entire warped region.
+        float rootRadius = (float) Math.sqrt(World.getRoot().areaBudget());
+        int range = (int) (rootRadius * 2.0f);
+        int step = 100; // Reasonable step for km-scale regions
         
         Map<String, Integer> counts = new HashMap<>();
         Map<String, Integer> cityCounts = new HashMap<>();

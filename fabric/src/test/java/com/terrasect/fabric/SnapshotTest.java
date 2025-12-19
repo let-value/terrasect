@@ -72,11 +72,9 @@ public class SnapshotTest {
                 
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, qy, qz, sampler);
                 
-                boolean isRiver = biome.is(BiomeTags.IS_RIVER) 
-                    || biome.is(net.minecraft.world.level.biome.Biomes.RIVER)
-                    || biome.is(net.minecraft.world.level.biome.Biomes.FROZEN_RIVER);
-                
-                return isRiver ? 1.0f : 0.0f;
+                // In test environment, tags aren't bound - use biome ID check
+                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             @Override public float getRidgeInfluence(int x, int z) {
                 Climate.TargetPoint target = sampler.sample(x >> 2, 0, z >> 2);

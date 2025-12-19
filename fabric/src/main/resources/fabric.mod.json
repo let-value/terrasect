@@ -13,6 +13,12 @@
   "entrypoints": {
     "main": [
       "com.terrasect.fabric.TerrasectFabric"
+    ],
+    "fabric-gametest": [
+      "com.terrasect.fabric.GameTestIntegration"
+    ],
+    "fabric-client-gametest": [
+      "com.terrasect.fabric.client.ClientGameTestIntegration"
     ]
   },
   "depends": {

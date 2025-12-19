@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.8.13'
+    id 'fabric-loom' version '1.14-SNAPSHOT'
 }
 
 dependencies {
@@ -7,11 +7,16 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
+    
+    // Client GameTest API - required for client-side game tests with TestWorldBuilder
+    modImplementation fabricApi.module("fabric-client-gametest-api-v1", property('fabric_api_version'))
 
     implementation project(':common')
 
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
+    // Fabric Loader JUnit for unit tests
+    testImplementation "net.fabricmc:fabric-loader-junit:${property('fabric_loader_version')}"
 }
 
 loom {
@@ -19,6 +24,7 @@ loom {
     mods {
         create('terrasect') {
             sourceSet(sourceSets.main)
+            sourceSet(sourceSets.client)
             sourceSet(project(':common').sourceSets.main)
         }
     }
@@ -33,15 +39,25 @@ loom {
             runDir "runs/fabric-server"
             server()
         }
-        testmodClient {
-            ideConfigGenerated true
-            client()
-        }
+    }
+}
+
+// Configure Fabric API game tests (both server and client)
+fabricApi {
+    configureTests {
+        // Use main source set for tests (not a separate test source set)
+        createSourceSet = false
+        enableGameTests = true
+        enableClientGameTests = true
+        eula = true
     }
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // Exclude slow visualization tests by default
+        excludeTags 'slow'
+    }
 }
 
 processResources {
