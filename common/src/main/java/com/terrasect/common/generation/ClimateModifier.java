@@ -46,8 +46,9 @@ public final class ClimateModifier {
      * @param climate The resolved climate settings from the region (may be null)
      * @param originalTemperature The original temperature value from vanilla sampler
      * @param originalHumidity The original humidity value from vanilla sampler
-     * @param edgeFactor Edge proximity factor (0.0 = deep inside region, 1.0 = at edge)
-     * @return Climate offsets to apply, or ClimateOffset.NONE if no modifications needed
+    * @param edgeFactor Edge proximity factor (0.0 = deep inside region, 1.0 = at edge)
+    *                   Currently unused to enforce hard climate edges.
+    * @return Climate offsets to apply, or ClimateOffset.NONE if no modifications needed
      */
     public static ClimateOffset calculateOffset(
             ClimateSettings climate,
@@ -105,11 +106,8 @@ public final class ClimateModifier {
         // Calculate how much we need to shift to reach the target
         long delta = targetQuantized - originalValue;
         
-        // Blend strength: full effect in region center, reduced at edges for smooth transitions
-        // At edge (edgeFactor=1), we want less influence to blend with neighbor
-        float blendStrength = 1.0f - (edgeFactor * 0.7f);
-        
-        return (long) (delta * blendStrength);
+        // Hard edges: always apply full offset so climate does not fade at region boundaries
+        return delta;
     }
     
     /**
@@ -123,7 +121,8 @@ public final class ClimateModifier {
         if (offset.temperatureOffset() == null) {
             return originalTemperature;
         }
-        return originalTemperature + offset.temperatureOffset();
+        long value = originalTemperature + offset.temperatureOffset();
+        return Math.max(-CLIMATE_SCALE, Math.min(CLIMATE_SCALE, value));
     }
     
     /**
@@ -137,7 +136,8 @@ public final class ClimateModifier {
         if (offset.humidityOffset() == null) {
             return originalHumidity;
         }
-        return originalHumidity + offset.humidityOffset();
+        long value = originalHumidity + offset.humidityOffset();
+        return Math.max(-CLIMATE_SCALE, Math.min(CLIMATE_SCALE, value));
     }
     
     private ClimateModifier() {

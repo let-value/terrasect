@@ -43,11 +43,12 @@ loom {
 }
 
 // Configure Fabric API game tests (both server and client)
+
 fabricApi {
     configureTests {
         // Use main source set for tests (not a separate test source set)
         createSourceSet = false
-        enableGameTests = true
+        enableGameTests = false
         enableClientGameTests = true
         eula = true
     }

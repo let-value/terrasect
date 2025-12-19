@@ -10,7 +10,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
@@ -28,20 +27,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Visual tests for biome filtering based on SelectionRules.
- * 
- * Generates visualizations showing:
- * 1. Vanilla biome distribution
- * 2. Biomes after applying filtering rules
- * 3. Filter overlay showing which biomes were blocked/replaced
- * 
- * Output is saved to build/biome-snapshots/
- * 
- * Note: This test is slow due to biome sampling. Run manually with:
- * ./gradlew :fabric:test --tests "*.BiomeVisualizationTest"
- */
-@org.junit.jupiter.api.Tag("slow")
 public class BiomeVisualizationTest {
 
     private static final int WIDTH = 256;  // Reduced from 512 for faster tests
@@ -197,24 +182,24 @@ public class BiomeVisualizationTest {
             .strategy(GenerationStrategyType.VORONOI)
             // Forest-only region - blocks everything except forests
             .child("ETERNAL_FOREST", region -> region
-                .budget(80000)
+                .radius(150)
                 .biomes(b -> b.allowTags("#minecraft:is_forest")))
             // No-ocean region - blocks all ocean biomes
             .child("LANDLOCKED", region -> region
-                .budget(80000)
+                .radius(200)
                 .biomes(b -> b.blockTags("#minecraft:is_ocean", "#minecraft:is_river")))
             // Vanilla-only region - only minecraft biomes allowed
             .child("PURIST_LANDS", region -> region
-                .budget(80000)
+                .radius(500)
                 .biomes(b -> b.allowMods("minecraft")))
             // Specific biome allowlist
             .child("CURATED_ZONE", region -> region
-                .budget(80000)
+                .radius(300)
                 .biomes(b -> b.allowNames("minecraft:plains", "minecraft:sunflower_plains", 
                                           "minecraft:meadow", "minecraft:flower_forest")))
             // No filtering - vanilla behavior
             .child("WILDERNESS", region -> region
-                .budget(80000));
+                .radius(400));
         
         return registry.build("WORLD");
     }

@@ -1,6 +1,7 @@
 package com.terrasect.fabric;
 
 import com.terrasect.common.generation.*;
+import com.terrasect.common.generation.mixin.ClimateHandler;
 import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import net.minecraft.SharedConstants;
@@ -10,7 +11,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
@@ -26,20 +26,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Visual tests for climate modification.
- * 
- * Generates side-by-side comparisons of:
- * 1. Vanilla Minecraft climate (temperature/humidity)
- * 2. Region-influenced climate using ClimateModifier
- * 3. Region boundaries overlay
- * 
- * Output is saved to build/climate-snapshots/
- * 
- * Note: This test is slow due to climate sampling. Run manually with:
- * ./gradlew :fabric:test --tests "*.ClimateVisualizationTest"
- */
-@org.junit.jupiter.api.Tag("slow")
 public class ClimateVisualizationTest {
 
     private static final int WIDTH = 256;  // Reduced from 512 for faster tests
@@ -90,7 +76,7 @@ public class ClimateVisualizationTest {
         BufferedImage modifiedHumidity = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage regionOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage tempDiff = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage edgeFactorMap = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        BufferedImage regionBoundaries = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage modifiedBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage combinedView = new BufferedImage(WIDTH * 3, HEIGHT * 3, BufferedImage.TYPE_INT_RGB);
@@ -115,32 +101,28 @@ public class ClimateVisualizationTest {
                 Region region = World.getRegion(blockX, blockZ, context);
                 ClimateSettings climate = region != null ? region.definition().climate() : null;
                 
-                // Calculate edge factor (matching the FIXED logic in ClimateHandler)
-                // edge value from unpackEdge is HIGH when deep inside region, LOW at boundaries
-                // We invert it: edgeFactor=0 means center of region, edgeFactor=1 means at edge
-                long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
-                float edge = RegionField.unpackEdge(regionData);
-                float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
-                float edgeFactor = 1.0f - normalizedEdge; // INVERTED: 0 at center, 1 at boundary
+                // Detect region boundaries by comparing neighbors at step distance
+                // Only mark as boundary if both regions exist and have different names
+                Region rightRegion = World.getRegion(blockX + SCALE, blockZ, context);
+                Region downRegion = World.getRegion(blockX, blockZ + SCALE, context);
                 
-                // Calculate offsets
-                ClimateModifier.ClimateOffset offset = ClimateModifier.calculateOffset(
-                    climate, vanilla.temperature(), vanilla.humidity(), edgeFactor
+                boolean isRightBoundary = region != null && rightRegion != null && !region.name().equals(rightRegion.name());
+                boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());
+                boolean isBoundary = isRightBoundary || isDownBoundary;
+                
+                // Calculate modified climate using the shared handler to match runtime logic
+                ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
+                    context, quartX, 16, quartZ, vanilla.temperature(), vanilla.humidity()
                 );
-                
-                long modTemp = ClimateModifier.applyTemperatureOffset(vanilla.temperature(), offset);
-                long modHumid = ClimateModifier.applyHumidityOffset(vanilla.humidity(), offset);
-                
+                long modTemp = result.temperature();
+                long modHumid = result.humidity();
+
                 // Track stats
-                if (offset.hasModifications()) {
+                if (result.modified()) {
                     totalModified++;
-                    if (offset.temperatureOffset() != null) {
-                        totalTempDelta += Math.abs(offset.temperatureOffset());
-                    }
-                    if (offset.humidityOffset() != null) {
-                        totalHumidityDelta += Math.abs(offset.humidityOffset());
-                    }
                 }
+                totalTempDelta += Math.abs(modTemp - vanilla.temperature());
+                totalHumidityDelta += Math.abs(modHumid - vanilla.humidity());
                 
                 // Get biomes (for showing climate effect on biome selection)
                 Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
@@ -160,8 +142,14 @@ public class ClimateVisualizationTest {
                 vanillaHumidity.setRGB(px, py, climateToColor(vanilla.humidity(), false));
                 modifiedTemp.setRGB(px, py, climateToColor(modTemp, true));
                 modifiedHumidity.setRGB(px, py, climateToColor(modHumid, false));
-                regionOverlay.setRGB(px, py, getRegionColor(region, edgeFactor));
-                edgeFactorMap.setRGB(px, py, edgeFactorToColor(edgeFactor));
+                
+                int regionColor = getRegionColor(region);
+                regionOverlay.setRGB(px, py, regionColor);
+                
+                // Region boundaries: show color, darken if at boundary
+                int boundaryColor = isBoundary ? darkenColor(regionColor, 0.4f) : regionColor;
+                regionBoundaries.setRGB(px, py, boundaryColor);
+                
                 vanillaBiomes.setRGB(px, py, biomeToColor(vanillaBiome));
                 modifiedBiomes.setRGB(px, py, biomeToColor(modifiedBiome));
                 
@@ -184,12 +172,12 @@ public class ClimateVisualizationTest {
         // Row 2: Humidity and regions
         g.drawImage(vanillaHumidity, 0, HEIGHT, null);
         g.drawImage(modifiedHumidity, WIDTH, HEIGHT, null);
-        g.drawImage(regionOverlay, WIDTH * 2, HEIGHT, null);
+        g.drawImage(regionBoundaries, WIDTH * 2, HEIGHT, null);
         
         // Row 3: Biomes and edge factor
         g.drawImage(vanillaBiomes, 0, HEIGHT * 2, null);
         g.drawImage(modifiedBiomes, WIDTH, HEIGHT * 2, null);
-        g.drawImage(edgeFactorMap, WIDTH * 2, HEIGHT * 2, null);
+        g.drawImage(regionOverlay, WIDTH * 2, HEIGHT * 2, null);
         
         // Add labels
         g.setColor(Color.WHITE);
@@ -199,10 +187,10 @@ public class ClimateVisualizationTest {
         g.drawString("Temperature Delta", WIDTH * 2 + 10, 20);
         g.drawString("Vanilla Humidity", 10, HEIGHT + 20);
         g.drawString("Modified Humidity", WIDTH + 10, HEIGHT + 20);
-        g.drawString("Region Map", WIDTH * 2 + 10, HEIGHT + 20);
+        g.drawString("Region Boundaries", WIDTH * 2 + 10, HEIGHT + 20);
         g.drawString("Vanilla Biomes", 10, HEIGHT * 2 + 20);
         g.drawString("Climate-Modified Biomes", WIDTH + 10, HEIGHT * 2 + 20);
-        g.drawString("Edge Factor (white=center)", WIDTH * 2 + 10, HEIGHT * 2 + 20);
+        g.drawString("Region Colors", WIDTH * 2 + 10, HEIGHT * 2 + 20);
         g.dispose();
         
         // Save images
@@ -215,7 +203,7 @@ public class ClimateVisualizationTest {
         ImageIO.write(modifiedHumidity, "png", new File(outDir, "modified_humidity.png"));
         ImageIO.write(regionOverlay, "png", new File(outDir, "region_overlay.png"));
         ImageIO.write(tempDiff, "png", new File(outDir, "temperature_delta.png"));
-        ImageIO.write(edgeFactorMap, "png", new File(outDir, "edge_factor.png"));
+        ImageIO.write(regionBoundaries, "png", new File(outDir, "region_boundaries.png"));
         ImageIO.write(vanillaBiomes, "png", new File(outDir, "vanilla_biomes.png"));
         ImageIO.write(modifiedBiomes, "png", new File(outDir, "climate_modified_biomes.png"));
         ImageIO.write(combinedView, "png", new File(outDir, "combined_climate_view.png"));
@@ -240,26 +228,27 @@ public class ClimateVisualizationTest {
     private Region buildClimateRegions() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(GenerationStrategyType.VORONOI)
-            // Hot desert region
-            .child("BURNING_WASTES", region -> region
-                .budget(80000)
-                .climate(c -> c.temperature(1.0f).humidity(0.0f)))
-            // Cold tundra region
-            .child("FROZEN_NORTH", region -> region
-                .budget(80000)
-                .climate(c -> c.temperature(0.0f).humidity(0.3f)))
-            // Tropical jungle region
-            .child("JUNGLE_HEART", region -> region
-                .budget(80000)
-                .climate(c -> c.temperature(0.9f).humidity(1.0f)))
-            // Temperate forest (mild climate)
-            .child("VERDANT_WOODS", region -> region
-                .budget(80000)
-                .climate(c -> c.temperature(0.5f).humidity(0.6f)))
-            // No climate setting - should use vanilla
-            .child("UNTOUCHED_LANDS", region -> region
-                .budget(80000));
+            .strategy(GenerationStrategyType.HEX)
+            .child("REGIONS", regions -> regions
+                .strategy(GenerationStrategyType.VORONOI)
+                .child("BURNING_WASTES", region -> region
+                    .radius(500)
+                    .climate(c -> c.temperature(1.0f).humidity(0.0f)))
+                // Cold tundra region
+                .child("FROZEN_NORTH", region -> region
+                    .radius(100)
+                    .climate(c -> c.temperature(0.0f).humidity(0.3f)))
+                // Tropical jungle region
+                .child("JUNGLE_HEART", region -> region
+                    .radius(200)
+                    .climate(c -> c.temperature(0.9f).humidity(1.0f)))
+                // Temperate forest (mild climate)
+                .child("VERDANT_WOODS", region -> region
+                    .radius(300)
+                    .climate(c -> c.temperature(0.5f).humidity(0.6f)))
+                // No climate setting - should use vanilla
+                .child("UNTOUCHED_LANDS", region -> region
+                    .radius(100)));
         
         return registry.build("WORLD");
     }
@@ -362,31 +351,55 @@ public class ClimateVisualizationTest {
     }
     
     /**
-     * Get color for a region based on its name and edge proximity.
+     * Darken a color by a given factor.
      */
-    private int getRegionColor(Region region, float edgeFactor) {
+    private int darkenColor(int color, float factor) {
+        int r = (int) (((color >> 16) & 0xFF) * factor);
+        int g = (int) (((color >> 8) & 0xFF) * factor);
+        int b = (int) ((color & 0xFF) * factor);
+        return (r << 16) | (g << 8) | b;
+    }
+    
+    /**
+     * Darken a region color at boundaries for clear visualization.
+     * Returns the darkened color if at boundary, otherwise original color.
+     */
+    private int drawBoundary(int baseColor, boolean isBoundary) {
+        if (!isBoundary) {
+            return baseColor;
+        }
+        // Darken boundaries for visibility
+        int r = ((baseColor >> 16) & 0xFF) / 2;
+        int g = ((baseColor >> 8) & 0xFF) / 2;
+        int b = (baseColor & 0xFF) / 2;
+        return (r << 16) | (g << 8) | b;
+    }
+    
+    /**
+     * Get color for a region based on its name.
+     */
+    private int getRegionColor(Region region) {
         if (region == null) return 0x000000;
-        
-        int baseColor = switch (region.name()) {
+        return getRegionColor(region.name());
+    }
+    
+    private int getRegionColor(String name) {
+        return switch (name) {
             case "BURNING_WASTES" -> 0xFF4400;    // Orange-red for desert
             case "FROZEN_NORTH" -> 0x88CCFF;       // Light blue for tundra
             case "JUNGLE_HEART" -> 0x00AA00;       // Green for jungle
             case "VERDANT_WOODS" -> 0x44AA44;      // Lighter green for forest
             case "UNTOUCHED_LANDS" -> 0x888888;    // Gray for vanilla
-            case "WORLD" -> 0x444444;
-            default -> 0x666666;
+            case "WORLD", "ROOT" -> 0x444444;
+            default -> {
+                // Hash-based fallback for unknown regions
+                int hash = name.hashCode();
+                int r = ((hash >> 16) & 0x7F) + 0x40;
+                int g = ((hash >> 8) & 0x7F) + 0x40;
+                int b = (hash & 0x7F) + 0x40;
+                yield (r << 16) | (g << 8) | b;
+            }
         };
-        
-        // Darken at edges (edgeFactor high) to show boundaries
-        if (edgeFactor > 0.5f) {
-            float darken = (edgeFactor - 0.5f) * 2;
-            int r = (int) (((baseColor >> 16) & 0xFF) * (1 - darken * 0.5));
-            int g = (int) (((baseColor >> 8) & 0xFF) * (1 - darken * 0.5));
-            int b = (int) ((baseColor & 0xFF) * (1 - darken * 0.5));
-            return (r << 16) | (g << 8) | b;
-        }
-        
-        return baseColor;
     }
     
     /**

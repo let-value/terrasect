@@ -19,7 +19,7 @@ public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
     // Updated for MC 1.21.11
-    private static final String EXPECTED_DIGEST = "d9e6d820fedc048724380086912280105c5d89ae7b88b32fb8e3f00cef67e704";
+    private static final String EXPECTED_DIGEST = "1547d03d6ba29bccdc21ab378f9965e3bd11382d7cc05eb4698405e9890f07ed";
 
     @Test
     public void testRegionDistribution() {
@@ -235,19 +235,19 @@ public class SnapshotTest {
             .child("ROOT", root -> root
                 .child("CIVILIZATION", civ -> civ
                     .child("RUINS", ruins -> ruins.adjacentTo("PILGRIMAGE_PATH")
-                        .child("SHRINE", shrine -> shrine.budget(25))
-                        .child("CATACOMBS", catacombs -> catacombs.budget(100)))
-                    .child("HARBOR", harbor -> harbor.budget(75).adjacentTo("PILGRIMAGE_PATH"))
-                    .child("PILGRIMAGE_PATH", path -> path.budget(50).adjacentTo("RUINS", "HARBOR")))
+                        .child("SHRINE", shrine -> shrine.radius(25))
+                        .child("CATACOMBS", catacombs -> catacombs.radius(100)))
+                    .child("HARBOR", harbor -> harbor.radius(75).adjacentTo("PILGRIMAGE_PATH"))
+                    .child("PILGRIMAGE_PATH", path -> path.radius(50).adjacentTo("RUINS", "HARBOR")))
                 .child("WILDERNESS", wild -> wild
-                    .child("FORBIDDEN_WOODS", woods -> woods.budget(150).adjacentTo("PLAINS_OF_ASH"))
-                    .child("PLAINS_OF_ASH", plains -> plains.budget(100).adjacentTo("FORBIDDEN_WOODS")))
+                    .child("FORBIDDEN_WOODS", woods -> woods.radius(150).adjacentTo("PLAINS_OF_ASH"))
+                    .child("PLAINS_OF_ASH", plains -> plains.radius(100).adjacentTo("FORBIDDEN_WOODS")))
                 .child("HIGHLANDS", high -> high
-                    .child("MOUNTAIN_PASS", pass -> pass.budget(100).adjacentTo("CRYSTAL_CANYON"))
-                    .child("CRYSTAL_CANYON", canyon -> canyon.budget(75).adjacentTo("MOUNTAIN_PASS")))
+                    .child("MOUNTAIN_PASS", pass -> pass.radius(100).adjacentTo("CRYSTAL_CANYON"))
+                    .child("CRYSTAL_CANYON", canyon -> canyon.radius(75).adjacentTo("MOUNTAIN_PASS")))
                 .child("FACTORY", high -> high
-                    .child("MEKA", pass -> pass.budget(200).adjacentTo("CRYSTAL_CANYON"))
-                    .child("CREATE", canyon -> canyon.budget(50).adjacentTo("MOUNTAIN_PASS")))
+                    .child("MEKA", pass -> pass.radius(200).adjacentTo("CRYSTAL_CANYON"))
+                    .child("CREATE", canyon -> canyon.radius(50).adjacentTo("MOUNTAIN_PASS")))
                 );
 
         return registry.build("UNIVERSE");
