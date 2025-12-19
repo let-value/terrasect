@@ -8,6 +8,7 @@ import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,9 +20,9 @@ public class FabricNarrGenContext implements Strategy {
 
     private final long seed;
     private final Climate.Sampler sampler;
-    private final Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters;
+    private final Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
 
-    public FabricNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters) {
+    public FabricNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         this.seed = seed;
         this.sampler = sampler;
         this.parameters = parameters;
@@ -39,7 +40,17 @@ public class FabricNarrGenContext implements Strategy {
     }
 
     public static FabricNarrGenContext get(Climate.Sampler sampler) {
-        return BY_SAMPLER.get(sampler);
+        FabricNarrGenContext ctx = BY_SAMPLER.get(sampler);
+        if (ctx != null) {
+            return ctx;
+        }
+        // Fallback to Overworld context (most common case)
+        ctx = CONTEXTS.get(Level.OVERWORLD);
+        if (ctx != null) {
+            return ctx;
+        }
+        // Last resort: return any registered context
+        return CONTEXTS.values().stream().findFirst().orElse(null);
     }
 
     public static void clear() {
@@ -63,10 +74,13 @@ public class FabricNarrGenContext implements Strategy {
         
         Climate.TargetPoint target = sampler.sample(qx, qy, qz);
         
-        Holder<Biome> biome = parameters.map(
-            list -> list.findValue(target),
-            b -> b
+        // Get the parameter list (either direct or from holder)
+        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
+            list -> list,
+            holder -> holder.value().parameters()
         );
+        
+        Holder<Biome> biome = paramList.findValue(target);
         
         return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
     }

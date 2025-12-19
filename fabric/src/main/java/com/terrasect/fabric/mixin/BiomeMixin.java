@@ -40,7 +40,7 @@ public class BiomeMixin {
      * Redirect the findValue call to use a filtered parameter list when biome rules are present.
      */
     @Redirect(
-        method = "getNoiseBiome",
+        method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/biome/Climate$ParameterList;findValue(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Ljava/lang/Object;"

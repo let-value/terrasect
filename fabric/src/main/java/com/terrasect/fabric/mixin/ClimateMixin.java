@@ -1,44 +1,77 @@
 package com.terrasect.fabric.mixin;
 
+import com.terrasect.common.Terrasect;
 import com.terrasect.fabric.generation.FabricNarrGenContext;
 import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.mixin.ClimateHandler;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
  * Mixin for MultiNoiseBiomeSource that applies region-based climate modifications.
  * 
- * This mixin ONLY handles climate (temperature/humidity) adjustments based on region settings.
- * Biome filtering is handled separately by BiomeMixin.
+ * Target method structure (from Minecraft 1.21.1):
+ * <pre>
+ * public Holder<Biome> getNoiseBiome(int i, int j, int k, Climate.Sampler sampler) {
+ *     return this.getNoiseBiome(sampler.sample(i, j, k));
+ * }
+ * </pre>
  * 
- * The actual climate calculation logic is in the common ClimateHandler class.
+ * We redirect the sampler.sample() call to apply climate modifications.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class ClimateMixin {
 
+    @Unique
+    private static int terrasect$logCounter = 0;
+    
+    @Unique
+    private static int terrasect$modifiedCount = 0;
+    
+    @Unique
+    private static int terrasect$noContextCount = 0;
+
     /**
-     * Redirect climate sampling to apply region-based climate modifications.
+     * Redirect the sampler.sample() call to apply region-based climate modifications.
+     * The coordinates (i, j, k) are in quart coordinates (block >> 2).
      */
     @Redirect(
-        method = "getNoiseBiome",
+        method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/biome/Climate$Sampler;sample(III)Lnet/minecraft/world/level/biome/Climate$TargetPoint;"
         )
     )
     private Climate.TargetPoint terrasect$modifyClimate(Climate.Sampler sampler, int x, int y, int z) {
+        // Get the original sample
         Climate.TargetPoint original = sampler.sample(x, y, z);
-
+        
         // Get platform-specific context
         Strategy context = FabricNarrGenContext.get(sampler);
         
-        // Use common handler for climate modification
+        if (context == null) {
+            terrasect$noContextCount++;
+            // Log occasionally
+            if (terrasect$logCounter++ % 10000 == 0) {
+                Terrasect.LOGGER.warn("ClimateMixin: No context for sampler! noContext={}, modified={}", 
+                    terrasect$noContextCount, terrasect$modifiedCount);
+            }
+            return original; // No context, use vanilla
+        }
+        
+        // Convert quart coords to block coords for region lookup
+        int blockX = x << 2;
+        int blockZ = z << 2;
+        
+        // Apply climate modifications using common handler
         ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
-            context, x, y, z,
+            context, blockX, y << 2, blockZ,
             original.temperature(),
             original.humidity()
         );
@@ -47,6 +80,16 @@ public class ClimateMixin {
             return original;
         }
         
+        terrasect$modifiedCount++;
+        
+        // Log occasionally when we actually modify
+        if (terrasect$modifiedCount % 1000 == 1) {
+            Terrasect.LOGGER.info("ClimateMixin: Modified climate at ({}, {}) - temp: {} -> {}, humid: {} -> {}",
+                blockX, blockZ, original.temperature(), result.temperature(),
+                original.humidity(), result.humidity());
+        }
+        
+        // Return modified climate point
         return new Climate.TargetPoint(
             result.temperature(),
             result.humidity(),

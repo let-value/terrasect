@@ -9,12 +9,13 @@ import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 import net.minecraft.world.level.biome.Climate;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.world.level.biome.Biome;
@@ -30,14 +31,15 @@ import java.util.concurrent.Executor;
 public class NarrGenServerLevelMixin {
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onInit(MinecraftServer minecraftServer, Executor executor, LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, ResourceKey<Level> resourceKey, LevelStem levelStem, ChunkProgressListener chunkProgressListener, boolean bl, long l, List<CustomSpawner> list, boolean bl2, RandomState randomState, CallbackInfo ci) {
+    private void onInit(MinecraftServer minecraftServer, Executor executor, LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, ResourceKey<Level> resourceKey, LevelStem levelStem, ChunkProgressListener chunkProgressListener, boolean bl, long l, List<CustomSpawner> list, boolean bl2, RandomSequences randomSequences, CallbackInfo ci) {
         ServerLevel level = (ServerLevel) (Object) this;
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         BiomeSource biomeSource = generator.getBiomeSource();
 
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
-             Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
-             FabricNarrGenContext context = new FabricNarrGenContext(l, randomState.sampler(), parameters);
+             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+             Climate.Sampler sampler = level.getChunkSource().randomState().sampler();
+             FabricNarrGenContext context = new FabricNarrGenContext(l, sampler, parameters);
              FabricNarrGenContext.register(resourceKey, context);
         }
     }

@@ -18,12 +18,14 @@ final class NarrativeSpace {
     // Key insight: warp must be SMOOTH - high frequency noise causes fragmentation.
     // The "jagged Minecraft look" comes from block-level terrain, not region boundaries.
     
-    private static final int WARP_SCALE = 400;           // Base noise scale (blocks) - larger = smoother
-    private static final float WARP_AMPLITUDE = 80.0f;   // Base displacement (blocks)
-    private static final float FEATURE_STRENGTH = 32.0f; // River/ridge pull strength
-    private static final int DETAIL_SCALE = 64;          // Edge detail scale - not too small!
-    private static final float DETAIL_AMPLITUDE = 8.0f;  // Edge detail (blocks)
-    private static final float SPAWN_SAFE_RADIUS = 256.0f; // Reduced warp near spawn
+    // IMPORTANT: Keep warp VERY smooth to avoid leopard-pattern fragmentation.
+    // Region boundaries should be kilometers apart, not meters.
+    private static final int WARP_SCALE = 2000;          // Base noise scale (blocks) - MUCH larger for smooth transitions
+    private static final float WARP_AMPLITUDE = 200.0f;  // Base displacement (blocks) - scaled with region size
+    private static final float FEATURE_STRENGTH = 50.0f; // River/ridge pull strength
+    private static final int DETAIL_SCALE = 500;         // Edge detail scale - keep large!
+    private static final float DETAIL_AMPLITUDE = 20.0f; // Edge detail (blocks) - subtle
+    private static final float SPAWN_SAFE_RADIUS = 512.0f; // Reduced warp near spawn
 
     Region getRegionAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
         return (Region) traverse(root, x, z, context, targetDepth, false);
@@ -48,7 +50,8 @@ final class NarrativeSpace {
         long currentSeed = context.getSeed();
         float cx = 0;
         float cz = 0;
-        float radius = (float) root.areaBudget();
+        // Budget represents area, so radius = sqrt(budget)
+        float radius = (float) Math.sqrt(root.areaBudget());
 
         int currentDepth = 0;
         while (currentRegion.hasChildren() && currentDepth < targetDepth) {
