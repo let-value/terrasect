@@ -59,7 +59,7 @@ public class StrategySnapshotTest {
         Map.entry("nested_voronoi_template", "4e8cf6e664745258fae8b46232d3ad827907ac8c51bf745d462e17830237f9bc"),
         Map.entry("nested_subdivision_template", "b6accafd60b7ce253dd2e9d510c1f33decee723397ae582e36d73380a8107c18"),
         Map.entry("deeply_nested", "921e5d2d248920de5b11367f3f587c4f1008900d702b4f10a950901b4319e0e3"),
-        Map.entry("kitchen_sink", "b64d83c514588c9d333dd0191b2c091e3093ce21f2b7ed37a405c0be78559f62")
+        Map.entry("kitchen_sink", "291416fca164d4b0e874dd18d0fae86599651d65b1ef93d5f22b05405b2a8518")
     );
 
     private File outDir;

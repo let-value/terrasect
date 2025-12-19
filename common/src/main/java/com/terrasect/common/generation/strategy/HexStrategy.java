@@ -94,7 +94,10 @@ public final class HexStrategy {
             // Normalize by radius so traverse computes correct world position
             out[1] = hexCenterWorldX / radius;
             out[2] = hexCenterWorldZ / radius;
-            out[3] = ringWidth;  // Ring's effective radius
+            // Use the full grid radius so ring children operate over the actual annulus.
+            // Using only the ring thickness (ringWidth) would shrink the local radius and
+            // warp child layouts, causing them to overflow parent boundaries when sampled.
+            out[3] = 1.0f + ringWidth;  // Ring spans interior + ring thickness
             out[6] = 1;
             return;
         }
