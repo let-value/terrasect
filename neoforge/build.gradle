@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.42-beta'
 }
 
 base {
@@ -12,9 +13,28 @@ repositories {
     maven { url = 'https://maven.neoforged.net/releases' }
 }
 
+neoForge {
+    version = property('neoforge_version')
+    
+    mods {
+        terrasect {
+            sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
+        }
+    }
+    
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+    }
+}
+
 dependencies {
     implementation project(':common')
-    implementation "net.neoforged:neoforge:${property('neoforge_version')}"
 }
 
 jar {
