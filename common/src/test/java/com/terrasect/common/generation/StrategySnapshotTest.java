@@ -41,25 +41,25 @@ public class StrategySnapshotTest {
     
     // Expected digests for each test - update when intentionally changing output
     private static final Map<String, String> EXPECTED_DIGESTS = Map.ofEntries(
-        Map.entry("voronoi_default", "559706033d4f1987690a80877bb7731b77934ff9083abbb363219ef989618f83"),
-        Map.entry("voronoi_low_relaxation", "a4118eccdc7ac3a6372236955eb91fcd875d3d7bb268db74d6caefd54944964b"),
-        Map.entry("voronoi_high_relaxation", "25d3f610060f10c7ebb1ccb72bb2779a687f232c0163707c52a9bb4e823c4604"),
-        Map.entry("subdivision_default", "26f2682bfae14d56a9400433eb9f9dcaf4b4680adc350ed3f948ad700096434a"),
-        Map.entry("subdivision_low_jitter", "648e3a05442da6f4c600f955f8d305f2a10ff95efd1ef3b527e0b9256c07cca6"),
-        Map.entry("subdivision_high_jitter", "05c5570121a8c59ff7b7991402bda31e45d890cc7bd8b1162700c51cfdcdbfa7"),
-        Map.entry("template_binary", "2313264fdacb7482190ac25895b903bc011f63103a3b552c61f0a4ecfd25059c"),
-        Map.entry("template_triangle", "0b64170eeddc232d84cca73744fb94c56aecfb36b782e49e45e1badebcdbf6b3"),
-        Map.entry("template_center_surround", "d3fef65726cc09d832c1bf2c870ccb11e88c294f817280608b2249f7597a4760"),
-        Map.entry("template_center_surround_named", "e319292d5a93afff91ae1b44ff97369dbbb66a5157c3835ddfa8e1e00b25a930"),
-        Map.entry("template_radial", "db9c4795f3b1f445e273727126b9f882300ec86e2a5db3d61effcd02f7041bf4"),
-        Map.entry("hex_default", "26985e4522a5a547306b35417b95bab7e4e32b7c2c5d83db8cc593e657a4471f"),
-        Map.entry("hex_with_ring", "5c5fa6273f53012374ae55f5257f88089c263125742fe875a92dfec96b3ed45f"),
-        Map.entry("nested_hex_voronoi", "9545f414bf4bce9e5971cbb785aaa63a636604c94a0cc8f25238f715ed3e8e4d"),
-        Map.entry("nested_hex_subdivision", "a2d50caf0a5bdd85da5478e63ee9a51cc28bed11cb2099483566e13248662d60"),
-        Map.entry("nested_voronoi_template", "4e8cf6e664745258fae8b46232d3ad827907ac8c51bf745d462e17830237f9bc"),
-        Map.entry("nested_subdivision_template", "b6accafd60b7ce253dd2e9d510c1f33decee723397ae582e36d73380a8107c18"),
-        Map.entry("deeply_nested", "921e5d2d248920de5b11367f3f587c4f1008900d702b4f10a950901b4319e0e3"),
-        Map.entry("kitchen_sink", "b64d83c514588c9d333dd0191b2c091e3093ce21f2b7ed37a405c0be78559f62")
+        Map.entry("voronoi_default", "0acfa45f932a6dc77723e54381cb9119e420b2e37843a3c9a592003804b1f646"),
+        Map.entry("voronoi_low_relaxation", "1094199b16388dd4a7b42eb822378d9f92f6d87c2c029d23071b6370a77fcfcc"),
+        Map.entry("voronoi_high_relaxation", "4b70ac44608894eaf8eeac11cdee7ed061deab5cfe265869b5899195e276b488"),
+        Map.entry("subdivision_default", "bd138da3a55781fba3a29f1ce63ae9c4d0c5af5502341226c0b0dc8b80f1bb44"),
+        Map.entry("subdivision_low_jitter", "2b4c75d330d3d38dcc3a9a0a6a4c5610537d981cc410c9f52e8f68c3040b6375"),
+        Map.entry("subdivision_high_jitter", "36425c61452219054e103bbc5d0528d9d1faf32495beaedf77c7a59f1a7d750c"),
+        Map.entry("template_binary", "50bdb0c3e88e225c17ba62c868f32be6f496ec20a61f4352efa77fd7a4feb6e0"),
+        Map.entry("template_triangle", "5a38adf078868b8b89cc34163660aedb584ede59c50f51058c58490e14b51a8d"),
+        Map.entry("template_center_surround", "eabd53fc8ac6ff9f3a4f8383e08c5ada44d3f8442b1578c042bc3daedc47d56b"),
+        Map.entry("template_center_surround_named", "87c59d04bdf62151a6bb87935ac40171bdd4749838f5f7e757c69e49844d5d1a"),
+        Map.entry("template_radial", "b58f0677117d00dbc057d2e6040cf9d301b499b343debbe076e81d3c1d040d93"),
+        Map.entry("hex_default", "1fbb801aa6981d5e0cc09b0f15c8808297c54bb05790ad52e5cbed3dc0eceb53"),
+        Map.entry("hex_with_ring", "a26bcf6d84a208bb0ef42c7f587c1aa7edf0a88da91aef5adead1e343bda8b94"),
+        Map.entry("nested_hex_voronoi", "d86bf121b485ab20a08006c7523513c00e59dfde917ef480f75bfa3a9f1a9953"),
+        Map.entry("nested_hex_subdivision", "617d4128ed9fab6d6c4538582b677e60979891f217e069c73ddb6a768afa320e"),
+        Map.entry("nested_voronoi_template", "34094964eba1b6e9121d5255ceac998f4f3660d3c511deb50868bbe42b4f6fcc"),
+        Map.entry("nested_subdivision_template", "30403b298daf7892881df794e1092d3cbe74ad8eb71a15d70f70da3f622af6a3"),
+        Map.entry("deeply_nested", "97c3f2d2950afd830941b421d07d297d3c3d9af3526dcf255f56f2cf7e0bf200"),
+        Map.entry("kitchen_sink", "ad933c037516f973535d280b1a8b1f3e0e30df008eb47f76ec0ee4ac4af43e10")
     );
 
     private File outDir;
@@ -326,7 +326,10 @@ public class StrategySnapshotTest {
         registry.region("WORLD")
             .strategy(GenerationStrategyType.HEX)
             .settings(settings)
-            .child("PLAINS_HEX", plains -> plains.budget(100))
+            .child("PLAINS_HEX", plains -> plains.strategy(GenerationStrategyType.VORONOI)
+                .child("FARMLAND", f -> f.budget(60))
+                .child("VILLAGE_N", v -> v.budget(20))
+                .child("GRASSLAND", g -> g.budget(40)))
             .child("FOREST_HEX", forest -> forest.budget(80))
             .child("MOUNTAIN_HEX", mountain -> mountain.budget(50))
             .child("BORDER", border -> border.budget(30)); // Ring region
