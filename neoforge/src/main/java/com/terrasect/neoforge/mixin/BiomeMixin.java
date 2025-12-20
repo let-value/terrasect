@@ -1,8 +1,8 @@
 package com.terrasect.neoforge.mixin;
 
 import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.mixin.BiomeHandler;
+import com.terrasect.common.lookup.BiomeLookup;
+import com.terrasect.common.runtime.handler.BiomeHandler;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -14,9 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,6 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Climate modifications are handled separately by ClimateMixin.
  * 
  * The region lookup and rule checking logic is in the common BiomeHandler class.
+ * 
+ * <p>Uses {@link BiomeLookup} from {@link NeoForgeNarrGenContext} for O(1) 
+ * biome filtering. The lookup is pre-built during dimension initialization,
+ * so this mixin has no initialization logic.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class BiomeMixin {
@@ -51,8 +53,8 @@ public class BiomeMixin {
             Climate.TargetPoint targetPoint,
             int x, int y, int z, Climate.Sampler sampler) {
         
-        // Get platform-specific context
-        Strategy context = NeoForgeNarrGenContext.get(sampler);
+        // Get platform-specific context (contains pre-built biome lookup)
+        NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(sampler);
         
         // Use common handler to check if filtering is needed
         BiomeHandler.FilterContext filterContext = BiomeHandler.getFilterContext(context, x, z);
@@ -69,11 +71,15 @@ public class BiomeMixin {
             return result;
         }
         
-        // Get or build filtered parameter list
+        // Get pre-built biome lookup from context (built during dimension init)
+        BiomeLookup<Holder<Biome>> biomeLookup = context != null ? context.getBiomeLookup() : null;
+        
+        // Get or build filtered parameter list using the lookup for O(1) filtering
         int cacheKey = BiomeHandler.computeRulesCacheKey(filterContext.rules());
+        final BiomeLookup<Holder<Biome>> lookup = biomeLookup;
         Climate.ParameterList<Holder<Biome>> filteredList = terrasect$filteredListCache.computeIfAbsent(
             cacheKey,
-            key -> terrasect$buildFilteredList(parameterList, filterContext)
+            key -> terrasect$buildFilteredList(parameterList, filterContext, lookup)
         );
         
         Object result = filteredList.findValue(targetPoint);
@@ -86,24 +92,34 @@ public class BiomeMixin {
         }
         return result;
     }
-    
+
     /**
      * Build a filtered parameter list containing only allowed biomes.
+     * Uses BiomeMetadataLookup for O(1) biome checks when available.
      */
     @Unique
     private Climate.ParameterList<Holder<Biome>> terrasect$buildFilteredList(
             Climate.ParameterList<Holder<Biome>> original, 
-            BiomeHandler.FilterContext filterContext) {
+            BiomeHandler.FilterContext filterContext,
+            BiomeLookup<Holder<Biome>> biomeLookup) {
         
         List<Pair<Climate.ParameterPoint, Holder<Biome>>> originalValues = original.values();
         List<Pair<Climate.ParameterPoint, Holder<Biome>>> filteredValues = new ArrayList<>();
         
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : originalValues) {
             Holder<Biome> biome = entry.getSecond();
-            String biomeId = terrasect$getBiomeId(biome);
-            Set<String> biomeTags = terrasect$getBiomeTags(biome);
             
-            if (BiomeHandler.isBiomeAllowed(filterContext.rules(), biomeId, biomeTags)) {
+            boolean allowed;
+            if (biomeLookup != null) {
+                // O(1) lookup using pre-computed metadata
+                allowed = BiomeHandler.isBiomeAllowed(biomeLookup, biome, filterContext.rules());
+            } else {
+                // Fallback: extract metadata on demand (slower path)
+                allowed = BiomeHandler.isBiomeAllowed(filterContext.rules(), 
+                    terrasect$getBiomeId(biome), terrasect$getBiomeTags(biome));
+            }
+            
+            if (allowed) {
                 filteredValues.add(entry);
             }
         }
@@ -124,8 +140,8 @@ public class BiomeMixin {
     }
     
     @Unique
-    private Set<String> terrasect$getBiomeTags(Holder<Biome> biome) {
-        Set<String> tags = new HashSet<>();
+    private java.util.Set<String> terrasect$getBiomeTags(Holder<Biome> biome) {
+        java.util.Set<String> tags = new java.util.HashSet<>();
         biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
         return tags;
     }

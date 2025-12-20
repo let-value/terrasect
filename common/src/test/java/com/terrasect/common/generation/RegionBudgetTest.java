@@ -1,8 +1,9 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import org.junit.jupiter.api.Test;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class RegionBudgetTest {
             // WILDERNESS: radius 1000 blocks
             .child("WILDERNESS", wild -> wild.radius(1000));
 
-        World.setRoot(registry.build("ROOT"));
+        DimensionRoots.register(DimensionRoots.OVERWORLD, registry.build("ROOT"));
         
         // Test across multiple seeds to ensure stability
         long[] seeds = {12345L, 98765L, 112233L, 55555L, 999999L, 101010L, 424242L, 777777L, 314159L, 271828L};
@@ -58,9 +59,9 @@ public class RegionBudgetTest {
     }
 
     private void checkSeed(long seed) {
-        Strategy context = new SnapshotTest.MockStrategy(seed);
+        Context context = new SnapshotTest.MockStrategy(seed);
         // areaBudget is radius^2, so we take sqrt to get actual radius
-        float hexSize = (float) Math.sqrt(World.getRoot().areaBudget());
+        float hexSize = (float) Math.sqrt(World.getRoot(DimensionRoots.OVERWORLD).areaBudget());
 
         // Center + 6 Neighbors
         int[][] hexes = {
@@ -81,15 +82,15 @@ public class RegionBudgetTest {
         }
     }
 
-    private void checkRegion(Strategy context, int centerX, int centerZ) {
+    private void checkRegion(Context context, int centerX, int centerZ) {
         // 2. Identify the Target Root Region Instance
-        long targetRootId = World.getRegionSeedAtDepth(centerX, centerZ, context, 1);
-        Region targetRegion = World.getRegionAtDepth(centerX, centerZ, context, 1);
+        long targetRootId = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, centerX, centerZ, context, 1);
+        Region targetRegion = World.getRegionAtDepth(DimensionRoots.OVERWORLD, centerX, centerZ, context, 1);
 
         // 3. Scan and Sample
         // Scale range based on root radius + warping buffer
         // Using 2.0x ensures we capture the entire warped region.
-        float rootRadius = (float) Math.sqrt(World.getRoot().areaBudget());
+        float rootRadius = (float) Math.sqrt(World.getRoot(DimensionRoots.OVERWORLD).areaBudget());
         int range = (int) (rootRadius * 2.0f);
         int step = 100; // Reasonable step for km-scale regions
         
@@ -102,11 +103,11 @@ public class RegionBudgetTest {
 
         for (int z = centerZ - range; z <= centerZ + range; z += step) {
             for (int x = centerX - range; x <= centerX + range; x += step) {
-                long rootId = World.getRegionSeedAtDepth(x, z, context, 1);
+                long rootId = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, x, z, context, 1);
                 
                 if (rootId == targetRootId) {
-                    Region child = World.getRegionAtDepth(x, z, context, 2);
-                    long childId = World.getRegionSeedAtDepth(x, z, context, 2);
+                    Region child = World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, 2);
+                    long childId = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, x, z, context, 2);
                     
                     counts.put(child.name(), counts.getOrDefault(child.name(), 0) + 1);
                     uniqueRegionInstances.add(childId);
@@ -114,7 +115,7 @@ public class RegionBudgetTest {
                     totalSamplesInTarget++;
 
                     if (child.name().equals("CITY")) {
-                        Region grandChild = World.getRegionAtDepth(x, z, context, 3);
+                        Region grandChild = World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, 3);
                         cityCounts.put(grandChild.name(), cityCounts.getOrDefault(grandChild.name(), 0) + 1);
                         citySamples++;
                     }

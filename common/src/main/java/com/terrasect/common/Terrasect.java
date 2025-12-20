@@ -36,9 +36,8 @@ public final class Terrasect {
             registry.region("ROOT");
             Region root = registry.build("ROOT");
             
-            // Register for Overworld and set as fallback
+            // Register for Overworld
             DimensionRoots.register(DimensionRoots.OVERWORLD, root);
-            World.setRoot(root);
             
             LOGGER.info("Terrasect initialized with empty root region");
         }

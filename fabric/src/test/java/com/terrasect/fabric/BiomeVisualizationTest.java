@@ -1,10 +1,11 @@
 package com.terrasect.fabric;
 
+import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.devtools.PerfTracker;
-import com.terrasect.common.lookup.BiomeMetadataLookup;
+import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.RegionField;
@@ -58,7 +59,7 @@ public class BiomeVisualizationTest {
         PerfTracker.start("buildRegionHierarchy");
         // Build region hierarchy with biome filtering rules
         Region root = buildFilteredBiomeRegions();
-        World.setRoot(root);
+        DimensionRoots.register(DimensionRoots.OVERWORLD, root);
         PerfTracker.stop("buildRegionHierarchy");
         
         PerfTracker.start("setupMinecraft");
@@ -83,13 +84,13 @@ public class BiomeVisualizationTest {
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(overworldParameters);
         Climate.ParameterList<Holder<Biome>> parameterList = overworldParameters.value().parameters();
         
-        Strategy context = createStrategy(seed, sampler, biomeSource);
+        Context context = createStrategy(seed, sampler, biomeSource);
         PerfTracker.stop("setupMinecraft");
         
         // Build BiomeMetadataLookup - pre-computes biome IDs and tags for O(1) lookups
         // This is the production-ready pattern for fast biome filtering
         PerfTracker.start("buildBiomeMetadataLookup");
-        BiomeMetadataLookup.Builder<Holder<Biome>> lookupBuilder = BiomeMetadataLookup.builder();
+        BiomeLookup.Builder<Holder<Biome>> lookupBuilder = BiomeLookup.builder();
         Set<Holder<Biome>> seenBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
         for (var entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
@@ -99,7 +100,7 @@ public class BiomeVisualizationTest {
                 lookupBuilder.add(biome, biomeId, tags);
             }
         }
-        BiomeMetadataLookup<Holder<Biome>> biomeLookup = lookupBuilder.build();
+        BiomeLookup<Holder<Biome>> biomeLookup = lookupBuilder.build();
         PerfTracker.stop("buildBiomeMetadataLookup");
         
         BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -130,14 +131,14 @@ public class BiomeVisualizationTest {
                 
                 // Use BiomeMetadataLookup for O(1) lookup
                 PerfTracker.start("lookupBiomeMetadata");
-                BiomeMetadataLookup.Entry vanillaEntry = biomeLookup.get(vanillaBiome);
+                BiomeLookup.Entry vanillaEntry = biomeLookup.get(vanillaBiome);
                 String vanillaBiomeId = vanillaEntry != null ? vanillaEntry.id() : getBiomeId(vanillaBiome);
                 Set<String> vanillaTags = vanillaEntry != null ? vanillaEntry.tags() : getBiomeTags(vanillaBiome);
                 PerfTracker.stop("lookupBiomeMetadata");
                 
                 // Get region and its biome rules
                 PerfTracker.start("regionLookup");
-                Region region = World.getRegion(blockX, blockZ, context);
+                Region region = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ, context);
                 PerfTracker.stop("regionLookup");
                 
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;
@@ -266,7 +267,7 @@ public class BiomeVisualizationTest {
      * Uses O(1) biome metadata retrieval.
      */
     private Holder<Biome> findAllowedBiomeFallback(
-            BiomeMetadataLookup<Holder<Biome>> biomeLookup,
+            BiomeLookup<Holder<Biome>> biomeLookup,
             Climate.TargetPoint target,
             SelectionRules rules,
             Climate.ParameterList<Holder<Biome>> parameterList) {
@@ -371,8 +372,8 @@ public class BiomeVisualizationTest {
         return tags;
     }
     
-    private Strategy createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
-        return new Strategy() {
+    private Context createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
+        return new Context() {
             @Override
             public long getSeed() { return seed; }
             

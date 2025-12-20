@@ -1,7 +1,7 @@
 package com.terrasect.fabric.mixin;
 
-import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.fabric.generation.MinecraftContext;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
 import net.minecraft.core.BlockPos;
@@ -19,13 +19,14 @@ public class FeatureMixin {
 
     @Inject(method = "place", at = @At("HEAD"), cancellable = true)
     private void onPlace(WorldGenLevel level, ChunkGenerator generator, RandomSource random, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        Strategy context = FabricNarrGenContext.get(level.getLevel().dimension());
+        Context context = MinecraftContext.get(level.getLevel().dimension());
         
         if (context == null) {
             return;
         }
         
-        Region region = World.getRegion(pos.getX(), pos.getZ(), context);
+        // Get dimension ID from context (which provides it via getDimensionId())
+        Region region = World.getRegion(context.getDimensionId(), pos.getX(), pos.getZ(), context);
 
         // TODO: Apply feature gating based on region properties
     }

@@ -2,6 +2,7 @@ package com.terrasect.common.api;
 
 import com.terrasect.common.Terrasect;
 import com.terrasect.common.generation.definition.RegionDefinition;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -60,7 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class DimensionRoots {
 
-    /** Default dimension ID for backwards compatibility */
+    /** Dimension ID constants for vanilla dimensions */
     public static final String OVERWORLD = "minecraft:overworld";
     public static final String THE_NETHER = "minecraft:the_nether";
     public static final String THE_END = "minecraft:the_end";
@@ -70,12 +71,6 @@ public final class DimensionRoots {
      * Using ConcurrentHashMap for thread-safe access during world loading.
      */
     private static final Map<String, Region> DIMENSION_ROOTS = new ConcurrentHashMap<>();
-    
-    /**
-     * Fallback root used when a dimension doesn't have a specific root registered.
-     * This maintains backwards compatibility with the old single-root API.
-     */
-    private static volatile Region fallbackRoot;
     
     private DimensionRoots() {
         // Utility class
@@ -93,11 +88,6 @@ public final class DimensionRoots {
         
         DIMENSION_ROOTS.put(dimensionId, root);
         Terrasect.LOGGER.info("Registered root region '{}' for dimension '{}'", root.name(), dimensionId);
-        
-        // Automatically set fallback if this is the first registration or Overworld
-        if (fallbackRoot == null || OVERWORLD.equals(dimensionId)) {
-            fallbackRoot = root;
-        }
     }
     
     /**
@@ -116,33 +106,13 @@ public final class DimensionRoots {
     
     /**
      * Get the root region for a specific dimension.
+     * Returns null if no root is registered for this dimension, meaning
+     * Terrasect will not influence generation in that dimension.
      * 
      * @param dimensionId The dimension ID
-     * @return The root region for this dimension, or the fallback if none registered
-     * @throws IllegalStateException if no root is registered and no fallback exists
+     * @return The root region for this dimension, or null if not registered
      */
-    public static Region getRoot(String dimensionId) {
-        Region root = DIMENSION_ROOTS.get(dimensionId);
-        if (root != null) {
-            return root;
-        }
-        
-        if (fallbackRoot != null) {
-            return fallbackRoot;
-        }
-        
-        throw new IllegalStateException(
-            "No root region registered for dimension '" + dimensionId + 
-            "' and no fallback available. Call DimensionRoots.register() or DimensionRoots.setFallback() first.");
-    }
-    
-    /**
-     * Get the root region for a dimension, returning null if not found.
-     * 
-     * @param dimensionId The dimension ID
-     * @return The root region, or null if not registered (ignores fallback)
-     */
-    public static Region getRootOrNull(String dimensionId) {
+    public static @Nullable Region getRoot(String dimensionId) {
         return DIMENSION_ROOTS.get(dimensionId);
     }
     
@@ -161,51 +131,10 @@ public final class DimensionRoots {
     }
     
     /**
-     * Set the fallback root used when a dimension doesn't have a specific root.
-     * This is also called automatically when registering the first root or Overworld root.
-     * 
-     * @param root The fallback root region
-     */
-    public static void setFallback(Region root) {
-        fallbackRoot = root;
-        Terrasect.LOGGER.debug("Set fallback root region: {}", root != null ? root.name() : "null");
-    }
-    
-    /**
-     * Get the fallback root region.
-     */
-    public static Region getFallback() {
-        return fallbackRoot;
-    }
-    
-    /**
      * Clear all registrations. Primarily for testing.
      */
     public static void clear() {
         DIMENSION_ROOTS.clear();
-        fallbackRoot = null;
-    }
-    
-    /**
-     * Legacy compatibility: set root for Overworld dimension.
-     * Equivalent to {@code register(OVERWORLD, root)}.
-     * 
-     * @deprecated Use {@link #register(String, Region)} with explicit dimension ID
-     */
-    @Deprecated
-    public static void setRoot(Region root) {
-        register(OVERWORLD, root);
-    }
-    
-    /**
-     * Legacy compatibility: get root for Overworld dimension.
-     * Equivalent to {@code getRoot(OVERWORLD)}.
-     * 
-     * @deprecated Use {@link #getRoot(String)} with explicit dimension ID
-     */
-    @Deprecated
-    public static Region getRoot() {
-        return getRoot(OVERWORLD);
     }
     
     /**

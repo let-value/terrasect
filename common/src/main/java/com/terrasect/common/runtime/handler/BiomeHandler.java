@@ -3,7 +3,8 @@ package com.terrasect.common.runtime.handler;
 import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
+import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.definition.SelectionRules;
@@ -54,7 +55,7 @@ public final class BiomeHandler {
      * @param z Biome coordinate Z
      * @return FilterContext indicating whether filtering should occur and with what rules
      */
-    public static FilterContext getFilterContext(Strategy context, int x, int z) {
+    public static FilterContext getFilterContext(Context context, int x, int z) {
         if (context == null) {
             return FilterContext.noFilter();
         }
@@ -85,17 +86,10 @@ public final class BiomeHandler {
      * @param blockZ Block Z coordinate
      * @return The region at this location, or null if not found
      */
-    private static Region getRegionForContext(Strategy context, int blockX, int blockZ) {
+    private static Region getRegionForContext(Context context, int blockX, int blockZ) {
         // Get dimension ID from context (defaults to Overworld)
         String dimensionId = context.getDimensionId();
-        
-        // Try dimension-aware API if dimension is registered
-        if (DimensionRoots.hasRoot(dimensionId)) {
-            return World.getRegion(dimensionId, blockX, blockZ, context);
-        }
-        
-        // Fall back to legacy World API (uses fallback root)
-        return World.getRegion(blockX, blockZ, context);
+        return World.getRegion(dimensionId, blockX, blockZ, context);
     }
     
     /**
@@ -117,6 +111,20 @@ public final class BiomeHandler {
      */
     public static boolean isBiomeAllowed(SelectionRules rules, String biomeId, Set<String> biomeTags) {
         return BiomeFilter.isAllowed(rules, biomeId, biomeTags);
+    }
+    
+    /**
+     * Check if a biome is allowed using a pre-built lookup for O(1) performance.
+     * This is the preferred method for hot paths in world generation.
+     * 
+     * @param <K> The biome key type (typically Holder<Biome>)
+     * @param lookup The pre-built biome metadata lookup
+     * @param biomeKey The biome key to check
+     * @param rules The selection rules to apply
+     * @return true if the biome is allowed, false if blocked
+     */
+    public static <K> boolean isBiomeAllowed(BiomeLookup<K> lookup, K biomeKey, SelectionRules rules) {
+        return lookup.isAllowed(biomeKey, rules);
     }
     
     /**

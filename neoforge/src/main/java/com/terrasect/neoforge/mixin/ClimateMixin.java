@@ -34,7 +34,7 @@ public class ClimateMixin {
         Climate.TargetPoint original = sampler.sample(x, y, z);
 
         // Get platform-specific context
-        Strategy context = NeoForgeNarrGenContext.get(sampler);
+        Context context = NeoForgeNarrGenContext.get(sampler);
         
         // Use common handler for climate modification
         ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(

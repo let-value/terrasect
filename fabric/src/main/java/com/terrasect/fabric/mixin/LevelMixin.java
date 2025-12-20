@@ -1,6 +1,6 @@
 package com.terrasect.fabric.mixin;
 
-import com.terrasect.fabric.generation.FabricNarrGenContext;
+import com.terrasect.fabric.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
@@ -42,7 +42,7 @@ import java.util.concurrent.Executor;
  * Note: HEAD injection must be static since 'this' is not available before super().
  */
 @Mixin(ServerLevel.class)
-public class NarrGenServerLevelMixin {
+public class LevelMixin {
 
     @Inject(method = "<init>", at = @At("HEAD"))
     private static void onInitHead(MinecraftServer minecraftServer, Executor executor, LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, ResourceKey<Level> resourceKey, LevelStem levelStem, boolean bl, long seed, List<CustomSpawner> list, boolean bl2, @Nullable RandomSequences randomSequences, CallbackInfo ci) {
@@ -77,8 +77,8 @@ public class NarrGenServerLevelMixin {
                     ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
                 
                 // Register early - before spawn finding!
-                FabricNarrGenContext context = FabricNarrGenContext.create(resourceKey, seed, sampler, parameters);
-                FabricNarrGenContext.register(resourceKey, context);
+                MinecraftContext context = MinecraftContext.create(resourceKey, seed, sampler, parameters);
+                MinecraftContext.register(resourceKey, context);
             }
         }
     }

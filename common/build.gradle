@@ -5,6 +5,9 @@ plugins {
 
 dependencies {
     implementation('org.slf4j:slf4j-api:2.0.16')
+    
+    // Nullability annotations for API safety
+    implementation('org.jetbrains:annotations:24.1.0')
 
     minecraft "com.mojang:minecraft:${property('minecraft_version')}"
     mappings loom.officialMojangMappings()

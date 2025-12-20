@@ -4,7 +4,7 @@ import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.ClimateModifier;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.runtime.RegionField;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.definition.ClimateSettings;
@@ -51,7 +51,7 @@ public final class ClimateHandler {
      * @return ClimateResult with potentially modified temperature/humidity
      */
     public static ClimateResult modifyClimate(
-            Strategy context,
+            Context context,
             int x, int y, int z,
             long originalTemperature,
             long originalHumidity) {
@@ -65,8 +65,9 @@ public final class ClimateHandler {
         int blockX = x << 2;
         int blockZ = z << 2;
         
-        // Get the region at this location
-        Region region = World.getRegion(blockX, blockZ, context);
+        // Get the region at this location using dimension from context
+        String dimensionId = context.getDimensionId();
+        Region region = World.getRegion(dimensionId, blockX, blockZ, context);
         if (region == null) {
             MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
                 originalTemperature, originalHumidity, null, false);

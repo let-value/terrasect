@@ -2,233 +2,122 @@ package com.terrasect.common.lookup;
 
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.runtime.BiomeFilter;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.level.biome.Biome;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Pre-computed biome metadata lookup for fast filtering.
+ * A fast lookup structure for biome metadata used during filtering.
  * 
- * This class builds a lookup table from the Minecraft biome registry,
- * storing each biome's ID, namespace, and tags. This allows BiomeFilter
- * to check biomes in O(1) time without any string allocation.
+ * This class pre-computes biome IDs and tags to enable O(1) lookups
+ * during biome filtering, avoiding repeated string allocation in the hot path.
  * 
- * Usage:
- * 1. Build once from registry: BiomeLookup lookup = BiomeLookup.fromRegistry(biomeRegistry);
- * 2. Use in hot path: lookup.isAllowed(biomeHolder, rules);
+ * NOTE: This class intentionally avoids any Minecraft class references to prevent
+ * Fabric Loom remapping issues. It uses Object keys with identity-based lookup,
+ * so callers should pass Holder<Biome> instances directly as keys.
  * 
- * Thread-safety: Immutable after construction. Safe for concurrent read access.
+ * @param <K> The key type (typically Holder<Biome> but kept generic to avoid MC imports)
  */
-public final class BiomeLookup {
+public final class BiomeLookup<K> {
     
     /**
      * Pre-computed metadata for a single biome.
-     * All fields are immutable and safe for concurrent access.
      */
-    public record BiomeMetadata(
-        Holder<Biome> holder,  // Original holder for biome access
-        String id,             // Full ID like "minecraft:plains"
-        String namespace,      // Just namespace like "minecraft"
-        Set<String> tags       // Immutable set of tags like "#minecraft:is_forest"
-    ) {
-        public BiomeMetadata {
-            // Ensure tags is immutable
-            tags = Set.copyOf(tags);
+    public record Entry(String id, Set<String> tags) {}
+    
+    private final Map<K, Entry> metadata;
+    
+    private BiomeLookup(Map<K, Entry> metadata) {
+        this.metadata = metadata;
+    }
+    
+    /**
+     * Get the pre-computed metadata for a biome.
+     * 
+     * @param key The biome holder (identity-based lookup)
+     * @return The metadata entry, or null if not found
+     */
+    public Entry get(K key) {
+        return metadata.get(key);
+    }
+    
+    /**
+     * Check if a biome is allowed by the given selection rules.
+     * Uses pre-computed metadata for O(1) lookup.
+     * 
+     * @param key The biome holder
+     * @param rules The selection rules to check against
+     * @return true if the biome is allowed (not blocked)
+     */
+    public boolean isAllowed(K key, SelectionRules rules) {
+        Entry entry = metadata.get(key);
+        if (entry == null) {
+            return true; // Unknown biomes are allowed by default
         }
-    }
-    
-    // IdentityHashMap for O(1) lookup by biome holder reference
-    private final IdentityHashMap<Holder<Biome>, BiomeMetadata> metadataByHolder;
-    
-    // Map from biome ID to metadata for ID-based lookups
-    private final Map<String, BiomeMetadata> metadataById;
-    
-    // All biomes in the registry, for iteration when finding fallbacks
-    private final List<BiomeMetadata> allBiomes;
-    
-    private BiomeLookup(
-            IdentityHashMap<Holder<Biome>, BiomeMetadata> metadataByHolder,
-            Map<String, BiomeMetadata> metadataById,
-            List<BiomeMetadata> allBiomes) {
-        this.metadataByHolder = metadataByHolder;
-        this.metadataById = metadataById;
-        this.allBiomes = allBiomes;
+        return BiomeFilter.checkBiome(rules, entry.id(), entry.tags()) != BiomeFilter.FilterResult.BLOCKED;
     }
     
     /**
-     * Build a BiomeLookup from a Minecraft biome registry.
-     * This should be called once during world load and cached.
+     * Check a biome against selection rules and return the filter result.
      * 
-     * @param registry The biome registry (from RegistryAccess)
-     * @return A new BiomeLookup with all biomes indexed
+     * @param key The biome holder
+     * @param rules The selection rules to check against
+     * @return The filter result
      */
-    public static BiomeLookup fromRegistry(Registry<Biome> registry) {
-        IdentityHashMap<Holder<Biome>, BiomeMetadata> byHolder = new IdentityHashMap<>();
-        Map<String, BiomeMetadata> byId = new HashMap<>();
-        List<BiomeMetadata> all = new ArrayList<>();
-        
-        // Use listElements() to iterate over all registered biomes
-        registry.listElements().forEach(holder -> {
-            ResourceKey<Biome> key = holder.key();
-            Identifier location = key.identifier();
-            
-            String id = location.toString();
-            String namespace = location.getNamespace();
-            
-            // Collect all tags for this biome
-            Set<String> tags = new HashSet<>();
-            holder.tags().forEach(tag -> {
-                // Store both with and without # prefix for fast lookup
-                String tagId = tag.location().toString();
-                tags.add("#" + tagId);
-                tags.add(tagId);
-            });
-            
-            BiomeMetadata metadata = new BiomeMetadata(holder, id, namespace, tags);
-            byHolder.put(holder, metadata);
-            byId.put(id, metadata);
-            all.add(metadata);
-        });
-        
-        return new BiomeLookup(byHolder, byId, List.copyOf(all));
+    public BiomeFilter.FilterResult checkBiome(K key, SelectionRules rules) {
+        Entry entry = metadata.get(key);
+        if (entry == null) {
+            return BiomeFilter.FilterResult.NO_RULES;
+        }
+        return BiomeFilter.checkBiome(rules, entry.id(), entry.tags());
     }
     
     /**
-     * Create a new builder for BiomeLookup.
-     * Use this to add biomes one by one without depending on Climate.ParameterList.
+     * @return The number of biomes in this lookup
+     */
+    public int size() {
+        return metadata.size();
+    }
+    
+    /**
+     * Create a new builder for constructing a BiomeMetadataLookup.
      * 
-     * @return A new builder
+     * @param <K> The key type
+     * @return A new builder instance
      */
-    public static Builder builder() {
-        return new Builder();
+    public static <K> Builder<K> builder() {
+        return new Builder<>();
     }
     
     /**
-     * Builder for BiomeLookup.
-     * Allows adding biomes one by one with their pre-computed metadata.
+     * Builder for constructing BiomeMetadataLookup instances.
      */
-    public static final class Builder {
-        private final IdentityHashMap<Holder<Biome>, BiomeMetadata> byHolder = new IdentityHashMap<>();
-        private final Map<String, BiomeMetadata> byId = new HashMap<>();
-        private final List<BiomeMetadata> all = new ArrayList<>();
+    public static final class Builder<K> {
+        private final Map<K, Entry> metadata = new IdentityHashMap<>();
         
         private Builder() {}
         
         /**
          * Add a biome with its pre-computed metadata.
          * 
-         * @param holder The biome holder
-         * @param id Full biome ID like "minecraft:plains"
-         * @param tags Set of tags for this biome
+         * @param key The biome holder (used as identity key)
+         * @param id The biome's resource location string (e.g., "minecraft:plains")
+         * @param tags The biome's tags with # prefix (e.g., "#minecraft:is_forest")
          * @return this builder for chaining
          */
-        public Builder add(Holder<Biome> holder, String id, Set<String> tags) {
-            // Skip duplicates
-            if (byHolder.containsKey(holder)) {
-                return this;
-            }
-            
-            int colonIndex = id.indexOf(':');
-            String namespace = colonIndex > 0 ? id.substring(0, colonIndex) : "minecraft";
-            
-            BiomeMetadata metadata = new BiomeMetadata(holder, id, namespace, tags);
-            byHolder.put(holder, metadata);
-            byId.put(id, metadata);
-            all.add(metadata);
+        public Builder<K> add(K key, String id, Set<String> tags) {
+            metadata.put(key, new Entry(id, tags));
             return this;
         }
         
         /**
-         * Build the immutable BiomeLookup.
+         * Build the immutable lookup structure.
          * 
-         * @return A new BiomeLookup with all added biomes
+         * @return A new BiomeMetadataLookup instance
          */
-        public BiomeLookup build() {
-            return new BiomeLookup(byHolder, byId, List.copyOf(all));
+        public BiomeLookup<K> build() {
+            return new BiomeLookup<>(new IdentityHashMap<>(metadata));
         }
-    }
-    
-    /**
-     * Get pre-computed metadata for a biome holder.
-     * O(1) lookup using identity comparison.
-     * 
-     * @param biome The biome holder
-     * @return Metadata or null if biome not in registry
-     */
-    public BiomeMetadata getMetadata(Holder<Biome> biome) {
-        return metadataByHolder.get(biome);
-    }
-    
-    /**
-     * Get pre-computed metadata for a biome by ID.
-     * 
-     * @param biomeId The full biome ID (e.g., "minecraft:plains")
-     * @return Metadata or null if biome not found
-     */
-    public BiomeMetadata getMetadataById(String biomeId) {
-        return metadataById.get(biomeId);
-    }
-    
-    /**
-     * Get all biomes in the lookup.
-     * Useful for finding fallback biomes.
-     * 
-     * @return Unmodifiable list of all biome metadata
-     */
-    public List<BiomeMetadata> getAllBiomes() {
-        return allBiomes;
-    }
-    
-    /**
-     * Check if a biome is allowed by the selection rules.
-     * This is the fast path - O(1) lookups with no allocation.
-     * 
-     * @param biome The biome holder to check
-     * @param rules The selection rules
-     * @return FilterResult indicating if biome is allowed
-     */
-    public BiomeFilter.FilterResult checkBiome(Holder<Biome> biome, SelectionRules rules) {
-        BiomeMetadata metadata = metadataByHolder.get(biome);
-        if (metadata == null) {
-            // Unknown biome - allow by default
-            return BiomeFilter.FilterResult.NO_RULES;
-        }
-        return BiomeFilter.checkBiome(rules, metadata.id(), metadata.tags());
-    }
-    
-    /**
-     * Check if a biome is allowed (convenience boolean version).
-     * 
-     * @param biome The biome holder to check
-     * @param rules The selection rules
-     * @return true if allowed, false if blocked
-     */
-    public boolean isAllowed(Holder<Biome> biome, SelectionRules rules) {
-        return checkBiome(biome, rules) != BiomeFilter.FilterResult.BLOCKED;
-    }
-    
-    /**
-     * Check if a biome metadata is allowed by the selection rules.
-     * Use this when you already have the metadata (e.g., when iterating allBiomes).
-     * 
-     * @param metadata Pre-computed biome metadata
-     * @param rules The selection rules
-     * @return true if allowed, false if blocked
-     */
-    public boolean isAllowed(BiomeMetadata metadata, SelectionRules rules) {
-        return BiomeFilter.isAllowed(rules, metadata.id(), metadata.tags());
-    }
-    
-    /**
-     * Get the number of biomes in the lookup.
-     */
-    public int size() {
-        return allBiomes.size();
     }
 }

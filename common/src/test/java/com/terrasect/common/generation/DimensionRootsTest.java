@@ -52,20 +52,22 @@ public class DimensionRootsTest {
     }
 
     @Test
-    void fallsBackToDefaultWhenDimensionNotRegistered() {
+    void returnsNullForUnregisteredDimension() {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
         DimensionRoots.register(DimensionRoots.OVERWORLD, overworldRoot);
         
-        // Query for an unregistered dimension should return fallback (Overworld)
+        // Query for an unregistered dimension should return null (no influence)
         Region result = DimensionRoots.getRoot("mymod:custom_dimension");
-        assertEquals("OVERWORLD", result.name());
+        assertNull(result);
+        
+        // Overworld should still work
+        assertEquals("OVERWORLD", DimensionRoots.getRoot(DimensionRoots.OVERWORLD).name());
     }
 
     @Test
-    void throwsWhenNoFallbackAvailable() {
-        assertThrows(IllegalStateException.class, () -> {
-            DimensionRoots.getRoot("mymod:custom_dimension");
-        });
+    void returnsNullWhenNoDimensionsRegistered() {
+        assertNull(DimensionRoots.getRoot("mymod:custom_dimension"));
+        assertNull(DimensionRoots.getRoot(DimensionRoots.OVERWORLD));
     }
 
     @Test
@@ -89,27 +91,12 @@ public class DimensionRootsTest {
     }
 
     @Test
-    void setsOverworldAsFallbackAutomatically() {
-        Region endRoot = buildSimpleRoot("END");
-        Region overworldRoot = buildSimpleRoot("OVERWORLD");
-        
-        // Register End first
-        DimensionRoots.register(DimensionRoots.THE_END, endRoot);
-        // End becomes fallback since it's first
-        assertEquals("END", DimensionRoots.getFallback().name());
-        
-        // Register Overworld - should become new fallback
-        DimensionRoots.register(DimensionRoots.OVERWORLD, overworldRoot);
-        assertEquals("OVERWORLD", DimensionRoots.getFallback().name());
-    }
-
-    @Test
-    void getRootOrNullReturnsNullForUnregistered() {
+    void getRootReturnsNullForUnregistered() {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
         DimensionRoots.register(DimensionRoots.OVERWORLD, overworldRoot);
         
-        assertNotNull(DimensionRoots.getRootOrNull(DimensionRoots.OVERWORLD));
-        assertNull(DimensionRoots.getRootOrNull(DimensionRoots.THE_END));
+        assertNotNull(DimensionRoots.getRoot(DimensionRoots.OVERWORLD));
+        assertNull(DimensionRoots.getRoot(DimensionRoots.THE_END));
     }
 
     @Test
@@ -120,7 +107,6 @@ public class DimensionRootsTest {
         DimensionRoots.clear();
         
         assertTrue(DimensionRoots.getRegisteredDimensions().isEmpty());
-        assertNull(DimensionRoots.getFallback());
     }
 
     @Test
@@ -143,20 +129,6 @@ public class DimensionRootsTest {
         // New dimension-aware API
         assertEquals("OVERWORLD", World.getRoot(DimensionRoots.OVERWORLD).name());
         assertEquals("END", World.getRoot(DimensionRoots.THE_END).name());
-    }
-
-    @Test
-    void legacyWorldApiStillWorks() {
-        Region root = buildSimpleRoot("LEGACY");
-        
-        // Legacy API
-        World.setRoot(root);
-        
-        // Should work with legacy API
-        assertEquals("LEGACY", World.getRoot().name());
-        
-        // Should also be available via new API (as fallback)
-        assertEquals("LEGACY", DimensionRoots.getFallback().name());
     }
 
     private Region buildSimpleRoot(String name) {

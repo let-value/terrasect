@@ -1,11 +1,8 @@
 package com.terrasect.common.api;
 
 import com.terrasect.common.Terrasect;
-import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.RegionDefinition;
-import com.terrasect.common.generation.definition.SelectionRules;
-import com.terrasect.common.generation.definition.StructureRules;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -137,15 +134,6 @@ public class RegionRegistry {
         public DraftRegion radius(int radius) {
             // User defines radius, we store area (radius^2) internally
             this.areaBudget = radius * radius;
-            return this;
-        }
-
-        /**
-         * @deprecated Use {@link #radius(int)} instead. Budget is now interpreted as radius squared.
-         */
-        @Deprecated
-        public DraftRegion budget(int areaBudget) {
-            this.areaBudget = areaBudget;
             return this;
         }
 

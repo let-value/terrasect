@@ -1,8 +1,9 @@
 package com.terrasect.fabric;
 
+import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.RegionField;
 import com.terrasect.common.runtime.World;
@@ -50,7 +51,7 @@ public class ClimateVisualizationTest {
         
         // Build region hierarchy with different climate settings
         Region root = buildClimateRegions();
-        World.setRoot(root);
+        DimensionRoots.register(DimensionRoots.OVERWORLD, root);
         
         // Setup Minecraft vanilla climate sampler
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
@@ -73,7 +74,7 @@ public class ClimateVisualizationTest {
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(overworldParameters);
         Climate.ParameterList<Holder<Biome>> parameterList = overworldParameters.value().parameters();
         
-        Strategy context = createStrategy(seed, sampler, biomeSource);
+        Context context = createStrategy(seed, sampler, biomeSource);
         
         // Create images
         BufferedImage vanillaTemp = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -104,13 +105,13 @@ public class ClimateVisualizationTest {
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
                 
                 // Get region and calculate modified climate
-                Region region = World.getRegion(blockX, blockZ, context);
+                Region region = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ, context);
                 ClimateSettings climate = region != null ? region.definition().climate() : null;
                 
                 // Detect region boundaries by comparing neighbors at step distance
                 // Only mark as boundary if both regions exist and have different names
-                Region rightRegion = World.getRegion(blockX + SCALE, blockZ, context);
-                Region downRegion = World.getRegion(blockX, blockZ + SCALE, context);
+                Region rightRegion = World.getRegion(DimensionRoots.OVERWORLD, blockX + SCALE, blockZ, context);
+                Region downRegion = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ + SCALE, context);
                 
                 boolean isRightBoundary = region != null && rightRegion != null && !region.name().equals(rightRegion.name());
                 boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());
@@ -259,8 +260,8 @@ public class ClimateVisualizationTest {
         return registry.build("WORLD");
     }
     
-    private Strategy createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
-        return new Strategy() {
+    private Context createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
+        return new Context() {
             @Override
             public long getSeed() { return seed; }
             

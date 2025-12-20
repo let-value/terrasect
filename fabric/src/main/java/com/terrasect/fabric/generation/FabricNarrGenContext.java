@@ -1,7 +1,8 @@
 package com.terrasect.fabric.generation;
 
 import com.mojang.datafixers.util.Either;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
+import com.terrasect.common.lookup.BiomeMetadataLookup;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
@@ -10,7 +11,11 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -18,36 +23,83 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * <p>This stores the dimension ID and climate sampler for a dimension,
  * enabling dimension-aware region lookups during world generation.
+ * 
+ * <p>Also pre-builds {@link BiomeMetadataLookup} for O(1) biome filtering,
+ * so mixins don't need any initialization logic.
  */
-public class FabricNarrGenContext implements Strategy {
+public class FabricContext implements Context {
     
-    private static final Map<ResourceKey<Level>, FabricNarrGenContext> CONTEXTS = new ConcurrentHashMap<>();
-    private static final Map<Climate.Sampler, FabricNarrGenContext> BY_SAMPLER = new ConcurrentHashMap<>();
+    private static final Map<ResourceKey<Level>, FabricContext> CONTEXTS = new ConcurrentHashMap<>();
+    private static final Map<Climate.Sampler, FabricContext> BY_SAMPLER = new ConcurrentHashMap<>();
 
     private final long seed;
     private final Climate.Sampler sampler;
     private final Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
     private final String dimensionId;
+    private final BiomeMetadataLookup<Holder<Biome>> biomeLookup;
 
-    public FabricNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
+    public FabricContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         this(seed, sampler, parameters, "minecraft:overworld");
     }
     
-    public FabricNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters, String dimensionId) {
+    public FabricContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters, String dimensionId) {
         this.seed = seed;
         this.sampler = sampler;
         this.parameters = parameters;
         this.dimensionId = dimensionId;
+        this.biomeLookup = buildBiomeLookup(parameters);
+    }
+    
+    /**
+     * Build the biome metadata lookup for O(1) filtering.
+     * Called once during context construction.
+     */
+    private static BiomeMetadataLookup<Holder<Biome>> buildBiomeLookup(
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
+        if (parameters == null) {
+            return BiomeMetadataLookup.<Holder<Biome>>builder().build();
+        }
+        
+        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
+            list -> list,
+            holder -> holder.value().parameters()
+        );
+        
+        BiomeMetadataLookup.Builder<Holder<Biome>> builder = BiomeMetadataLookup.builder();
+        Set<Holder<Biome>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        
+        for (var entry : paramList.values()) {
+            Holder<Biome> biome = entry.getSecond();
+            if (seen.add(biome)) {
+                String biomeId = getBiomeId(biome);
+                Set<String> tags = getBiomeTags(biome);
+                builder.add(biome, biomeId, tags);
+            }
+        }
+        
+        return builder.build();
+    }
+    
+    private static String getBiomeId(Holder<Biome> biome) {
+        return biome.unwrapKey()
+            .map(key -> key.identifier().toString())
+            .orElse("unknown");
+    }
+    
+    private static Set<String> getBiomeTags(Holder<Biome> biome) {
+        Set<String> tags = new HashSet<>();
+        biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
+        return tags;
     }
     
     /**
      * Create a context from a Minecraft ResourceKey dimension.
      */
-    public static FabricNarrGenContext create(ResourceKey<Level> dimension, long seed, Climate.Sampler sampler, 
+    public static FabricContext create(ResourceKey<Level> dimension, long seed, Climate.Sampler sampler, 
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         // Convert ResourceKey to string dimension ID
         String dimId = toDimensionId(dimension);
-        return new FabricNarrGenContext(seed, sampler, parameters, dimId);
+        return new FabricContext(seed, sampler, parameters, dimId);
     }
     
     /**
@@ -76,19 +128,19 @@ public class FabricNarrGenContext implements Strategy {
         return "minecraft:overworld";
     }
 
-    public static void register(ResourceKey<Level> dimension, FabricNarrGenContext context) {
+    public static void register(ResourceKey<Level> dimension, FabricContext context) {
         CONTEXTS.put(dimension, context);
         if (context.sampler != null) {
             BY_SAMPLER.put(context.sampler, context);
         }
     }
 
-    public static FabricNarrGenContext get(ResourceKey<Level> dimension) {
+    public static FabricContext get(ResourceKey<Level> dimension) {
         return CONTEXTS.get(dimension);
     }
 
-    public static FabricNarrGenContext get(Climate.Sampler sampler) {
-        FabricNarrGenContext ctx = BY_SAMPLER.get(sampler);
+    public static FabricContext get(Climate.Sampler sampler) {
+        FabricContext ctx = BY_SAMPLER.get(sampler);
         if (ctx != null) {
             return ctx;
         }
@@ -118,6 +170,16 @@ public class FabricNarrGenContext implements Strategy {
      */
     public String getDimensionId() {
         return dimensionId;
+    }
+    
+    /**
+     * Get the pre-built biome metadata lookup for this dimension.
+     * Used by BiomeMixin for O(1) biome filtering.
+     * 
+     * @return The biome lookup for this dimension's biome source
+     */
+    public BiomeMetadataLookup<Holder<Biome>> getBiomeLookup() {
+        return biomeLookup;
     }
 
     @Override

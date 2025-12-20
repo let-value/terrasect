@@ -51,9 +51,6 @@ public final class TestRegions {
         Region endRoot = buildEndWorld();
         DimensionRoots.register(DimensionRoots.THE_END, endRoot);
         
-        // Legacy compatibility - also set the fallback
-        World.setRoot(overworldRoot);
-        
         Terrasect.LOGGER.info("Test regions registered:");
         Terrasect.LOGGER.info("  Overworld: {} child regions", overworldRoot.children().size());
         Terrasect.LOGGER.info("  The End: {} child regions", endRoot.children().size());

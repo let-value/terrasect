@@ -5,7 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.terrasect.common.runtime.Config;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
@@ -57,7 +57,7 @@ public class NarrGenCommand {
         CompletableFuture.runAsync(() -> {
             try {
                 // TODO: Access real climate sampler
-                Strategy genContext = new Strategy() {
+                Context genContext = new Context() {
                     @Override public long getSeed() { return seed; }
                     @Override public float getRiverInfluence(int x, int z) { return 0.0f; }
                     @Override public float getRidgeInfluence(int x, int z) { return 0.0f; }
@@ -93,7 +93,7 @@ public class NarrGenCommand {
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("archetype")) {
-                            Region region = World.getRegion(wx, wz, genContext);
+                            Region region = World.getRegion(genContext.getDimensionId(), wx, wz, genContext);
                             color = getRegionColor(region);
                         }
                         

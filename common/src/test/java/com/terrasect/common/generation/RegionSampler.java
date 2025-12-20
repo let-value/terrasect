@@ -1,7 +1,8 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 
 import java.util.HashMap;
@@ -9,7 +10,7 @@ import java.util.Map;
 
 public class RegionSampler {
 
-    public static Map<String, Integer> sample(int x, int z, int width, int height, int step, int depth, Strategy strategy) {
+    public static Map<String, Integer> sample(int x, int z, int width, int height, int step, int depth, Context strategy) {
         Map<String, Integer> counts = new HashMap<>();
         
         for (int iz = 0; iz < height; iz += step) {
@@ -25,7 +26,7 @@ public class RegionSampler {
         return counts;
     }
 
-    private static Region getRegionAtDepth(int x, int z, Strategy context, int targetDepth) {
-        return World.getRegionAtDepth(x, z, context, targetDepth);
+    private static Region getRegionAtDepth(int x, int z, Context context, int targetDepth) {
+        return World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, targetDepth);
     }
 }

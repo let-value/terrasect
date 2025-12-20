@@ -7,7 +7,7 @@ package com.terrasect.common.api;
  * <p>Implementations are platform-specific (Fabric, NeoForge) and provide
  * access to climate samplers, world seed, and dimension information.
  */
-public interface Strategy {
+public interface Context {
     
     /**
      * Get the world seed for this generation context.

@@ -1,7 +1,7 @@
 package com.terrasect.common.runtime;
 
 import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.strategy.LayoutStrategies;
@@ -30,15 +30,15 @@ final class NarrativeSpace {
     private static final float DETAIL_AMPLITUDE = 20.0f; // Edge detail (blocks) - subtle
     private static final float SPAWN_SAFE_RADIUS = 512.0f; // Reduced warp near spawn
 
-    Region getRegionAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
+    Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth) {
         return (Region) traverse(root, x, z, context, targetDepth, false);
     }
 
-    long getRegionSeedAtDepth(Region root, int x, int z, Strategy context, int targetDepth) {
+    long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth) {
         return (Long) traverse(root, x, z, context, targetDepth, true);
     }
 
-    private Object traverse(Region root, int x, int z, Strategy context, int targetDepth, boolean returnSeed) {
+    private Object traverse(Region root, int x, int z, Context context, int targetDepth, boolean returnSeed) {
         // WARPED TRAVERSAL: Apply warp ONCE at the start, then use warped coords consistently.
         // This creates organic region boundaries while maintaining proper parent-child containment.
         // The key insight: warp the INPUT coordinates, then traverse with those warped coords.
@@ -88,7 +88,7 @@ final class NarrativeSpace {
      * 2. Feature warp - rivers and ridges pull boundaries toward them
      * 3. Detail jitter - fine noise for Minecraft-style jagged edges
      */
-    private long getWarpedPoint(int x, int z, long seed, Strategy context) {
+    private long getWarpedPoint(int x, int z, long seed, Context context) {
         // Spawn protection: reduce warp near origin for predictable starting area
         float dist = (float) Math.sqrt(x * x + z * z);
         float damp = Math.min(1.0f, dist / SPAWN_SAFE_RADIUS);

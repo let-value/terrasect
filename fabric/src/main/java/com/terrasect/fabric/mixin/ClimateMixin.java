@@ -1,8 +1,8 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.Terrasect;
-import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.api.Strategy;
+import com.terrasect.fabric.generation.MinecraftContext;
+import com.terrasect.common.api.Context;
 import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.core.Holder;
@@ -78,7 +78,7 @@ public class ClimateMixin {
         Climate.TargetPoint original = sampler.sample(x, y, z);
         
         // Get platform-specific context
-        Strategy context = FabricNarrGenContext.get(sampler);
+        Context context = MinecraftContext.get(sampler);
         
         if (context == null) {
             terrasect$noContextCount++;

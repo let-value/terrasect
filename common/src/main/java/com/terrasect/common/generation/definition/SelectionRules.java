@@ -2,7 +2,6 @@ package com.terrasect.common.generation.definition;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
