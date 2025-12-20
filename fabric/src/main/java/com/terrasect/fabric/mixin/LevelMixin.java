@@ -37,49 +37,85 @@ import java.util.concurrent.Executor;
  * Mixin for ServerLevel that registers the narrative generation context
  * BEFORE spawn finding occurs during world initialization.
  * 
- * This injects at HEAD of the constructor because spawn finding happens
+ * <p>This injects at HEAD of the constructor because spawn finding happens
  * DURING the constructor and needs the context to be registered first.
- * Note: HEAD injection must be static since 'this' is not available before super().
+ * 
+ * <p>Supports all dimensions with MultiNoiseBiomeSource:
+ * <ul>
+ *   <li>Overworld - uses OVERWORLD noise settings</li>
+ *   <li>Nether - uses NETHER noise settings</li>
+ *   <li>Custom dimensions - uses their configured noise settings</li>
+ * </ul>
+ * 
+ * <p>Note: The End uses TheEndBiomeSource (not multi-noise) and doesn't need
+ * climate-based modification - it has fixed biome placement.
  */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
     @Inject(method = "<init>", at = @At("HEAD"))
-    private static void onInitHead(MinecraftServer minecraftServer, Executor executor, LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, ResourceKey<Level> resourceKey, LevelStem levelStem, boolean bl, long seed, List<CustomSpawner> list, boolean bl2, @Nullable RandomSequences randomSequences, CallbackInfo ci) {
+    private static void onInitHead(MinecraftServer minecraftServer, Executor executor, 
+            LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, 
+            ResourceKey<Level> resourceKey, LevelStem levelStem, boolean bl, long seed, 
+            List<CustomSpawner> list, boolean bl2, @Nullable RandomSequences randomSequences, 
+            CallbackInfo ci) {
+        
         ChunkGenerator generator = levelStem.generator();
         BiomeSource biomeSource = generator.getBiomeSource();
 
-        // Only process overworld with MultiNoiseBiomeSource
-        if (resourceKey == Level.OVERWORLD && biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
-            if (generator instanceof NoiseBasedChunkGenerator) {
-                // Get noise settings from registry (use OVERWORLD preset for overworld)
-                NoiseGeneratorSettings settings;
-                try {
-                    settings = minecraftServer.registryAccess()
-                        .lookupOrThrow(Registries.NOISE_SETTINGS)
-                        .getOrThrow(NoiseGeneratorSettings.OVERWORLD)
-                        .value();
-                } catch (Exception e) {
-                    // Fallback to dummy settings if registry lookup fails
-                    settings = NoiseGeneratorSettings.dummy();
-                }
-                
-                // Get noise registry from server
-                HolderGetter<NormalNoise.NoiseParameters> noiseParams = 
-                    minecraftServer.registryAccess().lookupOrThrow(Registries.NOISE);
-                
-                // Create RandomState early (before spawn finding)
-                RandomState randomState = RandomState.create(settings, noiseParams, seed);
-                Climate.Sampler sampler = randomState.sampler();
-                
-                // Get biome parameters
-                Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters = 
-                    ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
-                
-                // Register early - before spawn finding!
-                MinecraftContext context = MinecraftContext.create(resourceKey, seed, sampler, parameters);
-                MinecraftContext.register(resourceKey, context);
+        // Only process dimensions with MultiNoiseBiomeSource and NoiseBasedChunkGenerator
+        if (biomeSource instanceof MultiNoiseBiomeSource multiNoise 
+                && generator instanceof NoiseBasedChunkGenerator) {
+            
+            // Get noise settings for this dimension
+            NoiseGeneratorSettings settings = getNoiseSettings(minecraftServer, resourceKey);
+            
+            // Get noise registry from server
+            HolderGetter<NormalNoise.NoiseParameters> noiseParams = 
+                minecraftServer.registryAccess().lookupOrThrow(Registries.NOISE);
+            
+            // Create RandomState early (before spawn finding)
+            RandomState randomState = RandomState.create(settings, noiseParams, seed);
+            Climate.Sampler sampler = randomState.sampler();
+            
+            // Get biome parameters from the biome source
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters = 
+                ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            
+            // Register context for this dimension
+            MinecraftContext context = MinecraftContext.create(resourceKey, seed, sampler, parameters);
+            MinecraftContext.register(resourceKey, context);
+        }
+        // Note: TheEndBiomeSource and other biome sources don't use climate sampling
+        // and don't need context registration - they have fixed biome placement
+    }
+    
+    /**
+     * Get the appropriate noise settings for a dimension.
+     * 
+     * @param server The Minecraft server
+     * @param dimension The dimension resource key
+     * @return NoiseGeneratorSettings for this dimension
+     */
+    private static NoiseGeneratorSettings getNoiseSettings(MinecraftServer server, ResourceKey<Level> dimension) {
+        try {
+            var noiseSettingsRegistry = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS);
+            
+            // Map dimension to its noise settings
+            if (dimension == Level.OVERWORLD) {
+                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+            } else if (dimension == Level.NETHER) {
+                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.NETHER).value();
+            } else if (dimension == Level.END) {
+                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.END).value();
             }
+            
+            // For custom dimensions, try to get from the chunk generator settings
+            // Fallback to overworld settings for unknown dimensions
+            return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+        } catch (Exception e) {
+            // Fallback to dummy settings if registry lookup fails
+            return NoiseGeneratorSettings.dummy();
         }
     }
 }

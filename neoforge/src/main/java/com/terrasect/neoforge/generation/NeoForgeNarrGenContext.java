@@ -9,6 +9,7 @@ import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,13 +19,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * NeoForge implementation of the Context interface for narrative generation context.
+ * NeoForge implementation of the Context interface.
  * 
- * <p>This stores the dimension ID and climate sampler for a dimension,
- * enabling dimension-aware region lookups during world generation.
- * 
- * <p>Also pre-builds {@link BiomeLookup} for O(1) biome filtering,
- * so mixins don't need any initialization logic.
+ * <p>This class provides:
+ * <ul>
+ *   <li>Dimension-specific context (ID, seed, sampler)</li>
+ *   <li>Pre-built {@link BiomeLookup} for O(1) biome filtering</li>
+ *   <li>Helper methods for extracting biome metadata from MC types</li>
+ * </ul>
  */
 public class NeoForgeNarrGenContext implements Context {
     
@@ -33,15 +35,18 @@ public class NeoForgeNarrGenContext implements Context {
 
     private final long seed;
     private final Climate.Sampler sampler;
-    private final Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters;
+    private final Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
     private final String dimensionId;
     private final BiomeLookup<Holder<Biome>> biomeLookup;
 
-    public NeoForgeNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters) {
+    public NeoForgeNarrGenContext(long seed, Climate.Sampler sampler, 
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         this(seed, sampler, parameters, "minecraft:overworld");
     }
     
-    public NeoForgeNarrGenContext(long seed, Climate.Sampler sampler, Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters, String dimensionId) {
+    public NeoForgeNarrGenContext(long seed, Climate.Sampler sampler, 
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters, 
+            String dimensionId) {
         this.seed = seed;
         this.sampler = sampler;
         this.parameters = parameters;
@@ -49,68 +54,66 @@ public class NeoForgeNarrGenContext implements Context {
         this.biomeLookup = buildBiomeLookup(parameters);
     }
     
+    // ========== Lookup Pre-baking ==========
+    
     /**
      * Build the biome metadata lookup for O(1) filtering.
      * Called once during context construction.
      */
     private static BiomeLookup<Holder<Biome>> buildBiomeLookup(
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters) {
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         if (parameters == null) {
             return BiomeLookup.<Holder<Biome>>builder().build();
         }
         
+        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
+            list -> list,
+            holder -> holder.value().parameters()
+        );
+        
         BiomeLookup.Builder<Holder<Biome>> builder = BiomeLookup.builder();
         Set<Holder<Biome>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         
-        // Handle either a parameter list or a single biome holder
-        parameters.ifLeft(paramList -> {
-            for (var entry : paramList.values()) {
-                Holder<Biome> biome = entry.getSecond();
-                if (seen.add(biome)) {
-                    String biomeId = getBiomeId(biome);
-                    Set<String> tags = getBiomeTags(biome);
-                    builder.add(biome, biomeId, tags);
-                }
-            }
-        });
-        
-        parameters.ifRight(biome -> {
+        for (var entry : paramList.values()) {
+            Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                String biomeId = getBiomeId(biome);
-                Set<String> tags = getBiomeTags(biome);
-                builder.add(biome, biomeId, tags);
+                builder.add(biome, getBiomeId(biome), getBiomeTags(biome));
             }
-        });
+        }
         
         return builder.build();
     }
     
-    private static String getBiomeId(Holder<Biome> biome) {
+    // ========== MC Type Helpers ==========
+    
+    /**
+     * Extract the biome ID from a holder.
+     */
+    public static String getBiomeId(Holder<Biome> biome) {
         return biome.unwrapKey()
             .map(key -> key.identifier().toString())
             .orElse("unknown");
     }
     
-    private static Set<String> getBiomeTags(Holder<Biome> biome) {
+    /**
+     * Extract the biome tags from a holder.
+     */
+    public static Set<String> getBiomeTags(Holder<Biome> biome) {
         Set<String> tags = new HashSet<>();
         biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
         return tags;
     }
     
+    // ========== Registry ==========
+    
     /**
      * Create a context from a Minecraft ResourceKey dimension.
      */
     public static NeoForgeNarrGenContext create(ResourceKey<Level> dimension, long seed, Climate.Sampler sampler, 
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters) {
-        // Convert ResourceKey to string dimension ID
-        String dimId = toDimensionId(dimension);
-        return new NeoForgeNarrGenContext(seed, sampler, parameters, dimId);
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
+        return new NeoForgeNarrGenContext(seed, sampler, parameters, toDimensionId(dimension));
     }
     
-    /**
-     * Convert a ResourceKey to a dimension ID string.
-     * Uses known dimension mappings to avoid reflection/mapping issues.
-     */
     private static String toDimensionId(ResourceKey<Level> dimension) {
         if (dimension == Level.OVERWORLD) {
             return "minecraft:overworld";
@@ -119,8 +122,7 @@ public class NeoForgeNarrGenContext implements Context {
         } else if (dimension == Level.END) {
             return "minecraft:the_end";
         }
-        // For modded dimensions, use toString() which includes the full path
-        // Format is typically: "ResourceKey[minecraft:dimension / modid:dimname]"
+        // For modded dimensions, parse from ResourceKey string
         String str = dimension.toString();
         int slashIdx = str.indexOf(" / ");
         if (slashIdx > 0) {
@@ -129,7 +131,6 @@ public class NeoForgeNarrGenContext implements Context {
                 return str.substring(slashIdx + 3, endIdx);
             }
         }
-        // Fallback to overworld if we can't parse
         return "minecraft:overworld";
     }
 
@@ -145,13 +146,24 @@ public class NeoForgeNarrGenContext implements Context {
     }
 
     public static NeoForgeNarrGenContext get(Climate.Sampler sampler) {
-        return BY_SAMPLER.get(sampler);
+        NeoForgeNarrGenContext ctx = BY_SAMPLER.get(sampler);
+        if (ctx != null) {
+            return ctx;
+        }
+        // Fallback chain: Overworld -> any registered context -> null
+        ctx = CONTEXTS.get(Level.OVERWORLD);
+        if (ctx != null) {
+            return ctx;
+        }
+        return CONTEXTS.values().stream().findFirst().orElse(null);
     }
 
     public static void clear() {
         CONTEXTS.clear();
         BY_SAMPLER.clear();
     }
+
+    // ========== Context Interface ==========
 
     @Override
     public long getSeed() {
@@ -163,12 +175,6 @@ public class NeoForgeNarrGenContext implements Context {
         return dimensionId;
     }
     
-    /**
-     * Get the pre-built biome metadata lookup for this dimension.
-     * Used by BiomeMixin for O(1) biome filtering.
-     * 
-     * @return The biome lookup for this dimension's biome source
-     */
     public BiomeLookup<Holder<Biome>> getBiomeLookup() {
         return biomeLookup;
     }
@@ -177,18 +183,17 @@ public class NeoForgeNarrGenContext implements Context {
     public float getRiverInfluence(int x, int z) {
         if (sampler == null || parameters == null) return 0.0f;
         
-        // Convert block coords to quart coords (approximate Y=sea level)
         int qx = x >> 2;
         int qy = 16; 
         int qz = z >> 2;
         
         Climate.TargetPoint target = sampler.sample(qx, qy, qz);
-        
-        Holder<Biome> biome = parameters.map(
-            list -> list.findValue(target),
-            b -> b
+        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
+            list -> list,
+            holder -> holder.value().parameters()
         );
         
+        Holder<Biome> biome = paramList.findValue(target);
         return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
     }
 
@@ -201,10 +206,7 @@ public class NeoForgeNarrGenContext implements Context {
         int qz = z >> 2;
         Climate.TargetPoint target = sampler.sample(qx, qy, qz);
         
-        // target.weirdness() returns a quantized long in range approximately [-10000, 10000]
-        // Normalize to [0, 1] range for ridge influence
         long weirdness = target.weirdness();
-        // Clamp to expected range and normalize
         float normalized = (weirdness + 10000.0f) / 20000.0f;
         return Math.max(0.0f, Math.min(1.0f, normalized));
     }

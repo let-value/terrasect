@@ -1,8 +1,7 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.mixin.ClimateHandler;
+import com.terrasect.neoforge.generation.MinecraftContext;
+import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,10 +11,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * NeoForge mixin for MultiNoiseBiomeSource that applies region-based climate modifications.
  * 
- * This mixin ONLY handles climate (temperature/humidity) adjustments based on region settings.
- * Biome filtering is handled separately by BiomeMixin.
- * 
- * The actual climate calculation logic is in the common ClimateHandler class.
+ * <p>This mixin is intentionally thin - it only redirects the sampler.sample() call
+ * to {@link ClimateHandler#modifyClimate}. All logic, debug logging, and statistics
+ * tracking are handled in the common handler.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class ClimateMixin {
@@ -31,22 +29,24 @@ public class ClimateMixin {
         )
     )
     private Climate.TargetPoint terrasect$modifyClimate(Climate.Sampler sampler, int x, int y, int z) {
+        // Get the original sample first
         Climate.TargetPoint original = sampler.sample(x, y, z);
 
-        // Get platform-specific context
-        Context context = NeoForgeNarrGenContext.get(sampler);
+        // Get context and delegate to common handler
+        MinecraftContext context = MinecraftContext.get(sampler);
         
-        // Use common handler for climate modification
         ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
             context, x, y, z,
             original.temperature(),
             original.humidity()
         );
         
+        // If not modified, return original
         if (!result.modified()) {
             return original;
         }
         
+        // Return modified climate point
         return new Climate.TargetPoint(
             result.temperature(),
             result.humidity(),

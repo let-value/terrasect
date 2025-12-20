@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -15,6 +15,7 @@ import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 import net.minecraft.world.level.biome.Climate;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.world.level.biome.Biome;
@@ -29,20 +30,41 @@ import java.util.concurrent.Executor;
 /**
  * NeoForge mixin for ServerLevel that registers the narrative generation context
  * when a level is initialized.
+ * 
+ * <p>Supports all dimensions with MultiNoiseBiomeSource:
+ * <ul>
+ *   <li>Overworld - uses OVERWORLD noise settings</li>
+ *   <li>Nether - uses NETHER noise settings</li>
+ *   <li>Custom dimensions - uses their configured noise settings</li>
+ * </ul>
+ * 
+ * <p>Note: The End uses TheEndBiomeSource (not multi-noise) and doesn't need
+ * climate-based modification - it has fixed biome placement.
  */
 @Mixin(ServerLevel.class)
-public class ServerLevelMixin {
+public class LevelMixin {
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onInit(MinecraftServer minecraftServer, Executor executor, LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, ResourceKey<Level> resourceKey, LevelStem levelStem, ChunkProgressListener chunkProgressListener, boolean bl, long l, List<CustomSpawner> list, boolean bl2, RandomState randomState, CallbackInfo ci) {
+    private void onInit(MinecraftServer minecraftServer, Executor executor, 
+            LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, 
+            ResourceKey<Level> resourceKey, LevelStem levelStem, ChunkProgressListener chunkProgressListener, 
+            boolean bl, long seed, List<CustomSpawner> list, boolean bl2, RandomState randomState, 
+            CallbackInfo ci) {
+        
         ServerLevel level = (ServerLevel) (Object) this;
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         BiomeSource biomeSource = generator.getBiomeSource();
 
+        // Only process dimensions with MultiNoiseBiomeSource
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
-             Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
-             NeoForgeNarrGenContext context = NeoForgeNarrGenContext.create(resourceKey, l, randomState.sampler(), parameters);
-             NeoForgeNarrGenContext.register(resourceKey, context);
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters = 
+                ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            
+            MinecraftContext context = MinecraftContext.create(
+                resourceKey, seed, randomState.sampler(), parameters);
+            MinecraftContext.register(resourceKey, context);
         }
+        // Note: TheEndBiomeSource and other biome sources don't use climate sampling
+        // and don't need context registration - they have fixed biome placement
     }
 }

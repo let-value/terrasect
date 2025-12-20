@@ -1,5 +1,6 @@
 package com.terrasect.common.runtime.handler;
 
+import com.terrasect.common.Terrasect;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.ClimateModifier;
 import com.terrasect.common.api.Region;
@@ -14,11 +15,36 @@ import com.terrasect.common.generation.definition.ClimateSettings;
  * 
  * This class contains all the common climate handling code that is shared
  * between Fabric and NeoForge ClimateMixin implementations.
+ * 
+ * <p>Mixins should be thin - they only redirect calls to this handler.
+ * All debug logging and statistics tracking is centralized here.
  */
 public final class ClimateHandler {
     
+    // Debug statistics
+    private static int totalCalls = 0;
+    private static int modifiedCount = 0;
+    private static int noContextCount = 0;
+    
     private ClimateHandler() {
         // Static utility class
+    }
+    
+    /**
+     * Reset debug statistics. Useful for testing.
+     */
+    public static void resetStats() {
+        totalCalls = 0;
+        modifiedCount = 0;
+        noContextCount = 0;
+    }
+    
+    /**
+     * Get current statistics for debugging.
+     */
+    public static String getStats() {
+        return String.format("total=%d, modified=%d, noContext=%d", 
+            totalCalls, modifiedCount, noContextCount);
     }
     
     /**
@@ -42,6 +68,9 @@ public final class ClimateHandler {
     /**
      * Calculate modified climate values based on region settings.
      * 
+     * <p>This method handles all debug logging internally - mixins should
+     * just call this method and return the result.
+     * 
      * @param context The generation strategy context (null if not available)
      * @param x Biome coordinate X (not block coordinate)
      * @param y Biome coordinate Y
@@ -56,7 +85,24 @@ public final class ClimateHandler {
             long originalTemperature,
             long originalHumidity) {
         
+        totalCalls++;
+        
+        // Log first call to confirm handler is active
+        if (totalCalls == 1) {
+            Terrasect.LOGGER.info("ClimateHandler: First climate modification call at quart coords ({}, {}, {})", x, y, z);
+        }
+        
+        // Log stats periodically
+        if (totalCalls % 10000 == 0) {
+            Terrasect.LOGGER.debug("ClimateHandler: Stats - {}", getStats());
+        }
+        
         if (context == null) {
+            noContextCount++;
+            // Log occasionally when context is missing
+            if (noContextCount % 10000 == 1) {
+                Terrasect.LOGGER.warn("ClimateHandler: No context available (count={})", noContextCount);
+            }
             return ClimateResult.unmodified(originalTemperature, originalHumidity);
         }
 
@@ -113,10 +159,19 @@ public final class ClimateHandler {
         long modifiedTemp = ClimateModifier.applyTemperatureOffset(originalTemperature, offset);
         long modifiedHumid = ClimateModifier.applyHumidityOffset(originalHumidity, offset);
         
+        modifiedCount++;
+        
         // Record the climate modification for sampling
         MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
             modifiedTemp, modifiedHumid, region.name(), true);
         MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
+        
+        // Log occasionally when we actually modify
+        if (modifiedCount % 5000 == 1) {
+            Terrasect.LOGGER.debug("ClimateHandler: Modified at ({}, {}) - temp: {} -> {}, humid: {} -> {}, region: {}",
+                blockX, blockZ, originalTemperature, modifiedTemp,
+                originalHumidity, modifiedHumid, region.name());
+        }
         
         return new ClimateResult(modifiedTemp, modifiedHumid, true, region.name());
     }
