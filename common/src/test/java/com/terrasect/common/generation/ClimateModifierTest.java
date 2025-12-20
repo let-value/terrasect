@@ -138,7 +138,7 @@ public class ClimateModifierTest {
     }
 
     @Test
-    public void edgeFactorReducesInfluence() {
+    public void edgeFactorDoesNotReduceInfluenceForHardEdges() {
         ClimateSettings climate = ClimateSettings.builder()
             .temperature(1.0f)
             .build();
@@ -153,8 +153,10 @@ public class ClimateModifierTest {
             climate, 0L, 0L, 1.0f
         );
         
-        assertTrue(Math.abs(centerOffset.temperatureOffset()) > Math.abs(edgeOffset.temperatureOffset()),
-            "Edge proximity should reduce climate influence for smooth transitions");
+        // With hard edges, edgeFactor should NOT reduce climate influence
+        // Both center and edge should have the same full offset
+        assertEquals(centerOffset.temperatureOffset(), edgeOffset.temperatureOffset(),
+            "Hard edges should apply full climate offset regardless of edge proximity");
     }
 
     @Test

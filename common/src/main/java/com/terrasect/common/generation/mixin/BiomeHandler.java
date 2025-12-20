@@ -4,11 +4,10 @@ import com.terrasect.common.generation.BiomeFilter;
 import com.terrasect.common.generation.Region;
 import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.World;
+import com.terrasect.common.generation.debug.MixinSampler;
 import com.terrasect.common.generation.definition.SelectionRules;
 
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Shared biome filtering logic for platform mixins.
@@ -31,10 +30,11 @@ public final class BiomeHandler {
      */
     public record FilterContext(
         SelectionRules rules,
-        boolean shouldFilter
+        boolean shouldFilter,
+        String regionName
     ) {
         public static FilterContext noFilter() {
-            return new FilterContext(null, false);
+            return new FilterContext(null, false, null);
         }
     }
     
@@ -66,9 +66,18 @@ public final class BiomeHandler {
             return FilterContext.noFilter();
         }
         
-        return new FilterContext(biomeRules, true);
+        return new FilterContext(biomeRules, true, region.name());
     }
     
+    /**
+     * Record a biome filter result for sampling.
+     * Called by platform mixins after biome selection.
+     */
+    public static void recordBiomeSelection(int quartX, int quartZ, String selectedBiome, 
+                                             String regionName, boolean wasFiltered) {
+        MixinSampler.recordBiomeFilter(quartX, quartZ, selectedBiome, regionName, wasFiltered);
+    }
+
     /**
      * Check if a biome is allowed based on the rules.
      * 

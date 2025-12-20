@@ -94,6 +94,11 @@ public class FabricNarrGenContext implements Strategy {
         int qz = z >> 2;
         Climate.TargetPoint target = sampler.sample(qx, qy, qz);
         
-        return (float) ((target.weirdness() + 1.0) / 2.0);
+        // target.weirdness() returns a quantized long in range approximately [-10000, 10000]
+        // Normalize to [0, 1] range for ridge influence
+        long weirdness = target.weirdness();
+        // Clamp to expected range and normalize
+        float normalized = (weirdness + 10000.0f) / 20000.0f;
+        return Math.max(0.0f, Math.min(1.0f, normalized));
     }
 }

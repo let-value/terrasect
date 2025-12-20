@@ -3,6 +3,7 @@ package com.terrasect.fabric.mixin;
 import com.terrasect.common.Terrasect;
 import com.terrasect.fabric.generation.FabricNarrGenContext;
 import com.terrasect.common.generation.Strategy;
+import com.terrasect.common.generation.debug.MixinSampler;
 import com.terrasect.common.generation.mixin.ClimateHandler;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -59,6 +60,14 @@ public class ClimateMixin {
             Terrasect.LOGGER.info("ClimateMixin: FIRST CALL - Mixin is active! Quart coords: ({}, {}, {})", x, y, z);
         }
         
+        // Log calls near spawn (within 50 quarts = 200 blocks)
+        int blockX = x << 2;
+        int blockZ = z << 2;
+        int distSq = blockX * blockX + blockZ * blockZ;
+        if (distSq < 200 * 200) {
+            Terrasect.LOGGER.info("ClimateMixin: NEAR SPAWN! B({}, {}) from Q({}, {}, {})", blockX, blockZ, x, y, z);
+        }
+        
         // Log every 5000 calls for debugging
         if (terrasect$totalCalls % 5000 == 0) {
             Terrasect.LOGGER.info("ClimateMixin: Stats - total={}, modified={}, noContext={}", 
@@ -73,6 +82,12 @@ public class ClimateMixin {
         
         if (context == null) {
             terrasect$noContextCount++;
+            // Record unmodified sample
+            MixinSampler.recordMixinIO(x, y, z,
+                original.temperature(), original.humidity(),
+                original.continentalness(), original.erosion(), original.depth(), original.weirdness(),
+                original.temperature(), original.humidity(),
+                null, false);
             // Log occasionally
             if (terrasect$logCounter++ % 10000 == 0) {
                 Terrasect.LOGGER.warn("ClimateMixin: No context for sampler! noContext={}, modified={}", 
@@ -81,22 +96,32 @@ public class ClimateMixin {
             return original; // No context, use vanilla
         }
         
-        // Convert quart coords to block coords for region lookup
-        int blockX = x << 2;
-        int blockZ = z << 2;
-        
         // Apply climate modifications using common handler
+        // Pass quart coordinates - ClimateHandler will convert to block coords
         ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
-            context, blockX, y << 2, blockZ,
+            context, x, y, z,
             original.temperature(),
             original.humidity()
         );
         
         if (!result.modified()) {
+            // Record unmodified sample with region info
+            MixinSampler.recordMixinIO(x, y, z,
+                original.temperature(), original.humidity(),
+                original.continentalness(), original.erosion(), original.depth(), original.weirdness(),
+                original.temperature(), original.humidity(),
+                result.regionName(), false);
             return original;
         }
         
         terrasect$modifiedCount++;
+        
+        // Record modified sample
+        MixinSampler.recordMixinIO(x, y, z,
+            original.temperature(), original.humidity(),
+            original.continentalness(), original.erosion(), original.depth(), original.weirdness(),
+            result.temperature(), result.humidity(),
+            result.regionName(), true);
         
         // Log occasionally when we actually modify
         if (terrasect$modifiedCount % 1000 == 1) {

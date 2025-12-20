@@ -24,8 +24,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 
 public class BiomeVisualizationTest {
 
@@ -41,12 +41,18 @@ public class BiomeVisualizationTest {
 
     @Test
     public void visualizeBiomeFiltering() throws IOException {
+        // Enable performance tracking
+        PerfTracker.enable();
+        
         long seed = 12345L;
         
+        PerfTracker.start("buildRegionHierarchy");
         // Build region hierarchy with biome filtering rules
         Region root = buildFilteredBiomeRegions();
         World.setRoot(root);
+        PerfTracker.stop("buildRegionHierarchy");
         
+        PerfTracker.start("setupMinecraft");
         // Setup Minecraft vanilla climate sampler
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
         HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
@@ -69,6 +75,23 @@ public class BiomeVisualizationTest {
         Climate.ParameterList<Holder<Biome>> parameterList = overworldParameters.value().parameters();
         
         Strategy context = createStrategy(seed, sampler, biomeSource);
+        PerfTracker.stop("setupMinecraft");
+        
+        // Build BiomeMetadataLookup - pre-computes biome IDs and tags for O(1) lookups
+        // This is the production-ready pattern for fast biome filtering
+        PerfTracker.start("buildBiomeMetadataLookup");
+        BiomeMetadataLookup.Builder<Holder<Biome>> lookupBuilder = BiomeMetadataLookup.builder();
+        Set<Holder<Biome>> seenBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (var entry : parameterList.values()) {
+            Holder<Biome> biome = entry.getSecond();
+            if (seenBiomes.add(biome)) {
+                String biomeId = getBiomeId(biome);
+                Set<String> tags = getBiomeTags(biome);
+                lookupBuilder.add(biome, biomeId, tags);
+            }
+        }
+        BiomeMetadataLookup<Holder<Biome>> biomeLookup = lookupBuilder.build();
+        PerfTracker.stop("buildBiomeMetadataLookup");
         
         BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage filteredBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -88,23 +111,40 @@ public class BiomeVisualizationTest {
                 int quartZ = blockZ >> 2;
                 
                 // Get vanilla biome
+                PerfTracker.start("climateSample");
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
+                PerfTracker.stop("climateSample");
+                
+                PerfTracker.start("parameterListFind");
                 Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
-                String vanillaBiomeId = getBiomeId(vanillaBiome);
-                Set<String> vanillaTags = getBiomeTags(vanillaBiome);
+                PerfTracker.stop("parameterListFind");
+                
+                // Use BiomeMetadataLookup for O(1) lookup
+                PerfTracker.start("lookupBiomeMetadata");
+                BiomeMetadataLookup.Entry vanillaEntry = biomeLookup.get(vanillaBiome);
+                String vanillaBiomeId = vanillaEntry != null ? vanillaEntry.id() : getBiomeId(vanillaBiome);
+                Set<String> vanillaTags = vanillaEntry != null ? vanillaEntry.tags() : getBiomeTags(vanillaBiome);
+                PerfTracker.stop("lookupBiomeMetadata");
                 
                 // Get region and its biome rules
+                PerfTracker.start("regionLookup");
                 Region region = World.getRegion(blockX, blockZ, context);
+                PerfTracker.stop("regionLookup");
+                
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;
                 
                 // Calculate edge for region map
+                PerfTracker.start("regionFieldData");
                 long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
                 float edge = RegionField.unpackEdge(regionData);
                 float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
                 float edgeFactor = 1.0f - normalizedEdge;
+                PerfTracker.stop("regionFieldData");
                 
                 // Check if vanilla biome is allowed
+                PerfTracker.start("biomeFilterCheck");
                 BiomeFilter.FilterResult filterResult = BiomeFilter.checkBiome(biomeRules, vanillaBiomeId, vanillaTags);
+                PerfTracker.stop("biomeFilterCheck");
                 
                 Holder<Biome> finalBiome = vanillaBiome;
                 int overlayColor = 0x444444; // Default gray
@@ -115,8 +155,10 @@ public class BiomeVisualizationTest {
                 
                 if (filterResult == BiomeFilter.FilterResult.BLOCKED) {
                     blockedCount++;
-                    // Find fallback biome
-                    finalBiome = findAllowedBiomeFallback(parameterList, vanilla, biomeRules);
+                    // Find fallback biome using BiomeMetadataLookup
+                    PerfTracker.start("findFallbackBiome");
+                    finalBiome = findAllowedBiomeFallback(biomeLookup, vanilla, biomeRules, parameterList);
+                    PerfTracker.stop("findFallbackBiome");
                     if (finalBiome != null && !finalBiome.equals(vanillaBiome)) {
                         replacedCount++;
                         overlayColor = 0xFF0000; // Red for replaced
@@ -128,10 +170,12 @@ public class BiomeVisualizationTest {
                     overlayColor = 0x00FF00; // Green for allowed by rules
                 }
                 
+                PerfTracker.start("imageSetRGB");
                 vanillaBiomes.setRGB(px, py, biomeToColor(vanillaBiome));
                 filteredBiomes.setRGB(px, py, biomeToColor(finalBiome));
                 filterOverlay.setRGB(px, py, overlayColor);
                 regionMap.setRGB(px, py, getRegionColor(region, edgeFactor));
+                PerfTracker.stop("imageSetRGB");
             }
         }
         
@@ -171,6 +215,10 @@ public class BiomeVisualizationTest {
         System.out.println("Biomes changed: " + replacedCount + 
             " (" + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
+        
+        // Print performance summary
+        PerfTracker.printSummary();
+        PerfTracker.disable();
     }
     
     /**
@@ -204,10 +252,15 @@ public class BiomeVisualizationTest {
         return registry.build("WORLD");
     }
     
+    /**
+     * Find the best allowed fallback biome using BiomeMetadataLookup for fast filtering.
+     * Uses O(1) biome metadata retrieval.
+     */
     private Holder<Biome> findAllowedBiomeFallback(
-            Climate.ParameterList<Holder<Biome>> parameterList,
+            BiomeMetadataLookup<Holder<Biome>> biomeLookup,
             Climate.TargetPoint target,
-            SelectionRules rules) {
+            SelectionRules rules,
+            Climate.ParameterList<Holder<Biome>> parameterList) {
         
         if (rules == null || !BiomeFilter.hasRules(rules)) {
             return null;
@@ -216,12 +269,12 @@ public class BiomeVisualizationTest {
         Holder<Biome> bestFallback = null;
         long bestDistance = Long.MAX_VALUE;
         
+        // Iterate through parameter list entries to get climate params
         for (var entry : parameterList.values()) {
             Holder<Biome> candidate = entry.getSecond();
-            String biomeId = getBiomeId(candidate);
-            Set<String> biomeTags = getBiomeTags(candidate);
             
-            if (BiomeFilter.isAllowed(rules, biomeId, biomeTags)) {
+            // Use BiomeMetadataLookup for O(1) allow check - no allocation!
+            if (biomeLookup.isAllowed(candidate, rules)) {
                 long distance = calculateClimateDistance(target, entry.getFirst());
                 if (distance < bestDistance) {
                     bestDistance = distance;
@@ -254,7 +307,7 @@ public class BiomeVisualizationTest {
         try {
             biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
         } catch (IllegalStateException e) {
-            // Tags not bound - this is expected in test environment
+            // Tags not bound in this test environment - fall through to inference
         }
         
         // Add inferred tags based on biome name for test purposes

@@ -6,6 +6,7 @@ import com.terrasect.common.generation.Region;
 import com.terrasect.common.generation.RegionField;
 import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.World;
+import com.terrasect.common.generation.debug.MixinSampler;
 import com.terrasect.common.generation.definition.ClimateSettings;
 
 /**
@@ -26,10 +27,15 @@ public final class ClimateHandler {
     public record ClimateResult(
         long temperature,
         long humidity,
-        boolean modified
+        boolean modified,
+        String regionName
     ) {
         public static ClimateResult unmodified(long temperature, long humidity) {
-            return new ClimateResult(temperature, humidity, false);
+            return new ClimateResult(temperature, humidity, false, null);
+        }
+        
+        public static ClimateResult unmodifiedWithRegion(long temperature, long humidity, String regionName) {
+            return new ClimateResult(temperature, humidity, false, regionName);
         }
     }
     
@@ -55,24 +61,30 @@ public final class ClimateHandler {
         }
 
         long seed = context.getSeed();
+        MixinSampler.recordSeed(seed);
         int blockX = x << 2;
         int blockZ = z << 2;
         
         // Get the region at this location
         Region region = World.getRegion(blockX, blockZ, context);
         if (region == null) {
+            MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
+                originalTemperature, originalHumidity, null, false);
             return ClimateResult.unmodified(originalTemperature, originalHumidity);
         }
+        
+        // Record region query for sampling
+        MixinSampler.recordRegionQuery(blockX, blockZ, region.name());
         
         // Get climate settings for this region
         ClimateSettings climate = region.definition().climate();
         if (climate == null) {
-            return ClimateResult.unmodified(originalTemperature, originalHumidity);
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
         }
         
         // Check if there are any climate modifications to apply
         if (climate.temperature() == null && climate.humidity() == null) {
-            return ClimateResult.unmodified(originalTemperature, originalHumidity);
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
         }
         
         // Calculate edge factor for smooth transitions between regions
@@ -93,14 +105,18 @@ public final class ClimateHandler {
         
         // If no modifications needed, return original
         if (!offset.hasModifications()) {
-            return ClimateResult.unmodified(originalTemperature, originalHumidity);
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
         }
         
         // Apply the offsets
-        return new ClimateResult(
-            ClimateModifier.applyTemperatureOffset(originalTemperature, offset),
-            ClimateModifier.applyHumidityOffset(originalHumidity, offset),
-            true
-        );
+        long modifiedTemp = ClimateModifier.applyTemperatureOffset(originalTemperature, offset);
+        long modifiedHumid = ClimateModifier.applyHumidityOffset(originalHumidity, offset);
+        
+        // Record the climate modification for sampling
+        MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
+            modifiedTemp, modifiedHumid, region.name(), true);
+        MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
+        
+        return new ClimateResult(modifiedTemp, modifiedHumid, true, region.name());
     }
 }

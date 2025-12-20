@@ -58,7 +58,15 @@ public class BiomeMixin {
         BiomeHandler.FilterContext filterContext = BiomeHandler.getFilterContext(context, x, z);
         
         if (!filterContext.shouldFilter()) {
-            return parameterList.findValue(targetPoint);
+            Object result = parameterList.findValue(targetPoint);
+            // Record unfiltered biome selection
+            if (result instanceof Holder<?> holder) {
+                @SuppressWarnings("unchecked")
+                Holder<Biome> biomeHolder = (Holder<Biome>) holder;
+                BiomeHandler.recordBiomeSelection(x, z, terrasect$getBiomeId(biomeHolder), 
+                    filterContext.regionName(), false);
+            }
+            return result;
         }
         
         // Get or build filtered parameter list
@@ -68,7 +76,15 @@ public class BiomeMixin {
             key -> terrasect$buildFilteredList(parameterList, filterContext)
         );
         
-        return filteredList.findValue(targetPoint);
+        Object result = filteredList.findValue(targetPoint);
+        // Record filtered biome selection
+        if (result instanceof Holder<?> holder) {
+            @SuppressWarnings("unchecked")
+            Holder<Biome> biomeHolder = (Holder<Biome>) holder;
+            BiomeHandler.recordBiomeSelection(x, z, terrasect$getBiomeId(biomeHolder),
+                filterContext.regionName(), true);
+        }
+        return result;
     }
     
     /**

@@ -18,6 +18,12 @@ import java.util.Set;
  * 2. If no allow rules exist -> ALLOWED (permissive by default)
  * 3. If allowed by name, mod, or tag -> ALLOWED
  * 4. Otherwise -> BLOCKED (if allow rules exist but don't match)
+ * 
+ * Performance optimizations:
+ * - No string allocations in hot path (tag normalization done at construction)
+ * - O(1) HashSet lookups instead of iteration
+ * - Pre-computed hasAllowRules/hasBlockRules flags
+ * - Single-pass algorithm with early exits
  */
 public final class BiomeFilter {
 
@@ -47,46 +53,40 @@ public final class BiomeFilter {
      * @return FilterResult indicating if biome is allowed, blocked, or no rules apply
      */
     public static FilterResult checkBiome(SelectionRules rules, String biomeId, Set<String> biomeTags) {
-        if (rules == null) {
+        if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
             return FilterResult.NO_RULES;
         }
         
-        // Extract mod namespace from biome ID
-        String modNamespace = extractNamespace(biomeId);
-        
         // 1. Check explicit name rules first (highest priority)
-        if (isAllowedByName(rules, biomeId)) {
+        if (rules.isNameAllowed(biomeId)) {
             return FilterResult.ALLOWED;  // Explicit name allow overrides everything
         }
-        if (isBlockedByName(rules, biomeId)) {
+        if (rules.isNameBlocked(biomeId)) {
             return FilterResult.BLOCKED;  // Explicit name block overrides tag/mod rules
         }
         
-        // 2. Check tag rules (medium priority)
-        if (isBlockedByTag(rules, biomeTags)) {
+        // 2. Check tag rules (medium priority) - no allocation, direct HashSet lookup
+        if (rules.hasBlockedTag(biomeTags)) {
             return FilterResult.BLOCKED;
         }
         
         // 3. Check mod rules (lowest priority)
-        if (isBlockedByMod(rules, modNamespace)) {
+        // Extract namespace without allocation when possible
+        String modNamespace = extractNamespace(biomeId);
+        if (rules.isModBlocked(modNamespace)) {
             return FilterResult.BLOCKED;
         }
         
-        // Check if any allow rules exist
-        boolean hasAllowRules = !rules.allowedMods().isEmpty() 
-            || !rules.allowedTags().isEmpty() 
-            || !rules.allowedNames().isEmpty();
-        
-        if (!hasAllowRules) {
-            // No allow rules = permissive, allow everything not blocked
+        // No allow rules = permissive, allow everything not blocked
+        if (!rules.hasAllowRules()) {
             return FilterResult.NO_RULES;
         }
         
         // Check allow rules (name already checked above)
-        if (isAllowedByTag(rules, biomeTags)) {
+        if (rules.hasAllowedTag(biomeTags)) {
             return FilterResult.ALLOWED;
         }
-        if (isAllowedByMod(rules, modNamespace)) {
+        if (rules.isModAllowed(modNamespace)) {
             return FilterResult.ALLOWED;
         }
         
@@ -105,70 +105,23 @@ public final class BiomeFilter {
     
     /**
      * Check if rules have any biome constraints defined.
+     * Uses pre-computed flags for O(1) check.
      */
     public static boolean hasRules(SelectionRules rules) {
         if (rules == null) return false;
-        return !rules.allowedMods().isEmpty()
-            || !rules.allowedTags().isEmpty()
-            || !rules.allowedNames().isEmpty()
-            || !rules.blockedMods().isEmpty()
-            || !rules.blockedTags().isEmpty()
-            || !rules.blockedNames().isEmpty();
+        return rules.hasAllowRules() || rules.hasBlockRules();
     }
     
+    /**
+     * Extract namespace from resource ID without allocation when colon is not found.
+     */
     private static String extractNamespace(String resourceId) {
-        if (resourceId == null) return "";
+        if (resourceId == null || resourceId.isEmpty()) return "minecraft";
         int colonIndex = resourceId.indexOf(':');
         if (colonIndex > 0) {
             return resourceId.substring(0, colonIndex);
         }
         return "minecraft"; // Default namespace
-    }
-    
-    private static boolean isBlockedByName(SelectionRules rules, String biomeId) {
-        return rules.blockedNames().contains(biomeId);
-    }
-    
-    private static boolean isBlockedByMod(SelectionRules rules, String modNamespace) {
-        return rules.blockedMods().contains(modNamespace);
-    }
-    
-    private static boolean isBlockedByTag(SelectionRules rules, Set<String> biomeTags) {
-        if (biomeTags == null || biomeTags.isEmpty()) return false;
-        for (String tag : biomeTags) {
-            // Normalize tag format - rules may or may not have # prefix
-            String normalizedTag = tag.startsWith("#") ? tag : "#" + tag;
-            String tagWithoutHash = tag.startsWith("#") ? tag.substring(1) : tag;
-            
-            if (rules.blockedTags().contains(normalizedTag) 
-                || rules.blockedTags().contains(tagWithoutHash)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private static boolean isAllowedByName(SelectionRules rules, String biomeId) {
-        return rules.allowedNames().contains(biomeId);
-    }
-    
-    private static boolean isAllowedByMod(SelectionRules rules, String modNamespace) {
-        return rules.allowedMods().contains(modNamespace);
-    }
-    
-    private static boolean isAllowedByTag(SelectionRules rules, Set<String> biomeTags) {
-        if (biomeTags == null || biomeTags.isEmpty()) return false;
-        for (String tag : biomeTags) {
-            // Normalize tag format
-            String normalizedTag = tag.startsWith("#") ? tag : "#" + tag;
-            String tagWithoutHash = tag.startsWith("#") ? tag.substring(1) : tag;
-            
-            if (rules.allowedTags().contains(normalizedTag) 
-                || rules.allowedTags().contains(tagWithoutHash)) {
-                return true;
-            }
-        }
-        return false;
     }
     
     private BiomeFilter() {
