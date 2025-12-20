@@ -1,218 +1,220 @@
 package com.terrasect.fabric.generation;
 
 import com.mojang.datafixers.util.Either;
+import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.DimensionRoots;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.lookup.BiomeLookup;
+import com.terrasect.common.runtime.BiomeFilter;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.Climate.ParameterList;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Fabric-specific implementation of the generation context.
+ * Fabric-specific generation context that provides O(1) biome filtering.
  * 
- * <p>This class provides:
- * <ul>
- *   <li>Dimension-specific context (ID, seed, sampler)</li>
- *   <li>Pre-built {@link BiomeLookup} for O(1) biome filtering</li>
- *   <li>Helper methods for extracting biome metadata from MC types</li>
- * </ul>
- * 
- * <p>Filtering logic is handled by {@link BiomeFilterCache}, not this class.
+ * <p>
+ * Created once per dimension when the world loads. Holds a {@link BiomeLookup}
+ * with
+ * pre-baked filtered parameter lists for every {@link SelectionRules} in the
+ * region tree.
  */
 public class MinecraftContext implements Context {
-    
-    private static final Map<ResourceKey<Level>, MinecraftContext> CONTEXTS = new ConcurrentHashMap<>();
+
+    // Global registry of contexts by dimension and sampler
+    private static final Map<ResourceKey<Level>, MinecraftContext> BY_DIMENSION = new ConcurrentHashMap<>();
     private static final Map<Climate.Sampler, MinecraftContext> BY_SAMPLER = new ConcurrentHashMap<>();
 
     private final long seed;
     private final Climate.Sampler sampler;
     private final Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
     private final String dimensionId;
-    private final BiomeLookup<Holder<Biome>> biomeLookup;
+    private final BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup;
+    private final Climate.ParameterList<Holder<Biome>> paramList;
 
-    public MinecraftContext(long seed, Climate.Sampler sampler, 
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
-        this(seed, sampler, parameters, "minecraft:overworld");
-    }
-    
-    public MinecraftContext(long seed, Climate.Sampler sampler, 
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters, 
-            String dimensionId) {
+    private MinecraftContext(long seed, String dimensionId, Climate.Sampler sampler,
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters,
+            BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup) {
         this.seed = seed;
+        this.dimensionId = dimensionId;
         this.sampler = sampler;
         this.parameters = parameters;
-        this.dimensionId = dimensionId;
-        this.biomeLookup = buildBiomeLookup(parameters);
+        this.paramList = parameters.map(list -> list, holder -> holder.value().parameters());
+        this.biomeLookup = biomeLookup;
     }
-    
-    // ========== Lookup Pre-baking ==========
-    
-    /**
-     * Build the biome metadata lookup for O(1) filtering.
-     * Called once during context construction.
-     */
-    private static BiomeLookup<Holder<Biome>> buildBiomeLookup(
+
+    public static MinecraftContext create(
+            ResourceKey<Level> dimension,
+            long seed,
+            Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
-        if (parameters == null) {
-            return BiomeLookup.<Holder<Biome>>builder().build();
+
+        String dimensionId = dimension.identifier().toString();
+        var lookup = buildLookup(parameters, dimensionId);
+
+        MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, parameters, lookup);
+
+        BY_DIMENSION.put(dimension, context);
+        if (sampler != null) {
+            BY_SAMPLER.put(sampler, context);
         }
-        
+
+        return context;
+    }
+
+    /**
+     * Build the BiomeLookup with pre-baked filtered parameter lists.
+     */
+    private static BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> buildLookup(
+            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters,
+            String dimensionId) {
+
+        if (parameters == null) {
+            return BiomeLookup.<Holder<Biome>, Climate.ParameterList<Holder<Biome>>>builder().buildSimple();
+        }
+
         Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
-            list -> list,
-            holder -> holder.value().parameters()
-        );
-        
-        BiomeLookup.Builder<Holder<Biome>> builder = BiomeLookup.builder();
+                list -> list,
+                holder -> holder.value().parameters());
+
+        // Collect biome metadata
+        BiomeLookup.Builder<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> builder = BiomeLookup.builder();
         Set<Holder<Biome>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        
+
         for (var entry : paramList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                builder.add(biome, getBiomeId(biome), getBiomeTags(biome));
+                String id = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+                Set<String> tags = new HashSet<>();
+                biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
+                builder.add(biome, id, tags);
             }
         }
-        
-        return builder.build();
-    }
-    
-    // ========== MC Type Helpers ==========
-    
-    /**
-     * Extract the biome ID from a holder.
-     */
-    public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey()
-            .map(key -> key.identifier().toString())
-            .orElse("unknown");
-    }
-    
-    /**
-     * Extract the biome tags from a holder.
-     */
-    public static Set<String> getBiomeTags(Holder<Biome> biome) {
-        Set<String> tags = new HashSet<>();
-        biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
-        return tags;
-    }
-    
-    // ========== Registry ==========
-    
-    /**
-     * Create a context from a Minecraft ResourceKey dimension.
-     */
-    public static MinecraftContext create(ResourceKey<Level> dimension, long seed, Climate.Sampler sampler, 
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
-        return new MinecraftContext(seed, sampler, parameters, toDimensionId(dimension));
-    }
-    
-    private static String toDimensionId(ResourceKey<Level> dimension) {
-        if (dimension == Level.OVERWORLD) {
-            return "minecraft:overworld";
-        } else if (dimension == Level.NETHER) {
-            return "minecraft:the_nether";
-        } else if (dimension == Level.END) {
-            return "minecraft:the_end";
+
+        builder.withParameterList(paramList);
+
+        // Pre-bake filtered lists for all rules in the region tree
+        Region root = DimensionRoots.getRoot(dimensionId);
+        if (root != null) {
+            builder.withRegionTree(root);
         }
-        // For modded dimensions, parse from ResourceKey string
-        String str = dimension.toString();
-        int slashIdx = str.indexOf(" / ");
-        if (slashIdx > 0) {
-            int endIdx = str.indexOf(']', slashIdx);
-            if (endIdx > slashIdx) {
-                return str.substring(slashIdx + 3, endIdx);
+
+        return builder.build((metadata, original, rules) -> {
+            List<Pair<Climate.ParameterPoint, Holder<Biome>>> filtered = new ArrayList<>();
+
+            for (var entry : original.values()) {
+                Holder<Biome> biome = entry.getSecond();
+                BiomeLookup.Entry meta = metadata.get(biome);
+
+                boolean allowed = meta == null ||
+                        BiomeFilter.checkBiome(rules, meta.id(), meta.tags()) != BiomeFilter.FilterResult.BLOCKED;
+
+                if (allowed) {
+                    filtered.add(entry);
+                }
             }
-        }
-        return "minecraft:overworld";
+
+            // Fallback: keep first biome if everything was filtered
+            if (filtered.isEmpty() && !original.values().isEmpty()) {
+                filtered.add(original.values().get(0));
+            }
+
+            return new Climate.ParameterList<>(filtered);
+        });
     }
 
-    public static void register(ResourceKey<Level> dimension, MinecraftContext context) {
-        CONTEXTS.put(dimension, context);
-        if (context.sampler != null) {
-            BY_SAMPLER.put(context.sampler, context);
-        }
-    }
+    // ==================== Lookup ====================
 
     public static MinecraftContext get(ResourceKey<Level> dimension) {
-        return CONTEXTS.get(dimension);
+        return BY_DIMENSION.get(dimension);
     }
 
     public static MinecraftContext get(Climate.Sampler sampler) {
         MinecraftContext ctx = BY_SAMPLER.get(sampler);
-        if (ctx != null) {
+        if (ctx != null)
             return ctx;
-        }
-        // Fallback chain: Overworld -> any registered context -> null
-        ctx = CONTEXTS.get(Level.OVERWORLD);
-        if (ctx != null) {
+
+        // Fallback: try overworld, then any context
+        ctx = BY_DIMENSION.get(Level.OVERWORLD);
+        if (ctx != null)
             return ctx;
-        }
-        return CONTEXTS.values().stream().findFirst().orElse(null);
+
+        return BY_DIMENSION.values().stream().findFirst().orElse(null);
     }
 
     public static void clear() {
-        CONTEXTS.clear();
+        BY_DIMENSION.clear();
         BY_SAMPLER.clear();
     }
 
-    // ========== Context Interface ==========
+    // ==================== Getters ====================
 
     @Override
     public long getSeed() {
         return seed;
     }
-    
+
     @Override
     public String getDimensionId() {
         return dimensionId;
     }
-    
-    public BiomeLookup<Holder<Biome>> getBiomeLookup() {
+
+    public BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> getBiomeLookup() {
         return biomeLookup;
     }
 
+    /**
+     * Get a filtered parameter list for the given rules. O(1) lookup.
+     */
+    public Climate.ParameterList<Holder<Biome>> getFilteredParameterList(SelectionRules rules) {
+        return biomeLookup.getFilteredParameterList(rules);
+    }
+
+    /**
+     * Extract biome ID from a holder (for debug/logging).
+     */
+    public static String getBiomeId(Holder<Biome> biome) {
+        return biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+    }
+
+    // ==================== Context Interface ====================
+
     @Override
     public float getRiverInfluence(int x, int z) {
-        if (sampler == null || parameters == null) return 0.0f;
-        
-        int qx = x >> 2;
-        int qy = 16; 
-        int qz = z >> 2;
-        
-        // Use VanillaSampler to get unmodified climate values (bypasses our mixin)
-        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(qx, qy, qz);
-        
-        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
-            list -> list,
-            holder -> holder.value().parameters()
-        );
-        
+        if (sampler == null)
+            return 0.0f;
+
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler)
+                .terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+
         Holder<Biome> biome = paramList.findValue(target);
         return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
-            
     }
 
     @Override
     public float getRidgeInfluence(int x, int z) {
-        if (sampler == null) return 0.0f;
-        
-        int qx = x >> 2;
-        int qy = 16; 
-        int qz = z >> 2;
-        
-        // Use VanillaSampler to get unmodified climate values (bypasses our mixin)
-        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(qx, qy, qz);
-        
+        if (sampler == null)
+            return 0.0f;
+
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler)
+                .terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+
         long weirdness = target.weirdness();
         float normalized = (weirdness + 10000.0f) / 20000.0f;
         return Math.max(0.0f, Math.min(1.0f, normalized));

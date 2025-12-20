@@ -60,34 +60,31 @@ public class LevelMixin {
             List<CustomSpawner> list, boolean bl2, @Nullable RandomSequences randomSequences, 
             CallbackInfo ci) {
         
-        ChunkGenerator generator = levelStem.generator();
-        BiomeSource biomeSource = generator.getBiomeSource();
+        var generator = levelStem.generator();
+        var biomeSource = generator.getBiomeSource();
 
-        // Only process dimensions with MultiNoiseBiomeSource and NoiseBasedChunkGenerator
+        
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise 
                 && generator instanceof NoiseBasedChunkGenerator) {
             
-            // Get noise settings for this dimension
-            NoiseGeneratorSettings settings = getNoiseSettings(minecraftServer, resourceKey);
             
-            // Get noise registry from server
-            HolderGetter<NormalNoise.NoiseParameters> noiseParams = 
-                minecraftServer.registryAccess().lookupOrThrow(Registries.NOISE);
+            var settings = getNoiseSettings(minecraftServer, resourceKey);
             
-            // Create RandomState early (before spawn finding)
-            RandomState randomState = RandomState.create(settings, noiseParams, seed);
-            Climate.Sampler sampler = randomState.sampler();
             
-            // Get biome parameters from the biome source
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters = 
-                ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            var noiseParams = minecraftServer.registryAccess().lookupOrThrow(Registries.NOISE);
             
-            // Register context for this dimension
-            MinecraftContext context = MinecraftContext.create(resourceKey, seed, sampler, parameters);
-            MinecraftContext.register(resourceKey, context);
+            
+            var randomState = RandomState.create(settings, noiseParams, seed);
+            var sampler = randomState.sampler();
+            
+            
+            var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            
+            
+            MinecraftContext.create(resourceKey, seed, sampler, parameters);
         }
-        // Note: TheEndBiomeSource and other biome sources don't use climate sampling
-        // and don't need context registration - they have fixed biome placement
+        
+        
     }
     
     /**
@@ -101,7 +98,7 @@ public class LevelMixin {
         try {
             var noiseSettingsRegistry = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS);
             
-            // Map dimension to its noise settings
+            
             if (dimension == Level.OVERWORLD) {
                 return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
             } else if (dimension == Level.NETHER) {
@@ -110,11 +107,11 @@ public class LevelMixin {
                 return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.END).value();
             }
             
-            // For custom dimensions, try to get from the chunk generator settings
-            // Fallback to overworld settings for unknown dimensions
+            
+            
             return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
         } catch (Exception e) {
-            // Fallback to dummy settings if registry lookup fails
+            
             return NoiseGeneratorSettings.dummy();
         }
     }

@@ -89,7 +89,7 @@ public class BiomeVisualizationTest {
         // Build BiomeMetadataLookup - pre-computes biome IDs and tags for O(1) lookups
         // This is the production-ready pattern for fast biome filtering
         PerfTracker.start("buildBiomeMetadataLookup");
-        BiomeLookup.Builder<Holder<Biome>> lookupBuilder = BiomeLookup.builder();
+        BiomeLookup.Builder<Holder<Biome>, Void> lookupBuilder = BiomeLookup.builder();
         Set<Holder<Biome>> seenBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
         for (var entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
@@ -99,7 +99,7 @@ public class BiomeVisualizationTest {
                 lookupBuilder.add(biome, biomeId, tags);
             }
         }
-        BiomeLookup<Holder<Biome>> biomeLookup = lookupBuilder.build();
+        BiomeLookup<Holder<Biome>, Void> biomeLookup = lookupBuilder.buildSimple();
         PerfTracker.stop("buildBiomeMetadataLookup");
         
         BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);

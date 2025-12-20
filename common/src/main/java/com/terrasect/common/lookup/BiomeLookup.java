@@ -1,64 +1,52 @@
 package com.terrasect.common.lookup;
 
+import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.runtime.BiomeFilter;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A fast lookup structure for biome metadata and filtering.
+ * A fast lookup structure for biome metadata and pre-baked filtered parameter lists.
  * 
  * <p>This class provides:
  * <ul>
  *   <li>Pre-computed biome IDs and tags for O(1) lookups</li>
- *   <li>Cached filtered entry lists per SelectionRules</li>
+ *   <li>Pre-baked filtered parameter lists for every SelectionRules in the region tree</li>
  * </ul>
  * 
- * <p>The caching is critical for performance: instead of iterating 7000+ entries
- * on every biome lookup, we pre-filter once per unique SelectionRules.
+ * <p>All filtering is done upfront during construction. The BiomeMixin can then retrieve
+ * filtered parameter lists in O(1) with zero runtime filtering overhead.
  * 
  * <p>NOTE: This class intentionally avoids any Minecraft class references to prevent
  * Fabric Loom remapping issues. It uses Object keys with identity-based lookup,
  * so callers should pass Holder<Biome> instances directly as keys.
  * 
  * @param <K> The key type (typically Holder<Biome> but kept generic to avoid MC imports)
+ * @param <P> The parameter list type (typically Climate.ParameterList<Holder<Biome>>)
  */
-public final class BiomeLookup<K> {
+public final class BiomeLookup<K, P> {
     
     /**
      * Pre-computed metadata for a single biome.
      */
     public record Entry(String id, Set<String> tags) {}
     
-    /**
-     * Result of filtering an entry list.
-     */
-    public record FilteredEntries<E>(
-        List<E> entries,
-        int originalSize,
-        int filteredSize
-    ) {
-        public boolean isEmpty() {
-            return filteredSize == 0;
-        }
-    }
-    
     private final Map<K, Entry> metadata;
-    private final Set<K> allBiomes;
     
-    // Cache filtered biome sets by SelectionRules
-    // Key: SelectionRules, Value: Set of allowed biome keys
-    private final Map<SelectionRules, Set<K>> allowedBiomeCache = new ConcurrentHashMap<>();
+    // Pre-baked filtered parameter lists per SelectionRules (computed at construction)
+    private final Map<SelectionRules, P> filteredParameterLists;
     
-    private BiomeLookup(Map<K, Entry> metadata) {
+    // The original (unfiltered) parameter list
+    private final P originalParameterList;
+    
+    private BiomeLookup(Map<K, Entry> metadata, P originalParameterList, Map<SelectionRules, P> filteredParameterLists) {
         this.metadata = metadata;
-        this.allBiomes = Collections.unmodifiableSet(metadata.keySet());
+        this.originalParameterList = originalParameterList;
+        this.filteredParameterLists = filteredParameterLists;
     }
     
     /**
@@ -110,93 +98,99 @@ public final class BiomeLookup<K> {
     }
     
     /**
-     * Get the set of allowed biomes for the given rules.
-     * Results are cached for performance.
+     * Get the original (unfiltered) parameter list.
      * 
-     * @param rules The selection rules (null = all allowed)
-     * @return Set of allowed biome keys (identity-based)
+     * @return The original parameter list
      */
-    public Set<K> getAllowedBiomes(SelectionRules rules) {
-        if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
-            return allBiomes;
-        }
-        return allowedBiomeCache.computeIfAbsent(rules, this::computeAllowedBiomes);
+    public P getParameterList() {
+        return originalParameterList;
     }
     
     /**
-     * Filter a list of entries, keeping only those with allowed biomes.
-     * Uses cached allowed biome set for O(1) per-entry checks.
+     * Get the pre-baked filtered parameter list for the given rules.
+     * O(1) lookup - all filtering was done at construction time.
      * 
-     * @param entries The entries to filter
-     * @param biomeExtractor Function to get biome key from entry
-     * @param rules The selection rules
-     * @param <E> Entry type
-     * @return Filtered entries with metadata
+     * @param rules The selection rules (null returns original list)
+     * @return The filtered parameter list
      */
-    public <E> FilteredEntries<E> filterEntries(
-            List<E> entries,
-            java.util.function.Function<E, K> biomeExtractor,
-            SelectionRules rules) {
-        
+    public P getFilteredParameterList(SelectionRules rules) {
         if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
-            return new FilteredEntries<>(entries, entries.size(), entries.size());
+            return originalParameterList;
         }
-        
-        Set<K> allowed = getAllowedBiomes(rules);
-        List<E> filtered = new ArrayList<>();
-        
-        for (E entry : entries) {
-            K biome = biomeExtractor.apply(entry);
-            if (allowed.contains(biome)) {
-                filtered.add(entry);
-            }
-        }
-        
-        return new FilteredEntries<>(filtered, entries.size(), filtered.size());
+        P filtered = filteredParameterLists.get(rules);
+        return filtered != null ? filtered : originalParameterList;
     }
     
     /**
-     * Compute which biomes are allowed for the given rules.
-     * Called once per unique SelectionRules, then cached.
+     * @return The number of pre-baked filtered lists
      */
-    private Set<K> computeAllowedBiomes(SelectionRules rules) {
-        Set<K> allowed = Collections.newSetFromMap(new IdentityHashMap<>());
-        
-        for (Map.Entry<K, Entry> entry : metadata.entrySet()) {
-            K biome = entry.getKey();
-            Entry meta = entry.getValue();
-            
-            if (BiomeFilter.checkBiome(rules, meta.id(), meta.tags()) != BiomeFilter.FilterResult.BLOCKED) {
-                allowed.add(biome);
-            }
-        }
-        
-        return Collections.unmodifiableSet(allowed);
+    public int getFilteredListCount() {
+        return filteredParameterLists.size();
     }
     
     /**
      * Get cache statistics for debugging.
      */
     public String getCacheStats() {
-        return String.format("BiomeLookup: %d biomes, %d cached rule sets", 
-            metadata.size(), allowedBiomeCache.size());
+        return String.format("BiomeLookup: %d biomes, %d pre-baked rule sets", 
+            metadata.size(), filteredParameterLists.size());
     }
 
     /**
-     * Create a new builder for constructing a BiomeMetadataLookup.
+     * Create a new builder for constructing a BiomeLookup.
      * 
      * @param <K> The key type
+     * @param <P> The parameter list type
      * @return A new builder instance
      */
-    public static <K> Builder<K> builder() {
+    public static <K, P> Builder<K, P> builder() {
         return new Builder<>();
     }
     
     /**
-     * Builder for constructing BiomeMetadataLookup instances.
+     * Collect all unique SelectionRules from a region tree.
+     * This walks the entire tree recursively to find every biome rule set.
+     * 
+     * @param root The root region
+     * @return Set of all unique SelectionRules in the tree
      */
-    public static final class Builder<K> {
+    public static Set<SelectionRules> collectAllRules(Region root) {
+        Set<SelectionRules> rules = Collections.newSetFromMap(new IdentityHashMap<>());
+        collectRulesRecursive(root, rules);
+        return rules;
+    }
+    
+    private static void collectRulesRecursive(Region region, Set<SelectionRules> rules) {
+        if (region == null) return;
+        
+        SelectionRules biomeRules = region.definition().biomes();
+        if (biomeRules != null && (biomeRules.hasAllowRules() || biomeRules.hasBlockRules())) {
+            rules.add(biomeRules);
+        }
+        
+        for (Region child : region.children()) {
+            collectRulesRecursive(child, rules);
+        }
+    }
+    
+    /**
+     * Builder for constructing BiomeLookup instances.
+     * 
+     * <p>Usage:
+     * <pre>{@code
+     * BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> lookup = 
+     *     BiomeLookup.<Holder<Biome>, Climate.ParameterList<Holder<Biome>>>builder()
+     *         .add(biome, getBiomeId(biome), getBiomeTags(biome))
+     *         // ... add all biomes
+     *         .withParameterList(originalList)
+     *         .withRegionTree(dimensionRoot)
+     *         .build(this::buildFilteredList);
+     * }</pre>
+     */
+    public static final class Builder<K, P> {
         private final Map<K, Entry> metadata = new IdentityHashMap<>();
+        private P originalParameterList;
+        private Set<SelectionRules> rulesToPreBake;
         
         private Builder() {}
         
@@ -208,18 +202,91 @@ public final class BiomeLookup<K> {
          * @param tags The biome's tags with # prefix (e.g., "#minecraft:is_forest")
          * @return this builder for chaining
          */
-        public Builder<K> add(K key, String id, Set<String> tags) {
+        public Builder<K, P> add(K key, String id, Set<String> tags) {
             metadata.put(key, new Entry(id, tags));
             return this;
         }
         
         /**
-         * Build the immutable lookup structure.
+         * Set the original (unfiltered) parameter list.
          * 
-         * @return A new BiomeMetadataLookup instance
+         * @param parameterList The original parameter list
+         * @return this builder for chaining
          */
-        public BiomeLookup<K> build() {
-            return new BiomeLookup<>(new IdentityHashMap<>(metadata));
+        public Builder<K, P> withParameterList(P parameterList) {
+            this.originalParameterList = parameterList;
+            return this;
         }
+        
+        /**
+         * Extract all SelectionRules from the region tree for pre-baking.
+         * 
+         * @param root The root region of the dimension
+         * @return this builder for chaining
+         */
+        public Builder<K, P> withRegionTree(Region root) {
+            this.rulesToPreBake = collectAllRules(root);
+            return this;
+        }
+        
+        /**
+         * Explicitly set the rules to pre-bake (alternative to withRegionTree).
+         * 
+         * @param rules The set of rules to pre-bake
+         * @return this builder for chaining
+         */
+        public Builder<K, P> withRules(Set<SelectionRules> rules) {
+            this.rulesToPreBake = rules;
+            return this;
+        }
+        
+        /**
+         * Build the lookup with pre-baked filtered parameter lists.
+         * 
+         * @param filterFunction Function that takes (this lookup's metadata, original list, rules) 
+         *                       and returns a filtered parameter list
+         * @return A new BiomeLookup instance with all filtering pre-computed
+         */
+        public BiomeLookup<K, P> build(FilterFunction<K, P> filterFunction) {
+            Map<K, Entry> finalMetadata = new IdentityHashMap<>(metadata);
+            Map<SelectionRules, P> filtered = new IdentityHashMap<>();
+            
+            if (rulesToPreBake != null && originalParameterList != null) {
+                for (SelectionRules rules : rulesToPreBake) {
+                    if (rules != null && (rules.hasAllowRules() || rules.hasBlockRules())) {
+                        P filteredList = filterFunction.filter(finalMetadata, originalParameterList, rules);
+                        filtered.put(rules, filteredList);
+                    }
+                }
+            }
+            
+            return new BiomeLookup<>(finalMetadata, originalParameterList, filtered);
+        }
+        
+        /**
+         * Build a simple lookup without parameter list support.
+         * Use this when you only need biome metadata lookups.
+         * 
+         * @return A new BiomeLookup instance
+         */
+        public BiomeLookup<K, P> buildSimple() {
+            return new BiomeLookup<>(new IdentityHashMap<>(metadata), null, Collections.emptyMap());
+        }
+    }
+    
+    /**
+     * Functional interface for building filtered parameter lists.
+     */
+    @FunctionalInterface
+    public interface FilterFunction<K, P> {
+        /**
+         * Filter a parameter list based on selection rules.
+         * 
+         * @param metadata The biome metadata map
+         * @param original The original parameter list
+         * @param rules The selection rules to apply
+         * @return The filtered parameter list
+         */
+        P filter(Map<K, Entry> metadata, P original, SelectionRules rules);
     }
 }

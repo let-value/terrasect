@@ -107,21 +107,30 @@ public final class ClimateHandler {
         }
 
         long seed = context.getSeed();
-        MixinSampler.recordSeed(seed);
         int blockX = x << 2;
         int blockZ = z << 2;
+        
+        // Only record to sampler if explicitly enabled by tests
+        boolean sampling = MixinSampler.isEnabled();
+        if (sampling) {
+            MixinSampler.recordSeed(seed);
+        }
         
         // Get the region at this location using dimension from context
         String dimensionId = context.getDimensionId();
         Region region = World.getRegion(dimensionId, blockX, blockZ, context);
         if (region == null) {
-            MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
-                originalTemperature, originalHumidity, null, false);
+            if (sampling) {
+                MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
+                    originalTemperature, originalHumidity, null, false);
+            }
             return ClimateResult.unmodified(originalTemperature, originalHumidity);
         }
         
-        // Record region query for sampling
-        MixinSampler.recordRegionQuery(blockX, blockZ, region.name());
+        // Record region query for sampling (only if enabled)
+        if (sampling) {
+            MixinSampler.recordRegionQuery(blockX, blockZ, region.name());
+        }
         
         // Get climate settings for this region
         ClimateSettings climate = region.definition().climate();
@@ -161,10 +170,12 @@ public final class ClimateHandler {
         
         modifiedCount++;
         
-        // Record the climate modification for sampling
-        MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
-            modifiedTemp, modifiedHumid, region.name(), true);
-        MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
+        // Record the climate modification for sampling (only if enabled)
+        if (sampling) {
+            MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
+                modifiedTemp, modifiedHumid, region.name(), true);
+            MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
+        }
         
         // Log occasionally when we actually modify
         if (modifiedCount % 5000 == 1) {

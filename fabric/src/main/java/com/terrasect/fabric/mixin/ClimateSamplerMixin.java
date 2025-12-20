@@ -1,7 +1,6 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.fabric.generation.MinecraftContext;
-import com.terrasect.fabric.generation.SamplerBypass;
 import com.terrasect.fabric.generation.VanillaSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;

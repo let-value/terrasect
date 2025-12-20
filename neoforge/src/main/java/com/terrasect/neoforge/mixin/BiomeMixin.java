@@ -1,8 +1,7 @@
 package com.terrasect.neoforge.mixin;
 
-import com.mojang.datafixers.util.Pair;
+import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
-import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.handler.BiomeHandler;
 import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
 import net.minecraft.core.Holder;
@@ -13,14 +12,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * NeoForge mixin for MultiNoiseBiomeSource that applies region-based biome filtering.
  * 
  * <p>Redirects getNoiseBiome() to filter biomes based on region rules.
- * Uses pre-built {@link BiomeLookup} for O(1) biome checking.
+ * Filtering is cached per SelectionRules in NeoForgeNarrGenContext.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class BiomeMixin {
@@ -37,40 +33,25 @@ public class BiomeMixin {
             Climate.TargetPoint targetPoint,
             int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
         
-        Climate.ParameterList<Holder<Biome>> parameterList = 
-            ((MultiNoiseBiomeSourceAccessor) self).getParameters().map(
-                list -> list,
-                holder -> holder.value().parameters()
-            );
-        
         NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(sampler);
         if (context == null) {
-            return parameterList.findValue(targetPoint);
+            return ((MultiNoiseBiomeSourceAccessor) self).getParameters().map(
+                list -> list,
+                holder -> holder.value().parameters()
+            ).findValue(targetPoint);
         }
         
-        // Get rules - null means no filtering
-        SelectionRules rules = BiomeHandler.getRules(context, quartX, quartZ);
-        if (rules == null) {
-            Holder<Biome> result = parameterList.findValue(targetPoint);
-            BiomeHandler.recordResult(context, quartX, quartZ, NeoForgeNarrGenContext.getBiomeId(result), false);
-            return result;
-        }
+        // Get region and rules in single lookup
+        Region region = BiomeHandler.getRegion(context, quartX, quartZ);
+        SelectionRules rules = BiomeHandler.getRules(region);
         
-        // Filter biomes using O(1) lookup
-        BiomeLookup<Holder<Biome>> lookup = context.getBiomeLookup();
-        List<Pair<Climate.ParameterPoint, Holder<Biome>>> allowed = new ArrayList<>();
-        
-        for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
-            if (BiomeHandler.isBiomeAllowed(lookup, entry.getSecond(), rules)) {
-                allowed.add(entry);
-            }
-        }
-        
-        Holder<Biome> result = allowed.isEmpty() 
-            ? parameterList.findValue(targetPoint)
-            : new Climate.ParameterList<>(allowed).findValue(targetPoint);
-        
-        BiomeHandler.recordResult(context, quartX, quartZ, NeoForgeNarrGenContext.getBiomeId(result), true);
+        // Use cached filtered parameter list from context
+        Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
+        boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());
+
+        Holder<Biome> result = parameterList.findValue(targetPoint);
+        BiomeHandler.recordResult(quartX, quartZ,
+            NeoForgeNarrGenContext.getBiomeId(result), region, wasFiltered);
         return result;
     }
 }

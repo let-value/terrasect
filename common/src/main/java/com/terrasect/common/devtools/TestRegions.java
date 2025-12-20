@@ -5,7 +5,6 @@ import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
-import com.terrasect.common.runtime.World;
 
 /**
  * Pre-configured test regions for development and testing purposes.
@@ -71,13 +70,13 @@ public final class TestRegions {
             .child("CLIMATES", regions -> regions
                 .strategy(GenerationStrategyType.SUBDIVISION)
                 .child("SCORCHED_WASTES", region -> region
-                    .radius(1000)
+                    .radius(100)
                     .climate(c -> c.temperature(1.0f).humidity(0.0f)))
                 .child("FROZEN_REACHES", region -> region
-                    .radius(1000)
+                    .radius(50)
                     .climate(c -> c.temperature(0.0f).humidity(0.3f)))
                 .child("WILDLANDS", region -> region
-                    .radius(1000)));
+                    .radius(200)));
         
         // ===== THE END =====
         registry.region("END_ROOT")
@@ -132,7 +131,7 @@ public final class TestRegions {
                 // ===== Frozen Tundra Region =====
                 // Extreme cold. Prefers cold biomes.
                 .child("FROZEN_REACHES", region -> region
-                    .radius(1000)
+                    .radius(100)
                     .climate(c -> c
                         .temperature(0.0f)   // Maximum cold
                         .humidity(0.3f))     // Some snow
@@ -152,7 +151,7 @@ public final class TestRegions {
                 // ===== Temperate Forest Region =====
                 // Mild temperature, moderate humidity. Prefers forests.
                 .child("VERDANT_HEART", region -> region
-                    .radius(1000)
+                    .radius(300)
                     .climate(c -> c
                         .temperature(0.5f)   // Mild
                         .humidity(0.6f))     // Moist
@@ -170,7 +169,7 @@ public final class TestRegions {
                 // ===== Tropical Jungle Region =====
                 // Hot and very humid. Allows jungle biomes.
                 .child("MYSTIC_JUNGLE", region -> region
-                    .radius(1000)
+                    .radius(200)
                     .climate(c -> c
                         .temperature(0.9f)   // Hot
                         .humidity(1.0f))     // Maximum humidity
@@ -186,7 +185,7 @@ public final class TestRegions {
                 // ===== Mountain Highlands Region =====
                 // Cool and dry. Allows mountain biomes.
                 .child("ANCIENT_HIGHLANDS", region -> region
-                    .radius(1000)
+                    .radius(100)
                     .climate(c -> c
                         .temperature(0.3f)   // Cool
                         .humidity(0.4f))     // Semi-dry
@@ -206,7 +205,7 @@ public final class TestRegions {
                 // ===== Wildlands (Vanilla) =====
                 // No climate or biome modifications - pure vanilla behavior.
                 .child("WILDLANDS", region -> region
-                    .radius(1000)));
+                    .radius(100)));
         
         return registry.build("WORLD");
     }

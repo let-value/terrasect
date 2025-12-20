@@ -10,22 +10,33 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Sampling infrastructure for collecting data from mixin calls during gameplay.
+ * Opt-in sampling infrastructure for collecting data from mixin calls during gameplay.
  * 
- * This facade allows integration tests to observe actual behavior of our mixins
- * by collecting samples of region queries, climate modifications, and biome filtering.
+ * <p>This facade allows integration tests (e.g., client gametest) to observe actual
+ * behavior of our mixins by collecting samples of region queries, climate modifications,
+ * and biome filtering.
  * 
- * Usage:
+ * <p><b>IMPORTANT:</b> This sampler is completely disabled by default and has zero overhead
+ * when disabled. Handlers check {@link #isEnabled()} before calling any recording methods.
+ * Only enable this in test environments that need to analyze mixin behavior.
+ * 
+ * <p>Usage in game tests:
  * <pre>
+ * // In test setup
+ * MixinSampler.clear();
  * MixinSampler.enable();
- * // ... run game code ...
+ * 
+ * // ... run game code / world generation ...
+ * 
+ * // In test teardown or assertions
  * MixinSampler.disable();
  * 
- * List<ClimateSample> samples = MixinSampler.getClimateSamples();
- * Map<String, Integer> regionCounts = MixinSampler.getRegionCounts();
+ * List&lt;ClimateSample&gt; samples = MixinSampler.getClimateSamples();
+ * Map&lt;String, Integer&gt; regionCounts = MixinSampler.getRegionCounts();
  * </pre>
  * 
- * The sampler is disabled by default and has minimal overhead when disabled.
+ * <p>The sampler is disabled by default and handlers will not call recording methods
+ * unless {@link #isEnabled()} returns true.
  */
 public final class MixinSampler {
     
