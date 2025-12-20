@@ -1,5 +1,6 @@
 package com.terrasect.common;
 
+import com.terrasect.common.generation.DimensionRoots;
 import com.terrasect.common.generation.Region;
 import com.terrasect.common.generation.RegionRegistry;
 import com.terrasect.common.generation.TestRegions;
@@ -24,15 +25,21 @@ public final class Terrasect {
         LOGGER.info("Terrasect mod initialization started");
 
         if (useTestRegions) {
-            // Load test regions for development
+            // Load test regions for development (now dimension-aware)
             TestRegions.register();
-            LOGGER.info("Terrasect initialized with TEST regions");
+            LOGGER.info("Terrasect initialized with TEST regions for {} dimensions", 
+                DimensionRoots.getRegisteredDimensions().size());
         } else {
             // Initialize default empty world
             // Users/Tests should override this with their own configuration
             RegionRegistry registry = new RegionRegistry();
             registry.region("ROOT");
-            World.setRoot(registry.build("ROOT"));
+            Region root = registry.build("ROOT");
+            
+            // Register for Overworld and set as fallback
+            DimensionRoots.register(DimensionRoots.OVERWORLD, root);
+            World.setRoot(root);
+            
             LOGGER.info("Terrasect initialized with empty root region");
         }
     }

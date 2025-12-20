@@ -1,6 +1,7 @@
 package com.terrasect.common.generation.mixin;
 
 import com.terrasect.common.generation.BiomeFilter;
+import com.terrasect.common.generation.DimensionRoots;
 import com.terrasect.common.generation.Region;
 import com.terrasect.common.generation.Strategy;
 import com.terrasect.common.generation.World;
@@ -12,10 +13,14 @@ import java.util.Set;
 /**
  * Shared biome filtering logic for platform mixins.
  * 
- * This class contains all the common biome handling code that is shared
+ * <p>This class contains all the common biome handling code that is shared
  * between Fabric and NeoForge BiomeMixin implementations.
  * 
- * Note: The actual ParameterList filtering is done in the platform mixins
+ * <p>Now supports dimension-aware region lookups. The Strategy context provides
+ * the dimension ID, which is used to look up the appropriate root region from
+ * {@link DimensionRoots}.
+ * 
+ * <p>Note: The actual ParameterList filtering is done in the platform mixins
  * since it requires Minecraft classes. This class handles the region lookup
  * and rule retrieval logic.
  */
@@ -41,6 +46,9 @@ public final class BiomeHandler {
     /**
      * Get the biome filtering context for a location.
      * 
+     * <p>Uses the dimension ID from the context to look up the appropriate
+     * root region, enabling dimension-specific biome rules.
+     * 
      * @param context The generation strategy context (null if not available)
      * @param x Biome coordinate X (not block coordinate)
      * @param z Biome coordinate Z
@@ -54,8 +62,8 @@ public final class BiomeHandler {
         int blockX = x << 2;
         int blockZ = z << 2;
         
-        // Get the region at this location
-        Region region = World.getRegion(blockX, blockZ, context);
+        // Get the region at this location using dimension-aware lookup
+        Region region = getRegionForContext(context, blockX, blockZ);
         if (region == null) {
             return FilterContext.noFilter();
         }
@@ -67,6 +75,27 @@ public final class BiomeHandler {
         }
         
         return new FilterContext(biomeRules, true, region.name());
+    }
+    
+    /**
+     * Get the region for a context, using dimension-aware lookup.
+     * 
+     * @param context The generation strategy context
+     * @param blockX Block X coordinate
+     * @param blockZ Block Z coordinate
+     * @return The region at this location, or null if not found
+     */
+    private static Region getRegionForContext(Strategy context, int blockX, int blockZ) {
+        // Get dimension ID from context (defaults to Overworld)
+        String dimensionId = context.getDimensionId();
+        
+        // Try dimension-aware API if dimension is registered
+        if (DimensionRoots.hasRoot(dimensionId)) {
+            return World.getRegion(dimensionId, blockX, blockZ, context);
+        }
+        
+        // Fall back to legacy World API (uses fallback root)
+        return World.getRegion(blockX, blockZ, context);
     }
     
     /**

@@ -41,7 +41,7 @@ public class ServerLevelMixin {
 
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
              Either<Climate.ParameterList<Holder<Biome>>, Holder<Biome>> parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
-             NeoForgeNarrGenContext context = new NeoForgeNarrGenContext(l, randomState.sampler(), parameters);
+             NeoForgeNarrGenContext context = NeoForgeNarrGenContext.create(resourceKey, l, randomState.sampler(), parameters);
              NeoForgeNarrGenContext.register(resourceKey, context);
         }
     }

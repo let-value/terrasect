@@ -77,7 +77,7 @@ public class NarrGenServerLevelMixin {
                     ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
                 
                 // Register early - before spawn finding!
-                FabricNarrGenContext context = new FabricNarrGenContext(seed, sampler, parameters);
+                FabricNarrGenContext context = FabricNarrGenContext.create(resourceKey, seed, sampler, parameters);
                 FabricNarrGenContext.register(resourceKey, context);
             }
         }
