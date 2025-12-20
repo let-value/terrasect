@@ -1,8 +1,8 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.mixin.BiomeHandler;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.runtime.handler.BiomeHandler;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;

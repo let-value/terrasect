@@ -1,5 +1,6 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.util.MathUtils;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

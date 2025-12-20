@@ -2,9 +2,9 @@ package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.Terrasect;
 import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.debug.MixinSampler;
-import com.terrasect.common.generation.mixin.ClimateHandler;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.devtools.MixinSampler;
+import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;

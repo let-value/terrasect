@@ -1,5 +1,9 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.runtime.World;
+
 import java.util.HashMap;
 import java.util.Map;
 

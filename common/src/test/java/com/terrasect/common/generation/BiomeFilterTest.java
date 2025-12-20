@@ -1,6 +1,7 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.generation.definition.SelectionRules;
+import com.terrasect.common.runtime.BiomeFilter;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;

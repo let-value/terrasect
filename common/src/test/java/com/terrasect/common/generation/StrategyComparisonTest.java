@@ -1,6 +1,10 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.RegionRegistry;
+import com.terrasect.common.api.Strategy;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.runtime.World;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;

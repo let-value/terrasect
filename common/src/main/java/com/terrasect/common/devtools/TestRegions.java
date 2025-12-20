@@ -1,7 +1,11 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.devtools;
 
 import com.terrasect.common.Terrasect;
+import com.terrasect.common.api.DimensionRoots;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.runtime.World;
 
 /**
  * Pre-configured test regions for development and testing purposes.

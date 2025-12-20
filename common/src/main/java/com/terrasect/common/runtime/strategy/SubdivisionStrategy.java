@@ -1,7 +1,7 @@
-package com.terrasect.common.generation.strategy;
+package com.terrasect.common.runtime.strategy;
 
-import com.terrasect.common.generation.MathUtils;
-import com.terrasect.common.generation.Region;
+import com.terrasect.common.util.MathUtils;
+import com.terrasect.common.api.Region;
 
 import java.util.List;
 
@@ -139,8 +139,8 @@ public final class SubdivisionStrategy {
         float splitRatio = leftBudget / totalBudget;
 
         // Apply jitter
-        float jitter = hashToFloat(seed, depth, 0);
-        splitRatio = clamp(splitRatio + (jitter - 0.5f) * jitterAmount, 0.15f, 0.85f);
+        float jitterVal = hashToFloat(seed, depth, 0);
+        splitRatio = clamp(splitRatio + (jitterVal - 0.5f) * jitterAmount, 0.15f, 0.85f);
 
         // Choose split axis
         float width = maxX - minX;

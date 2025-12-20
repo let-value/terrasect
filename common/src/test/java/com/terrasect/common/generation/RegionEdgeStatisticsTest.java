@@ -1,5 +1,7 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.runtime.EdgeStatistics;
+import com.terrasect.common.runtime.RegionField;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

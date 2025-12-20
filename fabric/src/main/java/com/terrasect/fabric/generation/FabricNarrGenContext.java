@@ -1,7 +1,7 @@
 package com.terrasect.fabric.generation;
 
 import com.mojang.datafixers.util.Either;
-import com.terrasect.common.generation.Strategy;
+import com.terrasect.common.api.Strategy;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;

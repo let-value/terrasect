@@ -1,9 +1,9 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.fabric.generation.FabricNarrGenContext;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.World;
-import com.terrasect.common.generation.Region;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.runtime.World;
+import com.terrasect.common.api.Region;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;

@@ -1,10 +1,10 @@
 package com.terrasect.common;
 
-import com.terrasect.common.generation.DimensionRoots;
-import com.terrasect.common.generation.Region;
-import com.terrasect.common.generation.RegionRegistry;
-import com.terrasect.common.generation.TestRegions;
-import com.terrasect.common.generation.World;
+import com.terrasect.common.api.DimensionRoots;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.RegionRegistry;
+import com.terrasect.common.devtools.TestRegions;
+import com.terrasect.common.runtime.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

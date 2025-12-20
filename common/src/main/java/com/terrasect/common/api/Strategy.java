@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.api;
 
 /**
  * Generation context interface that provides world-specific information

@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.devtools;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,12 +1,12 @@
-package com.terrasect.common.generation.mixin;
+package com.terrasect.common.runtime.handler;
 
-import com.terrasect.common.generation.Config;
-import com.terrasect.common.generation.ClimateModifier;
-import com.terrasect.common.generation.Region;
-import com.terrasect.common.generation.RegionField;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.World;
-import com.terrasect.common.generation.debug.MixinSampler;
+import com.terrasect.common.runtime.Config;
+import com.terrasect.common.runtime.ClimateModifier;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.runtime.RegionField;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.runtime.World;
+import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.definition.ClimateSettings;
 
 /**

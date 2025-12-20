@@ -1,6 +1,10 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.DimensionRoots;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.runtime.World;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

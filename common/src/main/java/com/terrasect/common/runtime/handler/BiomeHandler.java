@@ -1,11 +1,11 @@
-package com.terrasect.common.generation.mixin;
+package com.terrasect.common.runtime.handler;
 
-import com.terrasect.common.generation.BiomeFilter;
-import com.terrasect.common.generation.DimensionRoots;
-import com.terrasect.common.generation.Region;
-import com.terrasect.common.generation.Strategy;
-import com.terrasect.common.generation.World;
-import com.terrasect.common.generation.debug.MixinSampler;
+import com.terrasect.common.runtime.BiomeFilter;
+import com.terrasect.common.api.DimensionRoots;
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.Strategy;
+import com.terrasect.common.runtime.World;
+import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.definition.SelectionRules;
 
 import java.util.Set;

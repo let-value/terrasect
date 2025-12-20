@@ -1,6 +1,6 @@
 package com.terrasect.fabric.client;
 
-import com.terrasect.common.generation.debug.MixinSampler;
+import com.terrasect.common.devtools.MixinSampler;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;

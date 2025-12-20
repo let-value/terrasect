@@ -1,6 +1,7 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.lookup;
 
 import com.terrasect.common.generation.definition.SelectionRules;
+import com.terrasect.common.runtime.BiomeFilter;
 
 import java.util.IdentityHashMap;
 import java.util.Map;

@@ -1,7 +1,7 @@
-package com.terrasect.common.generation.strategy;
+package com.terrasect.common.runtime.strategy;
 
-import com.terrasect.common.generation.MathUtils;
-import com.terrasect.common.generation.Region;
+import com.terrasect.common.util.MathUtils;
+import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.StrategySettings;
 

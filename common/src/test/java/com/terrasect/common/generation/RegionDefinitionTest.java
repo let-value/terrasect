@@ -1,7 +1,8 @@
 package com.terrasect.common.generation;
 
+import com.terrasect.common.api.Region;
+import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.RegionDefinition;
-import com.terrasect.common.generation.RegionRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

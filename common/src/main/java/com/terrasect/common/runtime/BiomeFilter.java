@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.runtime;
 
 import com.terrasect.common.generation.definition.SelectionRules;
 
