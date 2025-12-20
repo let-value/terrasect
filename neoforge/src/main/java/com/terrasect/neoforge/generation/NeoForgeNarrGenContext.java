@@ -187,7 +187,15 @@ public class NeoForgeNarrGenContext implements Context {
         int qy = 16; 
         int qz = z >> 2;
         
-        Climate.TargetPoint target = sampler.sample(qx, qy, qz);
+        // Set flag to bypass our mixin, get vanilla sample, then clear flag
+        Climate.TargetPoint target;
+        SamplerBypass.setWantVanilla(true);
+        try {
+            target = sampler.sample(qx, qy, qz);
+        } finally {
+            SamplerBypass.setWantVanilla(false);
+        }
+        
         Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
             list -> list,
             holder -> holder.value().parameters()
@@ -204,7 +212,15 @@ public class NeoForgeNarrGenContext implements Context {
         int qx = x >> 2;
         int qy = 16; 
         int qz = z >> 2;
-        Climate.TargetPoint target = sampler.sample(qx, qy, qz);
+        
+        // Set flag to bypass our mixin, get vanilla sample, then clear flag
+        Climate.TargetPoint target;
+        SamplerBypass.setWantVanilla(true);
+        try {
+            target = sampler.sample(qx, qy, qz);
+        } finally {
+            SamplerBypass.setWantVanilla(false);
+        }
         
         long weirdness = target.weirdness();
         float normalized = (weirdness + 10000.0f) / 20000.0f;

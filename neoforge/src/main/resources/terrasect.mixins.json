@@ -5,6 +5,7 @@
   "mixins": [
     "BiomeMixin",
     "ClimateMixin",
+    "ClimateSamplerMixin",
     "MultiNoiseBiomeSourceAccessor",
     "ServerLevelMixin"
   ],

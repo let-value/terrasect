@@ -10,7 +10,6 @@ import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.RegionField;
 import com.terrasect.common.runtime.World;
-import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.SelectionRules;
 import net.minecraft.SharedConstants;
@@ -35,7 +34,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
+
 
 public class BiomeVisualizationTest {
 

@@ -189,7 +189,9 @@ public class MinecraftContext implements Context {
         int qy = 16; 
         int qz = z >> 2;
         
-        Climate.TargetPoint target = sampler.sample(qx, qy, qz);
+        // Use VanillaSampler to get unmodified climate values (bypasses our mixin)
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(qx, qy, qz);
+        
         Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
             list -> list,
             holder -> holder.value().parameters()
@@ -197,6 +199,7 @@ public class MinecraftContext implements Context {
         
         Holder<Biome> biome = paramList.findValue(target);
         return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
+            
     }
 
     @Override
@@ -206,7 +209,9 @@ public class MinecraftContext implements Context {
         int qx = x >> 2;
         int qy = 16; 
         int qz = z >> 2;
-        Climate.TargetPoint target = sampler.sample(qx, qy, qz);
+        
+        // Use VanillaSampler to get unmodified climate values (bypasses our mixin)
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(qx, qy, qz);
         
         long weirdness = target.weirdness();
         float normalized = (weirdness + 10000.0f) / 20000.0f;
