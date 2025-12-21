@@ -73,7 +73,6 @@ public class RegionBudgetTest {
             // So child radius ≈ parentRadius * sqrt(budgetRatio)
             float proportionalRadius = parentRadius * (float) Math.sqrt(budgetRatio);
             float proportionalDiameter = proportionalRadius * 2;
-            float proportionalArea = (float) (Math.PI * proportionalRadius * proportionalRadius);
             
             // What the user specified
             float specifiedRadius = (float) Math.sqrt(childBudget);

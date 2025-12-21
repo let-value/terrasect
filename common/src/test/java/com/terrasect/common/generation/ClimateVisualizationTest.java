@@ -270,7 +270,7 @@ public class ClimateVisualizationTest {
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // In test environment, tags aren't bound - use biome ID check
-                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                String biomeId = biome.unwrapKey().map(k -> k.location().toString()).orElse("");
                 return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
@@ -348,36 +348,12 @@ public class ClimateVisualizationTest {
     }
     
     /**
-     * Convert edge factor to grayscale.
-     * 0 (center of region) = white, 1 (edge of region) = black
-     */
-    private int edgeFactorToColor(float edgeFactor) {
-        int gray = (int) ((1.0f - edgeFactor) * 255);
-        return (gray << 16) | (gray << 8) | gray;
-    }
-    
-    /**
      * Darken a color by a given factor.
      */
     private int darkenColor(int color, float factor) {
         int r = (int) (((color >> 16) & 0xFF) * factor);
         int g = (int) (((color >> 8) & 0xFF) * factor);
         int b = (int) ((color & 0xFF) * factor);
-        return (r << 16) | (g << 8) | b;
-    }
-    
-    /**
-     * Darken a region color at boundaries for clear visualization.
-     * Returns the darkened color if at boundary, otherwise original color.
-     */
-    private int drawBoundary(int baseColor, boolean isBoundary) {
-        if (!isBoundary) {
-            return baseColor;
-        }
-        // Darken boundaries for visibility
-        int r = ((baseColor >> 16) & 0xFF) / 2;
-        int g = ((baseColor >> 8) & 0xFF) / 2;
-        int b = (baseColor & 0xFF) / 2;
         return (r << 16) | (g << 8) | b;
     }
     
@@ -413,7 +389,7 @@ public class ClimateVisualizationTest {
      */
     private int biomeToColor(Holder<Biome> biome) {
         String name = biome.unwrapKey()
-            .map(key -> key.identifier().toString())
+            .map(key -> key.location().toString())
             .orElse("unknown");
         
         // Create a hash-based color

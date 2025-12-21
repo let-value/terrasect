@@ -1,7 +1,7 @@
 package com.terrasect.common.generation;
 
 import net.minecraft.core.Holder;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
@@ -159,8 +159,8 @@ public class MinecraftEdgeSampler {
 
     private String biomeKeyAt(int x, int z) {
         Holder<Biome> biome = biomeSource.getNoiseBiome(x >> 2, 0, z >> 2, climateSampler);
-        Identifier id = biome.unwrapKey()
-            .map(key -> key.identifier())
+        ResourceLocation id = biome.unwrapKey()
+            .map(key -> key.location())
             .orElse(null);
         return id == null ? "unknown" : id.toString();
     }

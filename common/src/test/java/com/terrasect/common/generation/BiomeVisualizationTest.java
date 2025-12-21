@@ -304,7 +304,7 @@ public class BiomeVisualizationTest {
     
     private String getBiomeId(Holder<Biome> biome) {
         return biome.unwrapKey()
-            .map(key -> key.identifier().toString())
+            .map(key -> key.location().toString())
             .orElse("unknown");
     }
     
@@ -381,7 +381,7 @@ public class BiomeVisualizationTest {
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // Use biome ID check instead of tags - tags aren't bound in test environment
-                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                String biomeId = biome.unwrapKey().map(k -> k.location().toString()).orElse("");
                 return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
@@ -426,7 +426,7 @@ public class BiomeVisualizationTest {
      */
     private int biomeToColor(Holder<Biome> biome) {
         String name = biome.unwrapKey()
-            .map(key -> key.identifier().toString())
+            .map(key -> key.location().toString())
             .orElse("unknown");
         
         // Create a hash-based color

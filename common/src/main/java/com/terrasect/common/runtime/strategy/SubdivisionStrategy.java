@@ -194,7 +194,9 @@ public final class SubdivisionStrategy {
 
     /**
      * Compute edge warp using layered noise.
+     * Currently unused - reserved for organic edge warping feature.
      */
+    @SuppressWarnings("unused") // Reserved for future organic edge warping
     private static float edgeWarp(float coord, long seed, int depth) {
         float warp = 0;
         float amplitude = WARP_AMPLITUDE;

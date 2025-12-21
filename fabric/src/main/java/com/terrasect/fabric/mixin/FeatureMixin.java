@@ -26,6 +26,7 @@ public class FeatureMixin {
         }
         
         // Get dimension ID from context (which provides it via getDimensionId())
+        @SuppressWarnings("unused") // Will be used when feature gating is implemented
         Region region = World.getRegion(context, pos.getX(), pos.getZ());
 
         // TODO: Apply feature gating based on region properties
