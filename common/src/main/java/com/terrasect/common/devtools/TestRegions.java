@@ -4,33 +4,51 @@ import com.terrasect.common.Terrasect;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.generation.definition.StrategySettings;
 import com.terrasect.common.runtime.World;
 
 /**
- * Pre-configured test regions for development and testing purposes.
+ * Utilitarian test regions for development and visual testing.
  * 
- * <p>This demonstrates how to create different region hierarchies for different
- * dimensions using {@link World}.
+ * <p>Designed to immediately show generation contrasts when running the client.
  * 
- * <h2>Overworld Regions</h2>
+ * <h2>Structure</h2>
+ * <pre>
+ * WORLD (HEX grid with visible ring border)
+ *   ├── SEASONS_HUB (at spawn)
+ *   │     ├── SPAWN (tiny 1-chunk island, plains, anchored to origin)
+ *   │     ├── SPRING (warm, flowers)
+ *   │     ├── SUMMER (hot, dry)
+ *   │     ├── AUTUMN (mild, forest)
+ *   │     └── WINTER (cold, snowy)
+ *   │
+ *   ├── TEMPERATURE_LAB (pocket for testing climate manipulation)
+ *   │     ├── FREEZING, COLD, MILD, WARM, HOT
+ *   │
+ *   ├── BIOME_LAB (pocket for testing biome filtering)
+ *   │     ├── OCEANS_ONLY, FORESTS_ONLY, MOUNTAINS_ONLY
+ *   │
+ *   └── VANILLA (unmodified for comparison)
+ * </pre>
+ * 
+ * <h2>Sizes</h2>
  * <ul>
- *   <li>SCORCHED_WASTES: Hot desert climate, blocks ocean/river biomes</li>
- *   <li>FROZEN_REACHES: Cold tundra climate, allows only cold biomes</li>
- *   <li>VERDANT_HEART: Temperate forest climate, prefers forest biomes</li>
- *   <li>MYSTIC_JUNGLE: Hot and humid, allows jungle biomes</li>
- *   <li>ANCIENT_HIGHLANDS: Mild climate, allows mountain biomes</li>
- *   <li>WILDLANDS: No modifications - vanilla Minecraft behavior</li>
- * </ul>
- * 
- * <h2>End Regions</h2>
- * <ul>
- *   <li>CENTRAL_VOID: The main End island area</li>
- *   <li>OUTER_ISLANDS: The outer End islands</li>
+ *   <li>SPAWN: 1 chunk (16 blocks)</li>
+ *   <li>Season regions: 8 chunks diameter (128 blocks)</li>
+ *   <li>Lab pockets: Small enough to see all variations quickly</li>
  * </ul>
  * 
  * @see World for registering dimension-specific roots
  */
 public final class TestRegions {
+
+    // Size constants (in blocks)
+    private static final int CHUNK = 16;
+    private static final int SPAWN_SIZE = CHUNK;           // 1 chunk
+    private static final int SEASON_SIZE = CHUNK * 4;      // 8 chunks diameter = 4 chunk radius
+    private static final int HUB_SIZE = CHUNK * 12;        // Seasons hub
+    private static final int LAB_SIZE = CHUNK * 8;         // Lab pocket
+    private static final int LAB_ZONE_SIZE = CHUNK * 2;    // Individual lab zones
 
     private TestRegions() {
     }
@@ -40,7 +58,7 @@ public final class TestRegions {
      * Call this from mod initialization when you want to test with sample regions.
      */
     public static void register() {
-        Terrasect.LOGGER.info("Registering test regions for development");
+        Terrasect.LOGGER.info("Registering utilitarian test regions for development");
         
         // Build and register Overworld regions
         Region overworldRoot = buildTestWorld();
@@ -54,158 +72,126 @@ public final class TestRegions {
         Terrasect.LOGGER.info("  Overworld: {} child regions", overworldRoot.children().size());
         Terrasect.LOGGER.info("  The End: {} child regions", endRoot.children().size());
     }
-    
-    /**
-     * Register dimension roots using the dimension-aware API.
-     * This demonstrates the recommended way to register regions for multiple dimensions.
-     */
-    public static void registerForDimensions() {
-        Terrasect.LOGGER.info("Registering dimension-aware test regions");
-        
-        RegionRegistry registry = new RegionRegistry();
-        
-        // ===== OVERWORLD =====
-        registry.region("OVERWORLD_ROOT")
-            .strategy(GenerationStrategyType.HEX)
-            .child("CLIMATES", regions -> regions
-                .strategy(GenerationStrategyType.SUBDIVISION)
-                .child("SCORCHED_WASTES", region -> region
-                    .radius(100)
-                    .climate(c -> c.temperature(1.0f).humidity(0.0f)))
-                .child("FROZEN_REACHES", region -> region
-                    .radius(50)
-                    .climate(c -> c.temperature(0.0f).humidity(0.3f)))
-                .child("WILDLANDS", region -> region
-                    .radius(200)));
-        
-        // ===== THE END =====
-        registry.region("END_ROOT")
-            .strategy(GenerationStrategyType.VORONOI)
-            .child("CENTRAL_VOID", region -> region
-                .radius(500)
-                .biomes(b -> b.allowNames("minecraft:the_end")))
-            .child("OUTER_ISLANDS", region -> region
-                .radius(2000)
-                .biomes(b -> b.allowNames(
-                    "minecraft:end_highlands",
-                    "minecraft:end_midlands", 
-                    "minecraft:end_barrens",
-                    "minecraft:small_end_islands")));
-        
-        // Build all roots
-        Region overworldRoot = registry.build("OVERWORLD_ROOT");
-        Region endRoot = registry.build("END_ROOT");
-        
-        // Register for dimensions
-        World.register(World.OVERWORLD, overworldRoot);
-        World.register(World.THE_END, endRoot);
-        
-        // Example: A modded dimension could share the overworld config
-        // World.register("mymod:overworld_copy", overworldRoot);
-        
-        Terrasect.LOGGER.info("Dimension roots registered: {}", 
-            World.getRegisteredDimensions());
-    }
 
     /**
-     * Build a test world with diverse regions for testing climate and biome features.
+     * Build the utilitarian test world with seasons hub and lab pockets.
      */
     public static Region buildTestWorld() {
         RegionRegistry registry = new RegionRegistry();
         
         registry.region("WORLD")
             .strategy(GenerationStrategyType.HEX)
-            .child("ROOT", regions -> regions
+            .settings(StrategySettings.builder().hexRing("BORDER").build()) // Visible ring border
+            
+            // ===== SEASONS HUB (at spawn) =====
+            .child("SEASONS_HUB", hub -> hub
+                .radius(HUB_SIZE)
+                .strategy(GenerationStrategyType.TEMPLATE)
+                .settings(StrategySettings.builder()
+                    .template(StrategySettings.TemplateType.CENTER_SURROUND)
+                    .centerSurround("SPAWN")
+                    .build())
+                
+                // Tiny spawn island - flat plains, anchored to origin
+                .child("SPAWN", spawn -> spawn
+                    .radius(SPAWN_SIZE)
+                    .anchoredToOrigin()
+                    .biomes(b -> b.allowNames("minecraft:plains")))
+                
+                // SPRING - Warm and lush, flowers
+                .child("SPRING", season -> season
+                    .radius(SEASON_SIZE)
+                    .climate(c -> c.temperature(0.6f).humidity(0.7f))
+                    .biomes(b -> b.allowNames(
+                        "minecraft:flower_forest",
+                        "minecraft:meadow",
+                        "minecraft:plains",
+                        "minecraft:sunflower_plains")))
+                
+                // SUMMER - Hot and dry
+                .child("SUMMER", season -> season
+                    .radius(SEASON_SIZE)
+                    .climate(c -> c.temperature(1.0f).humidity(0.1f))
+                    .biomes(b -> b.allowNames(
+                        "minecraft:desert",
+                        "minecraft:savanna",
+                        "minecraft:savanna_plateau",
+                        "minecraft:badlands")))
+                
+                // AUTUMN - Mild, forests
+                .child("AUTUMN", season -> season
+                    .radius(SEASON_SIZE)
+                    .climate(c -> c.temperature(0.5f).humidity(0.5f))
+                    .biomes(b -> b.allowNames(
+                        "minecraft:forest",
+                        "minecraft:dark_forest",
+                        "minecraft:birch_forest",
+                        "minecraft:old_growth_birch_forest")))
+                
+                // WINTER - Cold and snowy
+                .child("WINTER", season -> season
+                    .radius(SEASON_SIZE)
+                    .climate(c -> c.temperature(0.0f).humidity(0.3f))
+                    .biomes(b -> b.allowNames(
+                        "minecraft:snowy_plains",
+                        "minecraft:snowy_taiga",
+                        "minecraft:ice_spikes",
+                        "minecraft:frozen_river"))))
+            
+            // ===== TEMPERATURE LAB =====
+            .child("TEMPERATURE_LAB", lab -> lab
+                .radius(LAB_SIZE)
                 .strategy(GenerationStrategyType.SUBDIVISION)
-                // ===== Hot Desert Region =====
-                // Extreme heat, no moisture. Blocks water biomes.
-                .child("SCORCHED_WASTES", region -> region
-                    .radius(100)
-                    .climate(c -> c
-                        .temperature(1.0f)   // Maximum heat
-                        .humidity(0.0f))     // Bone dry
-                    .biomes(b -> b
-                        .blockTags("#minecraft:is_ocean", "#minecraft:is_river")
-                        .blockNames("minecraft:swamp", "minecraft:mangrove_swamp")))
                 
-                // ===== Frozen Tundra Region =====
-                // Extreme cold. Prefers cold biomes.
-                .child("FROZEN_REACHES", region -> region
-                    .radius(100)
-                    .climate(c -> c
-                        .temperature(0.0f)   // Maximum cold
-                        .humidity(0.3f))     // Some snow
-                    .biomes(b -> b
-                        .allowTags("#minecraft:is_taiga")
-                        .allowNames(
-                            "minecraft:snowy_plains", 
-                            "minecraft:snowy_taiga",
-                            "minecraft:snowy_beach",
-                            "minecraft:snowy_slopes",
-                            "minecraft:frozen_peaks",
-                            "minecraft:jagged_peaks",
-                            "minecraft:frozen_river",
-                            "minecraft:ice_spikes",
-                            "minecraft:grove")))
+                .child("FREEZING", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .climate(c -> c.temperature(0.0f).humidity(0.5f)))
                 
-                // ===== Temperate Forest Region =====
-                // Mild temperature, moderate humidity. Prefers forests.
-                .child("VERDANT_HEART", region -> region
-                    .radius(300)
-                    .climate(c -> c
-                        .temperature(0.5f)   // Mild
-                        .humidity(0.6f))     // Moist
-                    .biomes(b -> b
-                        .allowTags("#minecraft:is_forest")
-                        .allowNames(
-                            "minecraft:forest",
-                            "minecraft:flower_forest", 
-                            "minecraft:birch_forest",
-                            "minecraft:old_growth_birch_forest",
-                            "minecraft:dark_forest",
-                            "minecraft:plains",
-                            "minecraft:meadow")))
+                .child("COLD", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .climate(c -> c.temperature(0.25f).humidity(0.5f)))
                 
-                // ===== Tropical Jungle Region =====
-                // Hot and very humid. Allows jungle biomes.
-                .child("MYSTIC_JUNGLE", region -> region
-                    .radius(200)
-                    .climate(c -> c
-                        .temperature(0.9f)   // Hot
-                        .humidity(1.0f))     // Maximum humidity
-                    .biomes(b -> b
-                        .allowTags("#minecraft:is_jungle")
-                        .allowNames(
-                            "minecraft:jungle",
-                            "minecraft:sparse_jungle",
-                            "minecraft:bamboo_jungle",
-                            "minecraft:swamp",
-                            "minecraft:mangrove_swamp")))
+                .child("MILD", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .climate(c -> c.temperature(0.5f).humidity(0.5f)))
                 
-                // ===== Mountain Highlands Region =====
-                // Cool and dry. Allows mountain biomes.
-                .child("ANCIENT_HIGHLANDS", region -> region
-                    .radius(100)
-                    .climate(c -> c
-                        .temperature(0.3f)   // Cool
-                        .humidity(0.4f))     // Semi-dry
-                    .biomes(b -> b
-                        .allowTags("#minecraft:is_mountain")
-                        .allowNames(
-                            "minecraft:meadow",
-                            "minecraft:stony_peaks",
-                            "minecraft:frozen_peaks",
-                            "minecraft:jagged_peaks",
-                            "minecraft:snowy_slopes",
-                            "minecraft:grove",
-                            "minecraft:windswept_hills",
-                            "minecraft:windswept_gravelly_hills",
-                            "minecraft:windswept_forest")))
+                .child("WARM", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .climate(c -> c.temperature(0.75f).humidity(0.5f)))
                 
-                // ===== Wildlands (Vanilla) =====
-                // No climate or biome modifications - pure vanilla behavior.
-                .child("WILDLANDS", region -> region
-                    .radius(100)));
+                .child("HOT", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .climate(c -> c.temperature(1.0f).humidity(0.5f))))
+            
+            // ===== BIOME LAB =====
+            .child("BIOME_LAB", lab -> lab
+                .radius(LAB_SIZE)
+                .strategy(GenerationStrategyType.SUBDIVISION)
+                
+                .child("OCEANS_ONLY", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .biomes(b -> b.allowTags("#minecraft:is_ocean")))
+                
+                .child("FORESTS_ONLY", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .biomes(b -> b.allowTags("#minecraft:is_forest")))
+                
+                .child("MOUNTAINS_ONLY", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .biomes(b -> b.allowTags("#minecraft:is_mountain")))
+                
+                .child("RIVERS_ONLY", zone -> zone
+                    .radius(LAB_ZONE_SIZE)
+                    .biomes(b -> b.allowTags("#minecraft:is_river"))))
+            
+            // ===== VANILLA (unmodified for comparison) =====
+            .child("VANILLA", vanilla -> vanilla
+                .radius(LAB_SIZE))
+            
+            // ===== BORDER (hex ring - visible edge between cells) =====
+            .child("BORDER", border -> border
+                .radius(CHUNK * 2)
+                .biomes(b -> b.allowNames("minecraft:deep_ocean")));
         
         return registry.build("WORLD");
     }
@@ -240,15 +226,6 @@ public final class TestRegions {
     
     /**
      * Build a test region hierarchy for The End dimension.
-     * 
-     * <p>The End has different biomes than the Overworld:
-     * <ul>
-     *   <li>the_end - The main central island</li>
-     *   <li>end_highlands - Outer islands with chorus plants</li>
-     *   <li>end_midlands - Transition areas</li>
-     *   <li>end_barrens - Sparse outer regions</li>
-     *   <li>small_end_islands - Small floating islands</li>
-     * </ul>
      */
     public static Region buildEndWorld() {
         RegionRegistry registry = new RegionRegistry();
@@ -266,17 +243,14 @@ public final class TestRegions {
                 .radius(1500)
                 .strategy(GenerationStrategyType.SUBDIVISION)
                 
-                // End highlands - rich with chorus plants and cities
                 .child("END_HIGHLANDS", sub -> sub
                     .radius(800)
                     .biomes(b -> b.allowNames("minecraft:end_highlands")))
                     
-                // End midlands - transition areas
                 .child("END_MIDLANDS", sub -> sub
                     .radius(500)
                     .biomes(b -> b.allowNames("minecraft:end_midlands")))
                     
-                // End barrens - sparse regions
                 .child("END_BARRENS", sub -> sub
                     .radius(400)
                     .biomes(b -> b.allowNames("minecraft:end_barrens"))))
@@ -287,5 +261,13 @@ public final class TestRegions {
                 .biomes(b -> b.allowNames("minecraft:small_end_islands")));
         
         return registry.build("END_ROOT");
+    }
+    
+    /**
+     * @deprecated Use {@link #register()} instead.
+     */
+    @Deprecated
+    public static void registerForDimensions() {
+        register();
     }
 }
