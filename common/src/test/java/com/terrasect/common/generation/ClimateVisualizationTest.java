@@ -270,7 +270,7 @@ public class ClimateVisualizationTest {
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // In test environment, tags aren't bound - use biome ID check
-                String biomeId = biome.unwrapKey().map(k -> k.location().toString()).orElse("");
+                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
                 return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
@@ -389,7 +389,7 @@ public class ClimateVisualizationTest {
      */
     private int biomeToColor(Holder<Biome> biome) {
         String name = biome.unwrapKey()
-            .map(key -> key.location().toString())
+            .map(key -> key.identifier().toString())
             .orElse("unknown");
         
         // Create a hash-based color
