@@ -3,6 +3,7 @@ package com.terrasect.common.generation;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.devtools.TestRegions;
 import com.terrasect.common.runtime.World;
 import org.junit.jupiter.api.Test;
 import java.util.HashMap;
@@ -14,6 +15,224 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegionBudgetTest {
+
+    /**
+     * Print detailed budget and area analysis for a region hierarchy.
+     * This helps debug why regions appear larger/smaller than expected in game.
+     * 
+     * KEY INSIGHT: radius() values are RELATIVE weights, not absolute sizes.
+     * The system fills the available parent space proportionally based on budgets.
+     * Actual size = parentRadius * sqrt(childBudget / totalSiblingBudgets)
+     */
+    @Test
+    public void analyzeRegionBudgetsAndAreas() {
+        Region root = TestRegions.buildTestWorld();
+        World.register(World.OVERWORLD, root);
+        
+        System.out.println("╔═══════════════════════════════════════════════════════════════╗");
+        System.out.println("║          REGION BUDGET AND AREA ANALYSIS                      ║");
+        System.out.println("╠═══════════════════════════════════════════════════════════════╣");
+        System.out.println("║ KEY: radius() values are PROPORTIONAL weights, not absolute.  ║");
+        System.out.println("║ Children fill parent space proportionally by budget ratio.    ║");
+        System.out.println("║ ACTUAL size = parentRadius × sqrt(budget / totalBudgets)      ║");
+        System.out.println("╚═══════════════════════════════════════════════════════════════╝");
+        System.out.println();
+        
+        // Root level
+        int rootBudget = root.areaBudget();
+        float rootRadius = (float) Math.sqrt(rootBudget);
+        float rootDiameter = rootRadius * 2;
+        
+        System.out.printf("ROOT: %s%n", root.name());
+        System.out.printf("  Total Budget: %,d (sum of children)%n", rootBudget);
+        System.out.printf("  Implied Radius: %.0f blocks (%.1f chunks)%n", rootRadius, rootRadius / 16);
+        System.out.printf("  Implied Diameter: %.0f blocks (%.1f chunks)%n", rootDiameter, rootDiameter / 16);
+        System.out.println();
+        
+        // Analyze each level
+        analyzeChildren(root, rootRadius, 1, "");
+    }
+    
+    private void analyzeChildren(Region parent, float parentRadius, int depth, String indent) {
+        if (!parent.hasChildren()) return;
+        
+        // Calculate total budget of all children
+        int totalChildBudget = parent.children().stream().mapToInt(Region::areaBudget).sum();
+        
+        System.out.printf("%sChildren of %s (depth %d):%n", indent, parent.name(), depth);
+        System.out.printf("%s  Total child budget: %,d%n", indent, totalChildBudget);
+        System.out.printf("%s  Parent radius: %.1f blocks%n", indent, parentRadius);
+        System.out.println();
+        
+        for (Region child : parent.children()) {
+            int childBudget = child.areaBudget();
+            float budgetRatio = (float) childBudget / totalChildBudget;
+            
+            // The actual radius in world space depends on how strategies interpret budgets
+            // Most strategies use budget as proportional weight, not absolute size
+            // So child radius ≈ parentRadius * sqrt(budgetRatio)
+            float proportionalRadius = parentRadius * (float) Math.sqrt(budgetRatio);
+            float proportionalDiameter = proportionalRadius * 2;
+            float proportionalArea = (float) (Math.PI * proportionalRadius * proportionalRadius);
+            
+            // What the user specified
+            float specifiedRadius = (float) Math.sqrt(childBudget);
+            
+            System.out.printf("%s  %s:%n", indent, child.name());
+            System.out.printf("%s    Specified radius(): %d blocks%n", indent, (int) specifiedRadius);
+            System.out.printf("%s    Budget Proportion: %.1f%% of parent's space%n", indent, budgetRatio * 100);
+            System.out.printf("%s    ACTUAL Radius: %.0f blocks (%.1f chunks)%n", indent, proportionalRadius, proportionalRadius / 16);
+            System.out.printf("%s    ACTUAL Diameter: %.0f blocks (%.1f chunks)%n", indent, proportionalDiameter, proportionalDiameter / 16);
+            
+            if (Math.abs(specifiedRadius - proportionalRadius) > specifiedRadius * 0.1f) {
+                float scaleFactor = proportionalRadius / specifiedRadius;
+                System.out.printf("%s    ⚠️  SIZE MISMATCH: Actual is %.1fx the specified value!%n", indent, scaleFactor);
+                // Calculate what they should specify to get the specified size
+                // If actual = parentRadius * sqrt(budget / totalBudget)
+                // And we want actual = specifiedRadius
+                // Then budget = (specifiedRadius / parentRadius)² * totalBudget
+                // But we can't control totalBudget easily...
+                // Simpler: show the correction factor
+                System.out.printf("%s    💡 To get %.0f block radius, multiply all sibling radii by %.1fx%n", 
+                    indent, specifiedRadius, scaleFactor);
+            }
+            System.out.println();
+            
+            // Recurse into children
+            if (child.hasChildren()) {
+                analyzeChildren(child, proportionalRadius, depth + 1, indent + "    ");
+            }
+        }
+    }
+
+    /**
+     * Sample specific coordinates in TestRegions to verify actual region boundaries.
+     * This helps visualize where regions actually are in world space.
+     */
+    @Test
+    public void sampleTestRegionsAtCoordinates() {
+        Region root = TestRegions.buildTestWorld();
+        World.register(World.OVERWORLD, root);
+        
+        long seed = 12345L;
+        Context context = new SnapshotTest.MockStrategy(seed);
+        
+        // CRITICAL: Initialize the world to calculate anchor offsets!
+        // Without this, anchored regions won't be at origin
+        World.initialize(World.OVERWORLD, seed, context);
+        
+        System.out.println("╔═══════════════════════════════════════════════════════════════╗");
+        System.out.println("║         SAMPLING TESTREGIONS AT SPECIFIC COORDINATES          ║");
+        System.out.println("╚═══════════════════════════════════════════════════════════════╝");
+        System.out.println();
+        
+        // First, let's find where SPAWN and SEASONS_HUB actually are
+        System.out.println("=== Searching for SPAWN and SEASONS_HUB locations ===");
+        findRegionLocations(context, "SEASONS_HUB", 2);
+        findRegionLocations(context, "SPAWN", 3);  // SPAWN is child of SEASONS_HUB
+        System.out.println();
+        
+        // Sample at origin (should be SPAWN since it's anchored)
+        System.out.println("At ORIGIN (0, 0):");
+        samplePoint(0, 0, context);
+        
+        // Sample walking outward in each direction to find region transitions
+        System.out.println("\nWalking EAST from origin (step=16 blocks):");
+        walkDirection(0, 0, 16, 0, 30, context);  // 30 steps = 480 blocks
+        
+        System.out.println("\nWalking NORTH from origin:");
+        walkDirection(0, 0, 0, -16, 30, context);
+        
+        System.out.println("\nWalking SOUTH from origin:");
+        walkDirection(0, 0, 0, 16, 30, context);
+        
+        System.out.println("\nWalking WEST from origin:");
+        walkDirection(0, 0, -16, 0, 30, context);
+        
+        // Sample at large distances to see hex tiling
+        System.out.println("\n\nSampling at larger distances from origin:");
+        int[] distances = {500, 1000, 2000, 5000, 10000};
+        for (int dist : distances) {
+            System.out.printf("\nAt (%d, 0):%n", dist);
+            samplePoint(dist, 0, context);
+        }
+    }
+    
+    private void samplePoint(int x, int z, Context context) {
+        Region d1 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 1);
+        Region d2 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
+        Region d3 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 3);
+        Region d4 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 4);
+        
+        System.out.printf("  Depth 1: %s%n", d1.name());
+        System.out.printf("  Depth 2: %s%n", d2.name());
+        System.out.printf("  Depth 3: %s%n", d3.name());
+        System.out.printf("  Depth 4: %s%n", d4.name());
+    }
+    
+    private void walkDirection(int startX, int startZ, int stepX, int stepZ, int steps, Context context) {
+        String lastRegion = "";
+        int lastTransitionAt = 0;
+        
+        for (int i = 0; i <= steps; i++) {
+            int x = startX + i * stepX;
+            int z = startZ + i * stepZ;
+            
+            Region d3 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 3);
+            String regionName = d3.name();
+            
+            if (!regionName.equals(lastRegion)) {
+                if (i > 0) {
+                    int blocksDist = (int) Math.sqrt((x - startX) * (x - startX) + (z - startZ) * (z - startZ));
+                    int transitionDist = blocksDist - lastTransitionAt;
+                    System.out.printf("  [%d blocks] %s → %s (span: %d blocks = %.1f chunks)%n", 
+                        blocksDist, lastRegion, regionName, transitionDist, transitionDist / 16.0f);
+                    lastTransitionAt = blocksDist;
+                } else {
+                    System.out.printf("  [0 blocks] Starting in: %s%n", regionName);
+                }
+                lastRegion = regionName;
+            }
+        }
+        
+        int totalDist = (int) Math.sqrt((steps * stepX) * (steps * stepX) + (steps * stepZ) * (steps * stepZ));
+        System.out.printf("  [%d blocks] Still in: %s%n", totalDist, lastRegion);
+    }
+    
+    private void findRegionLocations(Context context, String targetRegion, int depth) {
+        System.out.printf("Searching for %s at depth %d...%n", targetRegion, depth);
+        
+        // Search in a grid pattern - use smaller step for small regions
+        int range = 3000;
+        int step = 20;  // Smaller step to catch small regions like SPAWN
+        
+        int foundCount = 0;
+        int firstX = 0, firstZ = 0;
+        
+        for (int z = -range; z <= range && foundCount < 5; z += step) {
+            for (int x = -range; x <= range && foundCount < 5; x += step) {
+                Region region = World.getRegionAtDepth(World.OVERWORLD, x, z, context, depth);
+                if (region != null && region.name().equals(targetRegion)) {
+                    if (foundCount == 0) {
+                        firstX = x;
+                        firstZ = z;
+                    }
+                    foundCount++;
+                    if (foundCount <= 3) {
+                        System.out.printf("  Found %s at (%d, %d)%n", targetRegion, x, z);
+                    }
+                }
+            }
+        }
+        
+        if (foundCount == 0) {
+            System.out.printf("  ⚠️ %s NOT FOUND in ±%d block range (step=%d)!%n", targetRegion, range, step);
+        } else if (foundCount > 3) {
+            System.out.printf("  ... and %d more locations%n", foundCount - 3);
+            System.out.printf("  First occurrence at (%d, %d), distance from origin: %.0f blocks%n", 
+                firstX, firstZ, Math.sqrt(firstX * firstX + firstZ * firstZ));
+        }
+    }
 
     @Test
     public void testRegionBudgetDistribution() {

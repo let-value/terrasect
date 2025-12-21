@@ -44,9 +44,7 @@ public final class TestRegions {
 
     // Size constants (in blocks)
     private static final int CHUNK = 16;
-    private static final int SPAWN_SIZE = CHUNK;           // 1 chunk
     private static final int SEASON_SIZE = CHUNK * 4;      // 8 chunks diameter = 4 chunk radius
-    private static final int HUB_SIZE = CHUNK * 12;        // Seasons hub
     private static final int LAB_SIZE = CHUNK * 8;         // Lab pocket
     private static final int LAB_ZONE_SIZE = CHUNK * 2;    // Individual lab zones
 
@@ -82,144 +80,115 @@ public final class TestRegions {
         registry.region("WORLD")
             .strategy(GenerationStrategyType.HEX)
             .settings(StrategySettings.builder().hexRing("BORDER").build()) // Visible ring border
-            
-            // ===== SEASONS HUB (at spawn) =====
-            .child("SEASONS_HUB", hub -> hub
-                .radius(HUB_SIZE)
-                .strategy(GenerationStrategyType.TEMPLATE)
-                .settings(StrategySettings.builder()
-                    .template(StrategySettings.TemplateType.CENTER_SURROUND)
-                    .centerSurround("SPAWN")
-                    .build())
-                
-                // Tiny spawn island - flat plains, anchored to origin
-                .child("SPAWN", spawn -> spawn
-                    .radius(SPAWN_SIZE)
-                    .anchoredToOrigin()
-                    .biomes(b -> b.allowNames("minecraft:plains")))
-                
-                // SPRING - Warm and lush, flowers
-                .child("SPRING", season -> season
-                    .radius(SEASON_SIZE)
-                    .climate(c -> c.temperature(0.6f).humidity(0.7f))
-                    .biomes(b -> b.allowNames(
-                        "minecraft:flower_forest",
-                        "minecraft:meadow",
-                        "minecraft:plains",
-                        "minecraft:sunflower_plains")))
-                
-                // SUMMER - Hot and dry
-                .child("SUMMER", season -> season
-                    .radius(SEASON_SIZE)
-                    .climate(c -> c.temperature(1.0f).humidity(0.1f))
-                    .biomes(b -> b.allowNames(
-                        "minecraft:desert",
-                        "minecraft:savanna",
-                        "minecraft:savanna_plateau",
-                        "minecraft:badlands")))
-                
-                // AUTUMN - Mild, forests
-                .child("AUTUMN", season -> season
-                    .radius(SEASON_SIZE)
-                    .climate(c -> c.temperature(0.5f).humidity(0.5f))
-                    .biomes(b -> b.allowNames(
-                        "minecraft:forest",
-                        "minecraft:dark_forest",
-                        "minecraft:birch_forest",
-                        "minecraft:old_growth_birch_forest")))
-                
-                // WINTER - Cold and snowy
-                .child("WINTER", season -> season
-                    .radius(SEASON_SIZE)
-                    .climate(c -> c.temperature(0.0f).humidity(0.3f))
-                    .biomes(b -> b.allowNames(
-                        "minecraft:snowy_plains",
-                        "minecraft:snowy_taiga",
-                        "minecraft:ice_spikes",
-                        "minecraft:frozen_river"))))
-            
-            // ===== TEMPERATURE LAB =====
-            .child("TEMPERATURE_LAB", lab -> lab
-                .radius(LAB_SIZE)
+            .child("LANDMASS", root -> root
                 .strategy(GenerationStrategyType.SUBDIVISION)
-                
-                .child("FREEZING", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .climate(c -> c.temperature(0.0f).humidity(0.5f)))
-                
-                .child("COLD", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .climate(c -> c.temperature(0.25f).humidity(0.5f)))
-                
-                .child("MILD", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .climate(c -> c.temperature(0.5f).humidity(0.5f)))
-                
-                .child("WARM", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .climate(c -> c.temperature(0.75f).humidity(0.5f)))
-                
-                .child("HOT", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .climate(c -> c.temperature(1.0f).humidity(0.5f))))
-            
-            // ===== BIOME LAB =====
-            .child("BIOME_LAB", lab -> lab
-                .radius(LAB_SIZE)
-                .strategy(GenerationStrategyType.SUBDIVISION)
-                
-                .child("OCEANS_ONLY", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .biomes(b -> b.allowTags("#minecraft:is_ocean")))
-                
-                .child("FORESTS_ONLY", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .biomes(b -> b.allowTags("#minecraft:is_forest")))
-                
-                .child("MOUNTAINS_ONLY", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .biomes(b -> b.allowTags("#minecraft:is_mountain")))
-                
-                .child("RIVERS_ONLY", zone -> zone
-                    .radius(LAB_ZONE_SIZE)
-                    .biomes(b -> b.allowTags("#minecraft:is_river"))))
-            
-            // ===== VANILLA (unmodified for comparison) =====
-            .child("VANILLA", vanilla -> vanilla
-                .radius(LAB_SIZE))
-            
+                // ===== SEASONS HUB (at spawn) =====
+                .child("SEASONS_HUB", hub -> hub
+                    .strategy(GenerationStrategyType.TEMPLATE)
+                    .settings(StrategySettings.builder()
+                        .template(StrategySettings.TemplateType.CENTER_SURROUND)
+                        .centerSurround("SPAWN")
+                        .build())
+
+                    // Tiny spawn island - flat plains, anchored to origin
+                    .child("SPAWN", spawn -> spawn
+                        .radius(SEASON_SIZE)
+                        .anchoredToOrigin()
+                        .biomes(b -> b.allowNames("minecraft:plains")))
+
+                    // SPRING - Warm and lush, flowers
+                    .child("SPRING", season -> season
+                        .radius(SEASON_SIZE)
+                        .climate(c -> c.temperature(0.6f).humidity(0.7f))
+                        .biomes(b -> b.allowNames(
+                            "minecraft:flower_forest",
+                            "minecraft:meadow",
+                            "minecraft:plains",
+                            "minecraft:sunflower_plains")))
+                        
+                    // SUMMER - Hot and dry
+                    .child("SUMMER", season -> season
+                        .radius(SEASON_SIZE)
+                        .climate(c -> c.temperature(1.0f).humidity(0.1f))
+                        .biomes(b -> b.allowNames(
+                            "minecraft:desert",
+                            "minecraft:savanna",
+                            "minecraft:savanna_plateau",
+                            "minecraft:badlands")))
+                        
+                    // AUTUMN - Mild, forests
+                    .child("AUTUMN", season -> season
+                        .radius(SEASON_SIZE)
+                        .climate(c -> c.temperature(0.5f).humidity(0.5f))
+                        .biomes(b -> b.allowNames(
+                            "minecraft:forest",
+                            "minecraft:dark_forest",
+                            "minecraft:birch_forest",
+                            "minecraft:old_growth_birch_forest")))
+                        
+                    // WINTER - Cold and snowy
+                    .child("WINTER", season -> season
+                        .radius(SEASON_SIZE)
+                        .climate(c -> c.temperature(0.0f).humidity(0.3f))
+                        .biomes(b -> b.allowNames(
+                            "minecraft:snowy_plains",
+                            "minecraft:snowy_taiga",
+                            "minecraft:ice_spikes",
+                            "minecraft:frozen_river"))))
+                        
+                // ===== TEMPERATURE LAB =====
+                .child("TEMPERATURE_LAB", lab -> lab
+                    .radius(LAB_SIZE)
+                    .strategy(GenerationStrategyType.SUBDIVISION)
+                        
+                    .child("FREEZING", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.temperature(0.0f).humidity(0.5f)))
+                        
+                    .child("COLD", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.temperature(0.25f).humidity(0.5f)))
+                        
+                    .child("MILD", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.temperature(0.5f).humidity(0.5f)))
+                        
+                    .child("WARM", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.temperature(0.75f).humidity(0.5f)))
+                        
+                    .child("HOT", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.temperature(1.0f).humidity(0.5f))))
+                        
+                // ===== BIOME LAB =====
+                .child("BIOME_LAB", lab -> lab
+                    .radius(LAB_SIZE)
+                    .strategy(GenerationStrategyType.SUBDIVISION)
+                        
+                    .child("OCEANS_ONLY", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .biomes(b -> b.allowTags("#minecraft:is_ocean")))
+                        
+                    .child("FORESTS_ONLY", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .biomes(b -> b.allowTags("#minecraft:is_forest")))
+                        
+                    .child("MOUNTAINS_ONLY", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .biomes(b -> b.allowTags("#minecraft:is_mountain")))
+                        
+                    .child("RIVERS_ONLY", zone -> zone
+                        .radius(LAB_ZONE_SIZE)
+                        .biomes(b -> b.allowTags("#minecraft:is_river"))))
+                        
+                // ===== VANILLA (unmodified for comparison) =====
+                .child("VANILLA", vanilla -> vanilla
+                    .radius(LAB_SIZE)))
             // ===== BORDER (hex ring - visible edge between cells) =====
             .child("BORDER", border -> border
-                .radius(CHUNK * 2)
+                .radius(CHUNK * 20)
                 .biomes(b -> b.allowNames("minecraft:deep_ocean")));
-        
-        return registry.build("WORLD");
-    }
-    
-    /**
-     * Build a simple test world with fewer regions for quick testing.
-     */
-    public static Region buildSimpleTestWorld() {
-        RegionRegistry registry = new RegionRegistry();
-        
-        registry.region("WORLD")
-            .strategy(GenerationStrategyType.HEX)
-            .child("ROOT", regions -> regions
-                .strategy(GenerationStrategyType.SUBDIVISION)
-                
-                // Hot region
-                .child("HOT_ZONE", region -> region
-                    .radius(1000)
-                    .climate(c -> c.temperature(1.0f).humidity(0.2f)))
-                
-                // Cold region
-                .child("COLD_ZONE", region -> region
-                    .radius(1000)
-                    .climate(c -> c.temperature(0.0f).humidity(0.5f)))
-                
-                // Vanilla region
-                .child("VANILLA", region -> region
-                    .radius(1000)));
         
         return registry.build("WORLD");
     }

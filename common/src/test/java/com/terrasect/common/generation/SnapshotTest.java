@@ -1,8 +1,8 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.api.Region;
-import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.devtools.TestRegions;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.RegionField;
 import com.terrasect.common.runtime.World;
@@ -26,12 +26,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
-    // Updated for MC 1.21.11
-    private static final String EXPECTED_DIGEST = "1547d03d6ba29bccdc21ab378f9965e3bd11382d7cc05eb4698405e9890f07ed";
+    // Updated for TestRegions (dev testing regions)
+    private static final String EXPECTED_DIGEST = "6d049c23793036a9c1256013741b3c2212dd4096096b9ad46cda98235d7a8acd";
 
     @Test
     public void testRegionDistribution() {
-        World.register(World.OVERWORLD, buildUniverse());
+        World.register(World.OVERWORLD, TestRegions.buildTestWorld());
         
         long seed = 987654321L;
         Context context = new MockStrategy(seed);
@@ -60,10 +60,14 @@ public class SnapshotTest {
 
     @Test
     public void generateSnapshots() throws IOException, NoSuchAlgorithmException {
-        World.register(World.OVERWORLD, buildUniverse());
+        World.register(World.OVERWORLD, TestRegions.buildTestWorld());
 
         long seed = 987654321L;
         Context context = new MockStrategy(seed);
+        
+        // CRITICAL: Initialize to calculate anchor offset so SPAWN appears at origin
+        World.initialize(World.OVERWORLD, seed, context);
+        
         int width = 512;
         int height = 512;
         int step = 4; // Sample every 4 blocks to cover 2048x2048 area
@@ -82,8 +86,9 @@ public class SnapshotTest {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int wx = x * step;
-                int wz = y * step;
+                // Center the sampling around origin so anchored region appears in center
+                int wx = (x - width / 2) * step;
+                int wz = (y - height / 2) * step;
 
                 // Raw noise for background reference (default scale)
                 long rawRegionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
@@ -237,30 +242,6 @@ public class SnapshotTest {
         }
     }
 
-    private Region buildUniverse() {
-        RegionRegistry registry = new RegionRegistry();
-        registry.region("UNIVERSE")
-            .child("ROOT", root -> root
-                .child("CIVILIZATION", civ -> civ
-                    .child("RUINS", ruins -> ruins.adjacentTo("PILGRIMAGE_PATH")
-                        .child("SHRINE", shrine -> shrine.radius(25))
-                        .child("CATACOMBS", catacombs -> catacombs.radius(100)))
-                    .child("HARBOR", harbor -> harbor.radius(75).adjacentTo("PILGRIMAGE_PATH"))
-                    .child("PILGRIMAGE_PATH", path -> path.radius(50).adjacentTo("RUINS", "HARBOR")))
-                .child("WILDERNESS", wild -> wild
-                    .child("FORBIDDEN_WOODS", woods -> woods.radius(150).adjacentTo("PLAINS_OF_ASH"))
-                    .child("PLAINS_OF_ASH", plains -> plains.radius(100).adjacentTo("FORBIDDEN_WOODS")))
-                .child("HIGHLANDS", high -> high
-                    .child("MOUNTAIN_PASS", pass -> pass.radius(100).adjacentTo("CRYSTAL_CANYON"))
-                    .child("CRYSTAL_CANYON", canyon -> canyon.radius(75).adjacentTo("MOUNTAIN_PASS")))
-                .child("FACTORY", high -> high
-                    .child("MEKA", pass -> pass.radius(200).adjacentTo("CRYSTAL_CANYON"))
-                    .child("CREATE", canyon -> canyon.radius(50).adjacentTo("MOUNTAIN_PASS")))
-                );
-
-        return registry.build("UNIVERSE");
-    }
-
     private void updateDigest(MessageDigest digest, int val) {
         digest.update((byte) (val >> 24));
         digest.update((byte) (val >> 16));
@@ -273,41 +254,49 @@ public class SnapshotTest {
     }
 
     private int getGenericRegionColor(Region region) {
-        int color = getRegionColor(region);
-        if (color != 0) return color;
-        color = getClusterColor(region);
+        int color = getTestRegionColor(region);
         if (color != 0) return color;
         
-        // Hash fallback
+        // Hash fallback with high saturation
         int h = region.name().hashCode();
-        int r = (h & 0xFF0000) >> 16;
-        int g = (h & 0x00FF00) >> 8;
-        int b = (h & 0x0000FF);
+        int r = 64 + (Math.abs(h) % 192);
+        int g = 64 + (Math.abs(h >> 8) % 192);
+        int b = 64 + (Math.abs(h >> 16) % 192);
         return (r << 16) | (g << 8) | b;
     }
 
-    private int getClusterColor(Region cluster) {
-        switch (cluster.name()) {
-            case "CIVILIZATION": return 0xFF0000; // Red
-            case "WILDERNESS": return 0x00FF00; // Green
-            case "HIGHLANDS": return 0x0000FF; // Blue
-            default: return 0x000000;
-        }
-    }
-
-    private int getRegionColor(Region region) {
+    private int getTestRegionColor(Region region) {
         switch (region.name()) {
-            case "RUINS": return 0x888888;
-            case "PILGRIMAGE_PATH": return 0xFFFF00;
-            case "HARBOR": return 0x0000FF;
-            case "FORBIDDEN_WOODS": return 0x004400;
-            case "MOUNTAIN_PASS": return 0xFFFFFF;
-            case "PLAINS_OF_ASH": return 0x444444;
-            case "CRYSTAL_CANYON": return 0x00FFFF;
-            case "SHRINE": return 0xFF00FF; // Magenta
-            case "CATACOMBS": return 0x440044; // Dark Magenta
-            case "ROOT": return 0x555555; // Dark Gray
-            case "UNIVERSE": return 0xFFFFFF; // White
+            // World level
+            case "WORLD": return 0x333333;
+            
+            // Main areas
+            case "SEASONS_HUB": return 0x88FF88;
+            case "TEMPERATURE_LAB": return 0xFF8888;
+            case "BIOME_LAB": return 0x8888FF;
+            case "VANILLA": return 0xAAAAAA;
+            case "BORDER": return 0x000044;
+            
+            // Seasons hub children
+            case "SPAWN": return 0xFFFFFF;      // White - easy to spot
+            case "SPRING": return 0x00FF00;     // Bright green
+            case "SUMMER": return 0xFFFF00;     // Yellow
+            case "AUTUMN": return 0xFF8800;     // Orange
+            case "WINTER": return 0x00FFFF;     // Cyan
+            
+            // Temperature lab zones
+            case "FREEZING": return 0x0000FF;   // Blue
+            case "COLD": return 0x4488FF;       // Light blue
+            case "MILD": return 0x44FF44;       // Green
+            case "WARM": return 0xFFAA00;       // Orange
+            case "HOT": return 0xFF0000;        // Red
+            
+            // Biome lab zones  
+            case "OCEANS_ONLY": return 0x0044AA;
+            case "FORESTS_ONLY": return 0x006600;
+            case "MOUNTAINS_ONLY": return 0x888888;
+            case "RIVERS_ONLY": return 0x4488FF;
+            
             default: return 0x000000;
         }
     }
