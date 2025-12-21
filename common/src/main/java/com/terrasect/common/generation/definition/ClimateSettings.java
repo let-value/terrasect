@@ -39,7 +39,7 @@ public record ClimateSettings(
     ClimateRange erosion,
     ClimateRange depth,
     ClimateRange weirdness,
-    Integer targetHeight,
+    ClimateRange height,
     String precipitation,
     String climatePreset
 ) {
@@ -105,11 +105,11 @@ public record ClimateSettings(
         ClimateRange mergedErosion = erosion != null ? erosion : parent.erosion;
         ClimateRange mergedDepth = depth != null ? depth : parent.depth;
         ClimateRange mergedWeirdness = weirdness != null ? weirdness : parent.weirdness;
-        Integer mergedTargetHeight = targetHeight != null ? targetHeight : parent.targetHeight;
+        ClimateRange mergedHeight = height != null ? height : parent.height;
         String mergedPrecipitation = precipitation != null ? precipitation : parent.precipitation;
         String mergedPreset = climatePreset != null ? climatePreset : parent.climatePreset;
         return new ClimateSettings(mergedTemperature, mergedHumidity, mergedContinentalness, 
-            mergedErosion, mergedDepth, mergedWeirdness, mergedTargetHeight, mergedPrecipitation, mergedPreset);
+            mergedErosion, mergedDepth, mergedWeirdness, mergedHeight, mergedPrecipitation, mergedPreset);
     }
 
     public static Builder builder() {
@@ -123,7 +123,7 @@ public record ClimateSettings(
         private ClimateRange erosion;
         private ClimateRange depth;
         private ClimateRange weirdness;
-        private Integer targetHeight;
+        private ClimateRange height;
         private String precipitation;
         private String climatePreset;
 
@@ -242,12 +242,31 @@ public record ClimateSettings(
         }
 
         /**
-         * Set target terrain height for this region.
-         * Terrain will be pushed toward this Y level.
-         * @param height target Y level (e.g., 50 for ocean floor, 80 for highlands)
+         * Set terrain height range for this region.
+         * Terrain will be constrained between min and max Y levels.
+         * 
+         * <p>Examples:
+         * <ul>
+         *   <li>{@code height(40, 50)} - ocean floor between Y=40 and Y=50</li>
+         *   <li>{@code height(63, 80)} - low hills from sea level to Y=80</li>
+         *   <li>{@code height(100, 200)} - highland plateau</li>
+         * </ul>
+         * 
+         * @param minHeight minimum terrain Y level
+         * @param maxHeight maximum terrain Y level (above this becomes air/water)
          */
-        public Builder targetHeight(int height) {
-            this.targetHeight = height;
+        public Builder height(int minHeight, int maxHeight) {
+            this.height = ClimateRange.range(minHeight, maxHeight);
+            return this;
+        }
+
+        /**
+         * Set exact terrain height for this region.
+         * Useful for flat regions like ocean floors.
+         * @param targetHeight the exact Y level for terrain surface
+         */
+        public Builder height(int targetHeight) {
+            this.height = ClimateRange.exact(targetHeight);
             return this;
         }
 
@@ -263,7 +282,7 @@ public record ClimateSettings(
 
         public ClimateSettings build() {
             return new ClimateSettings(temperature, humidity, continentalness, 
-                erosion, depth, weirdness, targetHeight, precipitation, climatePreset);
+                erosion, depth, weirdness, height, precipitation, climatePreset);
         }
 
         public Builder copyFrom(ClimateSettings settings) {
@@ -274,10 +293,32 @@ public record ClimateSettings(
             this.erosion = settings.erosion();
             this.depth = settings.depth();
             this.weirdness = settings.weirdness();
-            this.targetHeight = settings.targetHeight();
+            this.height = settings.height();
             this.precipitation = settings.precipitation();
             this.climatePreset = settings.climatePreset();
             return this;
         }
+    }
+
+    /**
+     * Check if this climate settings has terrain height constraints defined.
+     * @return true if height is set
+     */
+    public boolean hasHeightConstraints() {
+        return height != null;
+    }
+    
+    /**
+     * Get the minimum terrain height (or null if unconstrained).
+     */
+    public Integer minHeight() {
+        return height != null ? (int) height.min() : null;
+    }
+    
+    /**
+     * Get the maximum terrain height (or null if unconstrained).
+     */
+    public Integer maxHeight() {
+        return height != null ? (int) height.max() : null;
     }
 }

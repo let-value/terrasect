@@ -5,6 +5,7 @@ import com.terrasect.common.api.Region;
 import com.terrasect.common.compat.ResourceKeyCompat;
 import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.runtime.World;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -126,457 +127,150 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                     Region r = World.getRegionAtDepth(World.OVERWORLD, alignedBlockX, alignedBlockZ, ctx, depth);
                     System.out.println("    Depth " + depth + ": " + (r != null ? r.name() : "null"));
                 }
+                
+                // ===== TERRAIN HEIGHT VERIFICATION =====
+                System.out.println("\n=== TERRAIN HEIGHT VERIFICATION ===");
+                // Check if the terrain height constraint is working
+                int surfaceY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, alignedBlockX, alignedBlockZ);
+                int oceanFloorY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, alignedBlockX, alignedBlockZ);
+                int motionBlockY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, alignedBlockX, alignedBlockZ);
+                
+                // Get the expected maxHeight from the region
+                ClimateSettings climate = regionAtPoint != null ? regionAtPoint.definition().climate() : null;
+                Integer expectedMaxHeight = climate != null ? climate.maxHeight() : null;
+                
+                System.out.println("At (" + alignedBlockX + ", " + alignedBlockZ + "):");
+                System.out.println("  Region: " + actualRegion);
+                System.out.println("  Expected maxHeight: " + (expectedMaxHeight != null ? expectedMaxHeight : "NONE (no constraint)"));
+                System.out.println("  Actual surface height (WORLD_SURFACE): " + surfaceY);
+                System.out.println("  Ocean floor height (OCEAN_FLOOR): " + oceanFloorY);
+                System.out.println("  Motion blocking height (MOTION_BLOCKING): " + motionBlockY);
+                
+                if (expectedMaxHeight != null) {
+                    if (oceanFloorY <= expectedMaxHeight) {
+                        System.out.println("  ✓ TERRAIN CONSTRAINED CORRECTLY: ocean floor " + oceanFloorY + " <= maxHeight " + expectedMaxHeight);
+                    } else {
+                        System.out.println("  ✗ TERRAIN NOT CONSTRAINED: ocean floor " + oceanFloorY + " > maxHeight " + expectedMaxHeight);
+                        System.out.println("    This indicates the height constraint is NOT working properly!");
+                    }
+                }
+                
+                // Sample additional points in BORDER region
+                System.out.println("\n  Sampling additional BORDER region points for terrain heights:");
+                int[] testX = {48, 90, 100, 150, 200};
+                int[] testZ = {-333, -300, -250, -200, -150};
+                for (int i = 0; i < testX.length; i++) {
+                    int tx = testX[i];
+                    int tz = testZ[i];
+                    Region testRegion = World.getRegion(World.OVERWORLD, tx, tz, ctx);
+                    if (testRegion != null && "BORDER".equals(testRegion.name())) {
+                        int testFloorY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, tx, tz);
+                        int testSurfaceY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, tx, tz);
+                        String status = testFloorY <= 63 ? "✓" : "✗";
+                        System.out.println("    " + status + " (" + tx + ", " + tz + "): floor=" + testFloorY + " surface=" + testSurfaceY);
+                    }
+                }
             });
             
-            // Teleport to problem location and screenshot
+            // Teleport to problem location, let player fall, then measure actual Y
             singleplayer.getServer().runOnServer(server -> {
                 ServerPlayer player = server.getPlayerList().getPlayers().get(0);
-                player.teleportTo(PROBLEM_COORD[0], PROBLEM_COORD[1] + 50, PROBLEM_COORD[2]);
-                player.setXRot(90f);
+                // Teleport high above the problem coordinate
+                player.teleportTo(PROBLEM_COORD[0], 200, PROBLEM_COORD[2]);
             });
-            context.waitTicks(60);
+            
+            // Wait for chunks to generate and player to fall
+            System.out.println("\n=== TELEPORTING TO PROBLEM LOCATION ===");
+            System.out.println("Teleporting to (" + PROBLEM_COORD[0] + ", 200, " + PROBLEM_COORD[2] + ") and waiting for fall...");
+            context.waitTicks(300);  // Wait longer for chunks to generate and player to fall
+            
+            // Now measure where the player actually is
+            singleplayer.getServer().runOnServer(server -> {
+                ServerPlayer player = server.getPlayerList().getPlayers().get(0);
+                double playerY = player.getY();
+                int blockX = (int) Math.floor(player.getX());
+                int blockY = (int) Math.floor(playerY);
+                int blockZ = (int) Math.floor(player.getZ());
+                
+                System.out.println("\n=== ACTUAL TERRAIN HEIGHT (from player position) ===");
+                System.out.println("Player landed at: (" + blockX + ", " + playerY + ", " + blockZ + ")");
+                
+                // Show what blocks are at and below the player - scan ALL the way down
+                net.minecraft.server.level.ServerLevel level = server.overworld();
+                System.out.println("Blocks at player column (from Y=100 down to Y=-64):");
+                System.out.println("  Player Y position: " + playerY);
+                System.out.println("  ---");
+                for (int y = 100; y >= -64; y--) {
+                    net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(blockX, y, blockZ);
+                    net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+                    String blockName = state.getBlock().getName().getString();
+                    String marker = (y == blockY) ? " <-- player feet" : "";
+                    // Only print non-air blocks to reduce noise, but show air around player
+                    if (!state.isAir() || (y >= blockY - 3 && y <= blockY + 3)) {
+                        System.out.println("  Y=" + y + ": " + blockName + marker);
+                    }
+                }
+                
+                // Get the region at this location
+                Context ctx = MinecraftContext.get(net.minecraft.world.level.Level.OVERWORLD);
+                Region region = ctx != null ? World.getRegion(World.OVERWORLD, blockX, blockZ, ctx) : null;
+                String regionName = region != null ? region.name() : "NULL";
+                
+                ClimateSettings climate = region != null ? region.definition().climate() : null;
+                Integer maxHeight = climate != null ? climate.maxHeight() : null;
+                
+                System.out.println("\nRegion: " + regionName);
+                System.out.println("Expected maxHeight: " + (maxHeight != null ? maxHeight : "NONE"));
+                System.out.println("Actual terrain height (player Y): " + (int) playerY);
+                
+                // Find the highest solid block
+                int highestSolid = -64;
+                for (int y = 319; y >= -64; y--) {
+                    net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(blockX, y, blockZ);
+                    net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+                    if (!state.isAir() && !state.getFluidState().isSource()) {
+                        highestSolid = y;
+                        System.out.println("Highest solid block at Y=" + y + ": " + state.getBlock().getName().getString());
+                        break;
+                    }
+                }
+                
+                // Check actual biome at this location
+                net.minecraft.core.BlockPos biomePos = new net.minecraft.core.BlockPos(blockX, 63, blockZ);
+                var biomeHolder = level.getBiome(biomePos);
+                String biomeName = biomeHolder.getRegisteredName();
+                System.out.println("Biome at location: " + biomeName);
+                
+                if (maxHeight != null) {
+                    // Check if highest solid is from terrain or structure
+                    boolean isStructureBlock = false;
+                    if (highestSolid > maxHeight) {
+                        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(blockX, highestSolid, blockZ);
+                        net.minecraft.world.level.block.state.BlockState highBlock = level.getBlockState(pos);
+                        String blockName = highBlock.getBlock().getName().getString().toLowerCase();
+                        // Structure blocks are typically brick, mossy, etc.
+                        isStructureBlock = blockName.contains("brick") || blockName.contains("mossy") || 
+                                          blockName.contains("suspicious") || blockName.contains("polished");
+                    }
+                    
+                    if (highestSolid <= maxHeight) {
+                        System.out.println("✓ TERRAIN CONSTRAINED: highest solid " + highestSolid + " <= maxHeight " + maxHeight);
+                    } else if (isStructureBlock) {
+                        System.out.println("✓ TERRAIN CONSTRAINED (structure above): base terrain at " + maxHeight + ", structure at " + highestSolid);
+                    } else {
+                        System.out.println("✗ TERRAIN NOT CONSTRAINED: highest solid " + highestSolid + " > maxHeight " + maxHeight);
+                    }
+                }
+            });
+            
+            context.waitTicks(20);
             context.takeScreenshot("00_PROBLEM_LOCATION_x94_z-304");
             System.out.println("  Screenshot taken at problem location");
             
-            // ===== Take corners at extended range =====
-            System.out.println("\n=== Taking Screenshots at Extended Range ===");
-            
-            int[][] corners = {
-                {0, 0, SCREENSHOT_HEIGHT},
-                { SAMPLE_RADIUS,  SAMPLE_RADIUS, SCREENSHOT_HEIGHT},
-                {-SAMPLE_RADIUS,  SAMPLE_RADIUS, SCREENSHOT_HEIGHT},
-                { SAMPLE_RADIUS, -SAMPLE_RADIUS, SCREENSHOT_HEIGHT},
-                {-SAMPLE_RADIUS, -SAMPLE_RADIUS, SCREENSHOT_HEIGHT},
-                {94, -304, SCREENSHOT_HEIGHT},  // Problem coordinate
-            };
-            String[] cornerNames = {"CENTER", "NE", "NW", "SE", "SW", "PROBLEM"};
-            
-            for (int i = 0; i < corners.length; i++) {
-                int x = corners[i][0];
-                int z = corners[i][1];
-                int y = corners[i][2];
-                String name = cornerNames[i];
-                
-                final int fx = x, fy = y, fz = z;
-                singleplayer.getServer().runOnServer(server -> {
-                    ServerPlayer player = server.getPlayerList().getPlayers().get(0);
-                    player.teleportTo(fx, fy, fz);
-                    player.setXRot(90f);
-                    player.setYRot(0f);
-                });
-                
-                context.waitTicks(60);
-                context.takeScreenshot(String.format("02_corner_%s_x%d_z%d", name, x, z));
-                System.out.println("  Screenshot taken at " + name + " (" + x + ", " + z + ")");
-            }
-            
-            // ===== SPIRAL SAMPLING: Compare World vs MixinSampler =====
-            System.out.println("\n=== Spiral Sampling at QUART-ALIGNED Coordinates ===");
-            System.out.println("(All coordinates are multiples of 4 to match biome resolution)\n");
-            
-            singleplayer.getServer().runOnServer(server -> {
-                ServerLevel overworld = server.overworld();
-                
-                // Verify generator type
-                ChunkGenerator generator = overworld.getChunkSource().getGenerator();
-                BiomeSource biomeSource = generator.getBiomeSource();
-                System.out.println("Generator: " + generator.getClass().getSimpleName());
-                System.out.println("BiomeSource: " + biomeSource.getClass().getSimpleName());
-                
-                if (!(generator instanceof NoiseBasedChunkGenerator)) {
-                    throw new AssertionError("Expected NoiseBasedChunkGenerator");
-                }
-                if (!(biomeSource instanceof MultiNoiseBiomeSource)) {
-                    throw new AssertionError("Expected MultiNoiseBiomeSource");
-                }
-                
-                System.out.println("✓ Using NoiseBasedChunkGenerator + MultiNoiseBiomeSource\n");
-                
-                // Get the MinecraftContext that was created when the world loaded
-                Context ctx = MinecraftContext.get(net.minecraft.world.level.Level.OVERWORLD);
-                if (ctx == null) {
-                    throw new AssertionError("MinecraftContext not found for OVERWORLD!");
-                }
-                System.out.println("World seed: " + overworld.getSeed());
-                
-                // Generate spiral sampling points at QUART boundaries (step = 4 blocks)
-                // This ensures we hit every quart cell exactly once
-                List<int[]> spiralPoints = generateSpiralPoints(SAMPLE_RADIUS, 4);  // Step of 4 for quart alignment
-                
-                // Also add specific problem coordinates (quart-aligned)
-                spiralPoints.add(new int[]{(94 >> 2) << 2, (-304 >> 2) << 2});   // User's problem point (92, -304)
-                spiralPoints.add(new int[]{0, (-304 >> 2) << 2});                  // Same Z, center X (0, -304)
-                spiralPoints.add(new int[]{(-94 >> 2) << 2, (-304 >> 2) << 2});  // Mirror (=-96, -304)
-                
-                System.out.println("Sampling " + spiralPoints.size() + " quart-aligned points...\n");
-                
-                // Map biomes to expected regions (for comparison only)
-                Map<String, String> biomeToRegion = createBiomeToRegionMap();
-                
-                // Track results - using ACTUAL region from World.getRegion, not inferred
-                Map<String, Integer> worldBiomeCounts = new LinkedHashMap<>();
-                Map<String, Integer> actualRegionCounts = new LinkedHashMap<>();
-                Map<String, Integer> inferredRegionCounts = new LinkedHashMap<>();
-                
-                // Track mismatches between actual region and biome-inferred region
-                List<String> mismatches = new ArrayList<>();
-                
-                // Track coordinate comparison with MixinSampler
-                var mixinBiomeSamples = MixinSampler.getBiomeSamples();
-                Map<String, String> mixinCoordToBiome = new HashMap<>();  // "quartX,quartZ" -> biome
-                Map<String, String> mixinCoordToRegion = new HashMap<>(); // "quartX,quartZ" -> region
-                for (var sample : mixinBiomeSamples) {
-                    String key = sample.quartX() + "," + sample.quartZ();
-                    mixinCoordToBiome.put(key, sample.selectedBiome());
-                    mixinCoordToRegion.put(key, sample.regionName());
-                }
-                System.out.println("MixinSampler has " + mixinBiomeSamples.size() + " biome samples for comparison");
-                
-                System.out.println("\n╔══════╦════════════╦═══════════╦════════════════════════╦═════════════╦═════════════╦═════════════════════════╗");
-                System.out.println("║ Dist ║Block Coords║Quart Coord║        Biome           ║ ACTUAL Reg  ║ Mixin Reg   ║ Match?                  ║");
-                System.out.println("╠══════╬════════════╬═══════════╬════════════════════════╬═════════════╬═════════════╬═════════════════════════╣");
-                
-                int printed = 0;
-                int coordMatches = 0;
-                int coordMismatches = 0;
-                for (int[] point : spiralPoints) {
-                    int blockX = point[0];
-                    int blockZ = point[1];
-                    int quartX = blockX >> 2;
-                    int quartZ = blockZ >> 2;
-                    int dist = (int) Math.sqrt(blockX*blockX + blockZ*blockZ);
-                    
-                    // Get biome from world (this is what our filtering actually produced)
-                    BlockPos pos = new BlockPos(blockX, 64, blockZ);
-                    Holder<Biome> biome = overworld.getBiome(pos);
-                    String biomeName = getBiomeName(biome);
-                    
-                    // Get ACTUAL region from World API (using aligned block coords)
-                    Region actualRegion = World.getRegion(World.OVERWORLD, blockX, blockZ, ctx);
-                    String actualRegionName = actualRegion != null ? actualRegion.name() : "NULL";
-                    
-                    // Get what MixinSampler recorded at these quart coords
-                    String quartKey = quartX + "," + quartZ;
-                    String mixinBiome = mixinCoordToBiome.get(quartKey);
-                    String mixinRegion = mixinCoordToRegion.get(quartKey);
-                    
-                    // Get inferred region from biome name (for comparison)
-                    String inferredRegion = biomeToRegion.getOrDefault(biomeName, "OTHER");
-                    
-                    worldBiomeCounts.merge(biomeName, 1, Integer::sum);
-                    actualRegionCounts.merge(actualRegionName, 1, Integer::sum);
-                    inferredRegionCounts.merge(inferredRegion, 1, Integer::sum);
-                    
-                    // Check for mismatch between world and mixin at SAME COORDINATES
-                    String matchStatus;
-                    if (mixinRegion == null) {
-                        matchStatus = "no mixin sample";
-                    } else if (actualRegionName.equals(mixinRegion)) {
-                        matchStatus = "✓ match";
-                        coordMatches++;
-                    } else {
-                        matchStatus = "✗ MISMATCH";
-                        coordMismatches++;
-                        if (mismatches.size() < 20) {
-                            mismatches.add(String.format("  Quart(%d,%d) Block(%d,%d): World=%s, Mixin=%s, Biome=%s",
-                                quartX, quartZ, blockX, blockZ, actualRegionName, mixinRegion, 
-                                biomeName.replace("minecraft:", "")));
-                        }
-                    }
-                    
-                    // Print selected samples
-                    if (printed < 20 || printed % 25 == 0 || matchStatus.contains("MISMATCH")) {
-                        String shortBiome = biomeName.replace("minecraft:", "");
-                        if (shortBiome.length() > 22) shortBiome = shortBiome.substring(0, 22);
-                        String mixinRegStr = mixinRegion != null ? mixinRegion : "-";
-                        System.out.printf("║ %4d ║ %4d,%5d ║ %4d,%4d ║ %-22s ║ %-11s ║ %-11s ║ %-23s ║%n",
-                            dist, blockX, blockZ, quartX, quartZ, shortBiome, actualRegionName, mixinRegStr, matchStatus);
-                    }
-                    printed++;
-                }
-                
-                System.out.println("╚══════╩════════════╩═══════════╩════════════════════════╩═════════════╩═════════════╩═════════════════════════╝");
-                System.out.println("\nCoordinate-matched comparison: " + coordMatches + " matches, " + coordMismatches + " mismatches");
-                
-                int totalSamples = spiralPoints.size();
-                
-                // CRITICAL: Show what coordinates MixinSampler actually recorded
-                System.out.println("\n=== MixinSampler Recorded Coordinates (first 30, sorted by distance from origin) ===");
-                mixinBiomeSamples.stream()
-                    .sorted((a, b) -> {
-                        int distA = a.blockX() * a.blockX() + a.blockZ() * a.blockZ();
-                        int distB = b.blockX() * b.blockX() + b.blockZ() * b.blockZ();
-                        return Integer.compare(distA, distB);
-                    })
-                    .limit(30)
-                    .forEach(sample -> {
-                        int dist = (int) Math.sqrt(sample.blockX() * sample.blockX() + sample.blockZ() * sample.blockZ());
-                        System.out.printf("  Dist %4d: Quart(%4d,%4d) Block(%5d,%5d) -> %s in region %s%n",
-                            dist, sample.quartX(), sample.quartZ(), sample.blockX(), sample.blockZ(),
-                            sample.selectedBiome().replace("minecraft:", ""), sample.regionName());
-                    });
-                
-                // Check: are MixinSampler samples near our test area at all?
-                long samplesNearSpawn = mixinBiomeSamples.stream()
-                    .filter(s -> Math.abs(s.blockX()) <= SAMPLE_RADIUS && Math.abs(s.blockZ()) <= SAMPLE_RADIUS)
-                    .count();
-                System.out.println("\nMixinSampler samples within " + SAMPLE_RADIUS + " blocks of origin: " + samplesNearSpawn + " / " + mixinBiomeSamples.size());
-                
-                // NOW: Sample the world at MixinSampler's recorded coordinates
-                // This lets us compare apples-to-apples: what the mixin recorded vs what the world shows
-                System.out.println("\n=== DIRECT COMPARISON: MixinSampler coords vs World at same coords ===");
-                System.out.println("Sampling world biome at locations where MixinSampler recorded samples...\n");
-                
-                int mixinVsWorldMatches = 0;
-                int mixinVsWorldMismatches = 0;
-                List<String> discrepancies = new ArrayList<>();
-                
-                // Take first 200 MixinSampler samples and check them
-                var samplesToCheck = mixinBiomeSamples.stream().limit(200).toList();
-                for (var sample : samplesToCheck) {
-                    // Get what MixinSampler recorded
-                    String mixinBiome = sample.selectedBiome();
-                    String mixinRegion = sample.regionName();
-                    int blockX = sample.blockX();
-                    int blockZ = sample.blockZ();
-                    
-                    // Query the world at these exact coordinates
-                    BlockPos pos = new BlockPos(blockX, 64, blockZ);
-                    Holder<Biome> worldBiome = overworld.getBiome(pos);
-                    String worldBiomeName = getBiomeName(worldBiome);
-                    
-                    // Query our region system at these coordinates  
-                    Region worldRegion = World.getRegion(World.OVERWORLD, blockX, blockZ, ctx);
-                    String worldRegionName = worldRegion != null ? worldRegion.name() : "NULL";
-                    
-                    // Compare
-                    boolean biomeMatch = mixinBiome.equals(worldBiomeName);
-                    boolean regionMatch = mixinRegion.equals(worldRegionName) || 
-                                         (mixinRegion == null && worldRegionName.equals("NULL"));
-                    
-                    if (biomeMatch && regionMatch) {
-                        mixinVsWorldMatches++;
-                    } else {
-                        mixinVsWorldMismatches++;
-                        if (discrepancies.size() < 20) {
-                            discrepancies.add(String.format(
-                                "  Block(%5d,%5d): Mixin[%s/%s] vs World[%s/%s]%s%s",
-                                blockX, blockZ,
-                                mixinBiome.replace("minecraft:", ""), mixinRegion,
-                                worldBiomeName.replace("minecraft:", ""), worldRegionName,
-                                biomeMatch ? "" : " BIOME_DIFF",
-                                regionMatch ? "" : " REGION_DIFF"));
-                        }
-                    }
-                }
-                
-                System.out.println("Compared " + samplesToCheck.size() + " MixinSampler samples to World:");
-                System.out.println("  MATCHES: " + mixinVsWorldMatches + " (mixin recording matches world query)");
-                System.out.println("  MISMATCHES: " + mixinVsWorldMismatches);
-                
-                if (!discrepancies.isEmpty()) {
-                    System.out.println("\nDiscrepancies (first 20):");
-                    for (String d : discrepancies) {
-                        System.out.println(d);
-                    }
-                }
-                
-                // Print coordinate mismatches (World vs MixinSampler at same quart coords)
-                if (!mismatches.isEmpty()) {
-                    System.out.println("\n=== COORDINATE MISMATCHES: World vs MixinSampler at same quart ===");
-                    System.out.println("These show where the region lookup returned different values:");
-                    for (String m : mismatches) {
-                        System.out.println(m);
-                    }
-                    System.out.println("\nPossible causes:");
-                    System.out.println("  1. Different seed/context being used");
-                    System.out.println("  2. Coordinate transformation bug");
-                    System.out.println("  3. Cache timing issue between generation and query");
-                }
-                
-                // Print biome distribution
-                System.out.println("\n=== World Biome Distribution ===");
-                worldBiomeCounts.entrySet().stream()
-                    .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                    .forEach(e -> {
-                        float pct = 100f * e.getValue() / totalSamples;
-                        String region = biomeToRegion.getOrDefault(e.getKey(), "OTHER");
-                        System.out.printf("  %-35s %4d (%5.1f%%) -> inferred: %s%n", 
-                            e.getKey(), e.getValue(), pct, region);
-                    });
-                
-                // Print ACTUAL region distribution (from World.getRegion)
-                System.out.println("\n=== ACTUAL Region Distribution (from World.getRegion API) ===");
-                actualRegionCounts.entrySet().stream()
-                    .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                    .forEach(e -> {
-                        float pct = 100f * e.getValue() / totalSamples;
-                        System.out.printf("  %-15s %4d samples (%5.1f%%)%n", e.getKey(), e.getValue(), pct);
-                    });
-                
-                // Print inferred region distribution (for comparison)
-                System.out.println("\n=== Inferred Region Distribution (from biome names) ===");
-                inferredRegionCounts.entrySet().stream()
-                    .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                    .forEach(e -> {
-                        float pct = 100f * e.getValue() / totalSamples;
-                        System.out.printf("  %-15s %4d samples (%5.1f%%)%n", e.getKey(), e.getValue(), pct);
-                    });
-                
-                // Now compare with MixinSampler data
-                MixinSampler.disable();
-                
-                System.out.println("\n" + "=".repeat(60));
-                System.out.println("=== MixinSampler Internal Data ===");
-                System.out.println("=".repeat(60));
-                
-                Map<String, Integer> mixinRegionCounts = MixinSampler.getRegionCounts();
-                long totalRegionQueries = MixinSampler.getRegionCallCount();
-                
-                System.out.println("\nMixinSampler recorded " + totalRegionQueries + " region queries");
-                System.out.println("\n--- Region Distribution (from MixinSampler) ---");
-                mixinRegionCounts.entrySet().stream()
-                    .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                    .forEach(e -> {
-                        float pct = 100f * e.getValue() / totalRegionQueries;
-                        System.out.printf("  %-20s %8d (%5.1f%%)%n", e.getKey(), e.getValue(), pct);
-                    });
-                
-                // Compare the two distributions
-                System.out.println("\n" + "=".repeat(60));
-                System.out.println("=== COMPARISON: ACTUAL Regions vs MixinSampler ===");
-                System.out.println("=".repeat(60));
-                
-                System.out.println("\n╔═══════════════╦═══════════════╦═══════════════╦═══════════╗");
-                System.out.println("║    Region     ║ ACTUAL World  ║ MixinSampler  ║   Match?  ║");
-                System.out.println("╠═══════════════╬═══════════════╬═══════════════╬═══════════╣");
-                
-                Set<String> allRegions = new TreeSet<>();
-                allRegions.addAll(actualRegionCounts.keySet());
-                allRegions.addAll(mixinRegionCounts.keySet());
-                
-                for (String region : allRegions) {
-                    int worldCount = actualRegionCounts.getOrDefault(region, 0);
-                    float worldPct = 100f * worldCount / totalSamples;
-                    
-                    int mixinCount = mixinRegionCounts.getOrDefault(region, 0);
-                    float mixinPct = totalRegionQueries > 0 ? 100f * mixinCount / totalRegionQueries : 0;
-                    
-                    // Check if they roughly match (within 10% absolute)
-                    boolean match = Math.abs(worldPct - mixinPct) < 10 || 
-                                   (worldPct > 0 && mixinPct > 0);  // Both present is OK
-                    String matchStr = match ? "✓" : "✗ MISMATCH";
-                    
-                    System.out.printf("║ %-13s ║ %6.1f%%       ║ %6.1f%%       ║ %-9s ║%n",
-                        region, worldPct, mixinPct, matchStr);
-                }
-                
-                System.out.println("╚═══════════════╩═══════════════╩═══════════════╩═══════════╝");
-                
-                // Print full MixinSampler summary
-                System.out.println("\n" + MixinSampler.getSummary());
-                
-                var fragAnalysis = MixinSampler.analyzeFragmentation();
-                if (fragAnalysis.checks() > 0) {
-                    System.out.println("Region fragmentation score: " + 
-                        String.format("%.3f", fragAnalysis.score()) + 
-                        " (" + fragAnalysis.discontinuities() + "/" + fragAnalysis.checks() + " discontinuities)");
-                }
-                
-                System.out.println("\n=== Client GameTest Complete ===");
-            });
+            System.out.println("\n=== Test Complete ===");
         }
         
-        System.out.println("Client GameTest finished successfully!");
-        System.out.println("Screenshots saved to: fabric/build/run/clientGameTest/screenshots/");
-    }
-    
-    /**
-     * Generate points in a spiral pattern from origin outward.
-     */
-    private List<int[]> generateSpiralPoints(int maxRadius, int step) {
-        List<int[]> points = new ArrayList<>();
-        
-        // Start at center
-        points.add(new int[]{0, 0});
-        
-        // Spiral outward
-        int x = 0, z = 0;
-        int dx = step, dz = 0;
-        int segmentLength = 1;
-        int segmentPassed = 0;
-        int turns = 0;
-        
-        while (Math.abs(x) <= maxRadius && Math.abs(z) <= maxRadius) {
-            // Move in current direction
-            x += dx;
-            z += dz;
-            segmentPassed++;
-            
-            if (Math.abs(x) <= maxRadius && Math.abs(z) <= maxRadius) {
-                points.add(new int[]{x, z});
-            }
-            
-            // Check if we need to turn
-            if (segmentPassed == segmentLength) {
-                segmentPassed = 0;
-                
-                // Turn 90 degrees counter-clockwise
-                int temp = dx;
-                dx = -dz;
-                dz = temp;
-                turns++;
-                
-                // After every 2 turns, increase segment length
-                if (turns % 2 == 0) {
-                    segmentLength++;
-                }
-            }
-            
-            // Safety limit
-            if (points.size() > 10000) break;
-        }
-        
-        return points;
-    }
-    
-    /**
-     * Create mapping from biome names to expected regions.
-     * NOTE: Some biomes appear in multiple regions (e.g., plains is in both SPAWN and SPRING)
-     * so this mapping shows the MOST LIKELY region, but isn't definitive.
-     */
-    private Map<String, String> createBiomeToRegionMap() {
-        Map<String, String> map = new HashMap<>();
-        // SPAWN (plains only - now unique!)
-        map.put("minecraft:plains", "SPAWN");
-        // SPRING (unique biomes - no plains)
-        map.put("minecraft:flower_forest", "SPRING");
-        map.put("minecraft:meadow", "SPRING");
-        map.put("minecraft:sunflower_plains", "SPRING");
-        map.put("minecraft:cherry_grove", "SPRING");
-        // SUMMER
-        map.put("minecraft:desert", "SUMMER");
-        map.put("minecraft:savanna", "SUMMER");
-        map.put("minecraft:savanna_plateau", "SUMMER");
-        map.put("minecraft:badlands", "SUMMER");
-        map.put("minecraft:eroded_badlands", "SUMMER");
-        // AUTUMN
-        map.put("minecraft:forest", "AUTUMN");
-        map.put("minecraft:dark_forest", "AUTUMN");
-        map.put("minecraft:birch_forest", "AUTUMN");
-        map.put("minecraft:old_growth_birch_forest", "AUTUMN");
-        // WINTER
-        map.put("minecraft:snowy_plains", "WINTER");
-        map.put("minecraft:snowy_taiga", "WINTER");
-        map.put("minecraft:ice_spikes", "WINTER");
-        map.put("minecraft:frozen_river", "WINTER");
-        map.put("minecraft:snowy_beach", "WINTER");
-        // BORDER (deep ocean ring)
-        map.put("minecraft:deep_ocean", "BORDER");
-        map.put("minecraft:deep_cold_ocean", "BORDER");
-        map.put("minecraft:deep_frozen_ocean", "BORDER");
-        map.put("minecraft:deep_lukewarm_ocean", "BORDER");
-        return map;
+        MixinSampler.disable();
     }
     
     /**

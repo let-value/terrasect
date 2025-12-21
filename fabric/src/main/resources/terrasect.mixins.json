@@ -7,7 +7,8 @@
     "ClimateMixin",
     "FeatureMixin",
     "LevelMixin",
-    "MultiNoiseBiomeSourceAccessor"
+    "MultiNoiseBiomeSourceAccessor",
+    "NoiseChunkMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -70,7 +70,7 @@ public class MinecraftContext implements Context {
         if (sampler != null) {
             BY_SAMPLER.put(sampler, context);
         }
-        
+
         World.initialize(dimensionId, seed, context);
         
         return context;
@@ -152,6 +152,18 @@ public class MinecraftContext implements Context {
         ctx = BY_DIMENSION.get(Level.OVERWORLD);
         if (ctx != null) return ctx;
         
+        return BY_DIMENSION.values().stream().findFirst().orElse(null);
+    }
+
+    /**
+     * Get any available context, preferring overworld.
+     * Useful for mixins that don't have access to sampler or dimension.
+     * 
+     * @return A context if any is registered, null otherwise
+     */
+    public static MinecraftContext getAny() {
+        MinecraftContext ctx = BY_DIMENSION.get(Level.OVERWORLD);
+        if (ctx != null) return ctx;
         return BY_DIMENSION.values().stream().findFirst().orElse(null);
     }
 

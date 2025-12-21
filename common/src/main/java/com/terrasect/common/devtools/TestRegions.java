@@ -187,10 +187,12 @@ public final class TestRegions {
             // ===== BORDER (hex ring - visible edge between cells) =====
             .child("BORDER", border -> border
                 .radius(CHUNK * 20)
-                // Ocean terrain: target height below sea level (63)
-                // This creates a flat ocean floor at y=50
+                // Ocean terrain: constrain height BELOW sea level for actual ocean floor
+                // height(50) means ocean floor is at Y=50, water fills from 50 to 62
+                // Sea level in Minecraft is 63 (water at 62 and below)
                 .climate(c -> c
-                    .targetHeight(50)               // Force terrain to y=50 (ocean floor)
+                    .height(50)                     // Ocean floor well below sea level
+                    .depth(-1.5f, -0.5f)            // Force underwater depth (ocean floor)
                     .continentalness(-1.0f, -0.7f)  // Deep ocean biome selection
                     .erosion(0.5f, 1.0f))           // Flat terrain
                 .biomes(b -> b.allowNames("minecraft:deep_ocean")));
