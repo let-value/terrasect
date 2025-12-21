@@ -1,4 +1,4 @@
-package com.terrasect.fabric;
+package com.terrasect.common.generation;
 
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
