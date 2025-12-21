@@ -32,8 +32,10 @@ public class RegionDefinitionTest {
         Region child = root.children().getFirst();
         RegionDefinition resolved = child.definition();
 
-        assertEquals(0.9f, resolved.climate().temperature());
-        assertEquals(0.7f, resolved.climate().humidity());
+        assertEquals(0.9f, resolved.climate().temperature().min());
+        assertEquals(0.9f, resolved.climate().temperature().max());
+        assertEquals(0.7f, resolved.climate().humidity().min());
+        assertEquals(0.7f, resolved.climate().humidity().max());
 
         // Inherited overworld tag was blocked, so only the custom biome remains.
         assertTrue(resolved.biomes().allowedTags().isEmpty());

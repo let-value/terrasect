@@ -96,14 +96,13 @@ public final class TestRegions {
                         .anchoredToOrigin()
                         .biomes(b -> b.allowNames("minecraft:plains")))
 
-                    // SPRING - Warm and lush, flowers
+                    // SPRING - Warm and lush, flowers (no plains - must be unique)
                     .child("SPRING", season -> season
                         .radius(SEASON_SIZE)
                         .climate(c -> c.temperature(0.6f).humidity(0.7f))
                         .biomes(b -> b.allowNames(
                             "minecraft:flower_forest",
                             "minecraft:meadow",
-                            "minecraft:plains",
                             "minecraft:sunflower_plains")))
                         
                     // SUMMER - Hot and dry
@@ -188,6 +187,12 @@ public final class TestRegions {
             // ===== BORDER (hex ring - visible edge between cells) =====
             .child("BORDER", border -> border
                 .radius(CHUNK * 20)
+                // Ocean terrain: target height below sea level (63)
+                // This creates a flat ocean floor at y=50
+                .climate(c -> c
+                    .targetHeight(50)               // Force terrain to y=50 (ocean floor)
+                    .continentalness(-1.0f, -0.7f)  // Deep ocean biome selection
+                    .erosion(0.5f, 1.0f))           // Flat terrain
                 .biomes(b -> b.allowNames("minecraft:deep_ocean")));
         
         return registry.build("WORLD");

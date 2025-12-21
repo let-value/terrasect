@@ -49,20 +49,26 @@ public final class ClimateHandler {
     }
     
     /**
-     * Result of climate modification containing the new temperature and humidity values.
+     * Result of climate modification containing all 6 climate values.
      */
     public record ClimateResult(
         long temperature,
         long humidity,
+        long continentalness,
+        long erosion,
+        long depth,
+        long weirdness,
         boolean modified,
         String regionName
     ) {
-        public static ClimateResult unmodified(long temperature, long humidity) {
-            return new ClimateResult(temperature, humidity, false, null);
+        public static ClimateResult unmodified(long temperature, long humidity, long continentalness,
+                                                long erosion, long depth, long weirdness) {
+            return new ClimateResult(temperature, humidity, continentalness, erosion, depth, weirdness, false, null);
         }
         
-        public static ClimateResult unmodifiedWithRegion(long temperature, long humidity, String regionName) {
-            return new ClimateResult(temperature, humidity, false, regionName);
+        public static ClimateResult unmodifiedWithRegion(long temperature, long humidity, long continentalness,
+                                                          long erosion, long depth, long weirdness, String regionName) {
+            return new ClimateResult(temperature, humidity, continentalness, erosion, depth, weirdness, false, regionName);
         }
     }
     
@@ -78,13 +84,21 @@ public final class ClimateHandler {
      * @param z Biome coordinate Z
      * @param originalTemperature Original temperature value from sampler
      * @param originalHumidity Original humidity value from sampler
-     * @return ClimateResult with potentially modified temperature/humidity
+     * @param originalContinentalness Original continentalness value from sampler
+     * @param originalErosion Original erosion value from sampler
+     * @param originalDepth Original depth value from sampler
+     * @param originalWeirdness Original weirdness value from sampler
+     * @return ClimateResult with potentially modified climate values
      */
     public static ClimateResult modifyClimate(
             Context context,
             int x, int y, int z,
             long originalTemperature,
-            long originalHumidity) {
+            long originalHumidity,
+            long originalContinentalness,
+            long originalErosion,
+            long originalDepth,
+            long originalWeirdness) {
         
         totalCalls++;
         
@@ -93,10 +107,6 @@ public final class ClimateHandler {
             Terrasect.LOGGER.info("ClimateHandler: First climate modification call at quart coords ({}, {}, {})", x, y, z);
         }
         
-        // Log stats periodically
-        if (totalCalls % 10000 == 0) {
-            Terrasect.LOGGER.debug("ClimateHandler: Stats - {}", getStats());
-        }
         
         if (context == null) {
             noContextCount++;
@@ -104,7 +114,8 @@ public final class ClimateHandler {
             if (noContextCount % 10000 == 1) {
                 Terrasect.LOGGER.warn("ClimateHandler: No context available (count={})", noContextCount);
             }
-            return ClimateResult.unmodified(originalTemperature, originalHumidity);
+            return ClimateResult.unmodified(originalTemperature, originalHumidity, originalContinentalness,
+                originalErosion, originalDepth, originalWeirdness);
         }
 
         long seed = context.getSeed();
@@ -125,7 +136,8 @@ public final class ClimateHandler {
                 MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
                     originalTemperature, originalHumidity, null, false);
             }
-            return ClimateResult.unmodified(originalTemperature, originalHumidity);
+            return ClimateResult.unmodified(originalTemperature, originalHumidity, originalContinentalness,
+                originalErosion, originalDepth, originalWeirdness);
         }
         
         // Record region query for sampling (only if enabled)
@@ -136,12 +148,15 @@ public final class ClimateHandler {
         // Get climate settings for this region
         ClimateSettings climate = region.definition().climate();
         if (climate == null) {
-            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
+                originalErosion, originalDepth, originalWeirdness, region.name());
         }
         
         // Check if there are any climate modifications to apply
-        if (climate.temperature() == null && climate.humidity() == null) {
-            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
+        if (climate.temperature() == null && climate.humidity() == null && climate.continentalness() == null &&
+            climate.erosion() == null && climate.depth() == null && climate.weirdness() == null) {
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
+                originalErosion, originalDepth, originalWeirdness, region.name());
         }
         
         // Calculate edge factor for smooth transitions between regions
@@ -152,22 +167,31 @@ public final class ClimateHandler {
         float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
         float edgeFactor = 1.0f - normalizedEdge; // Invert: 0 at center, 1 at boundary
 
-        // Calculate climate offsets using common logic
+        // Calculate climate offsets for all 6 parameters
         ClimateModifier.ClimateOffset offset = ClimateModifier.calculateOffset(
             climate,
             originalTemperature,
             originalHumidity,
+            originalContinentalness,
+            originalErosion,
+            originalDepth,
+            originalWeirdness,
             edgeFactor
         );
         
         // If no modifications needed, return original
         if (!offset.hasModifications()) {
-            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, region.name());
+            return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
+                originalErosion, originalDepth, originalWeirdness, region.name());
         }
         
-        // Apply the offsets
+        // Apply all offsets
         long modifiedTemp = ClimateModifier.applyTemperatureOffset(originalTemperature, offset);
         long modifiedHumid = ClimateModifier.applyHumidityOffset(originalHumidity, offset);
+        long modifiedCont = ClimateModifier.applyContinentalnessOffset(originalContinentalness, offset);
+        long modifiedErosion = ClimateModifier.applyErosionOffset(originalErosion, offset);
+        long modifiedDepth = ClimateModifier.applyDepthOffset(originalDepth, offset);
+        long modifiedWeirdness = ClimateModifier.applyWeirdnessOffset(originalWeirdness, offset);
         
         modifiedCount++;
         
@@ -178,14 +202,8 @@ public final class ClimateHandler {
             MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
         }
         
-        // Log occasionally when we actually modify
-        if (modifiedCount % 5000 == 1) {
-            Terrasect.LOGGER.debug("ClimateHandler: Modified at ({}, {}) - temp: {} -> {}, humid: {} -> {}, region: {}",
-                blockX, blockZ, originalTemperature, modifiedTemp,
-                originalHumidity, modifiedHumid, region.name());
-        }
-        
-        return new ClimateResult(modifiedTemp, modifiedHumid, true, region.name());
+        return new ClimateResult(modifiedTemp, modifiedHumid, modifiedCont, 
+            modifiedErosion, modifiedDepth, modifiedWeirdness, true, region.name());
     }
     
     /**
@@ -194,7 +212,7 @@ public final class ClimateHandler {
      * <p>This is the main entry point for ClimateMixin - it handles the entire flow:
      * <ol>
      *   <li>Get climate result from modifyClimate</li>
-     *   <li>If modified, create new TargetPoint with updated temp/humidity</li>
+     *   <li>If modified, create new TargetPoint with all 6 updated climate values</li>
      *   <li>If not modified, return the original TargetPoint</li>
      * </ol>
      * 
@@ -215,7 +233,11 @@ public final class ClimateHandler {
         ClimateResult result = modifyClimate(
             context, x, y, z,
             original.temperature(),
-            original.humidity()
+            original.humidity(),
+            original.continentalness(),
+            original.erosion(),
+            original.depth(),
+            original.weirdness()
         );
         
         if (!result.modified()) {
@@ -225,10 +247,10 @@ public final class ClimateHandler {
         return new Climate.TargetPoint(
             result.temperature(),
             result.humidity(),
-            original.continentalness(),
-            original.erosion(),
-            original.depth(),
-            original.weirdness()
+            result.continentalness(),
+            result.erosion(),
+            result.depth(),
+            result.weirdness()
         );
     }
 }

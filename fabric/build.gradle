@@ -21,6 +21,7 @@ dependencies {
 
 loom {
     splitEnvironmentSourceSets()
+    accessWidenerPath = file("src/main/resources/terrasect.accesswidener")
     mods {
         create('terrasect') {
             sourceSet(sourceSets.main)

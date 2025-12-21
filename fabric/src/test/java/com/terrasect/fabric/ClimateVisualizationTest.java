@@ -118,7 +118,9 @@ public class ClimateVisualizationTest {
                 
                 // Calculate modified climate using the shared handler to match runtime logic
                 ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
-                    context, quartX, 16, quartZ, vanilla.temperature(), vanilla.humidity()
+                    context, quartX, 16, quartZ, 
+                    vanilla.temperature(), vanilla.humidity(), vanilla.continentalness(),
+                    vanilla.erosion(), vanilla.depth(), vanilla.weirdness()
                 );
                 long modTemp = result.temperature();
                 long modHumid = result.humidity();
@@ -134,8 +136,8 @@ public class ClimateVisualizationTest {
                 Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
                 Climate.TargetPoint modifiedPoint = new Climate.TargetPoint(
                     modTemp, modHumid,
-                    vanilla.continentalness(), vanilla.erosion(),
-                    vanilla.depth(), vanilla.weirdness()
+                    result.continentalness(), result.erosion(),
+                    result.depth(), result.weirdness()
                 );
                 Holder<Biome> modifiedBiome = parameterList.findValue(modifiedPoint);
                 
