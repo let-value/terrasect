@@ -266,7 +266,7 @@ public class BiomeVisualizationTest {
      * Uses O(1) biome metadata retrieval.
      */
     private Holder<Biome> findAllowedBiomeFallback(
-            BiomeLookup<Holder<Biome>> biomeLookup,
+            BiomeLookup<Holder<Biome>, Void> biomeLookup,
             Climate.TargetPoint target,
             SelectionRules rules,
             Climate.ParameterList<Holder<Biome>> parameterList) {
