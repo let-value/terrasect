@@ -13,24 +13,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Mixin for Climate.Sampler that applies region-based climate modifications.
  * 
- * <p>Uses {@link SamplerBypass} to prevent infinite recursion. When we need
- * vanilla climate values (for river/ridge detection), external code sets the flag
- * via {@link SamplerBypass#setWantVanilla(boolean)} before calling sample().
+ * <p>This is a thin wrapper - all logic is in {@link ClimateHandler#modifyTargetPoint}.
+ * The only mixin-specific logic is the vanilla sampling bypass via ThreadLocal.
  */
 @Mixin(Climate.Sampler.class)
 public class ClimateMixin implements VanillaSampler {
     
-    /**
-     * Thread-local flag to indicate we want vanilla (unmodified) values.
-     * When true, the mixin exits early without modifications.
-     */
+    /** Thread-local flag to bypass modifications (prevents recursion). */
     @Unique
     private static final ThreadLocal<Boolean> terrasect$wantVanilla = ThreadLocal.withInitial(() -> false);
     
-    /**
-     * Get vanilla climate sample without our modifications.
-     * This is called via the VanillaSampler interface.
-     */
     @Override
     @Unique
     public Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z) {
@@ -42,45 +34,17 @@ public class ClimateMixin implements VanillaSampler {
         }
     }
     
-    /**
-     * Inject at the end of sample() to modify the climate values.
-     */
-    @Inject(
-        method = "sample",
-        at = @At("RETURN"),
-        cancellable = true
-    )
+    @Inject(method = "sample", at = @At("RETURN"), cancellable = true)
     private void terrasect$modifyClimate(int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
-        // Exit early if vanilla values requested (prevents recursion)
-        if (terrasect$wantVanilla.get()) {
-            return;
-        }
+        if (terrasect$wantVanilla.get()) return;
         
-        // Get context from this sampler instance
         Climate.Sampler self = (Climate.Sampler)(Object)this;
         MinecraftContext context = MinecraftContext.get(self);
-        if (context == null) {
-            return;
-        }
+        if (context == null) return;
         
-        Climate.TargetPoint original = cir.getReturnValue();
-        
-        ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
-            context, x, y, z,
-            original.temperature(),
-            original.humidity()
-        );
-        
-        // If modified, replace the return value
-        if (result.modified()) {
-            cir.setReturnValue(new Climate.TargetPoint(
-                result.temperature(),
-                result.humidity(),
-                original.continentalness(),
-                original.erosion(),
-                original.depth(),
-                original.weirdness()
-            ));
+        Climate.TargetPoint modified = ClimateHandler.modifyTargetPoint(context, x, y, z, cir.getReturnValue());
+        if (modified != cir.getReturnValue()) {
+            cir.setReturnValue(modified);
         }
     }
 }

@@ -9,6 +9,7 @@ import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.devtools.MixinSampler;
 import com.terrasect.common.generation.definition.ClimateSettings;
+import net.minecraft.world.level.biome.Climate;
 
 /**
  * Shared climate modification logic for platform mixins.
@@ -185,5 +186,49 @@ public final class ClimateHandler {
         }
         
         return new ClimateResult(modifiedTemp, modifiedHumid, true, region.name());
+    }
+    
+    /**
+     * Modify a Climate.TargetPoint based on region settings.
+     * 
+     * <p>This is the main entry point for ClimateMixin - it handles the entire flow:
+     * <ol>
+     *   <li>Get climate result from modifyClimate</li>
+     *   <li>If modified, create new TargetPoint with updated temp/humidity</li>
+     *   <li>If not modified, return the original TargetPoint</li>
+     * </ol>
+     * 
+     * <p>This moves TargetPoint construction into common code, making mixins thinner.
+     * 
+     * @param context The generation context
+     * @param x Quart X coordinate
+     * @param y Quart Y coordinate
+     * @param z Quart Z coordinate
+     * @param original The original TargetPoint from vanilla sampling
+     * @return The potentially modified TargetPoint
+     */
+    public static Climate.TargetPoint modifyTargetPoint(
+            Context context,
+            int x, int y, int z,
+            Climate.TargetPoint original) {
+        
+        ClimateResult result = modifyClimate(
+            context, x, y, z,
+            original.temperature(),
+            original.humidity()
+        );
+        
+        if (!result.modified()) {
+            return original;
+        }
+        
+        return new Climate.TargetPoint(
+            result.temperature(),
+            result.humidity(),
+            original.continentalness(),
+            original.erosion(),
+            original.depth(),
+            original.weirdness()
+        );
     }
 }

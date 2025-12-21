@@ -4,9 +4,13 @@ import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.devtools.MixinSampler;
+import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.generation.definition.SelectionRules;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
 
 /**
  * Shared biome filtering logic for platform mixins.
@@ -16,10 +20,6 @@ import com.terrasect.common.generation.definition.SelectionRules;
  * 
  * <p>Supports dimension-aware region lookups. The context provides
  * the dimension ID, which is used to look up the appropriate root region.
- * 
- * <p>Design: The actual ParameterList filtering is done in platform mixins
- * since it requires Minecraft classes. This class provides allocation-free
- * rule lookups and O(1) biome checking.
  */
 public final class BiomeHandler {
     
@@ -28,14 +28,45 @@ public final class BiomeHandler {
     }
     
     /**
-     * Get the region for a location. Returns null if no context or region found.
+     * Select a biome using region-based filtering.
      * 
-     * <p>Callers can then access both rules and region name from the Region:
-     * <pre>
-     * Region region = BiomeHandler.getRegion(context, quartX, quartZ);
-     * SelectionRules rules = region != null ? region.definition().biomes() : null;
-     * String regionName = region != null ? region.name() : null;
-     * </pre>
+     * <p>This is the main entry point for BiomeMixin - it handles the entire flow:
+     * <ol>
+     *   <li>Get region at the location</li>
+     *   <li>Get selection rules from region</li>
+     *   <li>Get filtered parameter list</li>
+     *   <li>Find best matching biome</li>
+     *   <li>Record result for sampling/debug</li>
+     * </ol>
+     * 
+     * @param context The Minecraft generation context
+     * @param quartX Quart X coordinate (block >> 2)
+     * @param quartZ Quart Z coordinate (block >> 2)
+     * @param targetPoint The climate target point
+     * @return The selected biome holder
+     */
+    public static Holder<Biome> selectBiome(
+            MinecraftContext context,
+            int quartX, int quartZ,
+            Climate.TargetPoint targetPoint) {
+        
+        // Get region and rules in single lookup
+        Region region = getRegion(context, quartX, quartZ);
+        SelectionRules rules = getRules(region);
+        
+        // Get filtered parameter list (cached internally)
+        Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
+        boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());
+        
+        // Find the biome and record result
+        Holder<Biome> result = parameterList.findValue(targetPoint);
+        recordResult(quartX, quartZ, MinecraftContext.getBiomeId(result), region, wasFiltered);
+        
+        return result;
+    }
+    
+    /**
+     * Get the region for a location. Returns null if no context or region found.
      * 
      * @param context The generation context (null returns null)
      * @param quartX Quart X coordinate (block >> 2)

@@ -1,9 +1,7 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.generation.definition.SelectionRules;
-import com.terrasect.common.runtime.handler.BiomeHandler;
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.runtime.handler.BiomeHandler;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
@@ -15,8 +13,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * NeoForge mixin for MultiNoiseBiomeSource that applies region-based biome filtering.
  * 
- * <p>Redirects getNoiseBiome() to filter biomes based on region rules.
- * Filtering is cached per SelectionRules in NeoForgeNarrGenContext.
+ * <p>This is a thin wrapper - all logic is in {@link BiomeHandler#selectBiome}.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class BiomeMixin {
@@ -41,17 +38,6 @@ public class BiomeMixin {
             ).findValue(targetPoint);
         }
         
-        // Get region and rules in single lookup
-        Region region = BiomeHandler.getRegion(context, quartX, quartZ);
-        SelectionRules rules = BiomeHandler.getRules(region);
-        
-        // Use cached filtered parameter list from context
-        Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
-        boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());
-
-        Holder<Biome> result = parameterList.findValue(targetPoint);
-        BiomeHandler.recordResult(quartX, quartZ,
-            MinecraftContext.getBiomeId(result), region, wasFiltered);
-        return result;
+        return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
     }
 }
