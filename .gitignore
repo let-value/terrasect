@@ -36,6 +36,7 @@ bin/
 
 # Minecraft / Modding
 run/
+runs/
 run-*/
 logs/
 crash-reports/
@@ -43,7 +44,6 @@ debug/
 
 # Fabric
 .fabric/
-fabric/runs
 
 # NeoForge
 .neoforge/

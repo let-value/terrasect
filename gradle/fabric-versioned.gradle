@@ -31,119 +31,12 @@
  *     common_project=:mc1_21_1-common  # Inherit from frozen common
  */
 
-// Helper to get properties with fallback to root
-ext.prop = { String key, String defaultVal = null ->
-    if (project.hasProperty(key)) {
-        return project.property(key)
-    }
-    if (rootProject.hasProperty(key)) {
-        return rootProject.property(key)
-    }
-    if (defaultVal != null) {
-        return defaultVal
-    }
-    throw new GradleException("Property '$key' not found for versioned project ${project.path}")
-}
+// Apply shared utilities
+apply from: rootProject.file('gradle/versioned-utils.gradle')
 
 // Base project paths
 def baseProjectPath = prop('base_project', ':fabric')
 def commonProjectPath = prop('common_project', ':common')  // Empty string = no common inheritance
-
-/**
- * Recursively collects source directories from a project and its base projects.
- * Returns sources in order: most specific (current) -> least specific (root base)
- */
-ext.collectInheritedSources = { Project proj, String sourceSetName, String sourceType, Set<String> visited = [] ->
-    def sources = []
-    
-    // Prevent infinite loops
-    if (visited.contains(proj.path)) {
-        return sources
-    }
-    visited.add(proj.path)
-    
-    // Add this project's sources
-    def srcDir = sourceType == 'java' 
-        ? file("${proj.projectDir}/src/${sourceSetName}/java")
-        : file("${proj.projectDir}/src/${sourceSetName}/resources")
-    
-    if (srcDir.exists()) {
-        sources.add(srcDir)
-    }
-    
-    // Check if this project has a base_project property (for chained inheritance)
-    def projBasePath = null
-    if (proj.hasProperty('base_project')) {
-        projBasePath = proj.property('base_project')
-    } else if (proj.path == ':fabric' || proj.path == ':neoforge') {
-        // Main loader projects don't have a base
-        projBasePath = null
-    }
-    
-    // Recursively collect from base project
-    if (projBasePath != null && !projBasePath.isEmpty()) {
-        def baseProj = rootProject.findProject(projBasePath)
-        if (baseProj != null) {
-            sources.addAll(collectInheritedSources(baseProj, sourceSetName, sourceType, visited))
-        }
-    }
-    
-    return sources
-}
-
-/**
- * Collects relative paths of all files in a directory tree.
- * Used to determine which inherited files should be excluded.
- */
-ext.collectLocalFiles = { File baseDir ->
-    def files = []
-    if (baseDir.exists()) {
-        baseDir.eachFileRecurse { file ->
-            if (file.isFile()) {
-                files.add(baseDir.toPath().relativize(file.toPath()).toString().replace('\\', '/'))
-            }
-        }
-    }
-    return files
-}
-
-/**
- * Collects all override files from versioned projects in the inheritance chain.
- * This includes the current project's local files and all parent versioned project files.
- */
-ext.collectAllOverrideFiles = { Project proj, String sourceSetName, String sourceType, Set<String> visited = [] ->
-    def files = [] as Set
-    
-    if (visited.contains(proj.path)) {
-        return files
-    }
-    visited.add(proj.path)
-    
-    // Add this project's local files
-    def srcDir = sourceType == 'java' 
-        ? file("${proj.projectDir}/src/${sourceSetName}/java")
-        : file("${proj.projectDir}/src/${sourceSetName}/resources")
-    
-    if (srcDir.exists()) {
-        files.addAll(collectLocalFiles(srcDir))
-    }
-    
-    // Check if this project has a base_project property (for chained inheritance)
-    def projBasePath = null
-    if (proj.hasProperty('base_project')) {
-        projBasePath = proj.property('base_project')
-    }
-    
-    // Recursively collect from base versioned project (but not from :fabric or :neoforge)
-    if (projBasePath != null && !projBasePath.isEmpty() && projBasePath != ':fabric' && projBasePath != ':neoforge') {
-        def baseProj = rootProject.findProject(projBasePath)
-        if (baseProj != null) {
-            files.addAll(collectAllOverrideFiles(baseProj, sourceSetName, sourceType, visited))
-        }
-    }
-    
-    return files
-}
 
 // Configure source inheritance from the base project chain
 afterEvaluate {
@@ -157,88 +50,47 @@ afterEvaluate {
         def localClientResources = file('src/client/resources')
         
         // Collect ALL override files from the entire versioned chain (including parent versioned projects)
-        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java')
-        def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources')
-        def allClientJavaOverrides = collectAllOverrideFiles(project, 'client', 'java')
-        def allClientResourceOverrides = collectAllOverrideFiles(project, 'client', 'resources')
+        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':fabric', ':neoforge'])
+        def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources', [':fabric', ':neoforge'])
+        def allClientJavaOverrides = collectAllOverrideFiles(project, 'client', 'java', [':fabric', ':neoforge'])
+        def allClientResourceOverrides = collectAllOverrideFiles(project, 'client', 'resources', [':fabric', ':neoforge'])
         
         // Collect all inherited sources through the chain
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java')
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources')
-        def inheritedClientJava = collectInheritedSources(baseProject, 'client', 'java')
-        def inheritedClientResources = collectInheritedSources(baseProject, 'client', 'resources')
+        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':fabric', ':neoforge'])
+        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':fabric', ':neoforge'])
+        def inheritedClientJava = collectInheritedSources(baseProject, 'client', 'java', [':fabric', ':neoforge'])
+        def inheritedClientResources = collectInheritedSources(baseProject, 'client', 'resources', [':fabric', ':neoforge'])
         
         sourceSets {
             main {
                 java {
-                    // Local overrides first (highest priority)
-                    if (localMainJava.exists()) {
-                        srcDir localMainJava
-                    }
-                    // Add inherited sources
+                    if (localMainJava.exists()) { srcDir localMainJava }
                     inheritedMainJava.each { dir -> srcDir dir }
                 }
                 resources {
-                    if (localMainResources.exists()) {
-                        srcDir localMainResources
-                    }
+                    if (localMainResources.exists()) { srcDir localMainResources }
                     inheritedMainResources.each { dir -> srcDir dir }
                 }
             }
             
             client {
                 java {
-                    if (localClientJava.exists()) {
-                        srcDir localClientJava
-                    }
+                    if (localClientJava.exists()) { srcDir localClientJava }
                     inheritedClientJava.each { dir -> srcDir dir }
                 }
                 resources {
-                    if (localClientResources.exists()) {
-                        srcDir localClientResources
-                    }
+                    if (localClientResources.exists()) { srcDir localClientResources }
                     inheritedClientResources.each { dir -> srcDir dir }
                 }
             }
         }
         
         // Configure compile tasks to exclude overridden files from non-versioned source dirs
-        tasks.named('compileJava') {
-            source = source.matching {
-                allMainJavaOverrides.each { relativePath ->
-                    exclude { details ->
-                        def filePath = details.file.path.replace('\\', '/')
-                        filePath.endsWith(relativePath) && !filePath.contains('versions/')
-                    }
-                }
-            }
-        }
+        configureCompileExclusions('compileJava', allMainJavaOverrides)
+        configureCompileExclusions('compileClientJava', allClientJavaOverrides)
         
-        // Also configure compileClientJava if it exists (Loom split sources)
-        tasks.matching { it.name == 'compileClientJava' }.configureEach {
-            source = source.matching {
-                allClientJavaOverrides.each { relativePath ->
-                    exclude { details ->
-                        def filePath = details.file.path.replace('\\', '/')
-                        filePath.endsWith(relativePath) && !filePath.contains('versions/')
-                    }
-                }
-            }
-        }
-        
-        // Inherit common project sources (with chained inheritance support)
-        // Set common_project= (empty) to disable common inheritance
-        if (commonProjectPath && !commonProjectPath.isEmpty()) {
-            def commonProject = rootProject.findProject(commonProjectPath)
-            if (commonProject != null) {
-                // Collect common sources through its inheritance chain
-                def inheritedCommonJava = collectInheritedSources(commonProject, 'main', 'java')
-                def inheritedCommonResources = collectInheritedSources(commonProject, 'main', 'resources')
-                
-                inheritedCommonJava.each { sourceSets.main.java.srcDir it }
-                inheritedCommonResources.each { sourceSets.main.resources.srcDir it }
-            }
-        }
+        // Inherit common project sources
+        inheritCommonSources(commonProjectPath)
         
         // Log the inheritance chain for debugging
         logger.info("${project.path} source inheritance chain:")
@@ -252,7 +104,10 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${prop('fabric_loader_version')}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${prop('fabric_api_version')}"
     
-    implementation project(':common')
+    // Use the version-specific common project if configured
+    if (commonProjectPath && !commonProjectPath.isEmpty()) {
+        implementation project(commonProjectPath)
+    }
     
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')

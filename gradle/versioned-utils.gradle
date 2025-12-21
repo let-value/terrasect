@@ -1,0 +1,191 @@
+/**
+ * Shared utility functions for versioned subprojects.
+ * 
+ * Apply this script before loader-specific versioned scripts:
+ *   apply from: rootProject.file('gradle/versioned-utils.gradle')
+ */
+
+/**
+ * Helper to get properties with fallback to root project.
+ */
+ext.prop = { String key, String defaultVal = null ->
+    if (project.hasProperty(key)) {
+        return project.property(key)
+    }
+    if (rootProject.hasProperty(key)) {
+        return rootProject.property(key)
+    }
+    if (defaultVal != null) {
+        return defaultVal
+    }
+    throw new GradleException("Property '$key' not found for versioned project ${project.path}")
+}
+
+/**
+ * Recursively collects source directories from a project and its base projects.
+ * Returns sources in order: most specific (current) -> least specific (root base)
+ * 
+ * @param proj The project to start collecting from
+ * @param sourceSetName The source set name (e.g., 'main', 'test', 'client')
+ * @param sourceType Either 'java' or 'resources'
+ * @param rootProjects List of project paths that have no base (e.g., [':common', ':fabric', ':neoforge'])
+ * @param visited Set of already visited project paths (for cycle detection)
+ */
+ext.collectInheritedSources = { Project proj, String sourceSetName, String sourceType, List<String> rootProjects = [':common', ':fabric', ':neoforge'], Set<String> visited = [] ->
+    def sources = []
+    
+    // Prevent infinite loops
+    if (visited.contains(proj.path)) {
+        return sources
+    }
+    visited.add(proj.path)
+    
+    // Add this project's sources
+    def srcDir = sourceType == 'java' 
+        ? file("${proj.projectDir}/src/${sourceSetName}/java")
+        : file("${proj.projectDir}/src/${sourceSetName}/resources")
+    
+    if (srcDir.exists()) {
+        sources.add(srcDir)
+    }
+    
+    // Check if this project has a base_project property (for chained inheritance)
+    def projBasePath = null
+    if (proj.hasProperty('base_project')) {
+        projBasePath = proj.property('base_project')
+    } else if (rootProjects.contains(proj.path)) {
+        // Root projects don't have a base
+        projBasePath = null
+    }
+    
+    // Recursively collect from base project
+    if (projBasePath != null && !projBasePath.isEmpty()) {
+        def baseProj = rootProject.findProject(projBasePath)
+        if (baseProj != null) {
+            sources.addAll(collectInheritedSources(baseProj, sourceSetName, sourceType, rootProjects, visited))
+        }
+    }
+    
+    return sources
+}
+
+/**
+ * Collects relative paths of all files in a directory tree.
+ * Used to determine which inherited files should be excluded.
+ * 
+ * @param baseDir The directory to scan
+ * @return List of relative file paths (using forward slashes)
+ */
+ext.collectLocalFiles = { File baseDir ->
+    def files = []
+    if (baseDir.exists()) {
+        baseDir.eachFileRecurse { file ->
+            if (file.isFile()) {
+                files.add(baseDir.toPath().relativize(file.toPath()).toString().replace('\\', '/'))
+            }
+        }
+    }
+    return files
+}
+
+/**
+ * Collects all override files from versioned projects in the inheritance chain.
+ * This includes the current project's local files and all parent versioned project files.
+ * Stops at root loader projects (doesn't include their files as "overrides").
+ * 
+ * @param proj The project to start collecting from
+ * @param sourceSetName The source set name (e.g., 'main', 'test', 'client')
+ * @param sourceType Either 'java' or 'resources'
+ * @param rootProjects List of root project paths to stop at
+ * @param visited Set of already visited project paths (for cycle detection)
+ */
+ext.collectAllOverrideFiles = { Project proj, String sourceSetName, String sourceType, List<String> rootProjects = [':fabric', ':neoforge'], Set<String> visited = [] ->
+    def files = [] as Set
+    
+    if (visited.contains(proj.path)) {
+        return files
+    }
+    visited.add(proj.path)
+    
+    // Add this project's local files
+    def srcDir = sourceType == 'java' 
+        ? file("${proj.projectDir}/src/${sourceSetName}/java")
+        : file("${proj.projectDir}/src/${sourceSetName}/resources")
+    
+    if (srcDir.exists()) {
+        files.addAll(collectLocalFiles(srcDir))
+    }
+    
+    // Check if this project has a base_project property (for chained inheritance)
+    def projBasePath = null
+    if (proj.hasProperty('base_project')) {
+        projBasePath = proj.property('base_project')
+    }
+    
+    // Recursively collect from base versioned project (but not from root projects)
+    if (projBasePath != null && !projBasePath.isEmpty() && !rootProjects.contains(projBasePath)) {
+        def baseProj = rootProject.findProject(projBasePath)
+        if (baseProj != null) {
+            files.addAll(collectAllOverrideFiles(baseProj, sourceSetName, sourceType, rootProjects, visited))
+        }
+    }
+    
+    return files
+}
+
+/**
+ * Configures compile task to exclude overridden files from non-versioned source directories.
+ * 
+ * @param taskName Name of the compile task (e.g., 'compileJava', 'compileClientJava')
+ * @param overrideFiles Set of relative file paths to exclude
+ * @param pathContains Optional string that must be in the file path (e.g., '/common/src/')
+ */
+ext.configureCompileExclusions = { String taskName, Set<String> overrideFiles, String pathContains = null ->
+    if (overrideFiles.isEmpty()) {
+        return
+    }
+    
+    tasks.matching { it.name == taskName }.configureEach {
+        source = source.matching {
+            overrideFiles.each { relativePath ->
+                exclude { details ->
+                    def filePath = details.file.path.replace('\\', '/')
+                    def matches = filePath.endsWith(relativePath) && !filePath.contains('versions/')
+                    if (pathContains != null) {
+                        matches = matches && filePath.contains(pathContains)
+                    }
+                    return matches
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Inherits common project sources with proper exclusion handling.
+ * 
+ * @param commonProjectPath Path to the common project (e.g., ':common', ':mc1_21_1-common')
+ */
+ext.inheritCommonSources = { String commonProjectPath ->
+    if (!commonProjectPath || commonProjectPath.isEmpty()) {
+        return
+    }
+    
+    def commonProject = rootProject.findProject(commonProjectPath)
+    if (commonProject == null) {
+        return
+    }
+    
+    // Collect common sources through its inheritance chain
+    def inheritedCommonJava = collectInheritedSources(commonProject, 'main', 'java', [':common'])
+    def inheritedCommonResources = collectInheritedSources(commonProject, 'main', 'resources', [':common'])
+    
+    // Collect override files from the versioned common project chain
+    def commonJavaOverrides = collectAllOverrideFiles(commonProject, 'main', 'java', [':common'])
+    
+    inheritedCommonJava.each { sourceSets.main.java.srcDir it }
+    inheritedCommonResources.each { sourceSets.main.resources.srcDir it }
+    
+    // Exclude common overrides from non-versioned common sources
+    configureCompileExclusions('compileJava', commonJavaOverrides, '/common/src/')
+}

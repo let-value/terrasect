@@ -1,32 +1,33 @@
 plugins {
     id 'java'
-    id 'fabric-loom'
+    id 'net.neoforged.moddev' version '2.0.133'
+}
+
+// Vanilla mode: Use NeoForm (no loader) for loader-agnostic Minecraft access
+neoForge {
+    // NeoForm version provides Minecraft without any loader modifications
+    // Get versions from https://projects.neoforged.net/neoforged/neoform
+    neoFormVersion = property('neoform_version')
+    
+    // Make Minecraft classes available to the test source set
+    addModdingDependenciesTo sourceSets.test
 }
 
 dependencies {
-    implementation('org.slf4j:slf4j-api:2.0.16')
+    // slf4j is provided by Minecraft, don't force a specific version
+    compileOnly('org.slf4j:slf4j-api')
     
     // Nullability annotations for API safety
     implementation('org.jetbrains:annotations:24.1.0')
-
-    minecraft "com.mojang:minecraft:${property('minecraft_version')}"
-    mappings loom.officialMojangMappings()
 
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
     testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
-loom {
-    runs {
-        testmodServer {
-            server()
-        }
-    }
-}
-
 repositories {
-    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.neoforged.net/releases' }
+    maven { url = 'https://libraries.minecraft.net/' }
     mavenCentral()
 }
 

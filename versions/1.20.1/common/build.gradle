@@ -1,0 +1,82 @@
+plugins {
+    id 'java'
+    id 'fabric-loom'
+}
+
+// Apply shared utilities
+apply from: rootProject.file('gradle/versioned-utils.gradle')
+
+def baseProjectPath = prop('base_project', ':mc1_21_1-common')
+
+// Configure source inheritance
+afterEvaluate {
+    def baseProject = rootProject.findProject(baseProjectPath)
+    
+    if (baseProject != null) {
+        def localMainJava = file('src/main/java')
+        def localMainResources = file('src/main/resources')
+        def localTestJava = file('src/test/java')
+        def localTestResources = file('src/test/resources')
+        
+        def localMainJavaFiles = collectLocalFiles(localMainJava)
+        def localMainResourceFiles = collectLocalFiles(localMainResources)
+        
+        // Collect ALL override files from the entire chain
+        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':common'])
+        
+        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':common'])
+        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':common'])
+        def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java', [':common'])
+        def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources', [':common'])
+        
+        sourceSets {
+            main {
+                java {
+                    if (localMainJava.exists()) { srcDir localMainJava }
+                    inheritedMainJava.each { dir -> srcDir(dir) }
+                    if (!localMainJavaFiles.isEmpty()) { exclude localMainJavaFiles }
+                }
+                resources {
+                    if (localMainResources.exists()) { srcDir localMainResources }
+                    inheritedMainResources.each { dir -> srcDir(dir) }
+                    if (!localMainResourceFiles.isEmpty()) { exclude localMainResourceFiles }
+                }
+            }
+            test {
+                java {
+                    if (localTestJava.exists()) { srcDir localTestJava }
+                    inheritedTestJava.each { dir -> srcDir(dir) }
+                }
+                resources {
+                    if (localTestResources.exists()) { srcDir localTestResources }
+                    inheritedTestResources.each { dir -> srcDir(dir) }
+                }
+            }
+        }
+        
+        // Exclude overridden files from base :common
+        configureCompileExclusions('compileJava', allMainJavaOverrides, '/common/src/')
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${prop('minecraft_version')}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${prop('fabric_loader_version')}"
+    
+    compileOnly('org.slf4j:slf4j-api')
+    implementation('org.jetbrains:annotations:24.1.0')
+
+    testImplementation(platform('org.junit:junit-bom:5.10.3'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+test {
+    useJUnitPlatform()
+}

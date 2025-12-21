@@ -5,6 +5,10 @@ pluginManagement {
         maven { url = 'https://maven.fabricmc.net/' }
         maven { url = 'https://maven.neoforged.net/releases' }
     }
+    plugins {
+        // ModDevGradle for common (vanilla mode) and neoforge modules
+        id 'net.neoforged.moddev' version '2.0.133'
+    }
 }
 
 enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

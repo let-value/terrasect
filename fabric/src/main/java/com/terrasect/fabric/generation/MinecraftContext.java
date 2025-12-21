@@ -1,6 +1,6 @@
 package com.terrasect.fabric.generation;
 
-import static com.terrasect.fabric.generation.ResourceKeyCompat.getKeyId;
+import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;

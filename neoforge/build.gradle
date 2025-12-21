@@ -59,7 +59,17 @@ publishing {
 }
 
 tasks.withType(ProcessResources).configureEach {
+    // Extract major.minor version from neoforge_version for dependency range
+    def neoforgeVersion = property('neoforge_version')
+    def neoforgeVersionMajor = neoforgeVersion.split('\\.').take(2).join('.')
+    
     filesMatching('META-INF/neoforge.mods.toml') {
-        expand(rootProject.properties)
+        expand([
+            mod_version: project.version,
+            minecraft_version: property('minecraft_version'),
+            neoforge_version: neoforgeVersion,
+            neoforge_version_major: neoforgeVersionMajor,
+            java_version: property('java_version')
+        ])
     }
 }

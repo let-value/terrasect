@@ -10,7 +10,6 @@ repositories {
 }
 
 dependencies {
-    // Fabric Loom - provides the fabric-loom plugin to all subprojects
     implementation 'fabric-loom:fabric-loom.gradle.plugin:1.14-SNAPSHOT'
 }
 

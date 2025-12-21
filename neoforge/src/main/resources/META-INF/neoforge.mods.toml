@@ -18,9 +18,9 @@ authors="Terrasect Team"
 [[dependencies.terrasect]]
 modId="minecraft"
 type="required"
-versionRange="[1.21.11,)"
+versionRange="[${minecraft_version},)"
 
 [[dependencies.terrasect]]
 modId="neoforge"
 type="required"
-versionRange="[21.11,)"
+versionRange="[${neoforge_version_major},)"

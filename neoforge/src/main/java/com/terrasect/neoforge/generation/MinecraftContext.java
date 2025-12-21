@@ -1,5 +1,7 @@
 package com.terrasect.neoforge.generation;
 
+import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
+
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
@@ -59,7 +61,7 @@ public class MinecraftContext implements Context {
             Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         
-        String dimensionId = ResourceKeyCompat.getKeyId(dimension);
+        String dimensionId = getKeyId(dimension);
         BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> lookup = buildLookup(parameters, dimensionId);
         
         MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, lookup);
@@ -95,7 +97,7 @@ public class MinecraftContext implements Context {
         for (var entry : paramList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                String id = biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+                String id = biome.unwrapKey().map(key -> getKeyId(key)).orElse("unknown");
                 Set<String> tags = new HashSet<>();
                 biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
                 builder.add(biome, id, tags);
@@ -183,7 +185,7 @@ public class MinecraftContext implements Context {
      * Extract biome ID from a holder (for debug/logging).
      */
     public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+        return biome.unwrapKey().map(key -> getKeyId(key)).orElse("unknown");
     }
 
     // ==================== Context Interface ====================

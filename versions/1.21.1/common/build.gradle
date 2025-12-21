@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'fabric-loom'
+    id 'net.neoforged.moddev'
 }
 
 apply from: rootProject.file('gradle/common-versioned.gradle')

@@ -4,3 +4,12 @@ plugins {
 }
 
 apply from: rootProject.file('gradle/fabric-versioned.gradle')
+
+// Exclude files that use APIs not available in MC 1.21.1
+afterEvaluate {
+    tasks.named('compileClientJava') {
+        source = source.matching {
+            exclude '**/ClientGameTestIntegration.java'
+        }
+    }
+}
