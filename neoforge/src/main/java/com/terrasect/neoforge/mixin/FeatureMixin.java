@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.MinecraftContext;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
@@ -25,7 +25,7 @@ public class FeatureMixin {
 
     @Inject(method = "place", at = @At("HEAD"), cancellable = true)
     private void onPlace(WorldGenLevel level, ChunkGenerator generator, RandomSource random, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        Context context = NeoForgeNarrGenContext.get(level.getLevel().dimension());
+        Context context = MinecraftContext.get(level.getLevel().dimension());
         
         if (context == null) {
             return;

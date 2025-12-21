@@ -3,7 +3,7 @@ package com.terrasect.neoforge.mixin;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.runtime.handler.BiomeHandler;
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
@@ -33,7 +33,7 @@ public class BiomeMixin {
             Climate.TargetPoint targetPoint,
             int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
         
-        NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(sampler);
+        MinecraftContext context = MinecraftContext.get(sampler);
         if (context == null) {
             return ((MultiNoiseBiomeSourceAccessor) self).getParameters().map(
                 list -> list,
@@ -51,7 +51,7 @@ public class BiomeMixin {
 
         Holder<Biome> result = parameterList.findValue(targetPoint);
         BiomeHandler.recordResult(quartX, quartZ,
-            NeoForgeNarrGenContext.getBiomeId(result), region, wasFiltered);
+            MinecraftContext.getBiomeId(result), region, wasFiltered);
         return result;
     }
 }

@@ -31,18 +31,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Created once per dimension when the world loads. Holds a {@link BiomeLookup} with
  * pre-baked filtered parameter lists for every {@link SelectionRules} in the region tree.
  */
-public class NeoForgeNarrGenContext implements Context {
+public class MinecraftContext implements Context {
     
     // Global registry of contexts by dimension and sampler
-    private static final Map<ResourceKey<Level>, NeoForgeNarrGenContext> BY_DIMENSION = new ConcurrentHashMap<>();
-    private static final Map<Climate.Sampler, NeoForgeNarrGenContext> BY_SAMPLER = new ConcurrentHashMap<>();
+    private static final Map<ResourceKey<Level>, MinecraftContext> BY_DIMENSION = new ConcurrentHashMap<>();
+    private static final Map<Climate.Sampler, MinecraftContext> BY_SAMPLER = new ConcurrentHashMap<>();
 
     private final long seed;
     private final String dimensionId;
     private final Climate.Sampler sampler;
     private final BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup;
 
-    private NeoForgeNarrGenContext(long seed, String dimensionId, Climate.Sampler sampler,
+    private MinecraftContext(long seed, String dimensionId, Climate.Sampler sampler,
             BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup) {
         this.seed = seed;
         this.dimensionId = dimensionId;
@@ -53,16 +53,16 @@ public class NeoForgeNarrGenContext implements Context {
     /**
      * Create and register a context for a dimension.
      */
-    public static NeoForgeNarrGenContext create(
+    public static MinecraftContext create(
             ResourceKey<Level> dimension,
             long seed,
             Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         
-        String dimensionId = dimension.identifier().toString();
+        String dimensionId = ResourceKeyCompat.getKeyId(dimension);
         BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> lookup = buildLookup(parameters, dimensionId);
         
-        NeoForgeNarrGenContext context = new NeoForgeNarrGenContext(seed, dimensionId, sampler, lookup);
+        MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, lookup);
         
         BY_DIMENSION.put(dimension, context);
         if (sampler != null) {
@@ -95,7 +95,7 @@ public class NeoForgeNarrGenContext implements Context {
         for (var entry : paramList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                String id = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+                String id = biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
                 Set<String> tags = new HashSet<>();
                 biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
                 builder.add(biome, id, tags);
@@ -136,12 +136,12 @@ public class NeoForgeNarrGenContext implements Context {
     
     // ==================== Lookup ====================
     
-    public static NeoForgeNarrGenContext get(ResourceKey<Level> dimension) {
+    public static MinecraftContext get(ResourceKey<Level> dimension) {
         return BY_DIMENSION.get(dimension);
     }
 
-    public static NeoForgeNarrGenContext get(Climate.Sampler sampler) {
-        NeoForgeNarrGenContext ctx = BY_SAMPLER.get(sampler);
+    public static MinecraftContext get(Climate.Sampler sampler) {
+        MinecraftContext ctx = BY_SAMPLER.get(sampler);
         if (ctx != null) return ctx;
         
         // Fallback: try overworld, then any context
@@ -183,7 +183,7 @@ public class NeoForgeNarrGenContext implements Context {
      * Extract biome ID from a holder (for debug/logging).
      */
     public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+        return biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
     }
 
     // ==================== Context Interface ====================

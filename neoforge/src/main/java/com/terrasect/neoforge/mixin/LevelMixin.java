@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -66,7 +66,7 @@ public class LevelMixin {
             // Get the sampler from the chunk source's random state
             Climate.Sampler sampler = level.getChunkSource().randomState().sampler();
             
-            NeoForgeNarrGenContext.create(resourceKey, seed, sampler, parameters);
+            MinecraftContext.create(resourceKey, seed, sampler, parameters);
         }
         // Note: TheEndBiomeSource and other biome sources don't use climate sampling
         // and don't need context registration - they have fixed biome placement

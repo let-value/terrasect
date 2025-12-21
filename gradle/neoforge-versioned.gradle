@@ -1,33 +1,32 @@
 /**
- * Shared build script for versioned Fabric subprojects.
+ * Shared build script for versioned NeoForge subprojects.
  * 
  * Apply this script in versioned build.gradle files:
  *   plugins {
  *       id 'java'
- *       id 'fabric-loom'
+ *       id 'net.neoforged.moddev'
  *   }
- *   apply from: rootProject.file('gradle/fabric-versioned.gradle')
+ *   apply from: rootProject.file('gradle/neoforge-versioned.gradle')
  * 
  * Required properties in gradle.properties:
  *   - minecraft_version
- *   - fabric_loader_version
- *   - fabric_api_version
+ *   - neoforge_version
  *   - java_version
  * 
  * Optional properties:
- *   - base_project (default: ':fabric') - Loader project to inherit sources from
+ *   - base_project (default: ':neoforge') - Loader project to inherit sources from
  *   - common_project (default: ':common') - Common project to inherit sources from
  *                     Set to empty string to disable common inheritance
  * 
  * CHAINED INHERITANCE:
- *   Both fabric and common projects support chained inheritance:
+ *   Both neoforge and common projects support chained inheritance:
  *   
- *   :fabric (1.21.11)              :common (1.21.11)
- *       └── :mc1_21_1-fabric           └── :mc1_21_1-common (frozen)
- *               └── :mc1_20_1-fabric           └── (inherits frozen common)
+ *   :neoforge (1.21.11)            :common (1.21.11)
+ *       └── :mc1_21_1-neoforge         └── :mc1_21_1-common (frozen)
+ *               └── :mc1_20_1-neoforge         └── (inherits frozen common)
  *   
  *   Configure in gradle.properties:
- *     base_project=:mc1_21_1-fabric    # Inherit from frozen fabric
+ *     base_project=:mc1_21_1-neoforge  # Inherit from frozen neoforge
  *     common_project=:mc1_21_1-common  # Inherit from frozen common
  */
 
@@ -46,7 +45,7 @@ ext.prop = { String key, String defaultVal = null ->
 }
 
 // Base project paths
-def baseProjectPath = prop('base_project', ':fabric')
+def baseProjectPath = prop('base_project', ':neoforge')
 def commonProjectPath = prop('common_project', ':common')  // Empty string = no common inheritance
 
 /**
@@ -75,7 +74,7 @@ ext.collectInheritedSources = { Project proj, String sourceSetName, String sourc
     def projBasePath = null
     if (proj.hasProperty('base_project')) {
         projBasePath = proj.property('base_project')
-    } else if (proj.path == ':fabric' || proj.path == ':neoforge') {
+    } else if (proj.path == ':neoforge' || proj.path == ':fabric') {
         // Main loader projects don't have a base
         projBasePath = null
     }
@@ -153,20 +152,14 @@ afterEvaluate {
         // Local source directories (highest priority overrides)
         def localMainJava = file('src/main/java')
         def localMainResources = file('src/main/resources')
-        def localClientJava = file('src/client/java')
-        def localClientResources = file('src/client/resources')
         
         // Collect ALL override files from the entire versioned chain (including parent versioned projects)
         def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java')
         def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources')
-        def allClientJavaOverrides = collectAllOverrideFiles(project, 'client', 'java')
-        def allClientResourceOverrides = collectAllOverrideFiles(project, 'client', 'resources')
         
         // Collect all inherited sources through the chain
         def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java')
         def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources')
-        def inheritedClientJava = collectInheritedSources(baseProject, 'client', 'java')
-        def inheritedClientResources = collectInheritedSources(baseProject, 'client', 'resources')
         
         sourceSets {
             main {
@@ -176,49 +169,27 @@ afterEvaluate {
                         srcDir localMainJava
                     }
                     // Add inherited sources
-                    inheritedMainJava.each { dir -> srcDir dir }
+                    inheritedMainJava.each { dir ->
+                        srcDir dir
+                    }
                 }
                 resources {
                     if (localMainResources.exists()) {
                         srcDir localMainResources
                     }
-                    inheritedMainResources.each { dir -> srcDir dir }
-                }
-            }
-            
-            client {
-                java {
-                    if (localClientJava.exists()) {
-                        srcDir localClientJava
+                    inheritedMainResources.each { dir ->
+                        srcDir dir
                     }
-                    inheritedClientJava.each { dir -> srcDir dir }
-                }
-                resources {
-                    if (localClientResources.exists()) {
-                        srcDir localClientResources
-                    }
-                    inheritedClientResources.each { dir -> srcDir dir }
                 }
             }
         }
         
-        // Configure compile tasks to exclude overridden files from non-versioned source dirs
+        // Configure the compileJava task to exclude overridden files from non-versioned source dirs
         tasks.named('compileJava') {
             source = source.matching {
                 allMainJavaOverrides.each { relativePath ->
                     exclude { details ->
-                        def filePath = details.file.path.replace('\\', '/')
-                        filePath.endsWith(relativePath) && !filePath.contains('versions/')
-                    }
-                }
-            }
-        }
-        
-        // Also configure compileClientJava if it exists (Loom split sources)
-        tasks.matching { it.name == 'compileClientJava' }.configureEach {
-            source = source.matching {
-                allClientJavaOverrides.each { relativePath ->
-                    exclude { details ->
+                        // Only exclude if the file is from an inherited (non-local) source directory
                         def filePath = details.file.path.replace('\\', '/')
                         filePath.endsWith(relativePath) && !filePath.contains('versions/')
                     }
@@ -246,64 +217,54 @@ afterEvaluate {
     }
 }
 
-dependencies {
-    minecraft "com.mojang:minecraft:${prop('minecraft_version')}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${prop('fabric_loader_version')}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${prop('fabric_api_version')}"
-    
-    implementation project(':common')
-    
-    testImplementation(platform('org.junit:junit-bom:5.10.3'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.neoforged.net/releases' }
 }
 
-loom {
-    splitEnvironmentSourceSets()
+neoForge {
+    version = prop('neoforge_version')
     
     mods {
-        create('terrasect') {
-            sourceSet(sourceSets.main)
-            sourceSet(sourceSets.client)
+        terrasect {
+            sourceSet sourceSets.main
         }
     }
     
     runs {
         client {
-            ideConfigGenerated true
-            runDir "runs/${project.name}-client"
             client()
         }
         server {
-            ideConfigGenerated true
-            runDir "runs/${project.name}-server"
             server()
         }
     }
 }
 
-processResources {
-    inputs.properties([
-        version: project.version,
-        minecraft_version: prop('minecraft_version'),
-        fabric_loader_version: prop('fabric_loader_version'),
-        java_version: prop('java_version')
-    ])
-    filesMatching("fabric.mod.json") {
-        expand([
-            version: project.version,
-            minecraft_version: prop('minecraft_version'),
-            fabric_loader_version: prop('fabric_loader_version'),
-            java_version: prop('java_version')
+dependencies {
+    implementation project(':common')
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'terrasect',
+                'Specification-Vendor'    : 'terrasect',
+                'Specification-Version'   : project.version,
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : 'terrasect'
         ])
     }
 }
 
-test {
-    useJUnitPlatform()
-}
-
-repositories {
-    maven { url = 'https://maven.fabricmc.net/' }
-    mavenCentral()
+tasks.withType(ProcessResources).configureEach {
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand([
+            mod_version: project.version,
+            minecraft_version: prop('minecraft_version'),
+            neoforge_version: prop('neoforge_version'),
+            java_version: prop('java_version')
+        ])
+    }
 }

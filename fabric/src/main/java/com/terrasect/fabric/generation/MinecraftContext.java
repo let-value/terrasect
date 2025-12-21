@@ -1,5 +1,7 @@
 package com.terrasect.fabric.generation;
 
+import static com.terrasect.fabric.generation.ResourceKeyCompat.getKeyId;
+
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
@@ -14,7 +16,6 @@ import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
-import net.minecraft.world.level.biome.Climate.ParameterList;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ public class MinecraftContext implements Context {
             Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
 
-        String dimensionId = dimension.identifier().toString();
+        String dimensionId = getKeyId(dimension);
         var lookup = buildLookup(parameters, dimensionId);
 
         MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, parameters, lookup);
@@ -100,7 +101,7 @@ public class MinecraftContext implements Context {
         for (var entry : paramList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                String id = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+                String id = biome.unwrapKey().map(k -> getKeyId(k)).orElse("unknown");
                 Set<String> tags = new HashSet<>();
                 biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
                 builder.add(biome, id, tags);
@@ -190,7 +191,7 @@ public class MinecraftContext implements Context {
      * Extract biome ID from a holder (for debug/logging).
      */
     public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
+        return biome.unwrapKey().map(k -> getKeyId(k)).orElse("unknown");
     }
 
     // ==================== Context Interface ====================

@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.MinecraftContext;
 import com.terrasect.neoforge.generation.VanillaSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
@@ -51,7 +51,7 @@ public class ClimateMixin implements VanillaSampler {
         
         // Get context from this sampler instance
         Climate.Sampler self = (Climate.Sampler)(Object)this;
-        NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(self);
+        MinecraftContext context = MinecraftContext.get(self);
         if (context == null) {
             return;
         }
