@@ -1,16 +1,16 @@
 package com.terrasect.common.devtools;
 
 import com.terrasect.common.Terrasect;
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.runtime.World;
 
 /**
  * Pre-configured test regions for development and testing purposes.
  * 
  * <p>This demonstrates how to create different region hierarchies for different
- * dimensions using {@link DimensionRoots}.
+ * dimensions using {@link World}.
  * 
  * <h2>Overworld Regions</h2>
  * <ul>
@@ -28,7 +28,7 @@ import com.terrasect.common.generation.definition.GenerationStrategyType;
  *   <li>OUTER_ISLANDS: The outer End islands</li>
  * </ul>
  * 
- * @see DimensionRoots for registering dimension-specific roots
+ * @see World for registering dimension-specific roots
  */
 public final class TestRegions {
 
@@ -44,11 +44,11 @@ public final class TestRegions {
         
         // Build and register Overworld regions
         Region overworldRoot = buildTestWorld();
-        DimensionRoots.register(DimensionRoots.OVERWORLD, overworldRoot);
+        World.register(World.OVERWORLD, overworldRoot);
         
         // Build and register End regions
         Region endRoot = buildEndWorld();
-        DimensionRoots.register(DimensionRoots.THE_END, endRoot);
+        World.register(World.THE_END, endRoot);
         
         Terrasect.LOGGER.info("Test regions registered:");
         Terrasect.LOGGER.info("  Overworld: {} child regions", overworldRoot.children().size());
@@ -56,7 +56,7 @@ public final class TestRegions {
     }
     
     /**
-     * Register dimension roots using the new dimension-aware API.
+     * Register dimension roots using the dimension-aware API.
      * This demonstrates the recommended way to register regions for multiple dimensions.
      */
     public static void registerForDimensions() {
@@ -97,14 +97,14 @@ public final class TestRegions {
         Region endRoot = registry.build("END_ROOT");
         
         // Register for dimensions
-        DimensionRoots.register(DimensionRoots.OVERWORLD, overworldRoot);
-        DimensionRoots.register(DimensionRoots.THE_END, endRoot);
+        World.register(World.OVERWORLD, overworldRoot);
+        World.register(World.THE_END, endRoot);
         
         // Example: A modded dimension could share the overworld config
-        // DimensionRoots.register("mymod:overworld_copy", overworldRoot);
+        // World.register("mymod:overworld_copy", overworldRoot);
         
         Terrasect.LOGGER.info("Dimension roots registered: {}", 
-            DimensionRoots.getRegisteredDimensions());
+            World.getRegisteredDimensions());
     }
 
     /**

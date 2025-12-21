@@ -7,19 +7,7 @@ import com.terrasect.common.generation.definition.StrategySettings;
 
 import java.util.List;
 
-/**
- * Unified facade for all generation strategies (Hex, Voronoi, Subdivision, Template).
- * 
- * Uses thread-local scratch buffer to return multiple values without allocation.
- * The query() method returns the region index, and results are stored in a scratch
- * buffer accessible via getLastCenterX(), getLastCenterZ(), getLastRadius().
- * 
- * This keeps NarrativeSpace clean while maintaining zero-allocation traversal
- * with full float precision.
- */
 public final class LayoutStrategies {
-
-    // Thread-local scratch space: [regionIndex, centerX, centerZ, radiusScale, hexQ, hexR, isRing]
     private static final ThreadLocal<float[]> SCRATCH = ThreadLocal.withInitial(() -> new float[7]);
 
     private LayoutStrategies() {}

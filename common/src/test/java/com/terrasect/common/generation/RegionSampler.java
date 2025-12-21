@@ -1,6 +1,5 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
@@ -27,6 +26,6 @@ public class RegionSampler {
     }
 
     private static Region getRegionAtDepth(int x, int z, Context context, int targetDepth) {
-        return World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, targetDepth);
+        return World.getRegionAtDepth(World.OVERWORLD, x, z, context, targetDepth);
     }
 }

@@ -1,6 +1,5 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
@@ -51,10 +50,10 @@ public class StrategyComparisonTest {
                 .child("FOREST", forest -> forest.radius(1000)))
             .child("WILDERNESS", wild -> wild.radius(1000));
 
-        DimensionRoots.register(DimensionRoots.OVERWORLD, registry.build("ROOT"));
+        World.register(World.OVERWORLD, registry.build("ROOT"));
 
         // areaBudget is radius^2, so sqrt gives us the actual radius
-        float hexSize = (float) Math.sqrt(World.getRoot(DimensionRoots.OVERWORLD).areaBudget());
+        float hexSize = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
         
         // Sample the center hex
         int range = (int) (hexSize * 1.5f);
@@ -66,11 +65,11 @@ public class StrategyComparisonTest {
         for (int z = -range; z <= range; z += step) {
             for (int x = -range; x <= range; x += step) {
                 // Only sample within the center hex
-                long rootSeed = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, x, z, context, 1);
-                long centerSeed = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, 0, 0, context, 1);
+                long rootSeed = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 1);
+                long centerSeed = World.getRegionSeedAtDepth(World.OVERWORLD, 0, 0, context, 1);
                 
                 if (rootSeed == centerSeed) {
-                    Region child = World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, 2);
+                    Region child = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
                     depth2Counts.merge(child.name(), 1, Integer::sum);
                     totalSamples++;
                 }
@@ -116,7 +115,7 @@ public class StrategyComparisonTest {
                 .child("FOREST", forest -> forest.radius(1000)))
             .child("WILDERNESS", wild -> wild.radius(1000));
 
-        DimensionRoots.register(DimensionRoots.OVERWORLD, registry.build("ROOT"));
+        World.register(World.OVERWORLD, registry.build("ROOT"));
 
         long[] seeds = {12345L, 98765L, 112233L};
         float totalError = 0;
@@ -125,7 +124,7 @@ public class StrategyComparisonTest {
         for (long seed : seeds) {
             Context context = new SnapshotTest.MockStrategy(seed);
             // areaBudget is radius^2, so sqrt gives us the actual radius
-            float hexSize = (float) Math.sqrt(World.getRoot(DimensionRoots.OVERWORLD).areaBudget());
+            float hexSize = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
             int range = (int) (hexSize * 1.2f);
             int step = 100;
 
@@ -134,11 +133,11 @@ public class StrategyComparisonTest {
 
             for (int z = -range; z <= range; z += step) {
                 for (int x = -range; x <= range; x += step) {
-                    long rootSeed = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, x, z, context, 1);
-                    long centerSeed = World.getRegionSeedAtDepth(DimensionRoots.OVERWORLD, 0, 0, context, 1);
+                    long rootSeed = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 1);
+                    long centerSeed = World.getRegionSeedAtDepth(World.OVERWORLD, 0, 0, context, 1);
                     
                     if (rootSeed == centerSeed) {
-                        Region child = World.getRegionAtDepth(DimensionRoots.OVERWORLD, x, z, context, 2);
+                        Region child = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
                         counts.merge(child.name(), 1, Integer::sum);
                         samples++;
                     }

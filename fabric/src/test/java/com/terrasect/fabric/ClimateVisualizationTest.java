@@ -1,6 +1,5 @@
 package com.terrasect.fabric;
 
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
@@ -51,7 +50,7 @@ public class ClimateVisualizationTest {
         
         // Build region hierarchy with different climate settings
         Region root = buildClimateRegions();
-        DimensionRoots.register(DimensionRoots.OVERWORLD, root);
+        World.register(World.OVERWORLD, root);
         
         // Setup Minecraft vanilla climate sampler
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
@@ -105,13 +104,13 @@ public class ClimateVisualizationTest {
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
                 
                 // Get region and calculate modified climate
-                Region region = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ, context);
+                Region region = World.getRegion(World.OVERWORLD, blockX, blockZ, context);
                 ClimateSettings climate = region != null ? region.definition().climate() : null;
                 
                 // Detect region boundaries by comparing neighbors at step distance
                 // Only mark as boundary if both regions exist and have different names
-                Region rightRegion = World.getRegion(DimensionRoots.OVERWORLD, blockX + SCALE, blockZ, context);
-                Region downRegion = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ + SCALE, context);
+                Region rightRegion = World.getRegion(World.OVERWORLD, blockX + SCALE, blockZ, context);
+                Region downRegion = World.getRegion(World.OVERWORLD, blockX, blockZ + SCALE, context);
                 
                 boolean isRightBoundary = region != null && rightRegion != null && !region.name().equals(rightRegion.name());
                 boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());

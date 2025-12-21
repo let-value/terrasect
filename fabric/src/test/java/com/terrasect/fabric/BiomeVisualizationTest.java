@@ -1,6 +1,5 @@
 package com.terrasect.fabric;
 
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
@@ -58,7 +57,7 @@ public class BiomeVisualizationTest {
         PerfTracker.start("buildRegionHierarchy");
         // Build region hierarchy with biome filtering rules
         Region root = buildFilteredBiomeRegions();
-        DimensionRoots.register(DimensionRoots.OVERWORLD, root);
+        World.register(World.OVERWORLD, root);
         PerfTracker.stop("buildRegionHierarchy");
         
         PerfTracker.start("setupMinecraft");
@@ -137,7 +136,7 @@ public class BiomeVisualizationTest {
                 
                 // Get region and its biome rules
                 PerfTracker.start("regionLookup");
-                Region region = World.getRegion(DimensionRoots.OVERWORLD, blockX, blockZ, context);
+                Region region = World.getRegion(World.OVERWORLD, blockX, blockZ, context);
                 PerfTracker.stop("regionLookup");
                 
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;

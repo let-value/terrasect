@@ -3,11 +3,6 @@ package com.terrasect.common.runtime;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
 
-/**
- * Low-level Voronoi sampler used by mixins that need per-block edge distance or
- * stable region ids. This intentionally stays separate from {@link NarrativeSpace}
- * because it models biome-like pockets rather than the narrative hierarchy.
- */
 public class RegionField {
 
     public static final int REPEAT_PERIOD_POCKETS = 5;

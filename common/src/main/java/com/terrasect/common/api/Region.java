@@ -13,7 +13,8 @@ public record Region(
     RegionDefinition definition,
     Set<String> adjacentTo,
     List<Region> children,
-    List<String> sortedAdjacentTo
+    List<String> sortedAdjacentTo,
+    boolean anchoredToOrigin
 ) {
 
     public Region {
@@ -24,6 +25,14 @@ public record Region(
         List<String> sortedAdjacency = new ArrayList<>(adjacentTo);
         Collections.sort(sortedAdjacency);
         sortedAdjacentTo = Collections.unmodifiableList(sortedAdjacency);
+    }
+    
+    /**
+     * Convenience constructor without the anchoredToOrigin flag (defaults to false).
+     */
+    public Region(String name, int areaBudget, RegionDefinition definition, 
+                  Set<String> adjacentTo, List<Region> children, List<String> sortedAdjacentTo) {
+        this(name, areaBudget, definition, adjacentTo, children, sortedAdjacentTo, false);
     }
 
     public boolean hasChildren() {

@@ -1,5 +1,7 @@
 package com.terrasect.common.api;
 
+import com.terrasect.common.runtime.World;
+
 /**
  * Generation context interface that provides world-specific information
  * needed for narrative region generation.
@@ -37,6 +39,6 @@ public interface Context {
      * @return The dimension ID string
      */
     default String getDimensionId() {
-        return DimensionRoots.OVERWORLD;
+        return World.OVERWORLD;
     }
 }

@@ -6,12 +6,7 @@ import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.strategy.LayoutStrategies;
 
-/**
- * Encapsulates the math for traversing the region hierarchy. Separating this from
- * {@link World} makes it easier to reason about the generation math independently
- * from the global static state.
- */
-final class NarrativeSpace {
+final class Layout {
 
     // Warp configuration - simple 3-layer approach:
     // 1. Base warp: organic region shapes (like vanilla biomes)
@@ -31,21 +26,35 @@ final class NarrativeSpace {
     private static final float SPAWN_SAFE_RADIUS = 512.0f; // Reduced warp near spawn
 
     Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth) {
-        return (Region) traverse(root, x, z, context, targetDepth, false);
+        return getRegionAtDepth(root, x, z, context, targetDepth, 0, 0);
+    }
+    
+    Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth, 
+                            float gridOffsetX, float gridOffsetZ) {
+        return (Region) traverse(root, x, z, context, targetDepth, false, gridOffsetX, gridOffsetZ);
     }
 
     long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth) {
-        return (Long) traverse(root, x, z, context, targetDepth, true);
+        return getRegionSeedAtDepth(root, x, z, context, targetDepth, 0, 0);
+    }
+    
+    long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth,
+                              float gridOffsetX, float gridOffsetZ) {
+        return (Long) traverse(root, x, z, context, targetDepth, true, gridOffsetX, gridOffsetZ);
     }
 
-    private Object traverse(Region root, int x, int z, Context context, int targetDepth, boolean returnSeed) {
-        // WARPED TRAVERSAL: Apply warp ONCE at the start, then use warped coords consistently.
+    private Object traverse(Region root, int x, int z, Context context, int targetDepth, boolean returnSeed,
+                            float gridOffsetX, float gridOffsetZ) {
+        // WARPED TRAVERSAL: Apply offset first, then warp, then traverse.
         // This creates organic region boundaries while maintaining proper parent-child containment.
-        // The key insight: warp the INPUT coordinates, then traverse with those warped coords.
-        // Children stay within parent bounds because we use the SAME warped coords throughout.
+        // Offset is applied BEFORE warp so that the anchored region's input coords become (0,0).
         
-        // Apply warp to input coordinates
-        long packedWarp = getWarpedPoint(x, z, context.getSeed(), context);
+        // Apply grid offset first (shifts input coords so anchored region is at origin)
+        int offsetX = x + (int) gridOffsetX;
+        int offsetZ = z + (int) gridOffsetZ;
+        
+        // Then apply warp to the offset coordinates
+        long packedWarp = getWarpedPoint(offsetX, offsetZ, context.getSeed(), context);
         float wx = Float.intBitsToFloat((int) (packedWarp >> 32));
         float wz = Float.intBitsToFloat((int) packedWarp);
 

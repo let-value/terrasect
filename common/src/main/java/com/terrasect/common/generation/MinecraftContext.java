@@ -5,11 +5,11 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.api.DimensionRoots;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
+import com.terrasect.common.runtime.World;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
@@ -107,7 +107,7 @@ public class MinecraftContext implements Context {
         builder.withParameterList(paramList);
         
         // Pre-bake filtered lists for all rules in the region tree
-        Region root = DimensionRoots.getRoot(dimensionId);
+        Region root = World.getRoot(dimensionId);
         if (root != null) {
             builder.withRegionTree(root);
         }

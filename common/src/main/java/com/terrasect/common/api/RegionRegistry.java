@@ -76,7 +76,7 @@ public class RegionRegistry {
         DraftRegion draft = drafts.get(name);
         if (draft == null) {
             Terrasect.LOGGER.error("Missing draft for region '{}'; creating empty placeholder", name);
-            return new Region(name, 10000, inherited, Collections.emptySet(), List.of(), List.of());
+            return new Region(name, 10000, inherited, Collections.emptySet(), List.of(), List.of(), false);
         }
 
         if (!visiting.add(name)) {
@@ -102,7 +102,7 @@ public class RegionRegistry {
         }
 
         visiting.remove(name);
-        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children, List.of());
+        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children, List.of(), draft.anchoredToOrigin);
     }
 
     public static class DraftRegion extends RegionDefinition.AbstractBuilder<DraftRegion> {
@@ -111,6 +111,7 @@ public class RegionRegistry {
         private Integer areaBudget = null;
         private Set<String> adjacentTo = Collections.emptySet();
         private String parent = null;
+        private boolean anchoredToOrigin = false;
 
         private DraftRegion(RegionRegistry registry, String name) {
             this.registry = registry;
@@ -139,6 +140,11 @@ public class RegionRegistry {
 
         public DraftRegion adjacentTo(String... regions) {
             this.adjacentTo = Set.of(regions);
+            return this;
+        }
+
+        public DraftRegion anchoredToOrigin() {
+            this.anchoredToOrigin = true;
             return this;
         }
 
