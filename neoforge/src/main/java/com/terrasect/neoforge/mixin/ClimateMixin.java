@@ -1,7 +1,7 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.MinecraftContext;
-import com.terrasect.neoforge.generation.VanillaSampler;
+import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.VanillaSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;

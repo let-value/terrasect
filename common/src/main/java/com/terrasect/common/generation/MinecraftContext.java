@@ -1,4 +1,4 @@
-package com.terrasect.neoforge.generation;
+package com.terrasect.common.generation;
 
 import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 
@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * NeoForge-specific generation context that provides O(1) biome filtering.
+ * Loader-agnostic generation context that provides O(1) biome filtering.
  * 
  * <p>Created once per dimension when the world loads. Holds a {@link BiomeLookup} with
  * pre-baked filtered parameter lists for every {@link SelectionRules} in the region tree.

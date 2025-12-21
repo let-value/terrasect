@@ -3,7 +3,7 @@ package com.terrasect.neoforge.mixin;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.runtime.handler.BiomeHandler;
-import com.terrasect.neoforge.generation.MinecraftContext;
+import com.terrasect.common.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;

@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.MinecraftContext;
+import com.terrasect.common.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;

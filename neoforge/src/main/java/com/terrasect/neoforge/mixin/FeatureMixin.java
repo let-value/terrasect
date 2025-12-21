@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.MinecraftContext;
+import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;

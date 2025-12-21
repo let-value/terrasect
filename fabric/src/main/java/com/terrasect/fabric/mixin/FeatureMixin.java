@@ -1,6 +1,6 @@
 package com.terrasect.fabric.mixin;
 
-import com.terrasect.fabric.generation.MinecraftContext;
+import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
