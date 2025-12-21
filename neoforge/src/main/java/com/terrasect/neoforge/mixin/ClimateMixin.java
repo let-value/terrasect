@@ -1,39 +1,62 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.neoforge.generation.MinecraftContext;
+import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
+import com.terrasect.neoforge.generation.VanillaSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
-import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * NeoForge mixin for MultiNoiseBiomeSource that applies region-based climate modifications.
- * 
- * <p>This mixin is intentionally thin - it only redirects the sampler.sample() call
- * to {@link ClimateHandler#modifyClimate}. All logic, debug logging, and statistics
- * tracking are handled in the common handler.
- */
-@Mixin(MultiNoiseBiomeSource.class)
-public class ClimateMixin {
-
+@Mixin(Climate.Sampler.class)
+public class ClimateMixin implements VanillaSampler {
+    
     /**
-     * Redirect climate sampling to apply region-based climate modifications.
+     * Thread-local flag to indicate we want vanilla (unmodified) values.
+     * When true, the mixin exits early without modifications.
      */
-    @Redirect(
-        method = "getNoiseBiome",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/biome/Climate$Sampler;sample(III)Lnet/minecraft/world/level/biome/Climate$TargetPoint;"
-        )
+    @Unique
+    private static final ThreadLocal<Boolean> terrasect$wantVanilla = ThreadLocal.withInitial(() -> false);
+    
+    /**
+     * Get vanilla climate sample without our modifications.
+     * This is called via the VanillaSampler interface.
+     */
+    @Override
+    @Unique
+    public Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z) {
+        terrasect$wantVanilla.set(true);
+        try {
+            return ((Climate.Sampler)(Object)this).sample(x, y, z);
+        } finally {
+            terrasect$wantVanilla.set(false);
+        }
+    }
+    
+    /**
+     * Inject at the end of sample() to modify the climate values.
+     */
+    @Inject(
+        method = "sample",
+        at = @At("RETURN"),
+        cancellable = true
     )
-    private Climate.TargetPoint terrasect$modifyClimate(Climate.Sampler sampler, int x, int y, int z) {
-        // Get the original sample first
-        Climate.TargetPoint original = sampler.sample(x, y, z);
-
-        // Get context and delegate to common handler
-        MinecraftContext context = MinecraftContext.get(sampler);
+    private void terrasect$modifyClimate(int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
+        // Exit early if vanilla values requested (prevents recursion)
+        if (terrasect$wantVanilla.get()) {
+            return;
+        }
+        
+        // Get context from this sampler instance
+        Climate.Sampler self = (Climate.Sampler)(Object)this;
+        NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(self);
+        if (context == null) {
+            return;
+        }
+        
+        Climate.TargetPoint original = cir.getReturnValue();
         
         ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
             context, x, y, z,
@@ -41,19 +64,16 @@ public class ClimateMixin {
             original.humidity()
         );
         
-        // If not modified, return original
-        if (!result.modified()) {
-            return original;
+        // If modified, replace the return value
+        if (result.modified()) {
+            cir.setReturnValue(new Climate.TargetPoint(
+                result.temperature(),
+                result.humidity(),
+                original.continentalness(),
+                original.erosion(),
+                original.depth(),
+                original.weirdness()
+            ));
         }
-        
-        // Return modified climate point
-        return new Climate.TargetPoint(
-            result.temperature(),
-            result.humidity(),
-            original.continentalness(),
-            original.erosion(),
-            original.depth(),
-            original.weirdness()
-        );
     }
 }

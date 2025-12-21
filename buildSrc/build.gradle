@@ -1,0 +1,16 @@
+plugins {
+    id 'java'  
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.neoforged.net/releases' }
+}
+
+dependencies {
+    // Fabric Loom - provides the fabric-loom plugin to all subprojects
+    implementation 'fabric-loom:fabric-loom.gradle.plugin:1.14-SNAPSHOT'
+}
+

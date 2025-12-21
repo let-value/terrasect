@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.42-beta'
+    id 'net.neoforged.moddev' version '2.0.133'
 }
 
 base {
@@ -59,7 +59,7 @@ publishing {
 }
 
 tasks.withType(ProcessResources).configureEach {
-    filesMatching('META-INF/mods.toml') {
+    filesMatching('META-INF/neoforge.mods.toml') {
         expand(rootProject.properties)
     }
 }

@@ -14,16 +14,147 @@ subprojects {
 
     plugins.withType(JavaPlugin).configureEach {
         extensions.configure(JavaPluginExtension) { ext ->
+            def javaVersionProp = project.hasProperty('java_version') 
+                ? project.property('java_version') 
+                : rootProject.property('java_version')
+            def javaVersion = (javaVersionProp as String).toInteger()
+            
             ext.toolchain {
-                languageVersion = JavaLanguageVersion.of((property('java_version') as String).toInteger())
+                languageVersion = JavaLanguageVersion.of(21)
             }
+            
+            if (javaVersion < 21) {
+                ext.sourceCompatibility = JavaVersion.toVersion(javaVersion)
+                ext.targetCompatibility = JavaVersion.toVersion(javaVersion)
+            }
+            
             ext.withSourcesJar()
         }
     }
 }
 
+// =============================================================================
+// Aggregate Tasks
+// =============================================================================
+
 tasks.register('checkAll') {
     group = 'verification'
     description = 'Runs lint and unit tests for every module.'
     dependsOn(subprojects.collect { it.tasks.matching { task -> task.name == 'check' } })
+}
+
+tasks.register('buildAll') {
+    group = 'build'
+    description = 'Builds all modules including versioned subprojects.'
+    dependsOn(subprojects.collect { it.tasks.matching { task -> task.name == 'build' } })
+}
+
+tasks.register('buildLatest') {
+    group = 'build'
+    description = 'Builds only the latest MC version modules (fabric, neoforge, common).'
+    dependsOn(':common:build', ':fabric:build')
+    // Uncomment when NeoForge is enabled:
+    // dependsOn(':neoforge:build')
+}
+
+// Build only versioned subprojects
+tasks.register('buildVersions') {
+    group = 'build'
+    description = 'Builds all versioned subprojects (older MC versions).'
+    dependsOn(subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
+        .collect { it.tasks.matching { task -> task.name == 'build' } })
+}
+
+// List all discovered versions
+tasks.register('listVersions') {
+    group = 'help'
+    description = 'Lists all discovered version subprojects.'
+    doLast {
+        def versionProjects = subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
+        if (versionProjects.isEmpty()) {
+            println "No versioned subprojects found."
+            println "Create a new version at: versions/{mc-version}/{loader}/build.gradle"
+        } else {
+            println "Discovered ${versionProjects.size()} version subproject(s):"
+            versionProjects.sort { it.path }.each { proj ->
+                def mcVersion = proj.hasProperty('minecraft_version') 
+                    ? proj.property('minecraft_version') 
+                    : 'unknown'
+                def baseProject = proj.hasProperty('base_project')
+                    ? proj.property('base_project')
+                    : ':fabric'
+                println "  ${proj.path} -> Minecraft ${mcVersion} (inherits from ${baseProject})"
+            }
+        }
+    }
+}
+
+tasks.register('showInheritanceChain') {
+    group = 'help'
+    description = 'Shows the source inheritance chain for all versioned projects.'
+    doLast {
+        def buildChain = { Project startProj, String propertyName ->
+            def chain = []
+            def currentProj = startProj
+            def visited = new HashSet<String>()
+            
+            while (currentProj != null && !visited.contains(currentProj.path)) {
+                chain.add(currentProj.path)
+                visited.add(currentProj.path)
+                
+                def basePath = currentProj.hasProperty(propertyName) 
+                    ? currentProj.property(propertyName) 
+                    : null
+                    
+                if (basePath && basePath != '') {
+                    currentProj = rootProject.findProject(basePath)
+                } else {
+                    currentProj = null
+                }
+            }
+            return chain
+        }
+        
+        println "Source Inheritance Chains:"        
+        
+        def latestMcVersion = rootProject.property('minecraft_version')
+        println "LATEST (${latestMcVersion}):"
+        
+        // Show versioned projects grouped by type
+        def versionProjects = subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
+        def fabricProjects = versionProjects.findAll { it.path.endsWith('-fabric') }
+        def commonProjects = versionProjects.findAll { it.path.endsWith('-common') }
+        
+        if (commonProjects) {
+            println "VERSIONED COMMON:"
+            commonProjects.sort { it.path }.each { proj ->
+                def mcVersion = proj.hasProperty('minecraft_version') ? proj.property('minecraft_version') : 'unknown'
+                def chain = buildChain(proj, 'base_project')
+                def chainStr = chain.join(' -> ')
+                println "  ${proj.path} (${mcVersion}): ${chainStr}"
+            }
+            println ""
+        }
+        
+        if (fabricProjects) {
+            println "VERSIONED FABRIC:"
+            fabricProjects.sort { it.path }.each { proj ->
+                def mcVersion = proj.hasProperty('minecraft_version') ? proj.property('minecraft_version') : 'unknown'
+                def fabricChain = buildChain(proj, 'base_project')
+                def commonProjPath = proj.hasProperty('common_project') ? proj.property('common_project') : ':common'
+                def commonProj = commonProjPath ? rootProject.findProject(commonProjPath) : null
+                def commonChain = commonProj ? buildChain(commonProj, 'base_project') : [':common']
+                
+                println "  ${proj.path} (${mcVersion}):"
+                println "    Fabric: ${fabricChain.join(' -> ')}"
+                println "    Common: ${commonChain.join(' -> ')}"
+            }
+            println ""
+        }
+        
+        println "To freeze a version for major refactors:"
+        println "  1. Copy sources to versions/X.X.X/{module}/src/"
+        println "  2. Set base_project= (empty) in gradle.properties"
+        println "  3. Point dependent versions to the frozen project"
+    }
 }

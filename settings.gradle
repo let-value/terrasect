@@ -10,5 +10,23 @@ pluginManagement {
 enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')
 
 rootProject.name = 'terrasect'
-include('common', 'fabric')
-// include('neoforge') // Temporarily disabled - NeoForge 21.11.0-beta has build tooling issues
+include('common', 'fabric', 'neoforge')
+
+def versionsDir = file('versions')
+if (versionsDir.exists()) {
+    versionsDir.eachDir { mcVersionDir ->
+        def mcVersion = mcVersionDir.name
+        mcVersionDir.eachDir { moduleDir ->
+            def moduleName = moduleDir.name 
+            def buildGradle = new File(moduleDir, 'build.gradle')
+            def buildGradleKts = new File(moduleDir, 'build.gradle.kts')
+            
+            if (buildGradle.exists() || buildGradleKts.exists()) {
+                def safeVersion = mcVersion.replace('.', '_')
+                def projectPath = ":mc${safeVersion}-${moduleName}"
+                include(projectPath)
+                project(projectPath).projectDir = moduleDir
+            }
+        }
+    }
+}

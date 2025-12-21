@@ -1,0 +1,162 @@
+/**
+ * Shared build script for versioned Common subprojects.
+ * 
+ * Apply this script in versioned common build.gradle files:
+ *   plugins {
+ *       id 'java'
+ *       id 'fabric-loom'  // Still need Loom for Minecraft classes
+ *   }
+ *   apply from: rootProject.file('gradle/common-versioned.gradle')
+ * 
+ * Required properties in gradle.properties:
+ *   - minecraft_version
+ *   - java_version
+ * 
+ * Optional properties:
+ *   - base_project (default: ':common') - Common project to inherit sources from
+ * 
+ * CHAINED INHERITANCE:
+ *   Common projects can also form chains:
+ *   
+ *   :common (1.21.11 - latest)
+ *       └── :mc1_21_1-common (base_project=:common, frozen)
+ *               └── :mc1_20_1-common (base_project=:mc1_21_1-common)
+ */
+
+// Helper to get properties with fallback to root
+ext.prop = { String key, String defaultVal = null ->
+    if (project.hasProperty(key)) {
+        return project.property(key)
+    }
+    if (rootProject.hasProperty(key)) {
+        return rootProject.property(key)
+    }
+    if (defaultVal != null) {
+        return defaultVal
+    }
+    throw new GradleException("Property '$key' not found for versioned project ${project.path}")
+}
+
+// Base project path
+def baseProjectPath = prop('base_project', ':common')
+
+/**
+ * Recursively collects source directories from a project and its base projects.
+ */
+ext.collectInheritedSources = { Project proj, String sourceSetName, String sourceType, Set<String> visited = [] ->
+    def sources = []
+    
+    // Prevent infinite loops
+    if (visited.contains(proj.path)) {
+        return sources
+    }
+    visited.add(proj.path)
+    
+    // Add this project's sources
+    def srcDir = sourceType == 'java' 
+        ? file("${proj.projectDir}/src/${sourceSetName}/java")
+        : file("${proj.projectDir}/src/${sourceSetName}/resources")
+    
+    if (srcDir.exists()) {
+        sources.add(srcDir)
+    }
+    
+    // Check if this project has a base_project property
+    def projBasePath = null
+    if (proj.hasProperty('base_project')) {
+        projBasePath = proj.property('base_project')
+    } else if (proj.path == ':common') {
+        // Root common has no base
+        projBasePath = null
+    }
+    
+    // Recursively collect from base project
+    if (projBasePath != null && !projBasePath.isEmpty()) {
+        def baseProj = rootProject.findProject(projBasePath)
+        if (baseProj != null) {
+            sources.addAll(collectInheritedSources(baseProj, sourceSetName, sourceType, visited))
+        }
+    }
+    
+    return sources
+}
+
+// Configure source inheritance
+afterEvaluate {
+    def baseProject = rootProject.findProject(baseProjectPath)
+    
+    if (baseProject != null) {
+        def localMainJava = file('src/main/java')
+        def localMainResources = file('src/main/resources')
+        def localTestJava = file('src/test/java')
+        def localTestResources = file('src/test/resources')
+        
+        // Collect inherited sources through the chain
+        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java')
+        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources')
+        def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java')
+        def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources')
+        
+        sourceSets {
+            main {
+                java {
+                    if (localMainJava.exists()) {
+                        srcDir localMainJava
+                    }
+                    inheritedMainJava.each { srcDir it }
+                }
+                resources {
+                    if (localMainResources.exists()) {
+                        srcDir localMainResources
+                    }
+                    inheritedMainResources.each { srcDir it }
+                }
+            }
+            
+            test {
+                java {
+                    if (localTestJava.exists()) {
+                        srcDir localTestJava
+                    }
+                    inheritedTestJava.each { srcDir it }
+                }
+                resources {
+                    if (localTestResources.exists()) {
+                        srcDir localTestResources
+                    }
+                    inheritedTestResources.each { srcDir it }
+                }
+            }
+        }
+        
+        logger.info("${project.path} common source inheritance chain:")
+        logger.info("  main/java: ${sourceSets.main.java.srcDirs}")
+    }
+}
+
+dependencies {
+    implementation('org.slf4j:slf4j-api:2.0.16')
+    implementation('org.jetbrains:annotations:24.1.0')
+
+    minecraft "com.mojang:minecraft:${prop('minecraft_version')}"
+    mappings loom.officialMojangMappings()
+
+    testImplementation(platform('org.junit:junit-bom:5.10.3'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+}
+
+loom {
+    runs {
+        // Minimal run config for common
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+test {
+    useJUnitPlatform()
+}

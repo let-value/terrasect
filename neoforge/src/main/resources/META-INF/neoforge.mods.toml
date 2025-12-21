@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[1, )"
+loaderVersion="[1,)"
 license="MIT"
 issueTrackerURL="https://example.com/terrasect/issues"
 
@@ -13,15 +13,14 @@ displayName="Terrasect"
 description='''
 Multi-loader Terrasect mod foundation for Fabric and NeoForge.
 '''
-
-authors=["Terrasect Team"]
+authors="Terrasect Team"
 
 [[dependencies.terrasect]]
 modId="minecraft"
 type="required"
-versionRange=">=${minecraft_version}"
+versionRange="[1.21.11,)"
 
 [[dependencies.terrasect]]
 modId="neoforge"
 type="required"
-versionRange=">=${neoforge_version}"
+versionRange="[21.11,)"

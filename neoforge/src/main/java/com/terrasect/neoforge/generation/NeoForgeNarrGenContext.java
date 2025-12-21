@@ -59,7 +59,7 @@ public class NeoForgeNarrGenContext implements Context {
             Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         
-        String dimensionId = dimension.location().toString();
+        String dimensionId = dimension.identifier().toString();
         BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> lookup = buildLookup(parameters, dimensionId);
         
         NeoForgeNarrGenContext context = new NeoForgeNarrGenContext(seed, dimensionId, sampler, lookup);
@@ -95,7 +95,7 @@ public class NeoForgeNarrGenContext implements Context {
         for (var entry : paramList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (seen.add(biome)) {
-                String id = biome.unwrapKey().map(k -> k.location().toString()).orElse("unknown");
+                String id = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
                 Set<String> tags = new HashSet<>();
                 biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
                 builder.add(biome, id, tags);
@@ -183,7 +183,7 @@ public class NeoForgeNarrGenContext implements Context {
      * Extract biome ID from a holder (for debug/logging).
      */
     public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(k -> k.location().toString()).orElse("unknown");
+        return biome.unwrapKey().map(k -> k.identifier().toString()).orElse("unknown");
     }
 
     // ==================== Context Interface ====================
@@ -193,30 +193,20 @@ public class NeoForgeNarrGenContext implements Context {
         Climate.ParameterList<Holder<Biome>> paramList = biomeLookup.getParameterList();
         if (sampler == null || paramList == null) return 0.0f;
         
-        // Bypass our mixin to get vanilla climate values
-        SamplerBypass.setWantVanilla(true);
-        try {
-            Climate.TargetPoint target = sampler.sample(x >> 2, 16, z >> 2);
-            Holder<Biome> biome = paramList.findValue(target);
-            return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
-        } finally {
-            SamplerBypass.setWantVanilla(false);
-        }
+        // Use VanillaSampler interface to get unmodified climate values
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+        Holder<Biome> biome = paramList.findValue(target);
+        return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
     }
 
     @Override
     public float getRidgeInfluence(int x, int z) {
         if (sampler == null) return 0.0f;
         
-        // Bypass our mixin to get vanilla climate values
-        SamplerBypass.setWantVanilla(true);
-        try {
-            Climate.TargetPoint target = sampler.sample(x >> 2, 16, z >> 2);
-            long weirdness = target.weirdness();
-            float normalized = (weirdness + 10000.0f) / 20000.0f;
-            return Math.max(0.0f, Math.min(1.0f, normalized));
-        } finally {
-            SamplerBypass.setWantVanilla(false);
-        }
+        // Use VanillaSampler interface to get unmodified climate values
+        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+        long weirdness = target.weirdness();
+        float normalized = (weirdness + 10000.0f) / 20000.0f;
+        return Math.max(0.0f, Math.min(1.0f, normalized));
     }
 }

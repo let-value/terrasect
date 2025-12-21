@@ -1,23 +1,46 @@
-package com.terrasect.neoforge.mixin;
+package com.terrasect.fabric.mixin;
 
-import com.terrasect.neoforge.generation.NeoForgeNarrGenContext;
-import com.terrasect.neoforge.generation.SamplerBypass;
+import com.terrasect.fabric.generation.MinecraftContext;
+import com.terrasect.fabric.generation.VanillaSampler;
 import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * NeoForge mixin for Climate.Sampler that applies region-based climate modifications.
+ * Mixin for Climate.Sampler that applies region-based climate modifications.
  * 
  * <p>Uses {@link SamplerBypass} to prevent infinite recursion. When we need
  * vanilla climate values (for river/ridge detection), external code sets the flag
  * via {@link SamplerBypass#setWantVanilla(boolean)} before calling sample().
  */
 @Mixin(Climate.Sampler.class)
-public class ClimateSamplerMixin {
+public class ClimateMixin implements VanillaSampler {
+    
+    /**
+     * Thread-local flag to indicate we want vanilla (unmodified) values.
+     * When true, the mixin exits early without modifications.
+     */
+    @Unique
+    private static final ThreadLocal<Boolean> terrasect$wantVanilla = ThreadLocal.withInitial(() -> false);
+    
+    /**
+     * Get vanilla climate sample without our modifications.
+     * This is called via the VanillaSampler interface.
+     */
+    @Override
+    @Unique
+    public Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z) {
+        terrasect$wantVanilla.set(true);
+        try {
+            return ((Climate.Sampler)(Object)this).sample(x, y, z);
+        } finally {
+            terrasect$wantVanilla.set(false);
+        }
+    }
     
     /**
      * Inject at the end of sample() to modify the climate values.
@@ -29,13 +52,13 @@ public class ClimateSamplerMixin {
     )
     private void terrasect$modifyClimate(int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
         // Exit early if vanilla values requested (prevents recursion)
-        if (SamplerBypass.isWantVanilla()) {
+        if (terrasect$wantVanilla.get()) {
             return;
         }
         
         // Get context from this sampler instance
         Climate.Sampler self = (Climate.Sampler)(Object)this;
-        NeoForgeNarrGenContext context = NeoForgeNarrGenContext.get(self);
+        MinecraftContext context = MinecraftContext.get(self);
         if (context == null) {
             return;
         }
@@ -61,3 +84,4 @@ public class ClimateSamplerMixin {
         }
     }
 }
+                   
