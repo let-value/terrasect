@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class RegionSampler {
 
-    public static Map<String, Integer> sample(int x, int z, int width, int height, int step, int depth, Context strategy) {
+    public static Map<String, Integer> sample(int x, int z, int width, int height, int step, int depth, Context context) {
         Map<String, Integer> counts = new HashMap<>();
         
         for (int iz = 0; iz < height; iz += step) {
@@ -17,7 +17,7 @@ public class RegionSampler {
                 int wx = x + ix;
                 int wz = z + iz;
                 
-                Region region = getRegionAtDepth(wx, wz, strategy, depth);
+                Region region = getRegionAtDepth(context, wx, wz, depth);
                 String name = region.name();
                 counts.put(name, counts.getOrDefault(name, 0) + 1);
             }
@@ -25,7 +25,7 @@ public class RegionSampler {
         return counts;
     }
 
-    private static Region getRegionAtDepth(int x, int z, Context context, int targetDepth) {
-        return World.getRegionAtDepth(World.OVERWORLD, x, z, context, targetDepth);
+    private static Region getRegionAtDepth(Context context, int x, int z, int targetDepth) {
+        return World.getRegionAtDepth(context, x, z, targetDepth);
     }
 }

@@ -136,7 +136,7 @@ public class BiomeVisualizationTest {
                 
                 // Get region and its biome rules
                 PerfTracker.start("regionLookup");
-                Region region = World.getRegion(World.OVERWORLD, blockX, blockZ, context);
+                Region region = World.getRegion(context, blockX, blockZ);
                 PerfTracker.stop("regionLookup");
                 
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;

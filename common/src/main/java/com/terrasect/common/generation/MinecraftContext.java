@@ -71,7 +71,7 @@ public class MinecraftContext implements Context {
             BY_SAMPLER.put(sampler, context);
         }
 
-        World.initialize(dimensionId, seed, context);
+        World.initialize(context);
         
         return context;
     }

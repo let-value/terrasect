@@ -61,13 +61,11 @@ public class SnapshotTest {
     @Test
     public void generateSnapshots() throws IOException, NoSuchAlgorithmException {
         World.register(World.OVERWORLD, TestRegions.buildTestWorld());
-
-        long seed = 987654321L;
+        var seed = 987654321L;
         Context context = new MockStrategy(seed);
         
         // CRITICAL: Initialize to calculate anchor offset so SPAWN appears at origin
-        World.initialize(World.OVERWORLD, seed, context);
-        
+        World.initialize(context);
         int width = 512;
         int height = 512;
         int step = 4; // Sample every 4 blocks to cover 2048x2048 area
@@ -108,14 +106,14 @@ public class SnapshotTest {
                 
                 // We skip the actual root (Universe) which is just a container
                 
-                regions.add(World.getRegionAtDepth(World.OVERWORLD, wx, wz, context, 1));
-                seeds.add(World.getRegionSeedAtDepth(World.OVERWORLD, wx, wz, context, 1));
+                regions.add(World.getRegionAtDepth(context, wx, wz, 1));
+                seeds.add(World.getRegionSeedAtDepth(context, wx, wz, 1));
                 
-                regions.add(World.getRegionAtDepth(World.OVERWORLD, wx, wz, context, 2));
-                seeds.add(World.getRegionSeedAtDepth(World.OVERWORLD, wx, wz, context, 2));
+                regions.add(World.getRegionAtDepth(context, wx, wz, 2));
+                seeds.add(World.getRegionSeedAtDepth(context, wx, wz, 2));
                 
-                regions.add(World.getRegionAtDepth(World.OVERWORLD, wx, wz, context, 3));
-                seeds.add(World.getRegionSeedAtDepth(World.OVERWORLD, wx, wz, context, 3));
+                regions.add(World.getRegionAtDepth(context, wx, wz, 3));
+                seeds.add(World.getRegionSeedAtDepth(context, wx, wz, 3));
                 
                 // Ensure we have enough images for the depth
                 while (depthImages.size() < regions.size()) {
@@ -129,8 +127,8 @@ public class SnapshotTest {
                 boolean isEdge = false;
                 
                 // Check leaf edge
-                Region right = World.getRegion(World.OVERWORLD, wx + step, wz, context);
-                Region down = World.getRegion(World.OVERWORLD, wx, wz + step, context);
+                Region right = World.getRegion(context, wx + step, wz);
+                Region down = World.getRegion(context, wx, wz + step);
                 if (!leafRegion.name().equals(right.name()) || !leafRegion.name().equals(down.name())) {
                     combinedEdge = 0.0f;
                     isEdge = true;
@@ -158,11 +156,11 @@ public class SnapshotTest {
                     
                     // Check neighbors for edge of current layer
                     // We check both region name AND seed to detect edges between identical regions (e.g. Root tiles)
-                    Region layerRight = World.getRegionAtDepth(World.OVERWORLD, wx + step, wz, context, i + 1);
-                    long seedRight = World.getRegionSeedAtDepth(World.OVERWORLD, wx + step, wz, context, i + 1);
+                    Region layerRight = World.getRegionAtDepth(context, wx + step, wz, i + 1);
+                    long seedRight = World.getRegionSeedAtDepth(context, wx + step, wz, i + 1);
                     
-                    Region layerDown = World.getRegionAtDepth(World.OVERWORLD, wx, wz + step, context, i + 1);
-                    long seedDown = World.getRegionSeedAtDepth(World.OVERWORLD, wx, wz + step, context, i + 1);
+                    Region layerDown = World.getRegionAtDepth(context, wx, wz + step, i + 1);
+                    long seedDown = World.getRegionSeedAtDepth(context, wx, wz + step, i + 1);
                     
                     if (!region.name().equals(layerRight.name()) || regionSeed != seedRight ||
                         !region.name().equals(layerDown.name()) || regionSeed != seedDown) {
@@ -178,11 +176,11 @@ public class SnapshotTest {
                         Region parent = regions.get(i - 1);
                         long parentSeed = seeds.get(i - 1);
                         
-                        Region parentRight = World.getRegionAtDepth(World.OVERWORLD, wx + step, wz, context, i);
-                        long parentSeedRight = World.getRegionSeedAtDepth(World.OVERWORLD, wx + step, wz, context, i);
+                        Region parentRight = World.getRegionAtDepth(context, wx + step, wz, i);
+                        long parentSeedRight = World.getRegionSeedAtDepth(context, wx + step, wz, i);
                         
-                        Region parentDown = World.getRegionAtDepth(World.OVERWORLD, wx, wz + step, context, i);
-                        long parentSeedDown = World.getRegionSeedAtDepth(World.OVERWORLD, wx, wz + step, context, i);
+                        Region parentDown = World.getRegionAtDepth(context, wx, wz + step, i);
+                        long parentSeedDown = World.getRegionSeedAtDepth(context, wx, wz + step, i);
                         
                         if (!parent.name().equals(parentRight.name()) || parentSeed != parentSeedRight ||
                             !parent.name().equals(parentDown.name()) || parentSeed != parentSeedDown) {

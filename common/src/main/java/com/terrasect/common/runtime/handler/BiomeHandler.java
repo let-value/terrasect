@@ -79,7 +79,7 @@ public final class BiomeHandler {
         }
         int blockX = quartX << 2;
         int blockZ = quartZ << 2;
-        return World.getRegion(context.getDimensionId(), blockX, blockZ, context);
+        return World.getRegion(context, blockX, blockZ);
     }
     
     /**

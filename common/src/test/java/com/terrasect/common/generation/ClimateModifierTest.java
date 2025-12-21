@@ -1,21 +1,12 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.generation.definition.ClimateSettings;
-import com.terrasect.common.generation.definition.ClimateSettings.ClimateRange;
 import com.terrasect.common.runtime.ClimateModifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for the ClimateModifier class that handles region-based climate calculations.
- * 
- * <p>Climate values are mapped from the original [-1, 1] range into a target range.
- * The original value is normalized to [0, 1] then mapped into [min, max].
- */
 public class ClimateModifierTest {
-
-    // Default original values for parameters we're not testing
     private static final long DEFAULT_ORIGINAL = 0L;
     private static final long CLIMATE_SCALE = 10000L;
 

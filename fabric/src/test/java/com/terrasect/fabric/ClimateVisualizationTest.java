@@ -3,11 +3,9 @@ package com.terrasect.fabric;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.runtime.Config;
-import com.terrasect.common.runtime.RegionField;
+
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.runtime.handler.ClimateHandler;
-import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import net.minecraft.SharedConstants;
@@ -104,13 +102,13 @@ public class ClimateVisualizationTest {
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
                 
                 // Get region and calculate modified climate
-                Region region = World.getRegion(World.OVERWORLD, blockX, blockZ, context);
+                Region region = World.getRegion(context, blockX, blockZ);
                 ClimateSettings climate = region != null ? region.definition().climate() : null;
                 
                 // Detect region boundaries by comparing neighbors at step distance
                 // Only mark as boundary if both regions exist and have different names
-                Region rightRegion = World.getRegion(World.OVERWORLD, blockX + SCALE, blockZ, context);
-                Region downRegion = World.getRegion(World.OVERWORLD, blockX, blockZ + SCALE, context);
+                Region rightRegion = World.getRegion(context, blockX + SCALE, blockZ);
+                Region downRegion = World.getRegion(context, blockX, blockZ + SCALE);
                 
                 boolean isRightBoundary = region != null && rightRegion != null && !region.name().equals(rightRegion.name());
                 boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());

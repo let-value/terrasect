@@ -79,7 +79,10 @@ public final class World {
      * @param seed The world seed
      * @param context The generation context (for sampling during offset calculation)
      */
-    public static void initialize(String dimensionId, long seed, Context context) {
+    public static void initialize(Context context) {
+        var dimensionId = context.getDimensionId();
+        var seed = context.getSeed();
+
         DimensionState state = DIMENSIONS.get(dimensionId);
         if (state == null) {
             Terrasect.LOGGER.debug("No region hierarchy registered for dimension '{}'", dimensionId);
@@ -118,17 +121,8 @@ public final class World {
         return state != null ? state.root : null;
     }
     
-    /**
-     * Get the leaf region at a world location.
-     * 
-     * @param dimensionId The dimension ID
-     * @param x Block X coordinate
-     * @param z Block Z coordinate
-     * @param context The generation context
-     * @return The deepest region at this location, or null if dimension not registered
-     */
-    public static @Nullable Region getRegion(String dimensionId, int x, int z, Context context) {
-        return getRegionAtDepth(dimensionId, x, z, context, 100);
+    public static @Nullable Region getRegion(Context context, int x, int z) {
+        return getRegionAtDepth(context, x, z, 100);
     }
     
     /**
@@ -141,9 +135,8 @@ public final class World {
      * @param targetDepth Maximum depth to traverse
      * @return The region at the specified depth, or null if dimension not registered
      */
-    public static @Nullable Region getRegionAtDepth(String dimensionId, int x, int z, 
-                                                      Context context, int targetDepth) {
-        DimensionState state = DIMENSIONS.get(dimensionId);
+    public static @Nullable Region getRegionAtDepth(Context context, int x, int z,int targetDepth) {
+        DimensionState state = DIMENSIONS.get(context.getDimensionId());
         if (state == null) {
             return null;
         }
@@ -163,9 +156,9 @@ public final class World {
      * @param targetDepth Maximum depth to traverse
      * @return The region seed, or 0 if dimension not registered
      */
-    public static long getRegionSeedAtDepth(String dimensionId, int x, int z, 
-                                             Context context, int targetDepth) {
-        DimensionState state = DIMENSIONS.get(dimensionId);
+    public static long getRegionSeedAtDepth(Context context, int x, int z, 
+                                              int targetDepth) {
+        DimensionState state = DIMENSIONS.get(context.getDimensionId());
         if (state == null) {
             return 0L;
         }

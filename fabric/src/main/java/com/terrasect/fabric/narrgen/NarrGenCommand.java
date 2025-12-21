@@ -93,7 +93,7 @@ public class NarrGenCommand {
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("archetype")) {
-                            Region region = World.getRegion(genContext.getDimensionId(), wx, wz, genContext);
+                            Region region = World.getRegion(genContext, wx, wz);
                             color = getRegionColor(region);
                         }
                         

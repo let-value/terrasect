@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
  * Uses @Local to capture RandomState from constructor parameters.
  */
 @Mixin(NoiseChunk.class)
-public class NoiseChunkMixin {
+public class TerrainMixin {
     
     @WrapOperation(
         method = "<init>",

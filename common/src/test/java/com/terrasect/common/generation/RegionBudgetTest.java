@@ -117,9 +117,7 @@ public class RegionBudgetTest {
         long seed = 12345L;
         Context context = new SnapshotTest.MockStrategy(seed);
         
-        // CRITICAL: Initialize the world to calculate anchor offsets!
-        // Without this, anchored regions won't be at origin
-        World.initialize(World.OVERWORLD, seed, context);
+        World.initialize(context);
         
         System.out.println("╔═══════════════════════════════════════════════════════════════╗");
         System.out.println("║         SAMPLING TESTREGIONS AT SPECIFIC COORDINATES          ║");
@@ -159,10 +157,10 @@ public class RegionBudgetTest {
     }
     
     private void samplePoint(int x, int z, Context context) {
-        Region d1 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 1);
-        Region d2 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
-        Region d3 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 3);
-        Region d4 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 4);
+        Region d1 = World.getRegionAtDepth(context, x, z,  1);
+        Region d2 = World.getRegionAtDepth(context, x, z,  2);
+        Region d3 = World.getRegionAtDepth(context, x, z,  3);
+        Region d4 = World.getRegionAtDepth(context, x, z,  4);
         
         System.out.printf("  Depth 1: %s%n", d1.name());
         System.out.printf("  Depth 2: %s%n", d2.name());
@@ -178,7 +176,7 @@ public class RegionBudgetTest {
             int x = startX + i * stepX;
             int z = startZ + i * stepZ;
             
-            Region d3 = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 3);
+            Region d3 = World.getRegionAtDepth(context, x, z,  3);
             String regionName = d3.name();
             
             if (!regionName.equals(lastRegion)) {
@@ -202,16 +200,16 @@ public class RegionBudgetTest {
     private void findRegionLocations(Context context, String targetRegion, int depth) {
         System.out.printf("Searching for %s at depth %d...%n", targetRegion, depth);
         
-        // Search in a grid pattern - use smaller step for small regions
-        int range = 3000;
-        int step = 20;  // Smaller step to catch small regions like SPAWN
+        // Search in a grid pattern
+        int range = 2000;
+        int step = 50;
         
         int foundCount = 0;
         int firstX = 0, firstZ = 0;
         
         for (int z = -range; z <= range && foundCount < 5; z += step) {
             for (int x = -range; x <= range && foundCount < 5; x += step) {
-                Region region = World.getRegionAtDepth(World.OVERWORLD, x, z, context, depth);
+                Region region = World.getRegionAtDepth(context, x, z, depth);
                 if (region != null && region.name().equals(targetRegion)) {
                     if (foundCount == 0) {
                         firstX = x;
@@ -226,7 +224,7 @@ public class RegionBudgetTest {
         }
         
         if (foundCount == 0) {
-            System.out.printf("  ⚠️ %s NOT FOUND in ±%d block range (step=%d)!%n", targetRegion, range, step);
+            System.out.printf("  ⚠️ %s NOT FOUND in ±%d block range!%n", targetRegion, range);
         } else if (foundCount > 3) {
             System.out.printf("  ... and %d more locations%n", foundCount - 3);
             System.out.printf("  First occurrence at (%d, %d), distance from origin: %.0f blocks%n", 
@@ -302,8 +300,8 @@ public class RegionBudgetTest {
 
     private void checkRegion(Context context, int centerX, int centerZ) {
         // 2. Identify the Target Root Region Instance
-        long targetRootId = World.getRegionSeedAtDepth(World.OVERWORLD, centerX, centerZ, context, 1);
-        Region targetRegion = World.getRegionAtDepth(World.OVERWORLD, centerX, centerZ, context, 1);
+        long targetRootId = World.getRegionSeedAtDepth(context, centerX, centerZ, 1);
+        Region targetRegion = World.getRegionAtDepth(context, centerX, centerZ, 1);
 
         // 3. Scan and Sample
         // Scale range based on root radius + warping buffer
@@ -321,11 +319,11 @@ public class RegionBudgetTest {
 
         for (int z = centerZ - range; z <= centerZ + range; z += step) {
             for (int x = centerX - range; x <= centerX + range; x += step) {
-                long rootId = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 1);
+                long rootId = World.getRegionSeedAtDepth(context, x, z, 1);
                 
                 if (rootId == targetRootId) {
-                    Region child = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
-                    long childId = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 2);
+                    Region child = World.getRegionAtDepth(context, x, z, 2);
+                    long childId = World.getRegionSeedAtDepth(context, x, z, 2);
                     
                     counts.put(child.name(), counts.getOrDefault(child.name(), 0) + 1);
                     uniqueRegionInstances.add(childId);
@@ -333,7 +331,7 @@ public class RegionBudgetTest {
                     totalSamplesInTarget++;
 
                     if (child.name().equals("CITY")) {
-                        Region grandChild = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 3);
+                        Region grandChild = World.getRegionAtDepth(context, x, z, 3);
                         cityCounts.put(grandChild.name(), cityCounts.getOrDefault(grandChild.name(), 0) + 1);
                         citySamples++;
                     }

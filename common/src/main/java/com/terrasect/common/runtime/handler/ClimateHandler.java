@@ -121,16 +121,13 @@ public final class ClimateHandler {
         long seed = context.getSeed();
         int blockX = x << 2;
         int blockZ = z << 2;
-        
-        // Only record to sampler if explicitly enabled by tests
+                
         boolean sampling = MixinSampler.isEnabled();
         if (sampling) {
             MixinSampler.recordSeed(seed);
         }
-        
-        // Get the region at this location using dimension from context
-        String dimensionId = context.getDimensionId();
-        Region region = World.getRegion(dimensionId, blockX, blockZ, context);
+
+        Region region = World.getRegion(context, blockX, blockZ);
         if (region == null) {
             if (sampling) {
                 MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,

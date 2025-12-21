@@ -65,11 +65,11 @@ public class StrategyComparisonTest {
         for (int z = -range; z <= range; z += step) {
             for (int x = -range; x <= range; x += step) {
                 // Only sample within the center hex
-                long rootSeed = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 1);
-                long centerSeed = World.getRegionSeedAtDepth(World.OVERWORLD, 0, 0, context, 1);
+                long rootSeed = World.getRegionSeedAtDepth(context, x, z, 1);
+                long centerSeed = World.getRegionSeedAtDepth(context, 0, 0, 1);
                 
                 if (rootSeed == centerSeed) {
-                    Region child = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
+                    Region child = World.getRegionAtDepth(context, x, z, 2);
                     depth2Counts.merge(child.name(), 1, Integer::sum);
                     totalSamples++;
                 }
@@ -133,11 +133,11 @@ public class StrategyComparisonTest {
 
             for (int z = -range; z <= range; z += step) {
                 for (int x = -range; x <= range; x += step) {
-                    long rootSeed = World.getRegionSeedAtDepth(World.OVERWORLD, x, z, context, 1);
-                    long centerSeed = World.getRegionSeedAtDepth(World.OVERWORLD, 0, 0, context, 1);
+                    long rootSeed = World.getRegionSeedAtDepth(context, x, z, 1);
+                    long centerSeed = World.getRegionSeedAtDepth(context, 0, 0, 1);
                     
                     if (rootSeed == centerSeed) {
-                        Region child = World.getRegionAtDepth(World.OVERWORLD, x, z, context, 2);
+                        Region child = World.getRegionAtDepth(context, x, z, 2);
                         counts.merge(child.name(), 1, Integer::sum);
                         samples++;
                     }

@@ -16,28 +16,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 
-import java.util.*;
-
-/**
- * Client GameTest that creates a real world with noise-based terrain generation
- * to verify that our mod is properly modifying biome selection.
- * 
- * <p>Key test: Sample biomes at QUART-ALIGNED coordinates (multiples of 4 blocks)
- * because Minecraft stores biomes at 1/4 resolution. This ensures we compare
- * at the exact coordinates where biomes are actually sampled.
- * 
- * <p>Coordinate systems:
- * <ul>
- *   <li>Block coords: x, y, z (what players see)</li>
- *   <li>Quart coords: quartX = blockX >> 2 (biome storage resolution)</li>
- *   <li>To align block to quart: alignedBlock = (block >> 2) << 2</li>
- * </ul>
- */
 public class ClientGameTestIntegration implements FabricClientGameTest {
 
     // SEASONS_HUB layout - SEASON_SIZE is 64 blocks (4 chunks) = 16 quarts
@@ -112,7 +91,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 String biomeName = getBiomeName(biome);
                 
                 // Query the ACTUAL region system using aligned coords (same as BiomeHandler)
-                Region regionAtPoint = World.getRegion(World.OVERWORLD, alignedBlockX, alignedBlockZ, ctx);
+                Region regionAtPoint = World.getRegion(ctx, alignedBlockX, alignedBlockZ);
                 String actualRegion = regionAtPoint != null ? regionAtPoint.name() : "NULL (no region!)";
                 
                 System.out.println("\nAt aligned coords (" + alignedBlockX + ", " + PROBLEM_COORD[1] + ", " + alignedBlockZ + "):");
@@ -124,7 +103,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 // Show hierarchy at this point
                 System.out.println("\n  Region hierarchy at this point:");
                 for (int depth = 1; depth <= 5; depth++) {
-                    Region r = World.getRegionAtDepth(World.OVERWORLD, alignedBlockX, alignedBlockZ, ctx, depth);
+                    Region r = World.getRegionAtDepth(ctx, alignedBlockX, alignedBlockZ, depth);
                     System.out.println("    Depth " + depth + ": " + (r != null ? r.name() : "null"));
                 }
                 
@@ -162,7 +141,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 for (int i = 0; i < testX.length; i++) {
                     int tx = testX[i];
                     int tz = testZ[i];
-                    Region testRegion = World.getRegion(World.OVERWORLD, tx, tz, ctx);
+                    Region testRegion = World.getRegion(ctx, tx, tz);
                     if (testRegion != null && "BORDER".equals(testRegion.name())) {
                         int testFloorY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, tx, tz);
                         int testSurfaceY = overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, tx, tz);
@@ -213,7 +192,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 
                 // Get the region at this location
                 Context ctx = MinecraftContext.get(net.minecraft.world.level.Level.OVERWORLD);
-                Region region = ctx != null ? World.getRegion(World.OVERWORLD, blockX, blockZ, ctx) : null;
+                Region region = ctx != null ? World.getRegion(ctx, blockX, blockZ) : null;
                 String regionName = region != null ? region.name() : "NULL";
                 
                 ClimateSettings climate = region != null ? region.definition().climate() : null;
