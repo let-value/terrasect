@@ -1,4 +1,6 @@
 import org.gradle.api.tasks.Sync
+import org.gradle.plugins.ide.eclipse.model.EclipseModel
+import org.gradle.plugins.ide.idea.model.IdeaModel
 
 plugins {
     id 'base'
@@ -64,7 +66,43 @@ ext.registerMinecraftSourceUnpackTask = { Project target, String taskName = 'unp
     }
 }
 
+ext.excludeMinecraftDirFromBuild = { Project target, String dirName = 'minecraft' ->
+    def mcDir = target.layout.projectDirectory.dir(dirName).asFile
+
+    target.plugins.withType(JavaPlugin).configureEach {
+        target.extensions.configure(SourceSetContainer) { container ->
+            container.all { sourceSet ->
+                sourceSet.java.exclude { fileTreeElement ->
+                    fileTreeElement.file.canonicalPath?.startsWith(mcDir.canonicalPath)
+                }
+            }
+        }
+    }
+
+    target.plugins.withId('idea') {
+        target.extensions.configure(IdeaModel) { ideaModel ->
+            ideaModel.module { module ->
+                module.excludeDirs += mcDir
+            }
+        }
+    }
+
+    target.plugins.withId('eclipse') {
+        target.extensions.configure(EclipseModel) { eclipseModel ->
+            eclipseModel.classpath.file { classpath ->
+                classpath.whenMerged { merged ->
+                    merged.entries.removeAll { entry ->
+                        def path = (entry.hasProperty('path') ? entry.path : entry.hasProperty('file') ? entry.file?.absolutePath : null)
+                        path && new File(path).canonicalPath == mcDir.canonicalPath
+                    }
+                }
+            }
+        }
+    }
+}
+
 registerMinecraftSourceUnpackTask(project)
+excludeMinecraftDirFromBuild(project)
 
 subprojects {
     group = property('maven_group')

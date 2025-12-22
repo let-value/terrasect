@@ -14,3 +14,4 @@ rootProject.registerMinecraftSourceUnpackTask(project, 'unpackNeoForgeMinecraft'
     "${versionPrefix}-neoforge",
     "${versionPrefix}-fabric"
 ])
+rootProject.excludeMinecraftDirFromBuild(project)
