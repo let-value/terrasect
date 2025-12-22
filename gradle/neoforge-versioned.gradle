@@ -40,40 +40,42 @@ def commonProjectPath = prop('common_project', ':common')  // Empty string = no 
 // Configure source inheritance from the base project chain
 afterEvaluate {
     def baseProject = rootProject.findProject(baseProjectPath)
-    
+
     if (baseProject != null) {
-        // Local source directories (highest priority overrides)
-        def localMainJava = file('src/main/java')
-        def localMainResources = file('src/main/resources')
-        
-        // Collect ALL override files from the entire versioned chain
-        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':fabric', ':neoforge'])
-        def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources', [':fabric', ':neoforge'])
-        
-        // Collect all inherited sources through the chain
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':fabric', ':neoforge'])
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':fabric', ':neoforge'])
-        
+        def ctx = buildVersionedInheritanceContext(baseProject, [
+            rootProjects    : [':fabric', ':neoforge'],
+            sourceLayouts   : [main: ['java', 'resources']],
+            includeOverrides: true,
+            overrideRoots   : [main: [':fabric', ':neoforge']]
+        ])
+
+        def inheritanceChain = ctx.inheritanceChain
+
+        def localMainJavaFiles = ctx.localFiles['main:java']
+        def localMainResourceFiles = ctx.localFiles['main:resources']
+
+        def inheritedMainJavaExcludes = ctx.inheritedExcludes['main:java']
+        def inheritedMainResourceExcludes = ctx.inheritedExcludes['main:resources']
+
+        def allMainJavaOverrides = ctx.overrideFiles['main:java']
+
         sourceSets {
             main {
                 java {
-                    if (localMainJava.exists()) { srcDir localMainJava }
-                    inheritedMainJava.each { dir -> srcDir dir }
+                    if (ctx.localDirs['main:java'].exists()) { srcDir ctx.localDirs['main:java'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
                 }
                 resources {
-                    if (localMainResources.exists()) { srcDir localMainResources }
-                    inheritedMainResources.each { dir -> srcDir dir }
+                    if (ctx.localDirs['main:resources'].exists()) { srcDir ctx.localDirs['main:resources'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
                 }
             }
         }
-        
-        // Configure compile tasks to exclude overridden files from non-versioned source dirs
+
         configureCompileExclusions('compileJava', allMainJavaOverrides)
-        
-        // Inherit common project sources
+
         inheritCommonSources(commonProjectPath)
-        
-        // Log the inheritance chain for debugging
+
         logger.info("${project.path} source inheritance chain:")
         logger.info("  main/java: ${sourceSets.main.java.srcDirs}")
     }

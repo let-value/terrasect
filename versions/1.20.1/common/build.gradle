@@ -17,41 +17,47 @@ if (baseProjectPath) {
 def baseProject = rootProject.findProject(baseProjectPath)
 
 if (baseProject != null) {
-    def localMainJava = file('src/main/java')
-    def localMainResources = file('src/main/resources')
-    def localTestJava = file('src/test/java')
-    def localTestResources = file('src/test/resources')
+    def ctx = buildVersionedInheritanceContext(baseProject, [
+        rootProjects : [':common'],
+        sourceLayouts: [
+            main: ['java', 'resources'],
+            test: ['java', 'resources']
+        ]
+    ])
 
-    def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
-    def inheritedMainJavaExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'java')
-    def inheritedMainResourceExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'resources')
-    def inheritedTestJavaExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'java')
-    def inheritedTestResourceExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'resources')
-    def manualMainJavaExcludes = inheritedMainJavaExcludes.values().flatten() as Set
-    def manualTestJavaExcludes = inheritedTestJavaExcludes.values().flatten() as Set
-    def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
-    def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
-    def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
-    def localTestResourceFiles = collectLocalFiles(localTestResources) as Set
+    def inheritanceChain = ctx.inheritanceChain
+
+    def localMainJavaFiles = ctx.localFiles['main:java']
+    def localMainResourceFiles = ctx.localFiles['main:resources']
+    def localTestJavaFiles = ctx.localFiles['test:java']
+    def localTestResourceFiles = ctx.localFiles['test:resources']
+
+    def inheritedMainJavaExcludes = ctx.inheritedExcludes['main:java']
+    def inheritedMainResourceExcludes = ctx.inheritedExcludes['main:resources']
+    def inheritedTestJavaExcludes = ctx.inheritedExcludes['test:java']
+    def inheritedTestResourceExcludes = ctx.inheritedExcludes['test:resources']
+
+    def manualMainJavaExcludes = ctx.manualExcludes['main:java']
+    def manualTestJavaExcludes = ctx.manualExcludes['test:java']
 
     sourceSets {
         main {
             java {
-                if (localMainJava.exists()) { srcDir localMainJava }
+                if (ctx.localDirs['main:java'].exists()) { srcDir ctx.localDirs['main:java'] }
                 addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
             }
             resources {
-                if (localMainResources.exists()) { srcDir localMainResources }
+                if (ctx.localDirs['main:resources'].exists()) { srcDir ctx.localDirs['main:resources'] }
                 addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
             }
         }
         test {
             java {
-                if (localTestJava.exists()) { srcDir localTestJava }
+                if (ctx.localDirs['test:java'].exists()) { srcDir ctx.localDirs['test:java'] }
                 addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles, inheritedTestJavaExcludes)
             }
             resources {
-                if (localTestResources.exists()) { srcDir localTestResources }
+                if (ctx.localDirs['test:resources'].exists()) { srcDir ctx.localDirs['test:resources'] }
                 addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles, inheritedTestResourceExcludes)
             }
         }

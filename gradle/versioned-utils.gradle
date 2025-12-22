@@ -91,6 +91,76 @@ ext.collectLocalFiles = { File baseDir ->
 }
 
 /**
+ * Prepares inheritance context (chains, local files, exclusions, overrides) for versioned projects.
+ *
+ * @param baseProject Base project to inherit from (may be null)
+ * @param opts Options map:
+ *             - rootProjects: list of root project paths that end inheritance (default [':common', ':fabric', ':neoforge'])
+ *             - sourceLayouts: map of sourceSet -> list of source types (e.g., [main:['java','resources']])
+ *             - includeOverrides: whether to collect override files for compile-task exclusions
+ *             - overrideRoots: map or list of root projects to use when collecting overrides per source set
+ * @return Map containing inheritanceChain, exclusionChain, localDirs, localFiles, inheritedExcludes, manualExcludes, overrideFiles
+ */
+ext.buildVersionedInheritanceContext = { Project baseProject, Map opts = [:] ->
+    def rootProjects = opts.rootProjects ?: [':common', ':fabric', ':neoforge']
+    def sourceLayouts = opts.sourceLayouts ?: [main: ['java', 'resources']]
+    def includeOverrides = opts.get('includeOverrides', false)
+    def overrideRoots = opts.get('overrideRoots', null)
+
+    def ctx = [
+        inheritanceChain : [],
+        exclusionChain   : [],
+        localDirs        : [:],
+        localFiles       : [:],
+        inheritedExcludes: [:],
+        manualExcludes   : [:],
+        overrideFiles    : [:]
+    ]
+
+    if (baseProject == null) {
+        return ctx
+    }
+
+    def makeKey = { setName, type -> "${setName}:${type}" }
+
+    def inheritanceChain = collectInheritanceChain(baseProject, rootProjects)
+    def exclusionChain = ([project] + inheritanceChain).unique { it.path }
+
+    ctx.inheritanceChain = inheritanceChain
+    ctx.exclusionChain = exclusionChain
+
+    sourceLayouts.each { setName, types ->
+        types.each { type ->
+            def dir = file("src/${setName}/${type == 'java' ? 'java' : 'resources'}")
+            def key = makeKey(setName, type)
+
+            ctx.localDirs[key] = dir
+            ctx.localFiles[key] = collectLocalFiles(dir) as Set
+
+            def excludes = collectInheritedExcludes(exclusionChain, setName, type)
+            ctx.inheritedExcludes[key] = excludes
+            ctx.manualExcludes[key] = excludes.values().flatten() as Set
+
+            if (includeOverrides) {
+                def roots = rootProjects
+
+                if (overrideRoots instanceof Map && overrideRoots.containsKey(setName)) {
+                    roots = overrideRoots[setName]
+                } else if (overrideRoots instanceof Collection) {
+                    roots = overrideRoots
+                }
+
+                ctx.overrideFiles[key] = collectAllOverrideFiles(project, setName, type, roots)
+            } else {
+                ctx.overrideFiles[key] = [] as Set
+            }
+        }
+    }
+
+    return ctx
+}
+
+/**
  * Collects the project inheritance chain starting from the provided project.
  * The returned list is ordered from most specific (closest to the current
  * versioned project) to least specific (root base projects).
