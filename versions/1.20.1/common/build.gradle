@@ -8,55 +8,63 @@ apply from: rootProject.file('gradle/versioned-utils.gradle')
 
 def baseProjectPath = prop('base_project', ':mc1_21_1-common')
 
+// Ensure the base project is configured before we inspect its inheritance data
+if (baseProjectPath) {
+    evaluationDependsOn(baseProjectPath)
+}
+
 // Configure source inheritance
-afterEvaluate {
-    def baseProject = rootProject.findProject(baseProjectPath)
-    
-    if (baseProject != null) {
-        def localMainJava = file('src/main/java')
-        def localMainResources = file('src/main/resources')
-        def localTestJava = file('src/test/java')
-        def localTestResources = file('src/test/resources')
-        
-        def localMainJavaFiles = collectLocalFiles(localMainJava)
-        def localMainResourceFiles = collectLocalFiles(localMainResources)
-        
-        // Collect ALL override files from the entire chain
-        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':common'])
-        
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':common'])
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':common'])
-        def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java', [':common'])
-        def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources', [':common'])
-        
-        sourceSets {
-            main {
-                java {
-                    if (localMainJava.exists()) { srcDir localMainJava }
-                    inheritedMainJava.each { dir -> srcDir(dir) }
-                    if (!localMainJavaFiles.isEmpty()) { exclude localMainJavaFiles }
-                }
-                resources {
-                    if (localMainResources.exists()) { srcDir localMainResources }
-                    inheritedMainResources.each { dir -> srcDir(dir) }
-                    if (!localMainResourceFiles.isEmpty()) { exclude localMainResourceFiles }
-                }
+def baseProject = rootProject.findProject(baseProjectPath)
+
+if (baseProject != null) {
+    def ctx = buildVersionedInheritanceContext(baseProject, [
+        rootProjects : [':common'],
+        sourceLayouts: [
+            main: ['java', 'resources'],
+            test: ['java', 'resources']
+        ]
+    ])
+
+    def inheritanceChain = ctx.inheritanceChain
+
+    def localMainJavaFiles = ctx.localFiles['main:java']
+    def localMainResourceFiles = ctx.localFiles['main:resources']
+    def localTestJavaFiles = ctx.localFiles['test:java']
+    def localTestResourceFiles = ctx.localFiles['test:resources']
+
+    def inheritedMainJavaExcludes = ctx.inheritedExcludes['main:java']
+    def inheritedMainResourceExcludes = ctx.inheritedExcludes['main:resources']
+    def inheritedTestJavaExcludes = ctx.inheritedExcludes['test:java']
+    def inheritedTestResourceExcludes = ctx.inheritedExcludes['test:resources']
+
+    def manualMainJavaExcludes = ctx.manualExcludes['main:java']
+    def manualTestJavaExcludes = ctx.manualExcludes['test:java']
+
+    sourceSets {
+        main {
+            java {
+                if (ctx.localDirs['main:java'].exists()) { srcDir ctx.localDirs['main:java'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
             }
-            test {
-                java {
-                    if (localTestJava.exists()) { srcDir localTestJava }
-                    inheritedTestJava.each { dir -> srcDir(dir) }
-                }
-                resources {
-                    if (localTestResources.exists()) { srcDir localTestResources }
-                    inheritedTestResources.each { dir -> srcDir(dir) }
-                }
+            resources {
+                if (ctx.localDirs['main:resources'].exists()) { srcDir ctx.localDirs['main:resources'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
             }
         }
-        
-        // Exclude overridden files from base :common
-        configureCompileExclusions('compileJava', allMainJavaOverrides, '/common/src/')
+        test {
+            java {
+                if (ctx.localDirs['test:java'].exists()) { srcDir ctx.localDirs['test:java'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles, inheritedTestJavaExcludes)
+            }
+            resources {
+                if (ctx.localDirs['test:resources'].exists()) { srcDir ctx.localDirs['test:resources'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles, inheritedTestResourceExcludes)
+            }
+        }
     }
+
+    configureCompileExclusions('compileJava', manualMainJavaExcludes, '/common/src/')
+    configureCompileExclusions('compileTestJava', manualTestJavaExcludes, '/common/src/')
 }
 
 dependencies {

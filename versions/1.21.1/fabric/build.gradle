@@ -3,13 +3,8 @@ plugins {
     id 'fabric-loom'
 }
 
-apply from: rootProject.file('gradle/fabric-versioned.gradle')
+ext.inheritedSourceExcludes = [
+    'client/java/com/terrasect/fabric/client/ClientGameTestIntegration.java'
+]
 
-// Exclude files that use APIs not available in MC 1.21.1
-afterEvaluate {
-    tasks.named('compileClientJava') {
-        source = source.matching {
-            exclude '**/ClientGameTestIntegration.java'
-        }
-    }
-}
+apply from: rootProject.file('gradle/fabric-versioned.gradle')

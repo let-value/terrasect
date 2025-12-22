@@ -41,58 +41,67 @@ def commonProjectPath = prop('common_project', ':common')  // Empty string = no 
 // Configure source inheritance from the base project chain
 afterEvaluate {
     def baseProject = rootProject.findProject(baseProjectPath)
-    
+
     if (baseProject != null) {
-        // Local source directories (highest priority overrides)
-        def localMainJava = file('src/main/java')
-        def localMainResources = file('src/main/resources')
-        def localClientJava = file('src/client/java')
-        def localClientResources = file('src/client/resources')
-        
-        // Collect ALL override files from the entire versioned chain (including parent versioned projects)
-        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':fabric', ':neoforge'])
-        def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources', [':fabric', ':neoforge'])
-        def allClientJavaOverrides = collectAllOverrideFiles(project, 'client', 'java', [':fabric', ':neoforge'])
-        def allClientResourceOverrides = collectAllOverrideFiles(project, 'client', 'resources', [':fabric', ':neoforge'])
-        
-        // Collect all inherited sources through the chain
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':fabric', ':neoforge'])
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':fabric', ':neoforge'])
-        def inheritedClientJava = collectInheritedSources(baseProject, 'client', 'java', [':fabric', ':neoforge'])
-        def inheritedClientResources = collectInheritedSources(baseProject, 'client', 'resources', [':fabric', ':neoforge'])
-        
+        def ctx = buildVersionedInheritanceContext(baseProject, [
+            rootProjects    : [':fabric', ':neoforge'],
+            sourceLayouts   : [
+                main  : ['java', 'resources'],
+                client: ['java', 'resources']
+            ],
+            includeOverrides: true,
+            overrideRoots   : [main: [':fabric', ':neoforge'], client: [':fabric', ':neoforge']]
+        ])
+
+        def inheritanceChain = ctx.inheritanceChain
+
+        def localMainJavaFiles = ctx.localFiles['main:java']
+        def localMainResourceFiles = ctx.localFiles['main:resources']
+        def localClientJavaFiles = ctx.localFiles['client:java']
+        def localClientResourceFiles = ctx.localFiles['client:resources']
+
+        def inheritedMainJavaExcludes = ctx.inheritedExcludes['main:java']
+        def inheritedMainResourceExcludes = ctx.inheritedExcludes['main:resources']
+        def inheritedClientJavaExcludes = ctx.inheritedExcludes['client:java']
+        def inheritedClientResourceExcludes = ctx.inheritedExcludes['client:resources']
+
+        def manualMainJavaExcludes = ctx.manualExcludes['main:java']
+        def manualClientJavaExcludes = ctx.manualExcludes['client:java']
+
+        def allMainJavaOverrides = ctx.overrideFiles['main:java']
+        def allMainResourceOverrides = ctx.overrideFiles['main:resources']
+        def allClientJavaOverrides = ctx.overrideFiles['client:java']
+        def allClientResourceOverrides = ctx.overrideFiles['client:resources']
+
         sourceSets {
             main {
                 java {
-                    if (localMainJava.exists()) { srcDir localMainJava }
-                    inheritedMainJava.each { dir -> srcDir dir }
+                    if (ctx.localDirs['main:java'].exists()) { srcDir ctx.localDirs['main:java'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
                 }
                 resources {
-                    if (localMainResources.exists()) { srcDir localMainResources }
-                    inheritedMainResources.each { dir -> srcDir dir }
+                    if (ctx.localDirs['main:resources'].exists()) { srcDir ctx.localDirs['main:resources'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
                 }
             }
-            
+
             client {
                 java {
-                    if (localClientJava.exists()) { srcDir localClientJava }
-                    inheritedClientJava.each { dir -> srcDir dir }
+                    if (ctx.localDirs['client:java'].exists()) { srcDir ctx.localDirs['client:java'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'client', 'java', localClientJavaFiles, inheritedClientJavaExcludes)
                 }
                 resources {
-                    if (localClientResources.exists()) { srcDir localClientResources }
-                    inheritedClientResources.each { dir -> srcDir dir }
+                    if (ctx.localDirs['client:resources'].exists()) { srcDir ctx.localDirs['client:resources'] }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'client', 'resources', localClientResourceFiles, inheritedClientResourceExcludes)
                 }
             }
         }
-        
-        // Configure compile tasks to exclude overridden files from non-versioned source dirs
-        configureCompileExclusions('compileJava', allMainJavaOverrides)
-        configureCompileExclusions('compileClientJava', allClientJavaOverrides)
-        
-        // Inherit common project sources
+
+        configureCompileExclusions('compileJava', (allMainJavaOverrides + manualMainJavaExcludes) as Set)
+        configureCompileExclusions('compileClientJava', (allClientJavaOverrides + manualClientJavaExcludes) as Set)
+
         inheritCommonSources(commonProjectPath)
-        
-        // Log the inheritance chain for debugging
+
         logger.info("${project.path} source inheritance chain:")
         logger.info("  main/java: ${sourceSets.main.java.srcDirs}")
     }
