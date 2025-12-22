@@ -8,6 +8,11 @@ apply from: rootProject.file('gradle/versioned-utils.gradle')
 
 def baseProjectPath = prop('base_project', ':mc1_21_1-common')
 
+// Ensure the base project is configured before we inspect its inheritance data
+if (baseProjectPath) {
+    evaluationDependsOn(baseProjectPath)
+}
+
 // Configure source inheritance
 def baseProject = rootProject.findProject(baseProjectPath)
 

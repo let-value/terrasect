@@ -8,7 +8,8 @@ ext.inheritedSourceExcludes = [
         java: [
             'com/terrasect/common/generation/BiomeVisualizationTest.java',
             'com/terrasect/common/generation/ClimateVisualizationTest.java',
-            'com/terrasect/common/generation/MinecraftEdgeSampler.java'
+            'com/terrasect/common/generation/MinecraftEdgeSampler.java',
+            'com/terrasect/common/generation/MinecraftEdgeSamplerTest.java'
         ]
     ]
 ]
