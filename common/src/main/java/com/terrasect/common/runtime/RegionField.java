@@ -1,5 +1,6 @@
 package com.terrasect.common.runtime;
 
+import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
 
@@ -18,6 +19,8 @@ public class RegionField {
      * Returns a packed long: (regionId << 32) | (floatToRawIntBits(edge))
      */
     public static long getRegionData(int x, int z, long worldSeed, int cellSize, float warpAmp, int pocketSize) {
+        long t0 = Profiler.begin();
+        
         int px = MathUtils.floorDiv(x, pocketSize);
         int pz = MathUtils.floorDiv(z, pocketSize);
 
@@ -26,11 +29,13 @@ public class RegionField {
 
         long pocketSeed = MathUtils.hash64(worldSeed, rpx, rpz, POCKET_SEED_SALT);
 
-        // Simple 2-layer warp: base + detail
+        // Simple 2-layer warp: base + detail (noise sampling)
+        long tn = Profiler.begin();
         float warp1 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1001, cellSize) - 0.5f) * 2.0f;
         float warp2 = (NoiseUtils.valueNoise(x, z, pocketSeed, 1002, cellSize) - 0.5f) * 2.0f;
         float detail1 = (NoiseUtils.valueNoise(x, z, worldSeed, 9101, WARP_DETAIL_SCALE) - 0.5f) * 0.3f;
         float detail2 = (NoiseUtils.valueNoise(x, z, worldSeed, 9102, WARP_DETAIL_SCALE) - 0.5f) * 0.3f;
+        Profiler.end(Profiler.REGION_FIELD_NOISE, tn);
 
         int xw = (int) (x + warpAmp * (warp1 + detail1));
         int zw = (int) (z + warpAmp * (warp2 + detail2));
@@ -38,6 +43,8 @@ public class RegionField {
         int gx = MathUtils.floorDiv(xw, cellSize);
         int gz = MathUtils.floorDiv(zw, cellSize);
 
+        // Voronoi cell finding
+        long tv = Profiler.begin();
         float bestD = Float.MAX_VALUE;
         float secondBestD = Float.MAX_VALUE;
         int bestId = 0;
@@ -65,6 +72,7 @@ public class RegionField {
                 }
             }
         }
+        Profiler.end(Profiler.REGION_FIELD_VORONOI, tv);
 
         float rawEdge = (float) (Math.sqrt(secondBestD) - Math.sqrt(bestD));
 
@@ -72,6 +80,7 @@ public class RegionField {
         float edgeNoise = NoiseUtils.valueNoise(x, z, worldSeed, 9105, WARP_DETAIL_SCALE);
         float edge = Math.max(0.0f, rawEdge * (0.8f + edgeNoise * 0.4f));
 
+        Profiler.end(Profiler.REGION_FIELD_DATA, t0);
         return ((long) bestId << 32) | (Float.floatToRawIntBits(edge) & 0xFFFFFFFFL);
     }
 

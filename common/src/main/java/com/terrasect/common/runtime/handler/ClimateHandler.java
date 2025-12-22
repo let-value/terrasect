@@ -8,6 +8,7 @@ import com.terrasect.common.runtime.RegionField;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.devtools.MixinSampler;
+import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.definition.ClimateSettings;
 import net.minecraft.world.level.biome.Climate;
 
@@ -100,6 +101,8 @@ public final class ClimateHandler {
             long originalDepth,
             long originalWeirdness) {
         
+        long t0 = Profiler.begin();
+        
         totalCalls++;
         
         // Log first call to confirm handler is active
@@ -114,6 +117,7 @@ public final class ClimateHandler {
             if (noContextCount % 10000 == 1) {
                 Terrasect.LOGGER.warn("ClimateHandler: No context available (count={})", noContextCount);
             }
+            Profiler.end(Profiler.CLIMATE_MODIFY, t0);
             return ClimateResult.unmodified(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness);
         }
@@ -127,12 +131,16 @@ public final class ClimateHandler {
             MixinSampler.recordSeed(seed);
         }
 
+        long t1 = Profiler.begin();
         Region region = World.getRegion(context, blockX, blockZ);
+        Profiler.end(Profiler.CLIMATE_REGION_LOOKUP, t1);
+        
         if (region == null) {
             if (sampling) {
                 MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
                     originalTemperature, originalHumidity, null, false);
             }
+            Profiler.end(Profiler.CLIMATE_MODIFY, t0);
             return ClimateResult.unmodified(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness);
         }
@@ -145,6 +153,7 @@ public final class ClimateHandler {
         // Get climate settings for this region
         ClimateSettings climate = region.definition().climate();
         if (climate == null) {
+            Profiler.end(Profiler.CLIMATE_MODIFY, t0);
             return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness, region.name());
         }
@@ -152,6 +161,7 @@ public final class ClimateHandler {
         // Check if there are any climate modifications to apply
         if (climate.temperature() == null && climate.humidity() == null && climate.continentalness() == null &&
             climate.erosion() == null && climate.depth() == null && climate.weirdness() == null) {
+            Profiler.end(Profiler.CLIMATE_MODIFY, t0);
             return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness, region.name());
         }
@@ -159,12 +169,15 @@ public final class ClimateHandler {
         // Calculate edge factor for smooth transitions between regions
         // edge value is HIGH when deep inside region, LOW at boundaries
         // We invert it so edgeFactor=0 means center, edgeFactor=1 means at edge
+        long t2 = Profiler.begin();
         long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
         float edge = RegionField.unpackEdge(regionData);
         float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
         float edgeFactor = 1.0f - normalizedEdge; // Invert: 0 at center, 1 at boundary
+        Profiler.end(Profiler.CLIMATE_EDGE_CALC, t2);
 
         // Calculate climate offsets for all 6 parameters
+        long t3 = Profiler.begin();
         ClimateModifier.ClimateOffset offset = ClimateModifier.calculateOffset(
             climate,
             originalTemperature,
@@ -175,9 +188,11 @@ public final class ClimateHandler {
             originalWeirdness,
             edgeFactor
         );
+        Profiler.end(Profiler.CLIMATE_OFFSET_CALC, t3);
         
         // If no modifications needed, return original
         if (!offset.hasModifications()) {
+            Profiler.end(Profiler.CLIMATE_MODIFY, t0);
             return ClimateResult.unmodifiedWithRegion(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness, region.name());
         }
@@ -199,6 +214,8 @@ public final class ClimateHandler {
             MixinSampler.recordCoordinate(blockX, blockZ, region.name(), modifiedTemp, modifiedHumid);
         }
         
+        Profiler.count(Profiler.ALLOC_CLIMATE_RESULT);
+        Profiler.end(Profiler.CLIMATE_MODIFY, t0);
         return new ClimateResult(modifiedTemp, modifiedHumid, modifiedCont, 
             modifiedErosion, modifiedDepth, modifiedWeirdness, true, region.name());
     }
@@ -241,6 +258,7 @@ public final class ClimateHandler {
             return original;
         }
         
+        Profiler.count(Profiler.ALLOC_TARGET_POINT);
         return new Climate.TargetPoint(
             result.temperature(),
             result.humidity(),

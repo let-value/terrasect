@@ -4,6 +4,7 @@ import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.devtools.MixinSampler;
+import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.World;
@@ -50,18 +51,29 @@ public final class BiomeHandler {
             int quartX, int quartZ,
             Climate.TargetPoint targetPoint) {
         
+        long t0 = Profiler.begin();
+        
         // Get region and rules in single lookup
+        long t1 = Profiler.begin();
         Region region = getRegion(context, quartX, quartZ);
+        Profiler.end(Profiler.BIOME_REGION_LOOKUP, t1);
+        
         SelectionRules rules = getRules(region);
         
         // Get filtered parameter list (cached internally)
+        long t2 = Profiler.begin();
         Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
         boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());
+        Profiler.end(Profiler.BIOME_FILTER, t2);
         
         // Find the biome and record result
+        long t3 = Profiler.begin();
         Holder<Biome> result = parameterList.findValue(targetPoint);
+        Profiler.end(Profiler.BIOME_FIND_VALUE, t3);
+        
         recordResult(quartX, quartZ, MinecraftContext.getBiomeId(result), region, wasFiltered);
         
+        Profiler.end(Profiler.BIOME_SELECT, t0);
         return result;
     }
     

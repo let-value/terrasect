@@ -3,6 +3,7 @@ package com.terrasect.common.runtime;
 import com.terrasect.common.Terrasect;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.api.Region;
+import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.definition.RegionDefinition;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,7 +123,10 @@ public final class World {
     }
     
     public static @Nullable Region getRegion(Context context, int x, int z) {
-        return getRegionAtDepth(context, x, z, 100);
+        long t0 = Profiler.begin();
+        Region result = getRegionAtDepth(context, x, z, 100);
+        Profiler.end(Profiler.WORLD_GET_REGION, t0);
+        return result;
     }
     
     /**
@@ -140,10 +144,13 @@ public final class World {
         if (state == null) {
             return null;
         }
-        return LAYOUT.getRegionAtDepth(
+        long t0 = Profiler.begin();
+        Region result = LAYOUT.getRegionAtDepth(
             state.root, x, z, context, targetDepth,
             state.offsetX, state.offsetZ
         );
+        Profiler.end(Profiler.WORLD_TRAVERSE, t0);
+        return result;
     }
     
     /**

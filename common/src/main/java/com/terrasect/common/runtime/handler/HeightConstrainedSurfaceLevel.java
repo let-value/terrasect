@@ -1,5 +1,6 @@
 package com.terrasect.common.runtime.handler;
 
+import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.MinecraftContext;
 import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.world.level.levelgen.DensityFunction;
@@ -16,17 +17,26 @@ public record HeightConstrainedSurfaceLevel(
     
     @Override
     public double compute(FunctionContext ctx) {
+        long t0 = Profiler.begin();
         double surface = wrapped.compute(ctx);
-        if (context == null) return surface;
+        if (context == null) {
+            Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
+            return surface;
+        }
         
         Integer maxHeight = TerrainHandler.getMaxHeight(context, ctx.blockX(), ctx.blockZ());
+        Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
         return (maxHeight != null && surface > maxHeight) ? maxHeight : surface;
     }
     
     @Override
     public void fillArray(double[] array, ContextProvider contextProvider) {
+        long t0 = Profiler.begin();
         wrapped.fillArray(array, contextProvider);
-        if (context == null) return;
+        if (context == null) {
+            Profiler.end(Profiler.TERRAIN_FILL_ARRAY, t0);
+            return;
+        }
         
         for (int i = 0; i < array.length; i++) {
             FunctionContext ctx = contextProvider.forIndex(i);
@@ -35,6 +45,7 @@ public record HeightConstrainedSurfaceLevel(
                 array[i] = maxHeight;
             }
         }
+        Profiler.end(Profiler.TERRAIN_FILL_ARRAY, t0);
     }
     
     @Override
