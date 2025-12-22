@@ -30,81 +30,78 @@ apply from: rootProject.file('gradle/versioned-utils.gradle')
 // Base project path
 def baseProjectPath = prop('base_project', ':common')
 
-// Configure source inheritance
-afterEvaluate {
-    def baseProject = rootProject.findProject(baseProjectPath)
-    
-    if (baseProject != null) {
-        def localMainJava = file('src/main/java')
-        def localMainResources = file('src/main/resources')
-        def localTestJava = file('src/test/java')
-        def localTestResources = file('src/test/resources')
-        
-        // Collect local files that override inherited files
-        def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
-        def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
-        def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
-        def localTestResourceFiles = collectLocalFiles(localTestResources) as Set
-        
-        // Collect inherited sources through the chain
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':common'])
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':common'])
-        def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java', [':common'])
-        def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources', [':common'])
-        
-        sourceSets {
-            main {
-                java {
-                    if (localMainJava.exists()) {
-                        srcDir localMainJava
-                    }
-                    inheritedMainJava.each { dir -> srcDir(dir) }
-                    // Don't use sourceSet exclusion - it excludes from ALL srcDirs
-                }
-                resources {
-                    if (localMainResources.exists()) {
-                        srcDir localMainResources
-                    }
-                    inheritedMainResources.each { dir -> srcDir(dir) }
-                }
+// Ensure the base project is evaluated so its exclusion settings are available
+if (baseProjectPath) {
+    evaluationDependsOn(baseProjectPath)
+}
+
+def baseProject = rootProject.findProject(baseProjectPath)
+
+if (baseProject != null) {
+    def ctx = buildVersionedInheritanceContext(baseProject, [
+        rootProjects : [':common'],
+        sourceLayouts: [
+            main: ['java', 'resources'],
+            test: ['java', 'resources']
+        ]
+    ])
+
+    def inheritanceChain = ctx.inheritanceChain
+
+    def localMainJavaFiles = ctx.localFiles['main:java']
+    def localMainResourceFiles = ctx.localFiles['main:resources']
+    def localTestJavaFiles = ctx.localFiles['test:java']
+    def localTestResourceFiles = ctx.localFiles['test:resources']
+
+    def inheritedMainJavaExcludes = ctx.inheritedExcludes['main:java']
+    def inheritedMainResourceExcludes = ctx.inheritedExcludes['main:resources']
+    def inheritedTestJavaExcludes = ctx.inheritedExcludes['test:java']
+    def inheritedTestResourceExcludes = ctx.inheritedExcludes['test:resources']
+
+    def manualMainJavaExcludes = ctx.manualExcludes['main:java']
+    def manualTestJavaExcludes = ctx.manualExcludes['test:java']
+
+    sourceSets {
+        main {
+            java {
+                if (ctx.localDirs['main:java'].exists()) { srcDir ctx.localDirs['main:java'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
             }
-            
-            test {
-                java {
-                    if (localTestJava.exists()) {
-                        srcDir localTestJava
-                    }
-                    inheritedTestJava.each { dir -> srcDir(dir) }
-                }
-                resources {
-                    if (localTestResources.exists()) {
-                        srcDir localTestResources
-                    }
-                    inheritedTestResources.each { dir -> srcDir(dir) }
-                }
+            resources {
+                if (ctx.localDirs['main:resources'].exists()) { srcDir ctx.localDirs['main:resources'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
             }
         }
-        
-        // Use compile-task exclusion to exclude overridden files only from non-versioned dirs
-        configureCompileExclusions('compileJava', localMainJavaFiles, '/common/src/')
-        configureCompileExclusions('compileTestJava', localTestJavaFiles, '/common/src/')
-        
-        // Handle resource exclusions similarly via processResources task
-        if (!localMainResourceFiles.isEmpty()) {
-            tasks.named('processResources') {
-                filesMatching(localMainResourceFiles.collect { '**/' + it }) {
-                    exclude { details ->
-                        def filePath = details.file.path.replace('\\', '/')
-                        !filePath.contains('versions/')
-                    }
-                }
+
+        test {
+            java {
+                if (ctx.localDirs['test:java'].exists()) { srcDir ctx.localDirs['test:java'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles, inheritedTestJavaExcludes)
+            }
+            resources {
+                if (ctx.localDirs['test:resources'].exists()) { srcDir ctx.localDirs['test:resources'] }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles, inheritedTestResourceExcludes)
             }
         }
-        
-        logger.info("${project.path} common source inheritance chain:")
-        logger.info("  main/java: ${sourceSets.main.java.srcDirs}")
-        logger.info("  overrides: ${localMainJavaFiles}")
     }
+
+    configureCompileExclusions('compileJava', (localMainJavaFiles + manualMainJavaExcludes) as Set, '/common/src/')
+    configureCompileExclusions('compileTestJava', (localTestJavaFiles + manualTestJavaExcludes) as Set, '/common/src/')
+
+    if (!localMainResourceFiles.isEmpty()) {
+        tasks.named('processResources') {
+            filesMatching(localMainResourceFiles.collect { '**/' + it }) {
+                exclude { details ->
+                    def filePath = details.file.path.replace('\\', '/')
+                    !filePath.contains('versions/')
+                }
+            }
+        }
+    }
+
+    logger.info("${project.path} common source inheritance chain:")
+    logger.info("  main/java: ${sourceSets.main.java.srcDirs}")
+    logger.info("  overrides: ${localMainJavaFiles}")
 }
 
 dependencies {
