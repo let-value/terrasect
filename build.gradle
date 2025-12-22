@@ -18,7 +18,8 @@ def registerNeoFormSourceUnpackTask(Project target, String taskName = 'unpackNeo
     target.configurations { neoformSourceZip }
 
     target.dependencies {
-        neoformSourceZip("net.neoforged:neoform:${target.property('neoform_version')}@zip")
+        // The NeoForge moddev config points at the :sources classifier for Minecraft + NeoForge sources.
+        neoformSourceZip("net.neoforged:neoforge:${target.property('neoforge_version')}:sources@jar")
     }
 
     target.tasks.register(taskName, Sync) {

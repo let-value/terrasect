@@ -13,7 +13,8 @@ repositories {
 configurations { neoformSourceZip }
 
 dependencies {
-    neoformSourceZip("net.neoforged:neoform:${property('neoform_version')}@zip")
+    // The NeoForge moddev config points at the :sources classifier for Minecraft + NeoForge sources.
+    neoformSourceZip("net.neoforged:neoforge:${property('neoforge_version')}:sources@jar")
 }
 
 tasks.register('unpackNeoForgeMinecraft', Sync) {
