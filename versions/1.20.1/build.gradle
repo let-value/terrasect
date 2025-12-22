@@ -1,0 +1,17 @@
+plugins {
+    id 'base'
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.neoforged.net/releases' }
+}
+
+def versionPrefix = ":${project.name}"
+rootProject.registerMinecraftSourceUnpackTask(project, 'unpackMinecraft', 'minecraft', [
+    "${versionPrefix}-common",
+    "${versionPrefix}-neoforge",
+    "${versionPrefix}-fabric"
+])
+rootProject.excludeMinecraftDirFromBuild(project)
