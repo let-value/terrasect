@@ -14,24 +14,57 @@ repositories {
 // Utilities
 // =============================================================================
 
-def registerNeoFormSourceUnpackTask(Project target, String taskName = 'unpackNeoForgeMinecraft', String outputDir = 'minecraft') {
-    target.configurations { neoformSourceZip }
-
-    target.dependencies {
-        // The NeoForge moddev config points at the :sources classifier for Minecraft + NeoForge sources.
-        neoformSourceZip("net.neoforged:neoforge:${target.property('neoforge_version')}:sources@jar")
+ext.registerMinecraftSourceUnpackTask = { Project target, String taskName = 'unpackNeoForgeMinecraft', String outputDir = 'minecraft', List<String> providerPaths = [':common', ':neoforge', ':fabric'] ->
+    def findSourceProject = {
+        providerPaths.collect { target.findProject(it) }.find { it != null } ?: target
     }
 
     target.tasks.register(taskName, Sync) {
         group = 'help'
-        description = 'Downloads and unpacks the NeoForge ModDev Minecraft sources into the minecraft directory.'
+        description = 'Downloads and unpacks the Minecraft sources into the minecraft directory.'
 
-        from { target.configurations.neoformSourceZip.collect { zipTree(it) } }
+        def sourceProject = findSourceProject()
+        if (sourceProject.tasks.findByName('createMinecraftArtifacts')) {
+            dependsOn(sourceProject.tasks.named('createMinecraftArtifacts'))
+        }
+
+        from {
+            def mcVersion = (sourceProject.findProperty('minecraft_version')
+                ?: target.findProperty('minecraft_version')
+                ?: target.rootProject.property('minecraft_version')) as String
+
+            def artifactsDir = sourceProject.layout.buildDirectory.dir('moddev/artifacts').get().asFile
+            def candidatePatterns = ["**/*${mcVersion}*-sources.jar", "**/*${mcVersion}*.jar"]
+
+            def candidates = [] as Set<File>
+            if (artifactsDir.exists()) {
+                candidates.addAll(sourceProject.fileTree(artifactsDir) { include(candidatePatterns) }.files)
+            }
+
+            def loomMergedDir = new File(sourceProject.gradle.gradleUserHomeDir,
+                "caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged")
+            if (loomMergedDir.exists()) {
+                candidates.addAll(sourceProject.fileTree(loomMergedDir) {
+                    include("${mcVersion}-*/minecraft-merged-*.jar")
+                }.files)
+            }
+
+            def sortedCandidates = candidates.toList().sort { -it.lastModified() }
+            def sourceJar = sortedCandidates.find { it.name.contains(mcVersion) && it.name.endsWith('-sources.jar') }
+                ?: sortedCandidates.find { it.name.contains(mcVersion) }
+
+            if (sourceJar == null) {
+                throw new GradleException("Unable to locate Minecraft sources jar for ${mcVersion} in ${artifactsDir} or Loom cache")
+            }
+
+            zipTree(sourceJar)
+        }
+
         into(target.layout.projectDirectory.dir(outputDir))
     }
 }
 
-registerNeoFormSourceUnpackTask(project)
+registerMinecraftSourceUnpackTask(project)
 
 subprojects {
     group = property('maven_group')

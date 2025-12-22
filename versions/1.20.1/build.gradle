@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.Sync
-
 plugins {
     id 'base'
 }
@@ -10,17 +8,9 @@ repositories {
     maven { url = 'https://maven.neoforged.net/releases' }
 }
 
-configurations { neoformSourceZip }
-
-dependencies {
-    // The NeoForge moddev config points at the :sources classifier for Minecraft + NeoForge sources.
-    neoformSourceZip("net.neoforged:neoforge:${property('neoforge_version')}:sources@jar")
-}
-
-tasks.register('unpackNeoForgeMinecraft', Sync) {
-    group = 'help'
-    description = 'Downloads and unpacks the NeoForge ModDev Minecraft sources into the minecraft directory.'
-
-    from { configurations.neoformSourceZip.collect { zipTree(it) } }
-    into(layout.projectDirectory.dir('minecraft'))
-}
+def versionPrefix = ":${project.name}"
+rootProject.registerMinecraftSourceUnpackTask(project, 'unpackNeoForgeMinecraft', 'minecraft', [
+    "${versionPrefix}-common",
+    "${versionPrefix}-neoforge",
+    "${versionPrefix}-fabric"
+])
