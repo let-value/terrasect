@@ -20,42 +20,54 @@ afterEvaluate {
         
         def localMainJavaFiles = collectLocalFiles(localMainJava)
         def localMainResourceFiles = collectLocalFiles(localMainResources)
-        
+        def localTestJavaFiles = collectLocalFiles(localTestJava)
+        def localTestResourceFiles = collectLocalFiles(localTestResources)
+
         // Collect ALL override files from the entire chain
         def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':common'])
-        
+        def allMainResourceOverrides = collectAllOverrideFiles(project, 'main', 'resources', [':common'])
+        def allTestJavaOverrides = collectAllOverrideFiles(project, 'test', 'java', [':common'])
+        def allTestResourceOverrides = collectAllOverrideFiles(project, 'test', 'resources', [':common'])
+
         def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':common'])
         def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':common'])
         def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java', [':common'])
         def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources', [':common'])
+
+        def addDedupedSources = { Collection<File> inheritedSources, Collection<String> overrideFiles ->
+            inheritedSources.each { srcDir(fileTree(it) { exclude overrideFiles }) }
+        }
         
         sourceSets {
             main {
                 java {
                     if (localMainJava.exists()) { srcDir localMainJava }
-                    inheritedMainJava.each { dir -> srcDir(dir) }
+                    addDedupedSources(inheritedMainJava, localMainJavaFiles)
                     if (!localMainJavaFiles.isEmpty()) { exclude localMainJavaFiles }
                 }
                 resources {
                     if (localMainResources.exists()) { srcDir localMainResources }
-                    inheritedMainResources.each { dir -> srcDir(dir) }
+                    addDedupedSources(inheritedMainResources, localMainResourceFiles)
                     if (!localMainResourceFiles.isEmpty()) { exclude localMainResourceFiles }
                 }
             }
             test {
                 java {
                     if (localTestJava.exists()) { srcDir localTestJava }
-                    inheritedTestJava.each { dir -> srcDir(dir) }
+                    addDedupedSources(inheritedTestJava, localTestJavaFiles)
                 }
                 resources {
                     if (localTestResources.exists()) { srcDir localTestResources }
-                    inheritedTestResources.each { dir -> srcDir(dir) }
+                    addDedupedSources(inheritedTestResources, localTestResourceFiles)
                 }
             }
         }
-        
+
         // Exclude overridden files from base :common
         configureCompileExclusions('compileJava', allMainJavaOverrides, '/common/src/')
+        configureCompileExclusions('compileJava', allMainResourceOverrides, '/common/src/')
+        configureCompileExclusions('compileTestJava', allTestJavaOverrides, '/common/src/')
+        configureCompileExclusions('compileTestJava', allTestResourceOverrides, '/common/src/')
     }
 }
 
