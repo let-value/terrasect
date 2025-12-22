@@ -18,6 +18,12 @@ if (baseProject != null) {
     def localTestResources = file('src/test/resources')
 
     def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
+    def inheritedMainJavaExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'java')
+    def inheritedMainResourceExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'resources')
+    def inheritedTestJavaExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'java')
+    def inheritedTestResourceExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'resources')
+    def manualMainJavaExcludes = inheritedMainJavaExcludes.values().flatten() as Set
+    def manualTestJavaExcludes = inheritedTestJavaExcludes.values().flatten() as Set
     def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
     def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
     def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
@@ -27,24 +33,27 @@ if (baseProject != null) {
         main {
             java {
                 if (localMainJava.exists()) { srcDir localMainJava }
-                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles)
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles, inheritedMainJavaExcludes)
             }
             resources {
                 if (localMainResources.exists()) { srcDir localMainResources }
-                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles)
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles, inheritedMainResourceExcludes)
             }
         }
         test {
             java {
                 if (localTestJava.exists()) { srcDir localTestJava }
-                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles)
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles, inheritedTestJavaExcludes)
             }
             resources {
                 if (localTestResources.exists()) { srcDir localTestResources }
-                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles)
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles, inheritedTestResourceExcludes)
             }
         }
     }
+
+    configureCompileExclusions('compileJava', manualMainJavaExcludes, '/common/src/')
+    configureCompileExclusions('compileTestJava', manualTestJavaExcludes, '/common/src/')
 }
 
 dependencies {

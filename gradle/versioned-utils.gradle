@@ -135,13 +135,16 @@ ext.collectInheritanceChain = { Project proj, List<String> rootProjects = [':com
  * @param sourceType Either 'java' or 'resources'
  * @param initialOverrides Set of relative file paths already overridden locally
  */
-ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String sourceSetName, String sourceType, Set<String> initialOverrides ->
+ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String sourceSetName, String sourceType, Set<String> initialOverrides, Map<String, Set<String>> manualExcludesByProject = [:] ->
     def cumulativeOverrides = new LinkedHashSet<>(initialOverrides)
 
     inheritanceChain.each { proj ->
         def dir = sourceType == 'java'
             ? file("${proj.projectDir}/src/${sourceSetName}/java")
             : file("${proj.projectDir}/src/${sourceSetName}/resources")
+
+        def projectManualExcludes = manualExcludesByProject.getOrDefault(proj.path, [] as Set)
+        cumulativeOverrides.addAll(projectManualExcludes)
 
         if (!dir.exists()) {
             return
@@ -150,7 +153,15 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
         // Register the directory itself so Gradle recognizes it as a source dir
         target.srcDir(dir)
 
-        if (!cumulativeOverrides.isEmpty()) {
+        if (!projectManualExcludes.isEmpty()) {
+            projectManualExcludes.each { rel ->
+                target.exclude("**/${rel}")
+            }
+        }
+
+        def effectiveExcludes = new LinkedHashSet<>(cumulativeOverrides)
+
+        if (!effectiveExcludes.isEmpty()) {
             target.exclude { details ->
                 def filePath = details.file.toPath()
                 if (!filePath.startsWith(dir.toPath())) {
@@ -158,7 +169,7 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
                 }
 
                 def normalized = filePath.toString().replace('\\\\', '/')
-                def matchesOverride = cumulativeOverrides.any { rel -> normalized.endsWith(rel) }
+                def matchesOverride = effectiveExcludes.any { rel -> normalized.endsWith(rel) }
                 def underVersions = normalized.contains('/versions/')
 
                 return matchesOverride && !underVersions
@@ -167,6 +178,37 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
 
         cumulativeOverrides.addAll(collectLocalFiles(dir))
     }
+}
+
+/**
+ * Collects manual excludes for inherited sources from each project in the chain.
+ */
+ext.collectInheritedExcludes = { List<Project> inheritanceChain, String sourceSetName, String sourceType ->
+    def excludesByProject = [:]
+    def cumulative = [] as LinkedHashSet
+
+    inheritanceChain.each { proj ->
+        def config = null
+
+        if (proj.ext.has('inheritedSourceExcludes')) {
+            config = proj.ext.get('inheritedSourceExcludes')
+        } else if (proj.hasProperty('inheritedSourceExcludes')) {
+            config = proj.property('inheritedSourceExcludes')
+        }
+
+        def sourceSetConfig = (config instanceof Map) ? config[sourceSetName] : null
+        def typeConfig = (sourceSetConfig instanceof Map) ? sourceSetConfig[sourceType] : null
+
+        if (typeConfig instanceof Collection) {
+            cumulative.addAll(typeConfig)
+        }
+
+        if (!cumulative.isEmpty()) {
+            excludesByProject[proj.path] = new LinkedHashSet<>(cumulative)
+        }
+    }
+
+    return excludesByProject
 }
 
 /**
