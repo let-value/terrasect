@@ -4,6 +4,7 @@ import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.devtools.PerfTracker;
+import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.runtime.Config;
@@ -302,18 +303,14 @@ public class BiomeVisualizationTest {
         return tempDist + humidDist + contDist + erosionDist;
     }
     
-    private String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey()
-            .map(key -> key.identifier().toString())
-            .orElse("unknown");
-    }
-    
+    private String getBiomeId(Holder<Biome> biome) { return BiomeCompat.getBiomeId(biome); }
+
     private Set<String> getBiomeTags(Holder<Biome> biome) {
         Set<String> tags = new HashSet<>();
         // In test environment, biome.tags() may throw because tags aren't bound
         // So we use try-catch and fall back to inferring tags from biome name
         try {
-            biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
+            BiomeCompat.getTags(biome).forEach(tag -> tags.add("#" + tag.location().toString()));
         } catch (IllegalStateException e) {
             // Tags not bound in this test environment - fall through to inference
         }
@@ -381,7 +378,7 @@ public class BiomeVisualizationTest {
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // Use biome ID check instead of tags - tags aren't bound in test environment
-                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                String biomeId = BiomeCompat.getBiomeId(biome);
                 return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
@@ -425,9 +422,7 @@ public class BiomeVisualizationTest {
      * Get a deterministic color for a biome based on its registry name.
      */
     private int biomeToColor(Holder<Biome> biome) {
-        String name = biome.unwrapKey()
-            .map(key -> key.identifier().toString())
-            .orElse("unknown");
+        String name = BiomeCompat.getBiomeId(biome);
         
         // Create a hash-based color
         int hash = name.hashCode();
