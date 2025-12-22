@@ -4,10 +4,11 @@ import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
 
-import com.terrasect.common.runtime.World;
-import com.terrasect.common.runtime.handler.ClimateHandler;
+import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
+import com.terrasect.common.runtime.World;
+import com.terrasect.common.runtime.handler.ClimateHandler;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -270,7 +271,7 @@ public class ClimateVisualizationTest {
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // In test environment, tags aren't bound - use biome ID check
-                String biomeId = biome.unwrapKey().map(k -> k.identifier().toString()).orElse("");
+                String biomeId = BiomeCompat.getBiomeId(biome);
                 return biomeId.contains("river") ? 1.0f : 0.0f;
             }
             
@@ -388,9 +389,7 @@ public class ClimateVisualizationTest {
      * Get a deterministic color for a biome based on its registry name.
      */
     private int biomeToColor(Holder<Biome> biome) {
-        String name = biome.unwrapKey()
-            .map(key -> key.identifier().toString())
-            .orElse("unknown");
+        String name = BiomeCompat.getBiomeId(biome);
         
         // Create a hash-based color
         int hash = name.hashCode();
