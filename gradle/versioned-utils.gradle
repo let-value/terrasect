@@ -141,6 +141,10 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
     def currentProject = project
     def cumulativeOverrides = new LinkedHashSet<>(initialOverrides)
 
+    if (!currentProject.ext.has('inheritedSyncTasks')) {
+        currentProject.ext.inheritedSyncTasks = []
+    }
+
     inheritanceChain.each { proj ->
         def dir = sourceType == 'java'
             ? file("${proj.projectDir}/src/${sourceSetName}/java")
@@ -172,6 +176,7 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
             }
         }
 
+        currentProject.ext.inheritedSyncTasks << syncTask
         target.srcDir(syncTask.map { it.destinationDir })
 
         cumulativeOverrides.addAll(collectLocalFiles(dir))
@@ -306,7 +311,49 @@ ext.inheritCommonSources = { String commonProjectPath ->
     
     inheritedCommonJava.each { sourceSets.main.java.srcDir it }
     inheritedCommonResources.each { sourceSets.main.resources.srcDir it }
-    
+
     // Exclude common overrides from non-versioned common sources
     configureCompileExclusions('compileJava', commonJavaOverrides, '/common/src/')
+}
+
+tasks.register('printMainSourceFiles') {
+    group = 'help'
+    description = 'Prints all Java source files considered for the main source set.'
+
+    if (project.ext.has('inheritedSyncTasks')) {
+        dependsOn project.ext.inheritedSyncTasks
+    }
+
+    doLast {
+        sourceSets.main.java.asFileTree.files.each { println "File in source set: ${it}" }
+    }
+}
+
+tasks.register('printSourceFiles') {
+    group = 'help'
+    description = 'Prints all Java and resource files considered for the main and test source sets.'
+
+    if (project.ext.has('inheritedSyncTasks')) {
+        dependsOn project.ext.inheritedSyncTasks
+    }
+
+    doLast {
+        def sets = [main: sourceSets.main, test: sourceSets.findByName('test')]
+
+        sets.each { name, ss ->
+            if (ss == null) {
+                return
+            }
+
+            println "=== ${project.path} ${name} / java ==="
+            ss.java.asFileTree.files.sort { a, b -> a.path <=> b.path }.each {
+                println "File in ${name}.java source set: ${it}"
+            }
+
+            println "=== ${project.path} ${name} / resources ==="
+            ss.resources.asFileTree.files.sort { a, b -> a.path <=> b.path }.each {
+                println "File in ${name}.resources source set: ${it}"
+            }
+        }
+    }
 }

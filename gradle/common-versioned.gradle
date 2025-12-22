@@ -102,15 +102,6 @@ if (baseProject != null) {
     logger.info("  overrides: ${localMainJavaFiles}")
 }
 
-tasks.register('printMainSourceFiles') {
-    group = 'help'
-    description = 'Prints all Java source files considered for the main source set.'
-
-    doLast {
-        sourceSets.main.java.asFileTree.files.each { println "File in source set: ${it}" }
-    }
-}
-
 dependencies {
     // slf4j is provided by Minecraft, don't force a specific version
     compileOnly('org.slf4j:slf4j-api')
