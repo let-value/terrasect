@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.Sync
+
 /**
  * Shared utility functions for versioned subprojects.
  * 
@@ -136,6 +138,7 @@ ext.collectInheritanceChain = { Project proj, List<String> rootProjects = [':com
  * @param initialOverrides Set of relative file paths already overridden locally
  */
 ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String sourceSetName, String sourceType, Set<String> initialOverrides, Map<String, Set<String>> manualExcludesByProject = [:] ->
+    def currentProject = project
     def cumulativeOverrides = new LinkedHashSet<>(initialOverrides)
 
     inheritanceChain.each { proj ->
@@ -150,30 +153,26 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
             return
         }
 
-        // Register the directory itself so Gradle recognizes it as a source dir
-        target.srcDir(dir)
+        def normalizedExcludes = new LinkedHashSet<>(cumulativeOverrides)
 
-        if (!projectManualExcludes.isEmpty()) {
-            projectManualExcludes.each { rel ->
-                target.exclude("**/${rel}")
-            }
-        }
+        def sanitizedProjPath = proj.path.substring(1).replace(':', '_')
+        def syncTaskName = "syncInherited${sourceSetName.capitalize()}${sourceType.capitalize()}${sanitizedProjPath}"
+        def syncTask = currentProject.tasks.register(syncTaskName, Sync) {
+            from(dir)
+            into(currentProject.layout.buildDirectory.dir("inherited/${sourceSetName}/${sourceType}/${sanitizedProjPath}"))
 
-        def effectiveExcludes = new LinkedHashSet<>(cumulativeOverrides)
+            if (!normalizedExcludes.isEmpty()) {
+                exclude { details ->
+                    def filePath = details.file.toPath()
+                    def normalizedRelative = dir.toPath().relativize(filePath).toString().replace('\\', '/')
+                    def underVersions = filePath.toString().replace('\\', '/').contains('/versions/')
 
-        if (!effectiveExcludes.isEmpty()) {
-            target.exclude { details ->
-                def filePath = details.file.toPath()
-                if (!filePath.startsWith(dir.toPath())) {
-                    return false
+                    return normalizedExcludes.contains(normalizedRelative) && !underVersions
                 }
-
-                def normalizedRelative = dir.toPath().relativize(filePath).toString().replace('\\', '/')
-                def underVersions = filePath.toString().replace('\\', '/').contains('/versions/')
-
-                return effectiveExcludes.contains(normalizedRelative) && !underVersions
             }
         }
+
+        target.srcDir(syncTask.map { it.destinationDir })
 
         cumulativeOverrides.addAll(collectLocalFiles(dir))
     }
