@@ -190,6 +190,29 @@ ext.collectInheritedExcludes = { List<Project> inheritanceChain, String sourceSe
     def excludesByProject = [:]
     def cumulative = [] as LinkedHashSet
 
+    def addFlatExcludes = { Collection entries ->
+        entries.each { entry ->
+            if (!(entry instanceof CharSequence)) {
+                return
+            }
+
+            def normalized = entry.toString().replace('\\', '/').replaceAll('^/', '')
+            def parts = normalized.split('/')
+
+            if (parts.length < 3) {
+                return
+            }
+
+            def setName = parts[0]
+            def typeName = parts[1]
+            def relPath = parts.drop(2).join('/')
+
+            if (setName == sourceSetName && typeName == sourceType) {
+                cumulative.add(relPath)
+            }
+        }
+    }
+
     inheritanceChain.each { proj ->
         def config = null
 
@@ -199,11 +222,15 @@ ext.collectInheritedExcludes = { List<Project> inheritanceChain, String sourceSe
             config = proj.property('inheritedSourceExcludes')
         }
 
-        def sourceSetConfig = (config instanceof Map) ? config[sourceSetName] : null
-        def typeConfig = (sourceSetConfig instanceof Map) ? sourceSetConfig[sourceType] : null
+        if (config instanceof Map) {
+            def sourceSetConfig = config[sourceSetName]
+            def typeConfig = (sourceSetConfig instanceof Map) ? sourceSetConfig[sourceType] : null
 
-        if (typeConfig instanceof Collection) {
-            cumulative.addAll(typeConfig)
+            if (typeConfig instanceof Collection) {
+                cumulative.addAll(typeConfig)
+            }
+        } else if (config instanceof Collection) {
+            addFlatExcludes(config)
         }
 
         if (!cumulative.isEmpty()) {

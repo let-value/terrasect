@@ -46,10 +46,11 @@ if (baseProject != null) {
 
     // Collect inheritance chain and local override files
     def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
-    def inheritedMainJavaExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'java')
-    def inheritedMainResourceExcludes = collectInheritedExcludes(inheritanceChain, 'main', 'resources')
-    def inheritedTestJavaExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'java')
-    def inheritedTestResourceExcludes = collectInheritedExcludes(inheritanceChain, 'test', 'resources')
+    def exclusionChain = ([project] + inheritanceChain).unique { it.path }
+    def inheritedMainJavaExcludes = collectInheritedExcludes(exclusionChain, 'main', 'java')
+    def inheritedMainResourceExcludes = collectInheritedExcludes(exclusionChain, 'main', 'resources')
+    def inheritedTestJavaExcludes = collectInheritedExcludes(exclusionChain, 'test', 'java')
+    def inheritedTestResourceExcludes = collectInheritedExcludes(exclusionChain, 'test', 'resources')
     def manualMainJavaExcludes = inheritedMainJavaExcludes.values().flatten() as Set
     def manualTestJavaExcludes = inheritedTestJavaExcludes.values().flatten() as Set
     def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
