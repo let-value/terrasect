@@ -18,44 +18,34 @@ afterEvaluate {
         def localTestJava = file('src/test/java')
         def localTestResources = file('src/test/resources')
         
-        def localMainJavaFiles = collectLocalFiles(localMainJava)
-        def localMainResourceFiles = collectLocalFiles(localMainResources)
-        
-        // Collect ALL override files from the entire chain
-        def allMainJavaOverrides = collectAllOverrideFiles(project, 'main', 'java', [':common'])
-        
-        def inheritedMainJava = collectInheritedSources(baseProject, 'main', 'java', [':common'])
-        def inheritedMainResources = collectInheritedSources(baseProject, 'main', 'resources', [':common'])
-        def inheritedTestJava = collectInheritedSources(baseProject, 'test', 'java', [':common'])
-        def inheritedTestResources = collectInheritedSources(baseProject, 'test', 'resources', [':common'])
-        
+        def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
+        def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
+        def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
+        def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
+        def localTestResourceFiles = collectLocalFiles(localTestResources) as Set
+
         sourceSets {
             main {
                 java {
                     if (localMainJava.exists()) { srcDir localMainJava }
-                    inheritedMainJava.each { dir -> srcDir(dir) }
-                    if (!localMainJavaFiles.isEmpty()) { exclude localMainJavaFiles }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles)
                 }
                 resources {
                     if (localMainResources.exists()) { srcDir localMainResources }
-                    inheritedMainResources.each { dir -> srcDir(dir) }
-                    if (!localMainResourceFiles.isEmpty()) { exclude localMainResourceFiles }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles)
                 }
             }
             test {
                 java {
                     if (localTestJava.exists()) { srcDir localTestJava }
-                    inheritedTestJava.each { dir -> srcDir(dir) }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles)
                 }
                 resources {
                     if (localTestResources.exists()) { srcDir localTestResources }
-                    inheritedTestResources.each { dir -> srcDir(dir) }
+                    addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles)
                 }
             }
         }
-        
-        // Exclude overridden files from base :common
-        configureCompileExclusions('compileJava', allMainJavaOverrides, '/common/src/')
     }
 }
 

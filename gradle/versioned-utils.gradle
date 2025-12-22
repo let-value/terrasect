@@ -89,6 +89,79 @@ ext.collectLocalFiles = { File baseDir ->
 }
 
 /**
+ * Collects the project inheritance chain starting from the provided project.
+ * The returned list is ordered from most specific (closest to the current
+ * versioned project) to least specific (root base projects).
+ *
+ * @param proj The project to start collecting from
+ * @param rootProjects List of project paths that have no base (e.g., [':common'])
+ * @param visited Set of already visited project paths (for cycle detection)
+ */
+ext.collectInheritanceChain = { Project proj, List<String> rootProjects = [':common', ':fabric', ':neoforge'], Set<String> visited = [] ->
+    def chain = []
+
+    if (visited.contains(proj.path)) {
+        return chain
+    }
+    visited.add(proj.path)
+
+    chain.add(proj)
+
+    def projBasePath = null
+    if (proj.hasProperty('base_project')) {
+        projBasePath = proj.property('base_project')
+    } else if (rootProjects.contains(proj.path)) {
+        projBasePath = null
+    }
+
+    if (projBasePath != null && !projBasePath.isEmpty()) {
+        def baseProj = rootProject.findProject(projBasePath)
+        if (baseProj != null) {
+            chain.addAll(collectInheritanceChain(baseProj, rootProjects, visited))
+        }
+    }
+
+    return chain
+}
+
+/**
+ * Adds inherited source directories to a SourceDirectorySet while excluding files
+ * that are overridden by more specific projects. This ensures IDEs do not see
+ * duplicate sources for the same relative path.
+ *
+ * @param target The SourceDirectorySet to modify (e.g., sourceSets.main.java)
+ * @param inheritanceChain List of projects ordered from most to least specific
+ * @param sourceSetName The source set name (e.g., 'main', 'test')
+ * @param sourceType Either 'java' or 'resources'
+ * @param initialOverrides Set of relative file paths already overridden locally
+ */
+ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String sourceSetName, String sourceType, Set<String> initialOverrides ->
+    def cumulativeOverrides = new LinkedHashSet<>(initialOverrides)
+
+    inheritanceChain.each { proj ->
+        def dir = sourceType == 'java'
+            ? file("${proj.projectDir}/src/${sourceSetName}/java")
+            : file("${proj.projectDir}/src/${sourceSetName}/resources")
+
+        if (!dir.exists()) {
+            return
+        }
+
+        target.srcDir {
+            def tree = fileTree(dir)
+            if (!cumulativeOverrides.isEmpty()) {
+                tree = tree.matching {
+                    exclude(cumulativeOverrides.collect { "**/${it}" })
+                }
+            }
+            tree
+        }
+
+        cumulativeOverrides.addAll(collectLocalFiles(dir))
+    }
+}
+
+/**
  * Collects all override files from versioned projects in the inheritance chain.
  * This includes the current project's local files and all parent versioned project files.
  * Stops at root loader projects (doesn't include their files as "overrides").
