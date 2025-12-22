@@ -36,11 +36,39 @@ rootProject.name = 'terrasect'
 include('common', 'fabric', 'neoforge')
 
 def versionsDir = file('versions')
+def versionPropertiesByDir = [:]
+
+def loadVersionProperties(File versionDir) {
+    def props = new Properties()
+    def propsFile = new File(versionDir, 'gradle.properties')
+
+    if (propsFile.exists()) {
+        propsFile.withInputStream { props.load(it) }
+    }
+
+    return props
+}
+
 if (versionsDir.exists()) {
     versionsDir.eachDir { mcVersionDir ->
         def mcVersion = mcVersionDir.name
+
+        def versionProps = loadVersionProperties(mcVersionDir)
+        if (!versionProps.isEmpty()) {
+            versionPropertiesByDir[mcVersionDir.canonicalPath] = versionProps
+        }
+
+        def rootBuildGradle = new File(mcVersionDir, 'build.gradle')
+        def rootBuildGradleKts = new File(mcVersionDir, 'build.gradle.kts')
+
+        if (rootBuildGradle.exists() || rootBuildGradleKts.exists()) {
+            def safeVersion = mcVersion.replace('.', '_')
+            def versionRootPath = ":mc${safeVersion}"
+            include(versionRootPath)
+            project(versionRootPath).projectDir = mcVersionDir
+        }
         mcVersionDir.eachDir { moduleDir ->
-            def moduleName = moduleDir.name 
+            def moduleName = moduleDir.name
             def buildGradle = new File(moduleDir, 'build.gradle')
             def buildGradleKts = new File(moduleDir, 'build.gradle.kts')
             
@@ -49,6 +77,22 @@ if (versionsDir.exists()) {
                 def projectPath = ":mc${safeVersion}-${moduleName}"
                 include(projectPath)
                 project(projectPath).projectDir = moduleDir
+            }
+        }
+    }
+}
+
+if (!versionPropertiesByDir.isEmpty()) {
+    gradle.beforeProject { proj ->
+        def entry = versionPropertiesByDir.find { dirPath, props ->
+            proj.projectDir.canonicalPath.startsWith(dirPath)
+        }
+
+        if (entry) {
+            entry.value.each { key, value ->
+                if (!proj.hasProperty(key)) {
+                    proj.extensions.extraProperties.set(key.toString(), value)
+                }
             }
         }
     }

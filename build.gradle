@@ -1,6 +1,30 @@
+import org.gradle.api.tasks.Sync
+
 plugins {
     id 'base'
 }
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+def registerNeoFormSourceUnpackTask(Project target, String taskName = 'unpackNeoForgeMinecraft', String outputDir = 'minecraft') {
+    target.configurations { neoformSourceZip }
+
+    target.dependencies {
+        neoformSourceZip("net.neoforged:neoform:${target.property('neoform_version')}@zip")
+    }
+
+    target.tasks.register(taskName, Sync) {
+        group = 'help'
+        description = 'Downloads and unpacks the NeoForge ModDev Minecraft sources into the minecraft directory.'
+
+        from { target.configurations.neoformSourceZip.collect { zipTree(it) } }
+        into(target.layout.projectDirectory.dir(outputDir))
+    }
+}
+
+registerNeoFormSourceUnpackTask(project)
 
 subprojects {
     group = property('maven_group')
