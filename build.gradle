@@ -16,7 +16,7 @@ repositories {
 // Utilities
 // =============================================================================
 
-ext.registerMinecraftSourceUnpackTask = { Project target, String taskName = 'unpackNeoForgeMinecraft', String outputDir = 'minecraft', List<String> providerPaths = [':common', ':neoforge', ':fabric'] ->
+ext.registerMinecraftSourceUnpackTask = { Project target, String taskName = 'unpackMinecraft', String outputDir = 'minecraft', List<String> providerPaths = [':common', ':neoforge', ':fabric'] ->
     def findSourceProject = {
         providerPaths.collect { target.findProject(it) }.find { it != null } ?: target
     }

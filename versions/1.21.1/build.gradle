@@ -9,7 +9,7 @@ repositories {
 }
 
 def versionPrefix = ":${project.name}"
-rootProject.registerMinecraftSourceUnpackTask(project, 'unpackNeoForgeMinecraft', 'minecraft', [
+rootProject.registerMinecraftSourceUnpackTask(project, 'unpackMinecraft', 'minecraft', [
     "${versionPrefix}-common",
     "${versionPrefix}-neoforge",
     "${versionPrefix}-fabric"
