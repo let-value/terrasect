@@ -168,11 +168,10 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
                     return false
                 }
 
-                def normalized = filePath.toString().replace('\\\\', '/')
-                def matchesOverride = effectiveExcludes.any { rel -> normalized.endsWith(rel) }
-                def underVersions = normalized.contains('/versions/')
+                def normalizedRelative = dir.toPath().relativize(filePath).toString().replace('\\', '/')
+                def underVersions = filePath.toString().replace('\\', '/').contains('/versions/')
 
-                return matchesOverride && !underVersions
+                return effectiveExcludes.contains(normalizedRelative) && !underVersions
             }
         }
 
