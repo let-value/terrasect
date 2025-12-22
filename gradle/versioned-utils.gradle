@@ -24,6 +24,29 @@ ext.prop = { String key, String defaultVal = null ->
 }
 
 /**
+ * Ensures that a project and its entire base project chain are evaluated.
+ * This is necessary so that exclusion settings and other configuration are
+ * available before inheritance logic runs.
+ *
+ * @param projPath The project path to start evaluating from
+ */
+ext.ensureBaseChainEvaluated = { String projPath ->
+    if (!projPath || projPath.isEmpty()) return
+    def proj = rootProject.findProject(projPath)
+    if (proj == null) return
+    
+    evaluationDependsOn(projPath)
+    
+    // Recursively ensure base project is evaluated
+    if (proj.hasProperty('base_project')) {
+        def parentPath = proj.property('base_project')
+        if (parentPath && !parentPath.isEmpty()) {
+            ensureBaseChainEvaluated(parentPath)
+        }
+    }
+}
+
+/**
  * Recursively collects source directories from a project and its base projects.
  * Returns sources in order: most specific (current) -> least specific (root base)
  * 

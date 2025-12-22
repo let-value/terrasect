@@ -37,6 +37,9 @@ apply from: rootProject.file('gradle/versioned-utils.gradle')
 def baseProjectPath = prop('base_project', ':neoforge')
 def commonProjectPath = prop('common_project', ':common')  // Empty string = no common inheritance
 
+// Ensure the entire base project chain is evaluated so exclusion settings are available
+ensureBaseChainEvaluated(baseProjectPath)
+
 // Configure source inheritance from the base project chain
 afterEvaluate {
     def baseProject = rootProject.findProject(baseProjectPath)

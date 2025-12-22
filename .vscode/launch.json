@@ -46,50 +46,6 @@
     {
       "type": "java",
       "request": "launch",
-      "name": "mc1_21_1-neoforge - Client",
-      "presentation": {
-        "group": "Mod Development - mc1_21_1-neoforge",
-        "order": 0
-      },
-      "projectName": "mc1_21_1-neoforge",
-      "mainClass": "net.neoforged.devlaunch.Main",
-      "args": [
-        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\clientRunProgramArgs.txt"
-      ],
-      "vmArgs": [
-        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
-      ],
-      "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
-      "env": {},
-      "console": "internalConsole",
-      "shortenCommandLine": "none"
-    },
-    {
-      "type": "java",
-      "request": "launch",
-      "name": "mc1_21_1-neoforge - Server",
-      "presentation": {
-        "group": "Mod Development - mc1_21_1-neoforge",
-        "order": 1
-      },
-      "projectName": "mc1_21_1-neoforge",
-      "mainClass": "net.neoforged.devlaunch.Main",
-      "args": [
-        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\serverRunProgramArgs.txt"
-      ],
-      "vmArgs": [
-        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
-      ],
-      "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
-      "env": {},
-      "console": "internalConsole",
-      "shortenCommandLine": "none"
-    },
-    {
-      "type": "java",
-      "request": "launch",
       "name": "neoforge - Client",
       "presentation": {
         "group": "Mod Development - neoforge",
@@ -127,6 +83,50 @@
         "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "mc1_21_1-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - mc1_21_1-neoforge",
+        "order": 0
+      },
+      "projectName": "mc1_21_1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "mc1_21_1-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - mc1_21_1-neoforge",
+        "order": 1
+      },
+      "projectName": "mc1_21_1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
       "env": {},
       "console": "internalConsole",
       "shortenCommandLine": "none"
