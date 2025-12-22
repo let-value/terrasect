@@ -147,14 +147,22 @@ ext.addInheritedSourceDirs = { target, List<Project> inheritanceChain, String so
             return
         }
 
-        target.srcDir {
-            def tree = fileTree(dir)
-            if (!cumulativeOverrides.isEmpty()) {
-                tree = tree.matching {
-                    exclude(cumulativeOverrides.collect { "**/${it}" })
+        // Register the directory itself so Gradle recognizes it as a source dir
+        target.srcDir(dir)
+
+        if (!cumulativeOverrides.isEmpty()) {
+            target.exclude { details ->
+                def filePath = details.file.toPath()
+                if (!filePath.startsWith(dir.toPath())) {
+                    return false
                 }
+
+                def normalized = filePath.toString().replace('\\\\', '/')
+                def matchesOverride = cumulativeOverrides.any { rel -> normalized.endsWith(rel) }
+                def underVersions = normalized.contains('/versions/')
+
+                return matchesOverride && !underVersions
             }
-            tree
         }
 
         cumulativeOverrides.addAll(collectLocalFiles(dir))

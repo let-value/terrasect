@@ -9,41 +9,39 @@ apply from: rootProject.file('gradle/versioned-utils.gradle')
 def baseProjectPath = prop('base_project', ':mc1_21_1-common')
 
 // Configure source inheritance
-afterEvaluate {
-    def baseProject = rootProject.findProject(baseProjectPath)
-    
-    if (baseProject != null) {
-        def localMainJava = file('src/main/java')
-        def localMainResources = file('src/main/resources')
-        def localTestJava = file('src/test/java')
-        def localTestResources = file('src/test/resources')
-        
-        def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
-        def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
-        def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
-        def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
-        def localTestResourceFiles = collectLocalFiles(localTestResources) as Set
+def baseProject = rootProject.findProject(baseProjectPath)
 
-        sourceSets {
-            main {
-                java {
-                    if (localMainJava.exists()) { srcDir localMainJava }
-                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles)
-                }
-                resources {
-                    if (localMainResources.exists()) { srcDir localMainResources }
-                    addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles)
-                }
+if (baseProject != null) {
+    def localMainJava = file('src/main/java')
+    def localMainResources = file('src/main/resources')
+    def localTestJava = file('src/test/java')
+    def localTestResources = file('src/test/resources')
+
+    def inheritanceChain = collectInheritanceChain(baseProject, [':common'])
+    def localMainJavaFiles = collectLocalFiles(localMainJava) as Set
+    def localMainResourceFiles = collectLocalFiles(localMainResources) as Set
+    def localTestJavaFiles = collectLocalFiles(localTestJava) as Set
+    def localTestResourceFiles = collectLocalFiles(localTestResources) as Set
+
+    sourceSets {
+        main {
+            java {
+                if (localMainJava.exists()) { srcDir localMainJava }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'java', localMainJavaFiles)
             }
-            test {
-                java {
-                    if (localTestJava.exists()) { srcDir localTestJava }
-                    addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles)
-                }
-                resources {
-                    if (localTestResources.exists()) { srcDir localTestResources }
-                    addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles)
-                }
+            resources {
+                if (localMainResources.exists()) { srcDir localMainResources }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'main', 'resources', localMainResourceFiles)
+            }
+        }
+        test {
+            java {
+                if (localTestJava.exists()) { srcDir localTestJava }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'java', localTestJavaFiles)
+            }
+            resources {
+                if (localTestResources.exists()) { srcDir localTestResources }
+                addInheritedSourceDirs(delegate, inheritanceChain, 'test', 'resources', localTestResourceFiles)
             }
         }
     }
