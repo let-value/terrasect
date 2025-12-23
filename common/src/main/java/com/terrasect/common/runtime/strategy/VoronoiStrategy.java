@@ -81,6 +81,7 @@ public final class VoronoiStrategy {
         // Find best cell using power diagram metric
         int bestIndex = 0;
         float bestMetric = Float.MAX_VALUE;
+        float secondBestMetric = Float.MAX_VALUE;
         float bestX = 0, bestZ = 0;
 
         for (int i = 0; i < count; i++) {
@@ -94,10 +95,13 @@ public final class VoronoiStrategy {
             float metric = distSq - r * r;
 
             if (metric < bestMetric) {
+                secondBestMetric = bestMetric;
                 bestMetric = metric;
                 bestIndex = i;
                 bestX = sx;
                 bestZ = sz;
+            } else if (metric < secondBestMetric) {
+                secondBestMetric = metric;
             }
         }
 
@@ -128,6 +132,11 @@ public final class VoronoiStrategy {
         // Store site position for seed uniqueness
         out.siteX = bestX;
         out.siteZ = bestZ;
+        
+        // Edge distance: difference between second-best and best metric
+        // Larger value = deeper inside cell. Normalize to approximate [0,1] range.
+        float rawEdge = secondBestMetric - bestMetric;
+        out.edgeDistance = Math.min(1.0f, rawEdge * 2.0f);
     }
 
     /**

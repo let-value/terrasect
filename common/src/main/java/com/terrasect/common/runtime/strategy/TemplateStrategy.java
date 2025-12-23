@@ -76,6 +76,7 @@ public final class TemplateStrategy {
         // Find best cell by computing positions inline
         int bestIndex = 0;
         float bestMetric = Float.MAX_VALUE;
+        float secondBestMetric = Float.MAX_VALUE;
         float bestX = 0, bestZ = 0, bestR = 0;
 
         for (int i = 0; i < count; i++) {
@@ -139,11 +140,14 @@ public final class TemplateStrategy {
             float metric = distSq - rNorm * rNorm;
 
             if (metric < bestMetric) {
+                secondBestMetric = bestMetric;
                 bestMetric = metric;
                 bestIndex = i;
                 bestX = sx;
                 bestZ = sz;
                 bestR = rNorm;
+            } else if (metric < secondBestMetric) {
+                secondBestMetric = metric;
             }
         }
 
@@ -155,6 +159,10 @@ public final class TemplateStrategy {
         // Store cell center for seed uniqueness
         out.siteX = bestX;
         out.siteZ = bestZ;
+        
+        // Edge distance: difference between second-best and best metric
+        float rawEdge = secondBestMetric - bestMetric;
+        out.edgeDistance = Math.min(1.0f, rawEdge * 2.0f);
     }
 
     private enum TemplateType { BINARY, TRIANGLE, CENTER_SURROUND, RADIAL }

@@ -9,6 +9,9 @@ import com.terrasect.common.runtime.strategy.QueryResult;
 
 final class Layout {
 
+    // Thread-local result to avoid allocations
+    private static final ThreadLocal<TraversalResult> RESULT = ThreadLocal.withInitial(TraversalResult::new);
+
     // Warp configuration - simple 3-layer approach:
     // 1. Base warp: organic region shapes (like vanilla biomes)
     // 2. Feature warp: rivers/ridges push boundaries toward them
@@ -32,7 +35,7 @@ final class Layout {
     
     Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth, 
                             float gridOffsetX, float gridOffsetZ) {
-        return (Region) traverse(root, x, z, context, targetDepth, false, gridOffsetX, gridOffsetZ);
+        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ).region;
     }
 
     long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth) {
@@ -41,11 +44,23 @@ final class Layout {
     
     long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth,
                               float gridOffsetX, float gridOffsetZ) {
-        return (Long) traverse(root, x, z, context, targetDepth, true, gridOffsetX, gridOffsetZ);
+        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ).seed;
+    }
+    
+    /**
+     * Full traversal returning region, seed, and edge distance.
+     * Returns thread-local result - caller must use values before next call.
+     */
+    TraversalResult getTraversalResult(Region root, int x, int z, Context context, int targetDepth,
+                                        float gridOffsetX, float gridOffsetZ) {
+        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ);
     }
 
-    private Object traverse(Region root, int x, int z, Context context, int targetDepth, boolean returnSeed,
+    private TraversalResult traverse(Region root, int x, int z, Context context, int targetDepth,
                             float gridOffsetX, float gridOffsetZ) {
+        TraversalResult out = RESULT.get();
+        out.edgeDistance = 1.0f;  // Start at center, take minimum during traversal
+        
         long currentSeed = context.getSeed();
         // WARPED TRAVERSAL: Apply offset first, then warp, then traverse.
         // This creates organic region boundaries while maintaining proper parent-child containment.
@@ -81,11 +96,16 @@ final class Layout {
             cx += result.centerX * radius;
             cz += result.centerZ * radius;
             radius *= result.radius;
+            
+            // Track minimum edge distance across all hierarchy levels
+            out.edgeDistance = Math.min(out.edgeDistance, result.edgeDistance);
 
             currentDepth++;
         }
 
-        return returnSeed ? currentSeed : currentRegion;
+        out.region = currentRegion;
+        out.seed = currentSeed;
+        return out;
     }
 
     /**

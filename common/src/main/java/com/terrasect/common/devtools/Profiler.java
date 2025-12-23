@@ -83,7 +83,6 @@ public final class Profiler {
     // Climate modification path
     public static final String CLIMATE_MODIFY = "climate.modify";
     public static final String CLIMATE_REGION_LOOKUP = "climate.regionLookup";
-    public static final String CLIMATE_EDGE_CALC = "climate.edgeCalc";
     public static final String CLIMATE_OFFSET_CALC = "climate.offsetCalc";
     
     // Biome selection path
@@ -91,11 +90,6 @@ public final class Profiler {
     public static final String BIOME_REGION_LOOKUP = "biome.regionLookup";
     public static final String BIOME_FILTER = "biome.filter";
     public static final String BIOME_FIND_VALUE = "biome.findValue";
-    
-    // Region field calculations
-    public static final String REGION_FIELD_DATA = "regionField.getData";
-    public static final String REGION_FIELD_NOISE = "regionField.noise";
-    public static final String REGION_FIELD_VORONOI = "regionField.voronoi";
     
     // Terrain modification
     public static final String TERRAIN_HEIGHT_CHECK = "terrain.heightCheck";
@@ -118,9 +112,8 @@ public final class Profiler {
     // Pre-register all metrics at class load
     static {
         registerAll(
-            CLIMATE_MODIFY, CLIMATE_REGION_LOOKUP, CLIMATE_EDGE_CALC, CLIMATE_OFFSET_CALC,
+            CLIMATE_MODIFY, CLIMATE_REGION_LOOKUP, CLIMATE_OFFSET_CALC,
             BIOME_SELECT, BIOME_REGION_LOOKUP, BIOME_FILTER, BIOME_FIND_VALUE,
-            REGION_FIELD_DATA, REGION_FIELD_NOISE, REGION_FIELD_VORONOI,
             TERRAIN_HEIGHT_CHECK, TERRAIN_DENSITY_COMPUTE, TERRAIN_LOOKUP_BUILD,
             WORLD_GET_REGION, WORLD_TRAVERSE,
             ALLOC_CLIMATE_RESULT, ALLOC_TARGET_POINT, ALLOC_PARAMETER_LIST

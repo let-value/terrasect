@@ -4,7 +4,7 @@ import com.terrasect.common.Terrasect;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.ClimateModifier;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.runtime.RegionField;
+import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.devtools.MixinSampler;
@@ -132,10 +132,10 @@ public final class ClimateHandler {
         }
 
         long t1 = Profiler.begin();
-        Region region = World.getRegion(context, blockX, blockZ);
+        TraversalResult traversal = World.getTraversalResult(context, blockX, blockZ);
         Profiler.end(Profiler.CLIMATE_REGION_LOOKUP, t1);
         
-        if (region == null) {
+        if (traversal == null || traversal.region == null) {
             if (sampling) {
                 MixinSampler.recordClimateCall(x, y, z, originalTemperature, originalHumidity,
                     originalTemperature, originalHumidity, null, false);
@@ -144,6 +144,8 @@ public final class ClimateHandler {
             return ClimateResult.unmodified(originalTemperature, originalHumidity, originalContinentalness,
                 originalErosion, originalDepth, originalWeirdness);
         }
+        
+        Region region = traversal.region;
         
         // Record region query for sampling (only if enabled)
         if (sampling) {
@@ -167,14 +169,9 @@ public final class ClimateHandler {
         }
         
         // Calculate edge factor for smooth transitions between regions
-        // edge value is HIGH when deep inside region, LOW at boundaries
+        // edgeDistance is 1 at center, 0 at boundary
         // We invert it so edgeFactor=0 means center, edgeFactor=1 means at edge
-        long t2 = Profiler.begin();
-        long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
-        float edge = RegionField.unpackEdge(regionData);
-        float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
-        float edgeFactor = 1.0f - normalizedEdge; // Invert: 0 at center, 1 at boundary
-        Profiler.end(Profiler.CLIMATE_EDGE_CALC, t2);
+        float edgeFactor = 1.0f - traversal.edgeDistance;
 
         // Calculate climate offsets for all 6 parameters
         long t3 = Profiler.begin();

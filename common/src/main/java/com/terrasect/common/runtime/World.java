@@ -130,6 +130,45 @@ public final class World {
     }
     
     /**
+     * Get the full traversal result including region, seed, and edge distance.
+     * 
+     * <p>Returns thread-local result - caller must use values before next call on same thread.
+     * 
+     * @param context The generation context
+     * @param x Block X coordinate
+     * @param z Block Z coordinate
+     * @return TraversalResult with region, seed, and edgeDistance, or null if dimension not registered
+     */
+    public static @Nullable TraversalResult getTraversalResult(Context context, int x, int z) {
+        return getTraversalResultAtDepth(context, x, z, 100);
+    }
+    
+    /**
+     * Get the full traversal result at a specific depth.
+     * 
+     * <p>Returns thread-local result - caller must use values before next call on same thread.
+     * 
+     * @param context The generation context
+     * @param x Block X coordinate
+     * @param z Block Z coordinate
+     * @param targetDepth Maximum depth to traverse
+     * @return TraversalResult with region, seed, and edgeDistance, or null if dimension not registered
+     */
+    public static @Nullable TraversalResult getTraversalResultAtDepth(Context context, int x, int z, int targetDepth) {
+        DimensionState state = DIMENSIONS.get(context.getDimensionId());
+        if (state == null) {
+            return null;
+        }
+        long t0 = Profiler.begin();
+        TraversalResult result = LAYOUT.getTraversalResult(
+            state.root, x, z, context, targetDepth,
+            state.offsetX, state.offsetZ
+        );
+        Profiler.end(Profiler.WORLD_TRAVERSE, t0);
+        return result;
+    }
+    
+    /**
      * Get the region at a specific depth.
      * 
      * @param dimensionId The dimension ID

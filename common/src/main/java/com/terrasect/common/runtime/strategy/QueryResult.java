@@ -32,6 +32,12 @@ public final class QueryResult {
     /** Computed seed for the child region */
     public long childSeed;
     
+    /** 
+     * Distance to nearest cell boundary (normalized, 0 = at edge, 1 = at center).
+     * Used for smooth climate transitions between regions.
+     */
+    public float edgeDistance;
+    
     /** Reset all fields to defaults */
     public void reset() {
         childIndex = 0;
@@ -42,5 +48,6 @@ public final class QueryResult {
         siteZ = 0;
         isRing = false;
         childSeed = 0;
+        edgeDistance = 1.0f;  // Default to center (no edge blending)
     }
 }

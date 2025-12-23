@@ -57,4 +57,39 @@ public class MathUtils {
     public static float lerp(float t, float a, float b) {
         return a + t * (b - a);
     }
+    
+    /**
+     * Returns the axial coordinates (q, r) of the hex cell containing (x, z).
+     * Uses pointy-topped hexagon orientation.
+     * 
+     * @param x World X coordinate
+     * @param z World Z coordinate
+     * @param size Hex cell size (distance from center to corner)
+     * @return Packed long: (q << 32) | (r & 0xFFFFFFFFL)
+     */
+    public static long getHexCell(float x, float z, float size) {
+        // Pointy-topped hex conversion
+        float q = (float) (Math.sqrt(3)/3 * x - 1.0/3 * z) / size;
+        float r = (float) (2.0/3 * z) / size;
+        return hexRound(q, r);
+    }
+
+    private static long hexRound(float q, float r) {
+        float s = -q - r;
+        int rq = Math.round(q);
+        int rr = Math.round(r);
+        int rs = Math.round(s);
+
+        float q_diff = Math.abs(rq - q);
+        float r_diff = Math.abs(rr - r);
+        float s_diff = Math.abs(rs - s);
+
+        if (q_diff > r_diff && q_diff > s_diff) {
+            rq = -rr - rs;
+        } else if (r_diff > s_diff) {
+            rr = -rq - rs;
+        }
+        
+        return ((long) rq << 32) | (rr & 0xFFFFFFFFL);
+    }
 }

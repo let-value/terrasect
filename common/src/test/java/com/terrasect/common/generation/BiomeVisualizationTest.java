@@ -9,7 +9,7 @@ import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.runtime.Config;
-import com.terrasect.common.runtime.RegionField;
+import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.generation.definition.SelectionRules;
@@ -138,18 +138,14 @@ public class BiomeVisualizationTest {
                 
                 // Get region and its biome rules
                 PerfTracker.start("regionLookup");
-                Region region = World.getRegion(context, blockX, blockZ);
+                TraversalResult traversal = World.getTraversalResult(context, blockX, blockZ);
+                Region region = traversal != null ? traversal.region : null;
                 PerfTracker.stop("regionLookup");
                 
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;
                 
-                // Calculate edge for region map
-                PerfTracker.start("regionFieldData");
-                long regionData = RegionField.getRegionData(blockX, blockZ, seed, 512, 200.0f, 2048);
-                float edge = RegionField.unpackEdge(regionData);
-                float normalizedEdge = Math.min(1.0f, edge / Config.EDGE_SCALE);
-                float edgeFactor = 1.0f - normalizedEdge;
-                PerfTracker.stop("regionFieldData");
+                // Calculate edge for region map (edgeDistance is 1 at center, 0 at edge)
+                float edgeFactor = traversal != null ? 1.0f - traversal.edgeDistance : 0.5f;
                 
                 // Check if vanilla biome is allowed
                 PerfTracker.start("biomeFilterCheck");

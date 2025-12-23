@@ -118,14 +118,14 @@ public class ProfilerGameTest implements FabricClientGameTest {
         
         var climateMetric = Profiler.getMetric(Profiler.CLIMATE_MODIFY);
         var biomeMetric = Profiler.getMetric(Profiler.BIOME_SELECT);
-        var regionFieldMetric = Profiler.getMetric(Profiler.REGION_FIELD_DATA);
+        var traverseMetric = Profiler.getMetric(Profiler.WORLD_TRAVERSE);
         
         System.out.printf("  Climate modifications: %,d calls, %.2f ms total, %.2f µs avg%n",
             climateMetric.calls(), climateMetric.totalMs(), climateMetric.avgUs());
         System.out.printf("  Biome selections: %,d calls, %.2f ms total, %.2f µs avg%n",
             biomeMetric.calls(), biomeMetric.totalMs(), biomeMetric.avgUs());
-        System.out.printf("  Region field lookups: %,d calls, %.2f ms total, %.2f µs avg%n",
-            regionFieldMetric.calls(), regionFieldMetric.totalMs(), regionFieldMetric.avgUs());
+        System.out.printf("  World traversals: %,d calls, %.2f ms total, %.2f µs avg%n",
+            traverseMetric.calls(), traverseMetric.totalMs(), traverseMetric.avgUs());
         
         System.out.println("--- End Intermediate Stats ---\n");
     }

@@ -107,6 +107,15 @@ public final class SubdivisionStrategy {
             // Store cell center for seed uniqueness
             out.siteX = centerX;
             out.siteZ = centerZ;
+            
+            // Edge distance: minimum distance to any cell boundary (normalized)
+            float distToLeft = px - minX;
+            float distToRight = maxX - px;
+            float distToBottom = pz - minZ;
+            float distToTop = maxZ - pz;
+            float minDist = Math.min(Math.min(distToLeft, distToRight), Math.min(distToBottom, distToTop));
+            // Normalize by half the smaller dimension
+            out.edgeDistance = Math.min(1.0f, minDist / cellRadius);
             return;
         }
 

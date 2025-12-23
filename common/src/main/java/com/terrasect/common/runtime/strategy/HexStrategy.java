@@ -2,7 +2,6 @@ package com.terrasect.common.runtime.strategy;
 
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.runtime.RegionField;
 import com.terrasect.common.generation.definition.StrategySettings;
 
 import java.util.List;
@@ -67,7 +66,7 @@ public final class HexStrategy {
         float gridRadius = radius * (1.0f + ringWidth);
         
         // Get hex cell using the larger grid spacing
-        long packedHex = RegionField.getHexCell(dx, dz, gridRadius);
+        long packedHex = MathUtils.getHexCell(dx, dz, gridRadius);
         int q = (int) (packedHex >> 32);
         int r = (int) packedHex;
         
@@ -95,6 +94,9 @@ public final class HexStrategy {
             out.centerZ = hexCenterWorldZ / radius;
             out.radius = ringWidth;  // Ring's effective radius
             out.isRing = true;
+            // Edge distance in ring: how far from the interior boundary (normalized)
+            float ringDist = distFromCenter - radius;
+            out.edgeDistance = 1.0f - Math.min(1.0f, ringDist / (ringWidth * radius));
             return;
         }
         
@@ -116,6 +118,8 @@ public final class HexStrategy {
         // The ring check already ensures we only get here for points within the interior.
         // Using 1.0 means child strategies work in the full interior space.
         out.radius = 1.0f;
+        // Edge distance: how far from hex boundary (normalized, 1 = center, 0 = edge)
+        out.edgeDistance = 1.0f - Math.min(1.0f, distFromCenter / radius);
     }
 
     /**

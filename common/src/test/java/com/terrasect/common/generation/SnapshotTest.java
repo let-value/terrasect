@@ -5,7 +5,7 @@ import com.terrasect.common.api.Context;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.devtools.TestRegions;
 import com.terrasect.common.runtime.Config;
-import com.terrasect.common.runtime.RegionField;
+import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
@@ -92,10 +92,6 @@ public class SnapshotTest {
                 int wx = (x - width / 2) * step;
                 int wz = (y - height / 2) * step;
 
-                // Raw noise for background reference (default scale)
-                long rawRegionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
-                int rawRegionId = RegionField.unpackRegionId(rawRegionData);
-                
                 long influence = context.getInfluence(wx, wz);
                 float river = Packer.unpackPairFirst(influence);
                 float ridge = Packer.unpackPairSecond(influence);
@@ -127,30 +123,32 @@ public class SnapshotTest {
                 
                 Region leafRegion = regions.get(regions.size() - 1);
                 
-                // Edge detection by sampling neighbors
-                float combinedEdge = 100.0f; // Dummy value if not edge
+                // Get edge distance from the traversal result (1 = center, 0 = edge)
+                TraversalResult traversal = World.getTraversalResult(context, wx, wz);
+                float edgeDistance = traversal != null ? traversal.edgeDistance : 1.0f;
                 boolean isEdge = false;
                 
                 // Check leaf edge
                 Region right = World.getRegion(context, wx + step, wz);
                 Region down = World.getRegion(context, wx, wz + step);
                 if (!leafRegion.name().equals(right.name()) || !leafRegion.name().equals(down.name())) {
-                    combinedEdge = 0.0f;
                     isEdge = true;
                 }
 
-                // Update digest with raw values to be independent of rendering colors
-                updateDigest(digest, rawRegionId);
+                // Update digest with values to be independent of rendering colors
+                // Use leaf region hash instead of old RegionField ID
+                int leafRegionHash = leafRegion.name().hashCode();
+                updateDigest(digest, leafRegionHash);
                 updateDigest(digest, isEdge ? 1.0f : 0.0f);
                 updateDigest(digest, river);
                 updateDigest(digest, ridge);
-                updateDigest(digest, leafRegion.name().hashCode());
+                updateDigest(digest, leafRegionHash);
 
                 // Visualization (keep this for debug output)
-                // Voronoi Cell ID visualization (random color from hash)
-                int r = (int) (MathUtils.hash64(rawRegionId, 1, 0, 0) & 0xFF);
-                int g = (int) (MathUtils.hash64(rawRegionId, 2, 0, 0) & 0xFF);
-                int b = (int) (MathUtils.hash64(rawRegionId, 3, 0, 0) & 0xFF);
+                // Region visualization (random color from hash)
+                int r = (int) (MathUtils.hash64(leafRegionHash, 1, 0, 0) & 0xFF);
+                int g = (int) (MathUtils.hash64(leafRegionHash, 2, 0, 0) & 0xFF);
+                int b = (int) (MathUtils.hash64(leafRegionHash, 3, 0, 0) & 0xFF);
                 imgVoronoi.setRGB(x, y, (r << 16) | (g << 8) | b);
 
                 // Depth layers
@@ -196,8 +194,8 @@ public class SnapshotTest {
                     depthImages.get(i).setRGB(x, y, color);
                 }
 
-                // Edge grayscale
-                int edgeVal = (int) (MathUtils.clamp01(combinedEdge / Config.EDGE_SCALE) * 255);
+                // Edge grayscale (edgeDistance: 1 = center = white, 0 = edge = black)
+                int edgeVal = (int) (edgeDistance * 255);
                 imgEdge.setRGB(x, y, (edgeVal << 16) | (edgeVal << 8) | edgeVal);
 
                 // River grayscale
@@ -210,15 +208,14 @@ public class SnapshotTest {
 
                 // Combined visualization (Leaf Region color + Edge darkening)
                 int archColor = getGenericRegionColor(leafRegion);
-                float edgeFactor = MathUtils.clamp01(combinedEdge / Config.EDGE_SCALE);
-                // Make edges darker
+                // Make edges darker (edgeDistance is 0 at edge, 1 at center)
                 int cr = (archColor >> 16) & 0xFF;
                 int cg = (archColor >> 8) & 0xFF;
                 int cb = archColor & 0xFF;
                 
-                cr = (int) (cr * edgeFactor);
-                cg = (int) (cg * edgeFactor);
-                cb = (int) (cb * edgeFactor);
+                cr = (int) (cr * edgeDistance);
+                cg = (int) (cg * edgeDistance);
+                cb = (int) (cb * edgeDistance);
                 
                 imgCombined.setRGB(x, y, (cr << 16) | (cg << 8) | cb);
             }
