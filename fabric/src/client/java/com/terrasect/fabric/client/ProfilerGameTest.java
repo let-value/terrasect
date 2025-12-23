@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Client game test that profiles world generation performance.
@@ -78,15 +79,18 @@ public class ProfilerGameTest implements FabricClientGameTest {
                 System.out.printf("[ProfilerGameTest] Location %d/%d: Teleporting to (%d, ~, %d)%n",
                     locNum, TELEPORT_LOCATIONS.length, x, z);
                 
-                // Teleport player to location (y=100 for safe height)
+                // Teleport player via integrated server to avoid network synchronizer issues
                 context.runOnClient(client -> {
-                    if (client.player != null) {
-                        client.player.setPos(x, 100, z);
+                    var server = client.getSingleplayerServer();
+                    if (server != null && !server.getPlayerList().getPlayers().isEmpty()) {
+                        ServerPlayer player = server.getPlayerList().getPlayers().get(0);
+                        // Use server's execute to run on server thread
+                        server.execute(() -> player.teleportTo(x, 100, z));
                     }
                 });
                 
                 // Wait for chunks to generate and render
-                context.waitTicks(10); // Brief pause before checking
+                context.waitTicks(20); // Give server time to process
                 singleplayer.getClientWorld().waitForChunksRender();
                 context.waitTicks(TICKS_PER_LOCATION);
                 
@@ -100,13 +104,18 @@ public class ProfilerGameTest implements FabricClientGameTest {
             
             // Take a final screenshot
             context.takeScreenshot("profiler_test_final_location");
+            
+            // Print final profiler summary BEFORE closing world
+            printFinalSummary();
+        } catch (Exception e) {
+            System.err.println("[ProfilerGameTest] Error during test: " + e.getMessage());
+            e.printStackTrace();
+            // Still print what we have
+            printFinalSummary();
+        } finally {
+            // Disable profiler
+            Profiler.disable();
         }
-        
-        // Print final profiler summary
-        printFinalSummary();
-        
-        // Disable profiler
-        Profiler.disable();
         
         System.out.println("\n" + "=".repeat(80));
         System.out.println("                    PROFILER GAME TEST COMPLETE");
