@@ -2,9 +2,6 @@ package com.terrasect.common.runtime.handler;
 
 import com.terrasect.common.runtime.BiomeFilter;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Context;
-import com.terrasect.common.devtools.MixinSampler;
-import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.World;
@@ -22,7 +19,11 @@ public final class BiomeHandler {
             int quartX, int quartZ,
             Climate.TargetPoint targetPoint) {
         
-        Region region = World.getRegion(context, quartX, quartZ);
+        // Convert quartile coordinates to block coordinates
+        int blockX = quartX << 2;
+        int blockZ = quartZ << 2;
+        
+        Region region = World.getRegion(context, blockX, blockZ);
         SelectionRules rules = getRules(region);        
         Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
         boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());

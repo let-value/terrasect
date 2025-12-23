@@ -28,7 +28,7 @@ public class SnapshotTest {
 
     // Single deterministic digest for the current snapshot generation
     // Updated for TestRegions (dev testing regions)
-    private static final String EXPECTED_DIGEST = "6d049c23793036a9c1256013741b3c2212dd4096096b9ad46cda98235d7a8acd";
+    private static final String EXPECTED_DIGEST = "ac5557559bf804851cf974e40cbcabfe4c86e77ccd1e52e7b346c0585a112831";
 
     @Test
     public void testRegionDistribution() {

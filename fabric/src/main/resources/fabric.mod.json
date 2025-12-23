@@ -14,6 +14,9 @@
     "main": [
       "com.terrasect.fabric.TerrasectFabric"
     ],
+    "client": [
+      "com.terrasect.fabric.client.TerrasectFabricClient"
+    ],
     "fabric-client-gametest": [
       "com.terrasect.fabric.client.ProfilerGameTest"
     ]

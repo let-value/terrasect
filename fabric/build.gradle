@@ -13,6 +13,9 @@ dependencies {
 
     implementation project(':common')
 
+    modLocalRuntime "maven.modrinth:fabric-permissions-api:0.6.1"
+    modLocalRuntime "maven.modrinth:spark:1.10.156-fabric"
+
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
     // Fabric Loader JUnit for unit tests
@@ -82,4 +85,16 @@ processResources {
 repositories {
     maven { url = 'https://maven.fabricmc.net/' }
     mavenCentral()
+    
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
