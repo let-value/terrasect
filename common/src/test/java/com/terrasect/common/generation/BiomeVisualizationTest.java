@@ -3,7 +3,7 @@ package com.terrasect.common.generation;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Influence;
+import com.terrasect.common.util.Packer;
 import com.terrasect.common.devtools.PerfTracker;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.lookup.BiomeLookup;
@@ -385,7 +385,7 @@ public class BiomeVisualizationTest {
                 Climate.TargetPoint target = sampler.sample(x >> 2, 0, z >> 2);
                 float ridge = (float) ((target.weirdness() + 10000) / 20000.0);
                 
-                return Influence.pack(river, ridge);
+                return Packer.packPair(river, ridge);
             }
         };
     }

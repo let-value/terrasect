@@ -6,7 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Influence;
+import com.terrasect.common.util.Packer;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
@@ -90,12 +90,12 @@ public class NarrGenCommand {
                             color = (val << 16) | (val << 8) | val;
                         } else if (layer.equals("river")) {
                             long influence = genContext.getInfluence(wx, wz);
-                            float val = Influence.unpackRiver(influence);
+                            float val = Packer.unpackPairFirst(influence);
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("ridge")) {
                             long influence = genContext.getInfluence(wx, wz);
-                            float val = Influence.unpackRidge(influence);
+                            float val = Packer.unpackPairSecond(influence);
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("archetype")) {

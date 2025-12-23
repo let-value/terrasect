@@ -3,6 +3,7 @@ package com.terrasect.common.runtime;
 import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
+import com.terrasect.common.util.Packer;
 
 public class RegionField {
 
@@ -81,15 +82,15 @@ public class RegionField {
         float edge = Math.max(0.0f, rawEdge * (0.8f + edgeNoise * 0.4f));
 
         Profiler.end(Profiler.REGION_FIELD_DATA, t0);
-        return ((long) bestId << 32) | (Float.floatToRawIntBits(edge) & 0xFFFFFFFFL);
+        return Packer.packIntFloat(bestId, edge);
     }
 
     public static int unpackRegionId(long packed) {
-        return (int) (packed >>> 32);
+        return Packer.unpackInt(packed);
     }
 
     public static float unpackEdge(long packed) {
-        return Float.intBitsToFloat((int) (packed & 0xFFFFFFFFL));
+        return Packer.unpackFloat(packed);
     }
 
     /**

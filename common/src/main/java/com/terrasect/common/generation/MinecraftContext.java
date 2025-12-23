@@ -5,8 +5,8 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Influence;
 import com.terrasect.common.api.Region;
+import com.terrasect.common.util.Packer;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
@@ -222,6 +222,6 @@ public class MinecraftContext implements Context {
         float normalized = (weirdness + 10000.0f) / 20000.0f;
         float ridge = Math.max(0.0f, Math.min(1.0f, normalized));
         
-        return Influence.pack(river, ridge);
+        return Packer.packPair(river, ridge);
     }
 }

@@ -2,7 +2,7 @@ package com.terrasect.common.runtime;
 
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Influence;
+import com.terrasect.common.util.Packer;
 import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.strategy.LayoutStrategies;
@@ -56,8 +56,8 @@ final class Layout {
         
         // Then apply warp to the offset coordinates
         long packedWarp = getWarpedPoint(offsetX, offsetZ, context.getSeed(), context);
-        float wx = Float.intBitsToFloat((int) (packedWarp >> 32));
-        float wz = Float.intBitsToFloat((int) packedWarp);
+        float wx = Packer.unpackPairSecond(packedWarp);
+        float wz = Packer.unpackPairFirst(packedWarp);
 
         Region currentRegion = root;
         long currentSeed = context.getSeed();
@@ -109,8 +109,8 @@ final class Layout {
         
         // Layer 2: Feature influence - rivers/ridges attract boundaries
         long influence = context.getInfluence(x, z);
-        float river = Influence.unpackRiver(influence);
-        float ridge = Influence.unpackRidge(influence);
+        float river = Packer.unpackPairFirst(influence);
+        float ridge = Packer.unpackPairSecond(influence);
         float featureStrength = (river + ridge) * FEATURE_STRENGTH;
         
         // Push toward features using gradient approximation (noise derivatives)
@@ -126,6 +126,6 @@ final class Layout {
         float wx = x + (baseX * WARP_AMPLITUDE + featureX) * damp + detailX * DETAIL_AMPLITUDE;
         float wz = z + (baseZ * WARP_AMPLITUDE + featureZ) * damp + detailZ * DETAIL_AMPLITUDE;
 
-        return ((long) Float.floatToRawIntBits(wx) << 32) | (Float.floatToRawIntBits(wz) & 0xFFFFFFFFL);
+        return Packer.packPair(wz, wx);
     }
 }

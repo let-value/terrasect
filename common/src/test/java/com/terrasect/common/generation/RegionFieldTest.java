@@ -1,6 +1,7 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.runtime.RegionField;
+import com.terrasect.common.util.Packer;
 import org.junit.jupiter.api.Test;
 import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,7 +38,7 @@ public class RegionFieldTest {
     
     @Test
     public void testUnpack() {
-        long packed = ((long) 123 << 32) | (Float.floatToRawIntBits(45.6f) & 0xFFFFFFFFL);
+        long packed = Packer.packIntFloat(123, 45.6f);
         assertEquals(123, RegionField.unpackRegionId(packed));
         assertEquals(45.6f, RegionField.unpackEdge(packed), 0.0001f);
     }

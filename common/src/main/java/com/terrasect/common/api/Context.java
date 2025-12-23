@@ -20,7 +20,8 @@ public interface Context {
      * Get combined river and ridge influence at a location, packed into a single long.
      * This avoids duplicate climate sampling and allocations in hot paths.
      * 
-     * <p>Use {@link Influence#unpackRiver(long)} and {@link Influence#unpackRidge(long)} to extract values.
+     * <p>Use {@link com.terrasect.common.util.Packer#unpackPairFirst(long)} for river
+     * and {@link com.terrasect.common.util.Packer#unpackPairSecond(long)} for ridge.
      * 
      * @param x block x coordinate
      * @param z block z coordinate
