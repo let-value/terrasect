@@ -1,47 +1,57 @@
 package com.terrasect.common.runtime.handler;
 
 import com.terrasect.common.devtools.Profiler;
-import com.terrasect.common.generation.MinecraftContext;
 import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.world.level.levelgen.DensityFunction;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Wraps preliminarySurfaceLevel() to clamp surface level to maxHeight.
  * Ensures aquifer fills water correctly above constrained terrain.
- * Self-contained - receives MinecraftContext at construction time from NoiseChunkMixin.
+ * 
+ * <p>Uses pre-computed {@link TerrainHeightLookup} for O(1) height lookups,
+ * avoiding repeated region traversal during terrain generation.
  */
 public record HeightConstrainedSurfaceLevel(
     DensityFunction wrapped,
-    MinecraftContext context
+    @Nullable TerrainHeightLookup lookup
 ) implements DensityFunction {
     
     @Override
     public double compute(FunctionContext ctx) {
         long t0 = Profiler.begin();
         double surface = wrapped.compute(ctx);
-        if (context == null) {
+        
+        // Fast path: no constraints in this chunk
+        if (lookup == null) {
             Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
             return surface;
         }
         
-        Integer maxHeight = TerrainHandler.getMaxHeight(context, ctx.blockX(), ctx.blockZ());
+        int maxHeight = lookup.getMaxHeight(ctx.blockX(), ctx.blockZ());
         Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
-        return (maxHeight != null && surface > maxHeight) ? maxHeight : surface;
+        
+        // Clamp surface level to max height if constrained
+        return (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && surface > maxHeight) 
+            ? maxHeight : surface;
     }
     
     @Override
     public void fillArray(double[] array, ContextProvider contextProvider) {
         long t0 = Profiler.begin();
         wrapped.fillArray(array, contextProvider);
-        if (context == null) {
+        
+        // Fast path: no constraints in this chunk
+        if (lookup == null) {
             Profiler.end(Profiler.TERRAIN_FILL_ARRAY, t0);
             return;
         }
         
         for (int i = 0; i < array.length; i++) {
             FunctionContext ctx = contextProvider.forIndex(i);
-            Integer maxHeight = TerrainHandler.getMaxHeight(context, ctx.blockX(), ctx.blockZ());
-            if (maxHeight != null && array[i] > maxHeight) {
+            int maxHeight = lookup.getMaxHeight(ctx.blockX(), ctx.blockZ());
+            
+            if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && array[i] > maxHeight) {
                 array[i] = maxHeight;
             }
         }
@@ -56,7 +66,7 @@ public record HeightConstrainedSurfaceLevel(
     
     @Override
     public DensityFunction mapAll(Visitor visitor) {
-        return new HeightConstrainedSurfaceLevel(wrapped.mapAll(visitor), context);
+        return new HeightConstrainedSurfaceLevel(wrapped.mapAll(visitor), lookup);
     }
     
     @Override

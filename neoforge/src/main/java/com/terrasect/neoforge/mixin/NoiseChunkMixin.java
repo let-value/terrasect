@@ -16,6 +16,8 @@ import org.spongepowered.asm.mixin.injection.At;
 /**
  * Self-contained mixin that wraps density functions with height constraints.
  * Uses @Local to capture RandomState from constructor parameters.
+ * 
+ * TODO: Update to use TerrainHeightLookup like Fabric TerrainMixin.
  */
 @Mixin(NoiseChunk.class)
 public class NoiseChunkMixin {
@@ -27,7 +29,7 @@ public class NoiseChunkMixin {
     private DensityFunction wrapFinalDensity(NoiseRouter router, Operation<DensityFunction> original,
             @Local(argsOnly = true) RandomState randomState) {
         MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
-        return new HeightConstrainedDensityFunction(original.call(router), ctx);
+        return new HeightConstrainedDensityFunction(original.call(router), null);
     }
     
     @WrapOperation(
@@ -37,6 +39,6 @@ public class NoiseChunkMixin {
     private DensityFunction wrapPreliminarySurfaceLevel(NoiseRouter router, Operation<DensityFunction> original,
             @Local(argsOnly = true) RandomState randomState) {
         MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
-        return new HeightConstrainedSurfaceLevel(original.call(router), ctx);
+        return new HeightConstrainedSurfaceLevel(original.call(router), null);
     }
 }

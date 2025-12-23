@@ -101,6 +101,7 @@ public final class Profiler {
     public static final String TERRAIN_HEIGHT_CHECK = "terrain.heightCheck";
     public static final String TERRAIN_DENSITY_COMPUTE = "terrain.densityCompute";
     public static final String TERRAIN_FILL_ARRAY = "terrain.fillArray";
+    public static final String TERRAIN_LOOKUP_BUILD = "terrain.lookupBuild";
     
     // World/region lookup
     public static final String WORLD_GET_REGION = "world.getRegion";
@@ -121,7 +122,7 @@ public final class Profiler {
             CLIMATE_MODIFY, CLIMATE_REGION_LOOKUP, CLIMATE_EDGE_CALC, CLIMATE_OFFSET_CALC,
             BIOME_SELECT, BIOME_REGION_LOOKUP, BIOME_FILTER, BIOME_FIND_VALUE,
             REGION_FIELD_DATA, REGION_FIELD_NOISE, REGION_FIELD_VORONOI,
-            TERRAIN_HEIGHT_CHECK, TERRAIN_DENSITY_COMPUTE, TERRAIN_FILL_ARRAY,
+            TERRAIN_HEIGHT_CHECK, TERRAIN_DENSITY_COMPUTE, TERRAIN_FILL_ARRAY, TERRAIN_LOOKUP_BUILD,
             WORLD_GET_REGION, WORLD_TRAVERSE,
             ALLOC_CLIMATE_RESULT, ALLOC_TARGET_POINT, ALLOC_PARAMETER_LIST
         );
