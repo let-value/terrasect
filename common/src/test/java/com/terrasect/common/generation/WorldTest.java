@@ -129,13 +129,8 @@ public class WorldTest {
             }
 
             @Override
-            public float getRiverInfluence(int x, int z) {
-                return 0.0f;
-            }
-
-            @Override
-            public float getRidgeInfluence(int x, int z) {
-                return 0.0f;
+            public long getInfluence(int x, int z) {
+                return 0L;
             }
         };
     }

@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.Influence;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.api.Region;
@@ -63,8 +64,7 @@ public class NarrGenCommand {
                 // TODO: Access real climate sampler
                 Context genContext = new Context() {
                     @Override public long getSeed() { return seed; }
-                    @Override public float getRiverInfluence(int x, int z) { return 0.0f; }
-                    @Override public float getRidgeInfluence(int x, int z) { return 0.0f; }
+                    @Override public long getInfluence(int x, int z) { return 0L; }
                 };
 
                 BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
@@ -89,11 +89,13 @@ public class NarrGenCommand {
                             int val = (int) (MathUtils.clamp01(edge / Config.EDGE_SCALE) * 255);
                             color = (val << 16) | (val << 8) | val;
                         } else if (layer.equals("river")) {
-                            float val = genContext.getRiverInfluence(wx, wz);
+                            long influence = genContext.getInfluence(wx, wz);
+                            float val = Influence.unpackRiver(influence);
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("ridge")) {
-                            float val = genContext.getRidgeInfluence(wx, wz);
+                            long influence = genContext.getInfluence(wx, wz);
+                            float val = Influence.unpackRidge(influence);
                             int v = (int) (val * 255);
                             color = (v << 16) | (v << 8) | v;
                         } else if (layer.equals("archetype")) {

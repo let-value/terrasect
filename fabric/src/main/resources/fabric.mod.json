@@ -15,7 +15,7 @@
       "com.terrasect.fabric.TerrasectFabric"
     ],
     "fabric-client-gametest": [
-      "com.terrasect.fabric.client.ClientGameTestIntegration"
+      "com.terrasect.fabric.client.ProfilerGameTest"
     ]
   },
   "depends": {

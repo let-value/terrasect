@@ -3,6 +3,7 @@ package com.terrasect.common.generation;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.RegionRegistry;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.Influence;
 import com.terrasect.common.devtools.PerfTracker;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.lookup.BiomeLookup;
@@ -373,19 +374,18 @@ public class BiomeVisualizationTest {
             public long getSeed() { return seed; }
             
             @Override
-            public float getRiverInfluence(int x, int z) {
+            public long getInfluence(int x, int z) {
                 int qx = x >> 2;
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
                 // Use biome ID check instead of tags - tags aren't bound in test environment
                 String biomeId = BiomeCompat.getBiomeId(biome);
-                return biomeId.contains("river") ? 1.0f : 0.0f;
-            }
-            
-            @Override
-            public float getRidgeInfluence(int x, int z) {
+                float river = biomeId.contains("river") ? 1.0f : 0.0f;
+                
                 Climate.TargetPoint target = sampler.sample(x >> 2, 0, z >> 2);
-                return (float) ((target.weirdness() + 10000) / 20000.0);
+                float ridge = (float) ((target.weirdness() + 10000) / 20000.0);
+                
+                return Influence.pack(river, ridge);
             }
         };
     }

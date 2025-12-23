@@ -17,16 +17,16 @@ public interface Context {
     long getSeed();
     
     /**
-     * Get the river influence at a location (0.0 = no river, 1.0 = river).
-     * Used for region boundary adjustments near water features.
+     * Get combined river and ridge influence at a location, packed into a single long.
+     * This avoids duplicate climate sampling and allocations in hot paths.
+     * 
+     * <p>Use {@link Influence#unpackRiver(long)} and {@link Influence#unpackRidge(long)} to extract values.
+     * 
+     * @param x block x coordinate
+     * @param z block z coordinate
+     * @return packed influence values (river in lower 32 bits, ridge in upper 32 bits)
      */
-    float getRiverInfluence(int x, int z);
-    
-    /**
-     * Get the ridge/weirdness influence at a location.
-     * Used for terrain-aware region boundary adjustments.
-     */
-    float getRidgeInfluence(int x, int z);
+    long getInfluence(int x, int z);
     
     /**
      * Get the dimension ID for this generation context.

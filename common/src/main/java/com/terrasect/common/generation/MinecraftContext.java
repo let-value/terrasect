@@ -5,6 +5,7 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.Influence;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.lookup.BiomeLookup;
@@ -205,24 +206,22 @@ public class MinecraftContext implements Context {
     // ==================== Context Interface ====================
 
     @Override
-    public float getRiverInfluence(int x, int z) {
+    public long getInfluence(int x, int z) {
         Climate.ParameterList<Holder<Biome>> paramList = biomeLookup.getParameterList();
-        if (sampler == null || paramList == null) return 0.0f;
+        if (sampler == null || paramList == null) return 0L;
         
-        // Use VanillaSampler interface to get unmodified climate values
+        // Sample climate once for both river and ridge influence
         Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+        
+        // River influence: binary check against biome tag
         Holder<Biome> biome = paramList.findValue(target);
-        return biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
-    }
-
-    @Override
-    public float getRidgeInfluence(int x, int z) {
-        if (sampler == null) return 0.0f;
+        float river = biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
         
-        // Use VanillaSampler interface to get unmodified climate values
-        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+        // Ridge influence: normalized weirdness
         long weirdness = target.weirdness();
         float normalized = (weirdness + 10000.0f) / 20000.0f;
-        return Math.max(0.0f, Math.min(1.0f, normalized));
+        float ridge = Math.max(0.0f, Math.min(1.0f, normalized));
+        
+        return Influence.pack(river, ridge);
     }
 }

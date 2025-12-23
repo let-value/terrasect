@@ -2,6 +2,7 @@ package com.terrasect.common.runtime;
 
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.Influence;
 import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.strategy.LayoutStrategies;
@@ -107,8 +108,9 @@ final class Layout {
         float baseZ = (NoiseUtils.valueNoise(x, z, seed, 1002, WARP_SCALE) - 0.5f) * 2.0f;
         
         // Layer 2: Feature influence - rivers/ridges attract boundaries
-        float river = context.getRiverInfluence(x, z);
-        float ridge = context.getRidgeInfluence(x, z);
+        long influence = context.getInfluence(x, z);
+        float river = Influence.unpackRiver(influence);
+        float ridge = Influence.unpackRidge(influence);
         float featureStrength = (river + ridge) * FEATURE_STRENGTH;
         
         // Push toward features using gradient approximation (noise derivatives)

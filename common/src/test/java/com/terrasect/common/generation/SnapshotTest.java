@@ -2,6 +2,7 @@ package com.terrasect.common.generation;
 
 import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
+import com.terrasect.common.api.Influence;
 import com.terrasect.common.devtools.TestRegions;
 import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.RegionField;
@@ -54,8 +55,11 @@ public class SnapshotTest {
         private final long seed;
         public MockStrategy(long seed) { this.seed = seed; }
         @Override public long getSeed() { return seed; }
-        @Override public float getRiverInfluence(int x, int z) { return NoiseUtils.riverMask(x, z, seed); }
-        @Override public float getRidgeInfluence(int x, int z) { return NoiseUtils.ridgeMask(x, z, seed); }
+        @Override public long getInfluence(int x, int z) {
+            float river = NoiseUtils.riverMask(x, z, seed);
+            float ridge = NoiseUtils.ridgeMask(x, z, seed);
+            return Influence.pack(river, ridge);
+        }
     }
 
     @Test
@@ -92,8 +96,9 @@ public class SnapshotTest {
                 long rawRegionData = RegionField.getRegionData(wx, wz, seed, 512, 200.0f, 2048);
                 int rawRegionId = RegionField.unpackRegionId(rawRegionData);
                 
-                float river = context.getRiverInfluence(wx, wz);
-                float ridge = context.getRidgeInfluence(wx, wz);
+                long influence = context.getInfluence(wx, wz);
+                float river = Influence.unpackRiver(influence);
+                float ridge = Influence.unpackRidge(influence);
                 
                 // Get full hierarchy
                 List<Region> regions = new ArrayList<>();
