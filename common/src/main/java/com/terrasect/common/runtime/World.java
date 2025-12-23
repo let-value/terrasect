@@ -202,7 +202,7 @@ public final class World {
      * Create an empty root region for dimensions that should use vanilla behavior.
      */
     public static Region emptyRoot(String name) {
-        return new Region(name, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of());
+        return new Region(name, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
     }
 
     // ========== Internal: Anchor Offset Calculation ==========
@@ -265,7 +265,8 @@ public final class World {
      */
     private static float[] calculateAnchorOffset(Region root, Region anchored, 
                                                    long seed, Context context) {
-        float baseRadius = (float) Math.sqrt(root.areaBudget());
+        // Use pre-baked radius from Region
+        float baseRadius = root.radius();
         int stepSize = Math.max(100, (int) (baseRadius * 0.5f));
         
         int targetDepth = findAnchoredDepth(root, anchored);

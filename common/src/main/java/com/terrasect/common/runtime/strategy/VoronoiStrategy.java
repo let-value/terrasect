@@ -21,41 +21,42 @@ public final class VoronoiStrategy {
     private VoronoiStrategy() {}
 
     /**
-     * Query which child region contains the point, writing results to scratch buffer.
+     * Query which child region contains the point, writing results to output buffer.
      * Uses default relaxation iterations.
      */
     public static void query(long seed, List<Region> children, float dx, float dz, 
-                             float radius, float[] scratch) {
-        query(seed, children, dx, dz, radius, DEFAULT_RELAXATION_ITERATIONS, scratch);
+                             float radius, int childrenTotalBudget, QueryResult out) {
+        query(seed, children, dx, dz, radius, childrenTotalBudget, DEFAULT_RELAXATION_ITERATIONS, out);
     }
 
     /**
-     * Query which child region contains the point, writing results to scratch buffer.
+     * Query which child region contains the point, writing results to output buffer.
      * 
      * @param seed Parent region seed
      * @param children List of child regions
      * @param dx X offset from parent center
      * @param dz Z offset from parent center
      * @param radius Parent region radius
+     * @param childrenTotalBudget Pre-computed sum of children's area budgets
      * @param relaxationIterations Number of relaxation iterations (0-20)
-     * @param scratch Output buffer: [childIndex, cellX, cellZ, cellRadius]
+     * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
      */
     public static void query(long seed, List<Region> children, float dx, float dz, 
-                             float radius, int relaxationIterations, float[] scratch) {
+                             float radius, int childrenTotalBudget, int relaxationIterations, QueryResult out) {
         if (children.isEmpty()) {
-            scratch[0] = 0;
-            scratch[1] = 0;
-            scratch[2] = 0;
-            scratch[3] = 0.5f;
+            out.childIndex = 0;
+            out.centerX = 0;
+            out.centerZ = 0;
+            out.radius = 0.5f;
             return;
         }
 
         int count = children.size();
         if (count == 1) {
-            scratch[0] = 0;
-            scratch[1] = 0;
-            scratch[2] = 0;
-            scratch[3] = 1.0f;
+            out.childIndex = 0;
+            out.centerX = 0;
+            out.centerZ = 0;
+            out.radius = 1.0f;
             return;
         }
 
@@ -63,15 +64,15 @@ public final class VoronoiStrategy {
         float nx = dx / radius;
         float nz = dz / radius;
 
-        // Compute total budget and radii
-        float totalBudget = 0;
-        for (int i = 0; i < count; i++) {
-            totalBudget += children.get(i).areaBudget();
-        }
+        // Pre-compute inverse sqrt of total budget for radii calculation
+        float invSqrtTotal = 1.0f / (float) Math.sqrt(childrenTotalBudget);
 
+        // Compute normalized radii using pre-baked child radius
         float[] radii = new float[count];
         for (int i = 0; i < count; i++) {
-            radii[i] = (float) Math.sqrt(children.get(i).areaBudget() / totalBudget);
+            // child.radius() = sqrt(areaBudget), so:
+            // sqrt(areaBudget / totalBudget) = radius * invSqrtTotal
+            radii[i] = children.get(i).radius() * invSqrtTotal;
         }
 
         // Compute relaxed site positions (2 floats per site: x, z)
@@ -100,7 +101,7 @@ public final class VoronoiStrategy {
             }
         }
 
-        scratch[0] = bestIndex;
+        out.childIndex = bestIndex;
         // Voronoi cells have irregular shapes. To ensure children are properly
         // subdivided within each cell, we transform to cell-local coordinates.
         // Center at the site, radius based on distance to nearest neighbor.
@@ -121,12 +122,12 @@ public final class VoronoiStrategy {
         // Use 0.45x for some safety margin
         float cellRadius = Math.max(minNeighborDist * 0.45f, 0.15f);
         
-        scratch[1] = bestX;    // Center at voronoi site
-        scratch[2] = bestZ;
-        scratch[3] = cellRadius; // Approximate cell radius
+        out.centerX = bestX;    // Center at voronoi site
+        out.centerZ = bestZ;
+        out.radius = cellRadius; // Approximate cell radius
         // Store site position for seed uniqueness
-        scratch[4] = bestX;
-        scratch[5] = bestZ;
+        out.siteX = bestX;
+        out.siteZ = bestZ;
     }
 
     /**

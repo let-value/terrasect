@@ -23,7 +23,7 @@ public final class TemplateStrategy {
     private TemplateStrategy() {}
 
     /**
-     * Query which child region contains the point, writing results to scratch buffer.
+     * Query which child region contains the point, writing results to output buffer.
      * 
      * @param seed Parent seed for deterministic placement
      * @param children Child regions with budget weights
@@ -32,26 +32,26 @@ public final class TemplateStrategy {
      * @param radius Parent radius
      * @param templateType Explicit template type, or null for auto-selection
      * @param centerSettings Settings for CENTER_SURROUND template
-     * @param scratch Output: [childIndex, centerX, centerZ, radiusScale, -, -, -]
+     * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
      */
     public static void query(long seed, List<Region> children, float dx, float dz, float radius,
                              StrategySettings.TemplateType templateType,
                              StrategySettings.CenterSurroundSettings centerSettings,
-                             float[] scratch) {
+                             QueryResult out) {
         if (children.isEmpty()) {
-            scratch[0] = 0;
-            scratch[1] = 0;
-            scratch[2] = 0;
-            scratch[3] = 0.5f;
+            out.childIndex = 0;
+            out.centerX = 0;
+            out.centerZ = 0;
+            out.radius = 0.5f;
             return;
         }
 
         int count = children.size();
         if (count == 1) {
-            scratch[0] = 0;
-            scratch[1] = 0;
-            scratch[2] = 0;
-            scratch[3] = 1.0f;
+            out.childIndex = 0;
+            out.centerX = 0;
+            out.centerZ = 0;
+            out.radius = 1.0f;
             return;
         }
 
@@ -147,14 +147,14 @@ public final class TemplateStrategy {
             }
         }
 
-        scratch[0] = bestIndex;
+        out.childIndex = bestIndex;
         // Template cells have explicit centers and radii. Transform to cell-local coordinates.
-        scratch[1] = bestX;    // Center at template cell
-        scratch[2] = bestZ;
-        scratch[3] = Math.max(bestR, 0.1f);    // Cell's normalized radius
+        out.centerX = bestX;    // Center at template cell
+        out.centerZ = bestZ;
+        out.radius = Math.max(bestR, 0.1f);    // Cell's normalized radius
         // Store cell center for seed uniqueness
-        scratch[4] = bestX;
-        scratch[5] = bestZ;
+        out.siteX = bestX;
+        out.siteZ = bestZ;
     }
 
     private enum TemplateType { BINARY, TRIANGLE, CENTER_SURROUND, RADIAL }

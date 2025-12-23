@@ -63,8 +63,8 @@ final class Layout {
         long currentSeed = context.getSeed();
         float cx = 0;
         float cz = 0;
-        // Budget represents area, so radius = sqrt(budget)
-        float radius = (float) Math.sqrt(root.areaBudget());
+        // Use pre-baked radius from Region
+        float radius = root.radius();
 
         int currentDepth = 0;
         while (currentRegion.hasChildren() && currentDepth < targetDepth) {

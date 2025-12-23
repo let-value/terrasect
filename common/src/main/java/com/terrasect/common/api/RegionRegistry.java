@@ -29,7 +29,7 @@ public class RegionRegistry {
         DraftRegion rootDraft = drafts.get(rootName);
         if (rootDraft == null) {
             Terrasect.LOGGER.error("Unknown region root '{}'; returning empty region", rootName);
-            return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of());
+            return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
         }
 
         rootDraft.strategy(GenerationStrategyType.HEX);

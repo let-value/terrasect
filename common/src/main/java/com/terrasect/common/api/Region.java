@@ -10,6 +10,8 @@ import java.util.Set;
 public record Region(
     String name,
     int areaBudget,
+    float radius,
+    int childrenTotalBudget,
     RegionDefinition definition,
     Set<String> adjacentTo,
     List<Region> children,
@@ -28,11 +30,15 @@ public record Region(
     }
     
     /**
-     * Convenience constructor without the anchoredToOrigin flag (defaults to false).
+     * Convenience constructor that computes radius and childrenTotalBudget.
      */
     public Region(String name, int areaBudget, RegionDefinition definition, 
-                  Set<String> adjacentTo, List<Region> children, List<String> sortedAdjacentTo) {
-        this(name, areaBudget, definition, adjacentTo, children, sortedAdjacentTo, false);
+                  Set<String> adjacentTo, List<Region> children, List<String> sortedAdjacentTo,
+                  boolean anchoredToOrigin) {
+        this(name, areaBudget, 
+             (float) Math.sqrt(areaBudget),
+             children.stream().mapToInt(Region::areaBudget).sum(),
+             definition, adjacentTo, children, sortedAdjacentTo, anchoredToOrigin);
     }
 
     public boolean hasChildren() {

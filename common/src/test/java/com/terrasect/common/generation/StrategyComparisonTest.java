@@ -52,8 +52,8 @@ public class StrategyComparisonTest {
 
         World.register(World.OVERWORLD, registry.build("ROOT"));
 
-        // areaBudget is radius^2, so sqrt gives us the actual radius
-        float hexSize = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
+        // Use pre-baked radius from Region
+        float hexSize = World.getRoot(World.OVERWORLD).radius();
         
         // Sample the center hex
         int range = (int) (hexSize * 1.5f);
@@ -123,8 +123,8 @@ public class StrategyComparisonTest {
 
         for (long seed : seeds) {
             Context context = new SnapshotTest.MockStrategy(seed);
-            // areaBudget is radius^2, so sqrt gives us the actual radius
-            float hexSize = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
+            // Use pre-baked radius from Region
+            float hexSize = World.getRoot(World.OVERWORLD).radius();
             int range = (int) (hexSize * 1.2f);
             int step = 100;
 

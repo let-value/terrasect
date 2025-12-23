@@ -39,11 +39,10 @@ public final class HexStrategy {
      * @param dz Z offset from parent center
      * @param radius Interior hex cell size (children use this full space)
      * @param settings Strategy settings (may be HexSettings with ring region)
-     * @param out Output array: [childIndex, centerX, centerZ, radiusScale, hexQ, hexR, isRing]
-     *            centerX/centerZ are relative to parent center (normalized), not absolute hex coords
+     * @param out Output result with childIndex, centerX, centerZ, radius, siteX (hex Q), siteZ (hex R), isRing
      */
     public static void query(long seed, List<Region> children, float dx, float dz,
-                              float radius, StrategySettings settings, float[] out) {
+                              float radius, StrategySettings settings, QueryResult out) {
         
         // Determine ring configuration
         String ringRegionName = null;
@@ -73,9 +72,9 @@ public final class HexStrategy {
         int r = (int) packedHex;
         
         // Store hex coords for seed calculation
-        out[4] = q;
-        out[5] = r;
-        out[6] = 0;
+        out.siteX = q;
+        out.siteZ = r;
+        out.isRing = false;
         
         // Calculate hex center in world space (using grid spacing)
         float hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
@@ -90,12 +89,12 @@ public final class HexStrategy {
         // Interior uses the original radius, ring fills the gap
         if (ringIndex >= 0 && distFromCenter > radius) {
             // In the ring zone - this is the space between hex interiors
-            out[0] = ringIndex;
+            out.childIndex = ringIndex;
             // Normalize by radius so traverse computes correct world position
-            out[1] = hexCenterWorldX / radius;
-            out[2] = hexCenterWorldZ / radius;
-            out[3] = ringWidth;  // Ring's effective radius
-            out[6] = 1;
+            out.centerX = hexCenterWorldX / radius;
+            out.centerZ = hexCenterWorldZ / radius;
+            out.radius = ringWidth;  // Ring's effective radius
+            out.isRing = true;
             return;
         }
         
@@ -109,14 +108,14 @@ public final class HexStrategy {
             childIndex = pickChildWeighted(children, ringRegionName, MathUtils.hash64(seed, q, r, 9999));
         }
         
-        out[0] = childIndex;
+        out.childIndex = childIndex;
         // Hex center normalized by radius (so traverse computes correct world position)
-        out[1] = hexCenterWorldX / radius;
-        out[2] = hexCenterWorldZ / radius;
+        out.centerX = hexCenterWorldX / radius;
+        out.centerZ = hexCenterWorldZ / radius;
         // Children fill the entire hex interior circle (radius).
         // The ring check already ensures we only get here for points within the interior.
         // Using 1.0 means child strategies work in the full interior space.
-        out[3] = 1.0f;
+        out.radius = 1.0f;
     }
 
     /**

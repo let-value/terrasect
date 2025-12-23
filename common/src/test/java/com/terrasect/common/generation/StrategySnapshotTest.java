@@ -47,7 +47,7 @@ public class StrategySnapshotTest {
             Map.entry("hex_with_ring", "e932860fe54368f1df4e04b7b69c94f83205f7668e387a7769e1722377af2bca"),
             Map.entry("kitchen_sink", "521c8ccf28bc47a3e10c63367649f60e56965cd2bf7eac9499b1df53f19a17a4"),
             Map.entry("nested_hex_subdivision", "1f1406cb315c0aa6d23b3f28e1c07441b1be24836e7365af1f75804ce1ec23ad"),
-            Map.entry("nested_hex_voronoi", "541a4aa11df4ff988f5e39d56ed548781deb605cc6524bab6bb82012e650448d"),
+            Map.entry("nested_hex_voronoi", "1113e85013fd80483ccfc9c62e0f6edbd8057f35d528c15c49f56735f88240b4"),
             Map.entry("nested_subdivision_template",
                     "1a93f63bf663eaaf1d650cf9632c9c3d73f94097e8a696fa680474c777d68191"),
             Map.entry("nested_voronoi_template", "42c4177fe9d66630674919cd72a452646cda3eb300b8731107e3753959127e25"),

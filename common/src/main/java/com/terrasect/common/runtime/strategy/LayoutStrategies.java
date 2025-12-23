@@ -8,7 +8,7 @@ import com.terrasect.common.generation.definition.StrategySettings;
 import java.util.List;
 
 public final class LayoutStrategies {
-    private static final ThreadLocal<float[]> SCRATCH = ThreadLocal.withInitial(() -> new float[7]);
+    private static final ThreadLocal<QueryResult> RESULT = ThreadLocal.withInitial(QueryResult::new);
 
     private LayoutStrategies() {}
 
@@ -24,55 +24,55 @@ public final class LayoutStrategies {
      * @return Region index into children list, or -1 for ring region (HEX only)
      */
     public static int query(Region parent, long seed, float dx, float dz, float radius) {
-        float[] scratch = SCRATCH.get();
-        scratch[6] = 0; // Reset isRing flag
+        QueryResult result = RESULT.get();
+        result.isRing = false;
         
         GenerationStrategyType type = parent.definition().generationStrategy();
         StrategySettings settings = parent.definition().strategySettings();
         List<Region> children = parent.children();
         
         switch (type) {
-            case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, scratch);
-            case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, scratch);
-            case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, scratch);
-            default -> queryVoronoi(seed, children, dx, dz, radius, settings, scratch); // VORONOI
+            case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, result);
+            case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, result);
+            case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, result);
+            default -> queryVoronoi(seed, parent, dx, dz, radius, settings, result); // VORONOI
         }
         
-        return (int) scratch[0];
+        return result.childIndex;
     }
 
     /** Get the normalized center X from the last query (relative to parent, in [-1,1] range) */
     public static float getLastCenterX() {
-        return SCRATCH.get()[1];
+        return RESULT.get().centerX;
     }
 
     /** Get the normalized center Z from the last query (relative to parent, in [-1,1] range) */
     public static float getLastCenterZ() {
-        return SCRATCH.get()[2];
+        return RESULT.get().centerZ;
     }
 
     /** Get the radius scale from the last query (multiply by parent radius) */
     public static float getLastRadius() {
-        return SCRATCH.get()[3];
+        return RESULT.get().radius;
     }
 
     /**
      * Compute seed for the child region.
      */
     public static long getSeed(GenerationStrategyType type, long parentSeed, int regionIndex, Region region) {
-        float[] scratch = SCRATCH.get();
+        QueryResult result = RESULT.get();
         
         if (type == GenerationStrategyType.HEX) {
-            // HEX uses q,r coords stored in scratch during query
-            int q = (int) scratch[4];
-            int r = (int) scratch[5];
+            // HEX uses q,r coords stored in result during query
+            int q = (int) result.siteX;
+            int r = (int) result.siteZ;
             return HexStrategy.getSeed(parentSeed, q, r);
         }
         
-        // For voronoi/subdivision/template, use site position from scratch[4,5]
+        // For voronoi/subdivision/template, use site position from result
         // to make each cell's children unique
-        int siteX = Float.floatToIntBits(scratch[4]);
-        int siteZ = Float.floatToIntBits(scratch[5]);
+        int siteX = Float.floatToIntBits(result.siteX);
+        int siteZ = Float.floatToIntBits(result.siteZ);
         
         int salt = switch (type) {
             case SUBDIVISION -> 777;
@@ -86,22 +86,23 @@ public final class LayoutStrategies {
      * Check if the last HEX query returned a ring region (between hex cells).
      */
     public static boolean isRingRegion() {
-        return SCRATCH.get()[6] != 0;
+        return RESULT.get().isRing;
     }
 
     // ========== Strategy-specific query implementations ==========
 
-    private static void queryVoronoi(long seed, List<Region> children, float dx, float dz, 
-                                      float radius, StrategySettings settings, float[] out) {
+    private static void queryVoronoi(long seed, Region parent, float dx, float dz, 
+                                      float radius, StrategySettings settings, QueryResult out) {
         int relaxationIterations = 5;  // Default relaxation
         if (settings != null && settings.voronoi() != null) {
             relaxationIterations = settings.voronoi().relaxationIterations();
         }
-        VoronoiStrategy.query(seed, children, dx, dz, radius, relaxationIterations, out);
+        VoronoiStrategy.query(seed, parent.children(), dx, dz, radius, 
+                              parent.childrenTotalBudget(), relaxationIterations, out);
     }
 
     private static void querySubdivision(long seed, List<Region> children, float dx, float dz, 
-                                          float radius, StrategySettings settings, float[] out) {
+                                          float radius, StrategySettings settings, QueryResult out) {
         float jitter = 0.05f;  // Default jitter
         if (settings != null && settings.subdivision() != null) {
             jitter = settings.subdivision().jitter();
@@ -110,7 +111,7 @@ public final class LayoutStrategies {
     }
 
     private static void queryTemplate(long seed, List<Region> children, float dx, float dz, 
-                                       float radius, StrategySettings settings, float[] out) {
+                                       float radius, StrategySettings settings, QueryResult out) {
         StrategySettings.TemplateType templateType = null;
         StrategySettings.CenterSurroundSettings centerSurroundSettings = null;
         if (settings != null && settings.template() != null) {

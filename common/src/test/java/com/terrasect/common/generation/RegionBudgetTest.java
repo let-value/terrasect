@@ -275,8 +275,8 @@ public class RegionBudgetTest {
 
     private void checkSeed(long seed) {
         Context context = new SnapshotTest.MockStrategy(seed);
-        // areaBudget is radius^2, so we take sqrt to get actual radius
-        float hexSize = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
+        // Use pre-baked radius from Region
+        float hexSize = World.getRoot(World.OVERWORLD).radius();
 
         // Center + 6 Neighbors
         int[][] hexes = {
@@ -305,7 +305,7 @@ public class RegionBudgetTest {
         // 3. Scan and Sample
         // Scale range based on root radius + warping buffer
         // Using 2.0x ensures we capture the entire warped region.
-        float rootRadius = (float) Math.sqrt(World.getRoot(World.OVERWORLD).areaBudget());
+        float rootRadius = World.getRoot(World.OVERWORLD).radius();
         int range = (int) (rootRadius * 2.0f);
         int step = 100; // Reasonable step for km-scale regions
         
