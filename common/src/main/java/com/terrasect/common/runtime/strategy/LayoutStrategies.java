@@ -14,16 +14,16 @@ public final class LayoutStrategies {
 
     /**
      * Query a generation strategy for the cell containing the point (dx, dz).
-     * Results are stored in thread-local scratch - retrieve with getLastXxx() methods.
+     * Returns the thread-local QueryResult with all fields populated.
      * 
      * @param parent Parent region (provides strategy type and settings)
      * @param seed Parent region seed
      * @param dx X offset from parent center (in world units)
      * @param dz Z offset from parent center (in world units)
      * @param radius Parent radius
-     * @return Region index into children list, or -1 for ring region (HEX only)
+     * @return QueryResult with childIndex, centerX, centerZ, radius, and seed fields
      */
-    public static int query(Region parent, long seed, float dx, float dz, float radius) {
+    public static QueryResult query(Region parent, long seed, float dx, float dz, float radius) {
         QueryResult result = RESULT.get();
         result.isRing = false;
         
@@ -38,30 +38,16 @@ public final class LayoutStrategies {
             default -> queryVoronoi(seed, parent, dx, dz, radius, settings, result); // VORONOI
         }
         
-        return result.childIndex;
-    }
-
-    /** Get the normalized center X from the last query (relative to parent, in [-1,1] range) */
-    public static float getLastCenterX() {
-        return RESULT.get().centerX;
-    }
-
-    /** Get the normalized center Z from the last query (relative to parent, in [-1,1] range) */
-    public static float getLastCenterZ() {
-        return RESULT.get().centerZ;
-    }
-
-    /** Get the radius scale from the last query (multiply by parent radius) */
-    public static float getLastRadius() {
-        return RESULT.get().radius;
+        // Compute child seed and store in result
+        result.childSeed = computeSeed(type, seed, result);
+        
+        return result;
     }
 
     /**
-     * Compute seed for the child region.
+     * Compute seed for the child region based on strategy type and query result.
      */
-    public static long getSeed(GenerationStrategyType type, long parentSeed, int regionIndex, Region region) {
-        QueryResult result = RESULT.get();
-        
+    private static long computeSeed(GenerationStrategyType type, long parentSeed, QueryResult result) {
         if (type == GenerationStrategyType.HEX) {
             // HEX uses q,r coords stored in result during query
             int q = (int) result.siteX;
@@ -79,14 +65,7 @@ public final class LayoutStrategies {
             case TEMPLATE -> 888;
             default -> 999; // VORONOI
         };
-        return MathUtils.hash64(parentSeed, siteX ^ siteZ, regionIndex, salt);
-    }
-
-    /**
-     * Check if the last HEX query returned a ring region (between hex cells).
-     */
-    public static boolean isRingRegion() {
-        return RESULT.get().isRing;
+        return MathUtils.hash64(parentSeed, siteX ^ siteZ, result.childIndex, salt);
     }
 
     // ========== Strategy-specific query implementations ==========

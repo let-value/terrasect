@@ -29,6 +29,9 @@ public final class QueryResult {
     /** True if this is a ring region (HEX strategy only) */
     public boolean isRing;
     
+    /** Computed seed for the child region */
+    public long childSeed;
+    
     /** Reset all fields to defaults */
     public void reset() {
         childIndex = 0;
@@ -38,5 +41,6 @@ public final class QueryResult {
         siteX = 0;
         siteZ = 0;
         isRing = false;
+        childSeed = 0;
     }
 }

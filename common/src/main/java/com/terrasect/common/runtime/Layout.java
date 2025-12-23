@@ -4,8 +4,8 @@ import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.util.NoiseUtils;
-import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.strategy.LayoutStrategies;
+import com.terrasect.common.runtime.strategy.QueryResult;
 
 final class Layout {
 
@@ -46,6 +46,7 @@ final class Layout {
 
     private Object traverse(Region root, int x, int z, Context context, int targetDepth, boolean returnSeed,
                             float gridOffsetX, float gridOffsetZ) {
+        long currentSeed = context.getSeed();
         // WARPED TRAVERSAL: Apply offset first, then warp, then traverse.
         // This creates organic region boundaries while maintaining proper parent-child containment.
         // Offset is applied BEFORE warp so that the anchored region's input coords become (0,0).
@@ -55,12 +56,11 @@ final class Layout {
         int offsetZ = z + (int) gridOffsetZ;
         
         // Then apply warp to the offset coordinates
-        long packedWarp = getWarpedPoint(offsetX, offsetZ, context.getSeed(), context);
+        long packedWarp = getWarpedPoint(offsetX, offsetZ, currentSeed, context);
         float wx = Packer.unpackPairSecond(packedWarp);
         float wz = Packer.unpackPairFirst(packedWarp);
 
         Region currentRegion = root;
-        long currentSeed = context.getSeed();
         float cx = 0;
         float cz = 0;
         // Use pre-baked radius from Region
@@ -68,21 +68,19 @@ final class Layout {
 
         int currentDepth = 0;
         while (currentRegion.hasChildren() && currentDepth < targetDepth) {
-            GenerationStrategyType type = currentRegion.definition().generationStrategy();
-
             // Use WARPED coordinates relative to parent center
             // Same warped coords used at all depths ensures children stay in parent bounds
             float dx = wx - cx;
             float dz = wz - cz;
 
-            // All strategies use unified interface
-            int regionIndex = LayoutStrategies.query(currentRegion, currentSeed, dx, dz, radius);
+            // Single query returns all needed values
+            QueryResult result = LayoutStrategies.query(currentRegion, currentSeed, dx, dz, radius);
             
-            currentRegion = currentRegion.children().get(regionIndex);
-            currentSeed = LayoutStrategies.getSeed(type, currentSeed, regionIndex, currentRegion);
-            cx += LayoutStrategies.getLastCenterX() * radius;
-            cz += LayoutStrategies.getLastCenterZ() * radius;
-            radius *= LayoutStrategies.getLastRadius();
+            currentRegion = currentRegion.children().get(result.childIndex);
+            currentSeed = result.childSeed;
+            cx += result.centerX * radius;
+            cz += result.centerZ * radius;
+            radius *= result.radius;
 
             currentDepth++;
         }
