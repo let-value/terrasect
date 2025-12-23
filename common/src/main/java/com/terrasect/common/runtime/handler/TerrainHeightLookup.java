@@ -4,6 +4,7 @@ import com.terrasect.common.api.Context;
 import com.terrasect.common.api.Region;
 import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.definition.ClimateSettings;
+import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.runtime.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,18 +23,17 @@ import java.util.function.ToIntBiFunction;
  * from Y=60 to Y=80 will be mapped to Y=40 to Y=50, creating an interesting
  * ocean floor instead of a flat plane.
  * 
- * <p>Region boundaries are smoothly blended over a configurable radius to avoid
- * sharp terrain transitions. The blending also handles the case where two
- * constrained regions face each other (e.g., two oceans around a mountain) by
- * sampling neighboring chunks and interpolating heights rather than creating
- * abrupt ridges.
+ * <p>Region boundaries are smoothly blended using {@code edgeInfluence} from the
+ * traversal system. This value is 0 when more than 8 blocks from any boundary,
+ * and ramps to 1 at the boundary itself, enabling efficient boundary detection
+ * without expensive neighbor sampling.
  * 
  * <p>Design principles:
  * <ul>
  *   <li>O(1) lookup after construction - just array indexing</li>
  *   <li>No allocations at query time - uses primitive int array</li>
  *   <li>Uses Integer.MIN_VALUE as sentinel for "no constraint"</li>
- *   <li>Smooth blending at region boundaries</li>
+ *   <li>Leverages edgeInfluence for efficient boundary blending</li>
  * </ul>
  */
 public final class TerrainHeightLookup {
@@ -41,14 +41,11 @@ public final class TerrainHeightLookup {
     /** Sentinel value indicating no height constraint */
     public static final int NO_CONSTRAINT = Integer.MIN_VALUE;
     
-    /** Blend radius in blocks (half a chunk) */
-    private static final int BLEND_RADIUS = 8;
-    
-    /** Extended sample size: chunk (16) + blend margin on each side */
-    private static final int EXTENDED_SIZE = 16 + BLEND_RADIUS * 2; // 32
-    
     /** Pre-computed heights: heights[(x & 15) + (z & 15) * 16] */
     private final int[] heights;
+    
+    /** Pre-computed edge influences for blending: [0,1] where 1 = at boundary */
+    private final float[] edgeInfluences;
     
     /** The chunk's minimum block X coordinate */
     private final int chunkMinX;
@@ -59,11 +56,18 @@ public final class TerrainHeightLookup {
     /** Whether any position in this chunk has a height constraint */
     private final boolean hasAnyConstraint;
     
-    private TerrainHeightLookup(int[] heights, int chunkMinX, int chunkMinZ, boolean hasAnyConstraint) {
+    /** Whether any position needs blending (edgeInfluence > 0) */
+    private final boolean hasAnyBlending;
+    
+    private TerrainHeightLookup(int[] heights, float[] edgeInfluences, 
+                                 int chunkMinX, int chunkMinZ, 
+                                 boolean hasAnyConstraint, boolean hasAnyBlending) {
         this.heights = heights;
+        this.edgeInfluences = edgeInfluences;
         this.chunkMinX = chunkMinX;
         this.chunkMinZ = chunkMinZ;
         this.hasAnyConstraint = hasAnyConstraint;
+        this.hasAnyBlending = hasAnyBlending;
     }
     
     /**
@@ -90,8 +94,8 @@ public final class TerrainHeightLookup {
      * position is linearly mapped into the region's height range. This preserves
      * Minecraft's terrain variation while constraining it to the desired bounds.
      * 
-     * <p>This method also samples an extended area around the chunk to enable
-     * smooth blending at region boundaries, preventing abrupt terrain changes.
+     * <p>Uses {@code edgeInfluence} from the traversal to efficiently detect
+     * boundary positions that need blending, avoiding expensive neighbor scans.
      * 
      * @param context The generation context (may be null)
      * @param chunkMinX The chunk's minimum block X coordinate
@@ -111,245 +115,131 @@ public final class TerrainHeightLookup {
             return null;
         }
         
-        // Extended sampling area: chunk + BLEND_RADIUS margin on all sides
-        int extMinX = chunkMinX - BLEND_RADIUS;
-        int extMinZ = chunkMinZ - BLEND_RADIUS;
+        int[] heights = new int[256];
+        float[] edgeInfluences = new float[256];
+        boolean hasAnyConstraint = false;
+        boolean hasAnyBlending = false;
         
-        // Sample natural surfaces over extended area
-        int[] extNaturalSurfaces = null;
-        int minNatural = Integer.MAX_VALUE;
-        int maxNatural = Integer.MIN_VALUE;
-        
-        if (surfaceSampler != null) {
-            extNaturalSurfaces = new int[EXTENDED_SIZE * EXTENDED_SIZE];
-            for (int ez = 0; ez < EXTENDED_SIZE; ez++) {
-                int blockZ = extMinZ + ez;
-                for (int ex = 0; ex < EXTENDED_SIZE; ex++) {
-                    int blockX = extMinX + ex;
-                    int extIndex = ex + ez * EXTENDED_SIZE;
-                    
-                    int natural = surfaceSampler.applyAsInt(blockX, blockZ);
-                    extNaturalSurfaces[extIndex] = natural;
-                    minNatural = Math.min(minNatural, natural);
-                    maxNatural = Math.max(maxNatural, natural);
-                }
-            }
-        }
-        
-        // Sample height constraints over extended area
-        // Store as packed min/max: high 16 bits = min, low 16 bits = max
-        // Use 0 to mean "no constraint" (valid heights are never 0 for min/max)
-        int[] extConstraints = new int[EXTENDED_SIZE * EXTENDED_SIZE];
-        boolean anyConstraintInExtended = false;
-        
-        for (int ez = 0; ez < EXTENDED_SIZE; ez++) {
-            int blockZ = extMinZ + ez;
-            for (int ex = 0; ex < EXTENDED_SIZE; ex++) {
-                int blockX = extMinX + ex;
-                int extIndex = ex + ez * EXTENDED_SIZE;
+        // First pass: sample regions and get constraints + edge influence
+        for (int localZ = 0; localZ < 16; localZ++) {
+            int blockZ = chunkMinZ + localZ;
+            for (int localX = 0; localX < 16; localX++) {
+                int blockX = chunkMinX + localX;
+                int index = localX + localZ * 16;
                 
-                HeightConstraint constraint = computeHeightConstraint(context, blockX, blockZ);
-                if (constraint != null) {
-                    // Pack min/max into single int (both are small positive values)
-                    extConstraints[extIndex] = (constraint.minHeight << 16) | (constraint.maxHeight & 0xFFFF);
-                    anyConstraintInExtended = true;
+                // Get traversal result with region AND edgeInfluence in one call
+                TraversalResult traversal = World.getTraversalResult(context, blockX, blockZ);
+                if (traversal == null || traversal.region == null) {
+                    heights[index] = NO_CONSTRAINT;
+                    edgeInfluences[index] = 0.0f;
+                    continue;
                 }
-                // else: remains 0 (no constraint)
+                
+                // Store edge influence for potential blending
+                edgeInfluences[index] = traversal.edgeInfluence;
+                if (traversal.edgeInfluence > 0) {
+                    hasAnyBlending = true;
+                }
+                
+                // Check for height constraint
+                ClimateSettings climate = traversal.region.definition().climate();
+                if (climate == null || !climate.hasHeightConstraints()) {
+                    heights[index] = NO_CONSTRAINT;
+                    continue;
+                }
+                
+                Integer min = climate.minHeight();
+                Integer max = climate.maxHeight();
+                if (min == null || max == null) {
+                    heights[index] = NO_CONSTRAINT;
+                    continue;
+                }
+                
+                // Compute height with natural variation
+                int height;
+                if (surfaceSampler != null) {
+                    int natural = surfaceSampler.applyAsInt(blockX, blockZ);
+                    height = computeHeightWithVariation(natural, min, max);
+                } else {
+                    height = (min + max) >> 1;
+                }
+                
+                heights[index] = height;
+                hasAnyConstraint = true;
             }
         }
         
-        // Early exit if no constraints in extended area
-        if (!anyConstraintInExtended) {
+        // Early exit if no constraints anywhere
+        if (!hasAnyConstraint) {
             Profiler.end(Profiler.TERRAIN_LOOKUP_BUILD, t0);
             return null;
         }
         
-        // Pre-compute which positions are near a boundary (different constraint nearby)
-        // This avoids expensive neighbor scans for interior positions
-        boolean[] nearBoundary = computeBoundaryMask(extConstraints);
-        
-        // Compute final heights for the chunk with smooth blending
-        int[] heights = new int[256];
-        boolean hasAnyConstraint = false;
-        
-        for (int localZ = 0; localZ < 16; localZ++) {
-            for (int localX = 0; localX < 16; localX++) {
-                int chunkIndex = localX + localZ * 16;
-                
-                // Position in extended grid (offset by BLEND_RADIUS)
-                int ex = localX + BLEND_RADIUS;
-                int ez = localZ + BLEND_RADIUS;
-                int extIndex = ex + ez * EXTENDED_SIZE;
-                
-                int packedConstraint = extConstraints[extIndex];
-                boolean needsBlend = nearBoundary[extIndex];
-                
-                if (packedConstraint == 0) {
-                    // No constraint at this position
-                    if (needsBlend) {
-                        // Near a constrained region - blend toward it
-                        int blendedHeight = computeBlendedHeightUnconstrained(
-                            ex, ez, extConstraints, extNaturalSurfaces, minNatural, maxNatural);
-                        
-                        if (blendedHeight != NO_CONSTRAINT) {
-                            heights[chunkIndex] = blendedHeight;
-                            hasAnyConstraint = true;
-                        } else {
-                            heights[chunkIndex] = NO_CONSTRAINT;
-                        }
-                    } else {
-                        heights[chunkIndex] = NO_CONSTRAINT;
-                    }
-                } else {
-                    // Has constraint
-                    int minHeight = packedConstraint >> 16;
-                    int maxHeight = packedConstraint & 0xFFFF;
+        // Second pass: blend at boundaries if needed
+        // Only positions with edgeInfluence > 0 need blending
+        if (hasAnyBlending) {
+            int[] blendedHeights = new int[256];
+            System.arraycopy(heights, 0, blendedHeights, 0, 256);
+            
+            for (int localZ = 0; localZ < 16; localZ++) {
+                for (int localX = 0; localX < 16; localX++) {
+                    int index = localX + localZ * 16;
+                    float influence = edgeInfluences[index];
                     
-                    if (needsBlend) {
-                        // Near boundary - blend with neighbors
-                        int blendedHeight = computeBlendedHeightConstrained(
-                            ex, ez, minHeight, maxHeight,
-                            extConstraints, extNaturalSurfaces, minNatural, maxNatural);
-                        heights[chunkIndex] = blendedHeight;
-                    } else {
-                        // Interior - just apply variation without expensive blending
-                        heights[chunkIndex] = computeHeightWithVariation(
-                            extIndex, minHeight, maxHeight, extNaturalSurfaces, minNatural, maxNatural);
+                    if (influence > 0 && heights[index] != NO_CONSTRAINT) {
+                        // This position is near a boundary - blend with neighbors
+                        blendedHeights[index] = computeBlendedHeight(
+                            localX, localZ, heights, edgeInfluences, influence);
                     }
-                    hasAnyConstraint = true;
                 }
             }
+            
+            heights = blendedHeights;
         }
         
         Profiler.end(Profiler.TERRAIN_LOOKUP_BUILD, t0);
         
-        if (!hasAnyConstraint) {
-            return null;
-        }
-        
-        return new TerrainHeightLookup(heights, chunkMinX, chunkMinZ, hasAnyConstraint);
+        return new TerrainHeightLookup(heights, edgeInfluences, chunkMinX, chunkMinZ, 
+                                        hasAnyConstraint, hasAnyBlending);
     }
     
     /**
-     * Compute blended height for an unconstrained position near a constrained region.
-     * Returns NO_CONSTRAINT if no nearby constraints within blend radius.
+     * Compute blended height for a position near a boundary.
      * 
-     * <p>This blends between the natural (unconstrained) surface level and nearby
-     * constrained heights, weighted by distance. Positions far from constraints
-     * return mostly natural height; positions near constraints blend toward the
-     * constraint.
+     * <p>Uses a simple box blur within the chunk, weighted by edge influence.
+     * Positions with edgeInfluence = 1 (right at boundary) get maximum blending,
+     * while positions with low edgeInfluence get minimal smoothing.
      */
-    private static int computeBlendedHeightUnconstrained(
-            int ex, int ez, 
-            int[] extConstraints, 
-            int[] extNaturalSurfaces,
-            int minNatural, int maxNatural) {
+    private static int computeBlendedHeight(int localX, int localZ, 
+                                             int[] heights, float[] edgeInfluences,
+                                             float selfInfluence) {
+        int selfIndex = localX + localZ * 16;
+        int selfHeight = heights[selfIndex];
         
-        int selfIndex = ex + ez * EXTENDED_SIZE;
+        // Blend radius based on influence (max 4 blocks when at boundary)
+        int blendRadius = Math.max(1, (int)(selfInfluence * 4));
         
-        // Get this position's natural (unconstrained) surface level
-        int naturalHeight = (extNaturalSurfaces != null) ? extNaturalSurfaces[selfIndex] : 64;
-        
-        // Find closest constrained neighbor and its height
-        float closestDist = Float.MAX_VALUE;
-        int closestConstrainedHeight = naturalHeight;
-        boolean foundConstraint = false;
-        
-        for (int dz = -BLEND_RADIUS; dz <= BLEND_RADIUS; dz++) {
-            int nz = ez + dz;
-            if (nz < 0 || nz >= EXTENDED_SIZE) continue;
-            
-            for (int dx = -BLEND_RADIUS; dx <= BLEND_RADIUS; dx++) {
-                int nx = ex + dx;
-                if (nx < 0 || nx >= EXTENDED_SIZE) continue;
-                
-                int nIndex = nx + nz * EXTENDED_SIZE;
-                int nPacked = extConstraints[nIndex];
-                
-                if (nPacked != 0) {
-                    float dist = (float) Math.sqrt(dx * dx + dz * dz);
-                    if (dist <= BLEND_RADIUS && dist < closestDist) {
-                        closestDist = dist;
-                        int nMin = nPacked >> 16;
-                        int nMax = nPacked & 0xFFFF;
-                        closestConstrainedHeight = computeHeightWithVariation(
-                            nIndex, nMin, nMax, extNaturalSurfaces, minNatural, maxNatural);
-                        foundConstraint = true;
-                    }
-                }
-            }
-        }
-        
-        if (!foundConstraint) {
-            return NO_CONSTRAINT;
-        }
-        
-        // Blend factor: 0 at constraint boundary, 1 at BLEND_RADIUS away
-        // We're unconstrained, so we want MORE natural height as we move away
-        float t = closestDist / BLEND_RADIUS;
-        t = t * t; // Smooth curve - faster transition near constraint
-        
-        // Lerp: near constraint (t=0) → constrained height; far (t=1) → natural height
-        int blendedHeight = Math.round(closestConstrainedHeight * (1 - t) + naturalHeight * t);
-        
-        return blendedHeight;
-    }
-    
-    /**
-     * Compute blended height for a constrained position, potentially blending
-     * with neighboring regions that have different constraints.
-     * 
-     * <p>Note: We only blend with OTHER CONSTRAINED neighbors, not with
-     * unconstrained ones. The unconstrained side handles its own blending
-     * toward us. If we also blended toward unconstrained, we'd get a
-     * double-ridge effect (both sides meeting in the middle).
-     */
-    private static int computeBlendedHeightConstrained(
-            int ex, int ez,
-            int minHeight, int maxHeight,
-            int[] extConstraints,
-            int[] extNaturalSurfaces,
-            int minNatural, int maxNatural) {
-        
-        int selfIndex = ex + ez * EXTENDED_SIZE;
-        int selfPacked = (minHeight << 16) | (maxHeight & 0xFFFF);
-        
-        // Start with our own height
-        int selfHeight = computeHeightWithVariation(
-            selfIndex, minHeight, maxHeight, extNaturalSurfaces, minNatural, maxNatural);
-        
-        // Check for DIFFERENT CONSTRAINED neighbors (to blend across region boundaries)
-        // We do NOT blend with unconstrained neighbors - they handle their own blending
-        float weightSum = 1.0f; // Self weight
+        float weightSum = 1.0f;
         float heightSum = selfHeight;
         
-        for (int dz = -BLEND_RADIUS; dz <= BLEND_RADIUS; dz++) {
-            int nz = ez + dz;
-            if (nz < 0 || nz >= EXTENDED_SIZE) continue;
+        for (int dz = -blendRadius; dz <= blendRadius; dz++) {
+            int nz = localZ + dz;
+            if (nz < 0 || nz >= 16) continue;
             
-            for (int dx = -BLEND_RADIUS; dx <= BLEND_RADIUS; dx++) {
-                if (dx == 0 && dz == 0) continue; // Skip self
+            for (int dx = -blendRadius; dx <= blendRadius; dx++) {
+                if (dx == 0 && dz == 0) continue;
                 
-                int nx = ex + dx;
-                if (nx < 0 || nx >= EXTENDED_SIZE) continue;
+                int nx = localX + dx;
+                if (nx < 0 || nx >= 16) continue;
                 
-                int nIndex = nx + nz * EXTENDED_SIZE;
-                int nPacked = extConstraints[nIndex];
+                int nIndex = nx + nz * 16;
+                int nHeight = heights[nIndex];
                 
-                // Only blend with OTHER CONSTRAINED neighbors (different min/max)
-                // Skip unconstrained (nPacked == 0) - they blend toward us, not vice versa
-                if (nPacked != 0 && nPacked != selfPacked) {
+                if (nHeight != NO_CONSTRAINT) {
                     float dist = (float) Math.sqrt(dx * dx + dz * dz);
-                    if (dist <= BLEND_RADIUS) {
-                        float weight = 1.0f - (dist / BLEND_RADIUS);
-                        weight = weight * weight; // Smooth falloff
-                        
-                        int nMin = nPacked >> 16;
-                        int nMax = nPacked & 0xFFFF;
-                        int neighborHeight = computeHeightWithVariation(
-                            nIndex, nMin, nMax, extNaturalSurfaces, minNatural, maxNatural);
-                        
-                        heightSum += neighborHeight * weight;
+                    float weight = 1.0f - (dist / (blendRadius + 1));
+                    if (weight > 0) {
+                        heightSum += nHeight * weight;
                         weightSum += weight;
                     }
                 }
@@ -361,22 +251,8 @@ public final class TerrainHeightLookup {
     
     /**
      * Compute height with natural terrain variation mapped into constraint range.
-     * 
-     * <p>Uses pure integer arithmetic: takes the natural surface's deviation from
-     * sea level (64), scales it proportionally to the constraint range, and clamps.
-     * Assumes natural terrain typically varies ±32 blocks from sea level.
      */
-    private static int computeHeightWithVariation(
-            int extIndex,
-            int minHeight, int maxHeight,
-            int[] extNaturalSurfaces,
-            int minNatural, int maxNatural) {
-        
-        if (extNaturalSurfaces == null) {
-            return (minHeight + maxHeight) >> 1;
-        }
-        
-        int natural = extNaturalSurfaces[extIndex];
+    private static int computeHeightWithVariation(int natural, int minHeight, int maxHeight) {
         int constraintMid = (minHeight + maxHeight) >> 1;
         int constraintRange = maxHeight - minHeight;
         
@@ -394,77 +270,6 @@ public final class TerrainHeightLookup {
         if (result < minHeight) return minHeight;
         if (result > maxHeight) return maxHeight;
         return result;
-    }
-    
-    /**
-     * Compute a mask identifying positions near a constraint boundary.
-     * 
-     * <p>A position is "near boundary" if any neighbor within BLEND_RADIUS has a
-     * different constraint value. This allows us to skip expensive blending for
-     * interior positions.
-     * 
-     * <p>Uses a 2-pass dilation approach for efficiency:
-     * 1. First pass: mark positions that are directly on a boundary (neighbor differs)
-     * 2. Second pass: dilate boundary by BLEND_RADIUS
-     */
-    private static boolean[] computeBoundaryMask(int[] extConstraints) {
-        boolean[] nearBoundary = new boolean[EXTENDED_SIZE * EXTENDED_SIZE];
-        
-        // Pass 1: Find direct boundary edges (where adjacent cells differ)
-        boolean[] directBoundary = new boolean[EXTENDED_SIZE * EXTENDED_SIZE];
-        for (int ez = 0; ez < EXTENDED_SIZE; ez++) {
-            for (int ex = 0; ex < EXTENDED_SIZE; ex++) {
-                int idx = ex + ez * EXTENDED_SIZE;
-                int self = extConstraints[idx];
-                
-                // Check 4-connected neighbors for difference
-                if (ex > 0 && extConstraints[idx - 1] != self) {
-                    directBoundary[idx] = true;
-                    continue;
-                }
-                if (ex < EXTENDED_SIZE - 1 && extConstraints[idx + 1] != self) {
-                    directBoundary[idx] = true;
-                    continue;
-                }
-                if (ez > 0 && extConstraints[idx - EXTENDED_SIZE] != self) {
-                    directBoundary[idx] = true;
-                    continue;
-                }
-                if (ez < EXTENDED_SIZE - 1 && extConstraints[idx + EXTENDED_SIZE] != self) {
-                    directBoundary[idx] = true;
-                }
-            }
-        }
-        
-        // Pass 2: Dilate boundary by BLEND_RADIUS using squared distance
-        int blendRadiusSq = BLEND_RADIUS * BLEND_RADIUS;
-        for (int ez = 0; ez < EXTENDED_SIZE; ez++) {
-            for (int ex = 0; ex < EXTENDED_SIZE; ex++) {
-                int idx = ex + ez * EXTENDED_SIZE;
-                
-                // Check if any direct boundary position is within range
-                for (int dz = -BLEND_RADIUS; dz <= BLEND_RADIUS && !nearBoundary[idx]; dz++) {
-                    int nz = ez + dz;
-                    if (nz < 0 || nz >= EXTENDED_SIZE) continue;
-                    
-                    for (int dx = -BLEND_RADIUS; dx <= BLEND_RADIUS; dx++) {
-                        int nx = ex + dx;
-                        if (nx < 0 || nx >= EXTENDED_SIZE) continue;
-                        
-                        int nIdx = nx + nz * EXTENDED_SIZE;
-                        if (directBoundary[nIdx]) {
-                            int distSq = dx * dx + dz * dz;
-                            if (distSq <= blendRadiusSq) {
-                                nearBoundary[idx] = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        return nearBoundary;
     }
     
     /**
@@ -489,6 +294,24 @@ public final class TerrainHeightLookup {
     }
     
     /**
+     * Get the edge influence for a block position (0 = interior, 1 = at boundary).
+     * 
+     * @param blockX World block X coordinate
+     * @param blockZ World block Z coordinate
+     * @return Edge influence [0,1], or 0 if out of bounds
+     */
+    public float getEdgeInfluence(int blockX, int blockZ) {
+        int localX = blockX - chunkMinX;
+        int localZ = blockZ - chunkMinZ;
+        
+        if (localX < 0 || localX >= 16 || localZ < 0 || localZ >= 16) {
+            return 0.0f;
+        }
+        
+        return edgeInfluences[localX + localZ * 16];
+    }
+    
+    /**
      * Check if this lookup has any height constraints at all.
      * Can be used for early-exit optimization.
      */
@@ -497,31 +320,9 @@ public final class TerrainHeightLookup {
     }
     
     /**
-     * Height constraint with both min and max.
+     * Check if this lookup has any positions that need blending.
      */
-    private record HeightConstraint(int minHeight, int maxHeight) {}
-    
-    /**
-     * Compute height constraint for a single block position.
-     */
-    private static @Nullable HeightConstraint computeHeightConstraint(Context context, int blockX, int blockZ) {
-        Region region = World.getRegion(context, blockX, blockZ);
-        if (region == null) {
-            return null;
-        }
-        
-        ClimateSettings climate = region.definition().climate();
-        if (climate == null || !climate.hasHeightConstraints()) {
-            return null;
-        }
-        
-        Integer min = climate.minHeight();
-        Integer max = climate.maxHeight();
-        
-        if (min == null || max == null) {
-            return null;
-        }
-        
-        return new HeightConstraint(min, max);
+    public boolean hasAnyBlending() {
+        return hasAnyBlending;
     }
 }

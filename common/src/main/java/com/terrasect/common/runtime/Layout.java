@@ -60,6 +60,7 @@ final class Layout {
                             float gridOffsetX, float gridOffsetZ) {
         TraversalResult out = RESULT.get();
         out.edgeDistance = 1.0f;  // Start at center, take minimum during traversal
+        float minBlockDistToEdge = Float.MAX_VALUE;  // Track actual block distance for edgeInfluence
         
         long currentSeed = context.getSeed();
         // WARPED TRAVERSAL: Apply offset first, then warp, then traverse.
@@ -99,12 +100,27 @@ final class Layout {
             
             // Track minimum edge distance across all hierarchy levels
             out.edgeDistance = Math.min(out.edgeDistance, result.edgeDistance);
+            
+            // Compute actual block distance to edge for this level
+            // edgeDistance is normalized (0=edge, 1=center), radius is in blocks
+            float blockDist = result.edgeDistance * radius;
+            minBlockDistToEdge = Math.min(minBlockDistToEdge, blockDist);
 
             currentDepth++;
         }
 
         out.region = currentRegion;
         out.seed = currentSeed;
+        
+        // Compute edgeInfluence: 0 when >8 blocks from edge, ramps to 1 at edge
+        // Formula: 1 - clamp(blockDist / 8, 0, 1)
+        if (minBlockDistToEdge == Float.MAX_VALUE) {
+            out.edgeInfluence = 0.0f;  // No traversal happened, assume interior
+        } else {
+            float normalized = minBlockDistToEdge / 8.0f;
+            out.edgeInfluence = 1.0f - Math.min(normalized, 1.0f);
+        }
+        
         return out;
     }
 

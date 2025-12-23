@@ -22,10 +22,23 @@ public final class TraversalResult {
      */
     public float edgeDistance;
     
+    /**
+     * Edge influence for terrain blending (0 = inside region, 1 = at boundary).
+     * 
+     * <p>Unlike edgeDistance which is normalized to region size, edgeInfluence is based on
+     * actual block distance: it's 0 when more than 8 blocks from any region boundary,
+     * and ramps linearly to 1 at the boundary itself.
+     * 
+     * <p>This is useful for terrain height blending where we want a fixed-width
+     * transition zone regardless of region size.
+     */
+    public float edgeInfluence;
+    
     /** Reset all fields to defaults */
     public void reset() {
         region = null;
         seed = 0;
         edgeDistance = 1.0f;
+        edgeInfluence = 0.0f;
     }
 }
