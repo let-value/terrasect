@@ -106,7 +106,6 @@ public class TerrainMixin {
     private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
         if (terrasect$heightLookup == null) return;
         
-        long t0 = Profiler.begin();
         
         // NoiseChunk implements FunctionContext, so we can read block coords directly
         NoiseChunk self = (NoiseChunk)(Object)this;
@@ -118,11 +117,9 @@ public class TerrainMixin {
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
             // Above height constraint - use fluid picker to determine water or air
             Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
-            Profiler.end(Profiler.TERRAIN_HEIGHT_CHECK, t0);
             cir.setReturnValue(fluidStatus.at(blockY));
             return;
         }
-        Profiler.end(Profiler.TERRAIN_HEIGHT_CHECK, t0);
     }
     
     /**
@@ -135,7 +132,6 @@ public class TerrainMixin {
     private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
         if (terrasect$heightLookup == null) return;
         
-        long t0 = Profiler.begin();
         
         int x = (int)(packedPos & 0xFFFFFFFFL);
         int z = (int)(packedPos >>> 32);
@@ -144,11 +140,9 @@ public class TerrainMixin {
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT) {
             int original = cir.getReturnValue();
             if (original > maxHeight) {
-                Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
                 cir.setReturnValue(maxHeight);
                 return;
             }
         }
-        Profiler.end(Profiler.TERRAIN_DENSITY_COMPUTE, t0);
     }
 }

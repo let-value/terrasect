@@ -50,7 +50,7 @@ public class StrategyComparisonTest {
                 .child("FOREST", forest -> forest.radius(1000)))
             .child("WILDERNESS", wild -> wild.radius(1000));
 
-        World.register(World.OVERWORLD, registry.build("ROOT"));
+        World.register(registry.build("ROOT"), World.OVERWORLD);
 
         // Use pre-baked radius from Region
         float hexSize = World.getRoot(World.OVERWORLD).radius();
@@ -65,11 +65,11 @@ public class StrategyComparisonTest {
         for (int z = -range; z <= range; z += step) {
             for (int x = -range; x <= range; x += step) {
                 // Only sample within the center hex
-                long rootSeed = World.getRegionSeedAtDepth(context, x, z, 1);
-                long centerSeed = World.getRegionSeedAtDepth(context, 0, 0, 1);
+                long rootSeed = World.traverse(context, x, z, 1).seed;
+                long centerSeed = World.traverse(context, 0, 0, 1).seed;
                 
                 if (rootSeed == centerSeed) {
-                    Region child = World.getRegionAtDepth(context, x, z, 2);
+                    Region child = World.getRegion(context, x, z, 2);
                     depth2Counts.merge(child.name(), 1, Integer::sum);
                     totalSamples++;
                 }
@@ -115,7 +115,7 @@ public class StrategyComparisonTest {
                 .child("FOREST", forest -> forest.radius(1000)))
             .child("WILDERNESS", wild -> wild.radius(1000));
 
-        World.register(World.OVERWORLD, registry.build("ROOT"));
+        World.register(registry.build("ROOT"), World.OVERWORLD);
 
         long[] seeds = {12345L, 98765L, 112233L};
         float totalError = 0;
@@ -133,11 +133,11 @@ public class StrategyComparisonTest {
 
             for (int z = -range; z <= range; z += step) {
                 for (int x = -range; x <= range; x += step) {
-                    long rootSeed = World.getRegionSeedAtDepth(context, x, z, 1);
-                    long centerSeed = World.getRegionSeedAtDepth(context, 0, 0, 1);
+                    long rootSeed = World.traverse(context, x, z, 1).seed;
+                    long centerSeed = World.traverse(context, 0, 0, 1).seed;
                     
                     if (rootSeed == centerSeed) {
-                        Region child = World.getRegionAtDepth(context, x, z, 2);
+                        Region child = World.getRegion(context, x, z, 2);
                         counts.merge(child.name(), 1, Integer::sum);
                         samples++;
                     }

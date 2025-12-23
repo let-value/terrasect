@@ -26,6 +26,6 @@ public class RegionSampler {
     }
 
     private static Region getRegionAtDepth(Context context, int x, int z, int targetDepth) {
-        return World.getRegionAtDepth(context, x, z, targetDepth);
+        return World.getRegion(context, x, z, targetDepth);
     }
 }

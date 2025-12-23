@@ -59,7 +59,7 @@ public class BiomeVisualizationTest {
         PerfTracker.start("buildRegionHierarchy");
         // Build region hierarchy with biome filtering rules
         Region root = buildFilteredBiomeRegions();
-        World.register(World.OVERWORLD, root);
+        World.register(root, World.OVERWORLD);
         PerfTracker.stop("buildRegionHierarchy");
         
         PerfTracker.start("setupMinecraft");
@@ -138,7 +138,7 @@ public class BiomeVisualizationTest {
                 
                 // Get region and its biome rules
                 PerfTracker.start("regionLookup");
-                TraversalResult traversal = World.getTraversalResult(context, blockX, blockZ);
+                TraversalResult traversal = World.traverse(context, blockX, blockZ);
                 Region region = traversal != null ? traversal.region : null;
                 PerfTracker.stop("regionLookup");
                 

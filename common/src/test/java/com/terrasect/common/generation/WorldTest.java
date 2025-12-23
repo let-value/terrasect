@@ -30,7 +30,7 @@ public class WorldTest {
     void registersRootForDimension() {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
 
-        World.register(World.OVERWORLD, overworldRoot);
+        World.register(overworldRoot, World.OVERWORLD);
 
         assertEquals("OVERWORLD", World.getRoot(World.OVERWORLD).name());
         assertTrue(World.hasRoot(World.OVERWORLD));
@@ -41,8 +41,8 @@ public class WorldTest {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
         Region endRoot = buildSimpleRoot("END");
 
-        World.register(World.OVERWORLD, overworldRoot);
-        World.register(World.THE_END, endRoot);
+        World.register(overworldRoot, World.OVERWORLD);
+        World.register(endRoot, World.THE_END);
 
         assertEquals("OVERWORLD", World.getRoot(World.OVERWORLD).name());
         assertEquals("END", World.getRoot(World.THE_END).name());
@@ -53,7 +53,7 @@ public class WorldTest {
     @Test
     void returnsNullForUnregisteredDimension() {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
-        World.register(World.OVERWORLD, overworldRoot);
+        World.register(overworldRoot, World.OVERWORLD);
 
         Region result = World.getRoot("mymod:custom_dimension");
         assertNull(result);
@@ -88,7 +88,7 @@ public class WorldTest {
     @Test
     void getRootReturnsNullForUnregistered() {
         Region overworldRoot = buildSimpleRoot("OVERWORLD");
-        World.register(World.OVERWORLD, overworldRoot);
+        World.register(overworldRoot, World.OVERWORLD);
 
         assertNotNull(World.getRoot(World.OVERWORLD));
         assertNull(World.getRoot(World.THE_END));
@@ -96,8 +96,8 @@ public class WorldTest {
 
     @Test
     void clearRemovesAllRegistrations() {
-        World.register(World.OVERWORLD, buildSimpleRoot("OVERWORLD"));
-        World.register(World.THE_END, buildSimpleRoot("END"));
+        World.register(buildSimpleRoot("OVERWORLD"), World.OVERWORLD);
+        World.register(buildSimpleRoot("END"), World.THE_END);
 
         World.clear();
 
@@ -166,7 +166,7 @@ public class WorldTest {
         Context context = createTestContext(seed);
 
         Region root = buildTestRegionsWithAnchor(anchoredName);
-        World.register(World.OVERWORLD, root);
+        World.register(root, World.OVERWORLD);
 
         World.initialize(context);
 
@@ -218,11 +218,11 @@ public class WorldTest {
         Context context = createTestContext(seed);
 
         Region root = buildDeeplyNestedHierarchy();
-        World.register(World.OVERWORLD, root);
+        World.register(root, World.OVERWORLD);
 
         World.initialize(context);
 
-        Region atOriginDepth4 = World.getRegionAtDepth(context, 0, 0, 4);
+        Region atOriginDepth4 = World.getRegion(context, 0, 0, 4);
         assertNotNull(atOriginDepth4, "Should find a region at origin depth 4");
         assertEquals("SPAWN_POINT", atOriginDepth4.name(),
                 "Region at origin should be the deeply nested anchored region 'SPAWN_POINT'");
@@ -281,7 +281,7 @@ public class WorldTest {
                 .child("REGION_C", r -> r.radius(1000));
         Region root = registry.build("ROOT");
 
-        World.register(World.OVERWORLD, root);
+        World.register(root, World.OVERWORLD);
         World.initialize(context);
 
         Region atOrigin = World.getRegion(context, 0, 0);
@@ -304,7 +304,7 @@ public class WorldTest {
         var context = createTestContext(seed);
 
         Region root1 = buildTestRegionsWithAnchor("REGION_B");
-        World.register(World.OVERWORLD, root1);
+        World.register(root1, World.OVERWORLD);
         World.initialize(context);
 
         Region atOrigin1 = World.getRegion(context, 0, 0);
@@ -314,7 +314,7 @@ public class WorldTest {
         World.clear();
 
         Region root2 = buildTestRegionsWithAnchor("REGION_B");
-        World.register(World.OVERWORLD, root2);
+        World.register(root2, World.OVERWORLD);
         World.initialize(context);
 
         Region atOrigin2 = World.getRegion(context, 0, 0);
@@ -333,7 +333,7 @@ public class WorldTest {
         var context = createTestContext(seed);
 
         Region root1 = buildTestRegionsWithAnchor("REGION_A");
-        World.register(World.OVERWORLD, root1);
+        World.register(root1, World.OVERWORLD);
         World.initialize(context);
         Region atOrigin1 = World.getRegion(context, 0, 0);
         assertEquals("REGION_A", atOrigin1.name());
@@ -341,7 +341,7 @@ public class WorldTest {
         World.clear();
 
         Region root2 = buildTestRegionsWithAnchor("REGION_C");
-        World.register(World.OVERWORLD, root2);
+        World.register(root2, World.OVERWORLD);
         World.initialize(context);
         Region atOrigin2 = World.getRegion(context, 0, 0);
         assertEquals("REGION_C", atOrigin2.name());

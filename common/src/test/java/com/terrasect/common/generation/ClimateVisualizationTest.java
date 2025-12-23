@@ -50,7 +50,7 @@ public class ClimateVisualizationTest {
         
         // Build region hierarchy with different climate settings
         Region root = buildClimateRegions();
-        World.register(World.OVERWORLD, root);
+        World.register(root, World.OVERWORLD);
         
         // Setup Minecraft vanilla climate sampler
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();

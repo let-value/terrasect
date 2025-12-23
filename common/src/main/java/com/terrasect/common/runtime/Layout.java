@@ -11,6 +11,9 @@ final class Layout {
 
     // Thread-local result to avoid allocations
     private static final ThreadLocal<TraversalResult> RESULT = ThreadLocal.withInitial(TraversalResult::new);
+    
+    /** Maximum depth to traverse (effectively infinite) */
+    static final int MAX_DEPTH = 100;
 
     // Warp configuration - simple 3-layer approach:
     // 1. Base warp: organic region shapes (like vanilla biomes)
@@ -29,35 +32,22 @@ final class Layout {
     private static final float DETAIL_AMPLITUDE = 20.0f; // Edge detail (blocks) - subtle
     private static final float SPAWN_SAFE_RADIUS = 512.0f; // Reduced warp near spawn
 
-    Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth) {
-        return getRegionAtDepth(root, x, z, context, targetDepth, 0, 0);
-    }
-    
-    Region getRegionAtDepth(Region root, int x, int z, Context context, int targetDepth, 
-                            float gridOffsetX, float gridOffsetZ) {
-        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ).region;
-    }
-
-    long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth) {
-        return getRegionSeedAtDepth(root, x, z, context, targetDepth, 0, 0);
-    }
-    
-    long getRegionSeedAtDepth(Region root, int x, int z, Context context, int targetDepth,
-                              float gridOffsetX, float gridOffsetZ) {
-        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ).seed;
-    }
-    
     /**
-     * Full traversal returning region, seed, and edge distance.
-     * Returns thread-local result - caller must use values before next call.
+     * Traverse the region hierarchy and return full result.
+     * 
+     * <p>Returns thread-local result - caller must use values before next call on same thread.
+     * 
+     * @param root The root region
+     * @param x Block X coordinate
+     * @param z Block Z coordinate
+     * @param context The generation context
+     * @param targetDepth Maximum depth to traverse (use MAX_DEPTH for leaf)
+     * @param gridOffsetX Grid offset X for anchor alignment
+     * @param gridOffsetZ Grid offset Z for anchor alignment
+     * @return TraversalResult with region, seed, edgeDistance, and edgeInfluence
      */
-    TraversalResult getTraversalResult(Region root, int x, int z, Context context, int targetDepth,
-                                        float gridOffsetX, float gridOffsetZ) {
-        return traverse(root, x, z, context, targetDepth, gridOffsetX, gridOffsetZ);
-    }
-
-    private TraversalResult traverse(Region root, int x, int z, Context context, int targetDepth,
-                            float gridOffsetX, float gridOffsetZ) {
+    static TraversalResult traverse(Region root, int x, int z, Context context, int targetDepth,
+                             float gridOffsetX, float gridOffsetZ) {
         TraversalResult out = RESULT.get();
         out.edgeDistance = 1.0f;  // Start at center, take minimum during traversal
         float minBlockDistToEdge = Float.MAX_VALUE;  // Track actual block distance for edgeInfluence
@@ -132,7 +122,7 @@ final class Layout {
      * 2. Feature warp - rivers and ridges pull boundaries toward them
      * 3. Detail jitter - fine noise for Minecraft-style jagged edges
      */
-    private long getWarpedPoint(int x, int z, long seed, Context context) {
+    private static long getWarpedPoint(int x, int z, long seed, Context context) {
         // Spawn protection: reduce warp near origin for predictable starting area
         float dist = (float) Math.sqrt(x * x + z * z);
         float damp = Math.min(1.0f, dist / SPAWN_SAFE_RADIUS);

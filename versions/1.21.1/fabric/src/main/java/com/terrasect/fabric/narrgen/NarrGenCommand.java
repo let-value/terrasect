@@ -77,7 +77,7 @@ public class NarrGenCommand {
                         int color = 0;
                         
                         if (layer.equals("region")) {
-                            TraversalResult result = World.getTraversalResult(genContext, wx, wz);
+                            TraversalResult result = World.traverse(genContext, wx, wz);
                             if (result != null && result.region != null) {
                                 int regionId = result.region.name().hashCode();
                                 int r = (int) (MathUtils.hash64(regionId, 1, 0, 0) & 0xFF);
@@ -86,7 +86,7 @@ public class NarrGenCommand {
                                 color = (r << 16) | (g << 8) | b;
                             }
                         } else if (layer.equals("edge")) {
-                            TraversalResult result = World.getTraversalResult(genContext, wx, wz);
+                            TraversalResult result = World.traverse(genContext, wx, wz);
                             if (result != null) {
                                 // edgeDistance is 0 at boundary, 1 at center - invert for visualization
                                 int val = (int) ((1.0f - result.edgeDistance) * 255);

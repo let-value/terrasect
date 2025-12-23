@@ -97,7 +97,6 @@ public final class Profiler {
     public static final String TERRAIN_LOOKUP_BUILD = "terrain.lookupBuild";
     
     // World/region lookup
-    public static final String WORLD_GET_REGION = "world.getRegion";
     public static final String WORLD_TRAVERSE = "world.traverse";
     
     // Allocation tracking (count-only metrics)
@@ -115,7 +114,7 @@ public final class Profiler {
             CLIMATE_MODIFY, CLIMATE_REGION_LOOKUP, CLIMATE_OFFSET_CALC,
             BIOME_SELECT, BIOME_REGION_LOOKUP, BIOME_FILTER, BIOME_FIND_VALUE,
             TERRAIN_HEIGHT_CHECK, TERRAIN_DENSITY_COMPUTE, TERRAIN_LOOKUP_BUILD,
-            WORLD_GET_REGION, WORLD_TRAVERSE,
+            WORLD_TRAVERSE,
             ALLOC_CLIMATE_RESULT, ALLOC_TARGET_POINT, ALLOC_PARAMETER_LIST
         );
     }

@@ -60,11 +60,11 @@ public final class TestRegions {
         
         // Build and register Overworld regions
         Region overworldRoot = buildTestWorld();
-        World.register(World.OVERWORLD, overworldRoot);
+        World.register(overworldRoot, World.OVERWORLD);
         
         // Build and register End regions
         Region endRoot = buildEndWorld();
-        World.register(World.THE_END, endRoot);
+        World.register(endRoot, World.THE_END);
         
         Terrasect.LOGGER.info("Test regions registered:");
         Terrasect.LOGGER.info("  Overworld: {} child regions", overworldRoot.children().size());

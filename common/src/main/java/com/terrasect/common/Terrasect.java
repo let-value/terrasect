@@ -36,7 +36,7 @@ public final class Terrasect {
             Region root = registry.build("ROOT");
             
             // Register for Overworld
-            World.register(World.OVERWORLD, root);
+            World.register(root, World.OVERWORLD);
             
             LOGGER.info("Terrasect initialized with empty root region");
         }
