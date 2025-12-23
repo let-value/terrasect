@@ -98,7 +98,32 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 
                 System.out.println("\n=== TERRAIN SUMMARY ===");
                 System.out.println("  Highest solid block: Y=" + highestSolid);
-                System.out.println("  Expected max height: Check region configuration");
+                System.out.println("  Expected max height: 40-55 (configured range)");
+                
+                // Sample multiple columns to show height variation
+                System.out.println("\n=== TERRAIN HEIGHT VARIATION (sampling 16x16 area) ===");
+                int[] surfaceHeights = new int[256];
+                int minSurface = Integer.MAX_VALUE;
+                int maxSurface = Integer.MIN_VALUE;
+                for (int dz = 0; dz < 16; dz++) {
+                    for (int dx = 0; dx < 16; dx++) {
+                        int x = PROBLEM_COORD[0] + dx;
+                        int z = PROBLEM_COORD[2] + dz;
+                        // Find surface (first solid non-structure block from top)
+                        for (int y = 62; y >= 30; y--) {
+                            BlockPos pos = new BlockPos(x, y, z);
+                            BlockState state = level.getBlockState(pos);
+                            if (!state.isAir() && !state.getFluidState().isSource()) {
+                                surfaceHeights[dx + dz * 16] = y;
+                                minSurface = Math.min(minSurface, y);
+                                maxSurface = Math.max(maxSurface, y);
+                                break;
+                            }
+                        }
+                    }
+                }
+                System.out.println("  Surface height range: Y=" + minSurface + " to Y=" + maxSurface);
+                System.out.println("  Expected: Y=40 to Y=55 (with natural variation)");
                 
                 // Check if there's water (ocean)
                 boolean hasWater = false;
