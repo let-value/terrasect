@@ -233,6 +233,11 @@ public final class TerrainHeightLookup {
     /**
      * Compute blended height for an unconstrained position near a constrained region.
      * Returns NO_CONSTRAINT if no nearby constraints within blend radius.
+     * 
+     * <p>This blends between the natural (unconstrained) surface level and nearby
+     * constrained heights, weighted by distance. Positions far from constraints
+     * return mostly natural height; positions near constraints blend toward the
+     * constraint.
      */
     private static int computeBlendedHeightUnconstrained(
             int ex, int ez, 
@@ -240,9 +245,15 @@ public final class TerrainHeightLookup {
             int[] extNaturalSurfaces,
             int minNatural, int maxNatural) {
         
-        // Check if there are any constrained neighbors within blend radius
-        float weightSum = 0;
-        float heightSum = 0;
+        int selfIndex = ex + ez * EXTENDED_SIZE;
+        
+        // Get this position's natural (unconstrained) surface level
+        int naturalHeight = (extNaturalSurfaces != null) ? extNaturalSurfaces[selfIndex] : 64;
+        
+        // Find closest constrained neighbor and its height
+        float closestDist = Float.MAX_VALUE;
+        int closestConstrainedHeight = naturalHeight;
+        boolean foundConstraint = false;
         
         for (int dz = -BLEND_RADIUS; dz <= BLEND_RADIUS; dz++) {
             int nz = ez + dz;
@@ -256,47 +267,42 @@ public final class TerrainHeightLookup {
                 int nPacked = extConstraints[nIndex];
                 
                 if (nPacked != 0) {
-                    // Found a constrained neighbor
                     float dist = (float) Math.sqrt(dx * dx + dz * dz);
-                    if (dist <= BLEND_RADIUS) {
-                        // Weight decreases with distance (inverse linear)
-                        float weight = 1.0f - (dist / BLEND_RADIUS);
-                        weight = weight * weight; // Smooth falloff
-                        
+                    if (dist <= BLEND_RADIUS && dist < closestDist) {
+                        closestDist = dist;
                         int nMin = nPacked >> 16;
                         int nMax = nPacked & 0xFFFF;
-                        
-                        // Use the neighbor's constrained height with variation
-                        int neighborHeight = computeHeightWithVariation(
+                        closestConstrainedHeight = computeHeightWithVariation(
                             nIndex, nMin, nMax, extNaturalSurfaces, minNatural, maxNatural);
-                        
-                        heightSum += neighborHeight * weight;
-                        weightSum += weight;
+                        foundConstraint = true;
                     }
                 }
             }
         }
         
-        if (weightSum > 0.01f) {
-            // Blend between natural (unconstrained) and constrained neighbor heights
-            int constrainedHeight = Math.round(heightSum / weightSum);
-            
-            // As we move away from constraint, blend toward NO_CONSTRAINT
-            // The weight sum indicates how "deep" we are into the blend zone
-            // When weightSum is low, we're at the edge - return partial constraint
-            if (weightSum < 0.5f) {
-                // Near edge of blend zone - only partially apply constraint
-                return constrainedHeight;
-            }
-            return constrainedHeight;
+        if (!foundConstraint) {
+            return NO_CONSTRAINT;
         }
         
-        return NO_CONSTRAINT;
+        // Blend factor: 0 at constraint boundary, 1 at BLEND_RADIUS away
+        // We're unconstrained, so we want MORE natural height as we move away
+        float t = closestDist / BLEND_RADIUS;
+        t = t * t; // Smooth curve - faster transition near constraint
+        
+        // Lerp: near constraint (t=0) → constrained height; far (t=1) → natural height
+        int blendedHeight = Math.round(closestConstrainedHeight * (1 - t) + naturalHeight * t);
+        
+        return blendedHeight;
     }
     
     /**
      * Compute blended height for a constrained position, potentially blending
      * with neighboring regions that have different constraints.
+     * 
+     * <p>Note: We only blend with OTHER CONSTRAINED neighbors, not with
+     * unconstrained ones. The unconstrained side handles its own blending
+     * toward us. If we also blended toward unconstrained, we'd get a
+     * double-ridge effect (both sides meeting in the middle).
      */
     private static int computeBlendedHeightConstrained(
             int ex, int ez,
@@ -312,7 +318,8 @@ public final class TerrainHeightLookup {
         int selfHeight = computeHeightWithVariation(
             selfIndex, minHeight, maxHeight, extNaturalSurfaces, minNatural, maxNatural);
         
-        // Check for different constraints in neighbors (to blend across region boundaries)
+        // Check for DIFFERENT CONSTRAINED neighbors (to blend across region boundaries)
+        // We do NOT blend with unconstrained neighbors - they handle their own blending
         float weightSum = 1.0f; // Self weight
         float heightSum = selfHeight;
         
@@ -329,28 +336,18 @@ public final class TerrainHeightLookup {
                 int nIndex = nx + nz * EXTENDED_SIZE;
                 int nPacked = extConstraints[nIndex];
                 
-                // Only blend if neighbor has DIFFERENT constraint (or no constraint)
-                if (nPacked != selfPacked) {
+                // Only blend with OTHER CONSTRAINED neighbors (different min/max)
+                // Skip unconstrained (nPacked == 0) - they blend toward us, not vice versa
+                if (nPacked != 0 && nPacked != selfPacked) {
                     float dist = (float) Math.sqrt(dx * dx + dz * dz);
                     if (dist <= BLEND_RADIUS) {
                         float weight = 1.0f - (dist / BLEND_RADIUS);
                         weight = weight * weight; // Smooth falloff
                         
-                        int neighborHeight;
-                        if (nPacked == 0) {
-                            // Unconstrained neighbor - use natural surface level
-                            if (extNaturalSurfaces != null) {
-                                neighborHeight = extNaturalSurfaces[nIndex];
-                            } else {
-                                neighborHeight = 64; // Default surface level
-                            }
-                        } else {
-                            // Different constraint - use its height
-                            int nMin = nPacked >> 16;
-                            int nMax = nPacked & 0xFFFF;
-                            neighborHeight = computeHeightWithVariation(
-                                nIndex, nMin, nMax, extNaturalSurfaces, minNatural, maxNatural);
-                        }
+                        int nMin = nPacked >> 16;
+                        int nMax = nPacked & 0xFFFF;
+                        int neighborHeight = computeHeightWithVariation(
+                            nIndex, nMin, nMax, extNaturalSurfaces, minNatural, maxNatural);
                         
                         heightSum += neighborHeight * weight;
                         weightSum += weight;
@@ -364,6 +361,10 @@ public final class TerrainHeightLookup {
     
     /**
      * Compute height with natural terrain variation mapped into constraint range.
+     * 
+     * <p>Uses pure integer arithmetic: takes the natural surface's deviation from
+     * sea level (64), scales it proportionally to the constraint range, and clamps.
+     * Assumes natural terrain typically varies ±32 blocks from sea level.
      */
     private static int computeHeightWithVariation(
             int extIndex,
@@ -371,14 +372,28 @@ public final class TerrainHeightLookup {
             int[] extNaturalSurfaces,
             int minNatural, int maxNatural) {
         
-        if (extNaturalSurfaces != null && maxNatural > minNatural) {
-            int natural = extNaturalSurfaces[extIndex];
-            float t = (float)(natural - minNatural) / (maxNatural - minNatural);
-            return minHeight + Math.round(t * (maxHeight - minHeight));
-        } else {
-            // No variation data - use midpoint
-            return (minHeight + maxHeight) / 2;
+        if (extNaturalSurfaces == null) {
+            return (minHeight + maxHeight) >> 1;
         }
+        
+        int natural = extNaturalSurfaces[extIndex];
+        int constraintMid = (minHeight + maxHeight) >> 1;
+        int constraintRange = maxHeight - minHeight;
+        
+        // Deviation from sea level, clamped to ±32
+        int deviation = natural - 64;
+        if (deviation > 32) deviation = 32;
+        if (deviation < -32) deviation = -32;
+        
+        // Scale deviation into constraint range: (deviation * range) / 64
+        int scaled = (deviation * constraintRange) >> 6;
+        
+        int result = constraintMid + scaled;
+        
+        // Clamp to bounds
+        if (result < minHeight) return minHeight;
+        if (result > maxHeight) return maxHeight;
+        return result;
     }
     
     /**

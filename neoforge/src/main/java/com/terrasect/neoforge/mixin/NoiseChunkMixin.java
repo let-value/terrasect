@@ -13,6 +13,7 @@ import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -41,10 +42,25 @@ public class NoiseChunkMixin {
     private Aquifer.FluidPicker terrasect$fluidPicker;
     
     /**
-     * Capture FluidPicker and build TerrainHeightLookup at construction.
+     * Build TerrainHeightLookup BEFORE Aquifer is constructed.
+     * 
+     * <p>This injection targets the write to {@code preliminarySurfaceLevel} field,
+     * which happens right before Aquifer creation. We can't use HEAD because that's
+     * before super() and 'this' isn't available. We can't use TAIL because Aquifer
+     * is already built by then.
+     * 
+     * <p>By building the lookup before Aquifer construction, our clamping of
+     * computePreliminarySurfaceLevel will be active when the Aquifer calculates
+     * skipSamplingAboveY, ensuring carvers correctly place water instead of air
+     * above our height constraints.
      */
-    @Inject(method = "<init>", at = @At("TAIL"))
-    private void initHeightConstraints(
+    @Inject(method = "<init>", at = @At(
+        value = "FIELD",
+        target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
+        opcode = Opcodes.PUTFIELD,
+        shift = At.Shift.AFTER
+    ))
+    private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
             int chunkMinX,
