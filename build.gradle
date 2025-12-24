@@ -1,86 +1,18 @@
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.Sync
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 plugins {
     id 'base'
 }
 
-repositories {
-    mavenCentral()
-    maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://maven.neoforged.net/releases' }
-}
-
-// =============================================================================
-// Utilities
-// =============================================================================
-
-ext.registerMinecraftSourceUnpackTask = { Project target, String taskName = 'unpackMinecraft', String outputDir = 'minecraft', List<String> providerPaths = [':common', ':neoforge', ':fabric'] ->
-    def findSourceProject = {
-        providerPaths.collect { target.findProject(it) }.find { it != null } ?: target
-    }
-
-    target.tasks.register(taskName, Sync) {
-        group = 'help'
-        description = 'Downloads and unpacks the Minecraft sources into the minecraft directory.'
-
-        def sourceProject = findSourceProject()
-        if (sourceProject.tasks.findByName('createMinecraftArtifacts')) {
-            dependsOn(sourceProject.tasks.named('createMinecraftArtifacts'))
-        }
-
-        from {
-            def mcVersion = (sourceProject.findProperty('minecraft_version')
-                ?: target.findProperty('minecraft_version')
-                ?: target.rootProject.property('minecraft_version')) as String
-
-            def artifactsDir = sourceProject.layout.buildDirectory.dir('moddev/artifacts').get().asFile
-            def candidatePatterns = ["**/*${mcVersion}*-sources.jar", "**/*${mcVersion}*.jar"]
-
-            def candidates = [] as Set<File>
-            if (artifactsDir.exists()) {
-                candidates.addAll(sourceProject.fileTree(artifactsDir) { include(candidatePatterns) }.files)
-            }
-
-            def loomMergedDir = new File(sourceProject.gradle.gradleUserHomeDir,
-                "caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged")
-            if (loomMergedDir.exists()) {
-                candidates.addAll(sourceProject.fileTree(loomMergedDir) {
-                    include("${mcVersion}-*/minecraft-merged-*.jar")
-                }.files)
-            }
-
-            def sortedCandidates = candidates.toList().sort { -it.lastModified() }
-            def sourceJar = sortedCandidates.find { it.name.contains(mcVersion) && it.name.endsWith('-sources.jar') }
-                ?: sortedCandidates.find { it.name.contains(mcVersion) }
-
-            if (sourceJar == null) {
-                throw new GradleException("Unable to locate Minecraft sources jar for ${mcVersion} in ${artifactsDir} or Loom cache")
-            }
-
-            zipTree(sourceJar)
-        }
-
-        into(target.layout.projectDirectory.dir(outputDir))
-    }
-}
-
-ext.excludeMinecraftDirFromBuild = { Project target, String dirName = 'minecraft' ->
-    target.plugins.withType(JavaPlugin).configureEach {
-        target.tasks.withType(JavaCompile).configureEach { task ->
-            task.source = task.source.matching {
-                exclude { it.file.absolutePath.replace('\\', '/').contains("/${dirName}/") }
-            }
-        }
-    }
-}
-
-registerMinecraftSourceUnpackTask(project)
-excludeMinecraftDirFromBuild(project)
-
-subprojects {
+allprojects {
     group = property('maven_group')
     version = property('mod_version')
+}
 
+subprojects {
     repositories {
         mavenCentral()
         maven { url = 'https://maven.fabricmc.net/' }
@@ -89,147 +21,36 @@ subprojects {
 
     plugins.withType(JavaPlugin).configureEach {
         extensions.configure(JavaPluginExtension) { ext ->
-            def javaVersionProp = project.hasProperty('java_version') 
-                ? project.property('java_version') 
-                : rootProject.property('java_version')
-            def javaVersion = (javaVersionProp as String).toInteger()
-            
+            def javaVersion = (rootProject.property('java_version') as String).toInteger()
             ext.toolchain {
-                languageVersion = JavaLanguageVersion.of(21)
+                languageVersion = JavaLanguageVersion.of(javaVersion)
             }
-            
-            if (javaVersion < 21) {
-                ext.sourceCompatibility = JavaVersion.toVersion(javaVersion)
-                ext.targetCompatibility = JavaVersion.toVersion(javaVersion)
-            }
-            
             ext.withSourcesJar()
         }
     }
 }
 
-// =============================================================================
-// Aggregate Tasks
-// =============================================================================
-
-tasks.register('checkAll') {
-    group = 'verification'
-    description = 'Runs lint and unit tests for every module.'
-    dependsOn(subprojects.collect { it.tasks.matching { task -> task.name == 'check' } })
-}
-
-tasks.register('buildAll') {
-    group = 'build'
-    description = 'Builds all modules including versioned subprojects.'
-    dependsOn(subprojects.collect { it.tasks.matching { task -> task.name == 'build' } })
-}
-
-tasks.register('buildLatest') {
-    group = 'build'
-    description = 'Builds only the latest MC version modules (fabric, neoforge, common).'
-    dependsOn(':common:build', ':fabric:build')
-    // Uncomment when NeoForge is enabled:
-    // dependsOn(':neoforge:build')
-}
-
-// Build only versioned subprojects
-tasks.register('buildVersions') {
-    group = 'build'
-    description = 'Builds all versioned subprojects (older MC versions).'
-    dependsOn(subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
-        .collect { it.tasks.matching { task -> task.name == 'build' } })
-}
-
-// List all discovered versions
-tasks.register('listVersions') {
+tasks.register('unpackMinecraft', Sync) {
     group = 'help'
-    description = 'Lists all discovered version subprojects.'
-    doLast {
-        def versionProjects = subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
-        if (versionProjects.isEmpty()) {
-            println "No versioned subprojects found."
-            println "Create a new version at: versions/{mc-version}/{loader}/build.gradle"
-        } else {
-            println "Discovered ${versionProjects.size()} version subproject(s):"
-            versionProjects.sort { it.path }.each { proj ->
-                def mcVersion = proj.hasProperty('minecraft_version') 
-                    ? proj.property('minecraft_version') 
-                    : 'unknown'
-                def baseProject = proj.hasProperty('base_project')
-                    ? proj.property('base_project')
-                    : ':fabric'
-                println "  ${proj.path} -> Minecraft ${mcVersion} (inherits from ${baseProject})"
-            }
-        }
-    }
-}
+    description = 'Downloads and unpacks the Minecraft sources into the minecraft directory.'
 
-tasks.register('showInheritanceChain') {
-    group = 'help'
-    description = 'Shows the source inheritance chain for all versioned projects.'
-    doLast {
-        def buildChain = { Project startProj, String propertyName ->
-            def chain = []
-            def currentProj = startProj
-            def visited = new HashSet<String>()
-            
-            while (currentProj != null && !visited.contains(currentProj.path)) {
-                chain.add(currentProj.path)
-                visited.add(currentProj.path)
-                
-                def basePath = currentProj.hasProperty(propertyName) 
-                    ? currentProj.property(propertyName) 
-                    : null
-                    
-                if (basePath && basePath != '') {
-                    currentProj = rootProject.findProject(basePath)
-                } else {
-                    currentProj = null
-                }
-            }
-            return chain
+    dependsOn(':common:createMinecraftArtifacts')
+
+    from {
+        def mcVersion = rootProject.property('minecraft_version') as String
+        def commonProject = project(':common')
+        def artifactsDir = commonProject.layout.buildDirectory.dir('moddev/artifacts').get().asFile
+
+        def sourcesJar = commonProject.fileTree(artifactsDir) {
+            include("**/*${mcVersion}*-sources.jar")
+        }.files.toList().sort { -it.lastModified() }.find()
+
+        if (sourcesJar == null) {
+            throw new GradleException("Unable to locate Minecraft sources jar for ${mcVersion} in ${artifactsDir}")
         }
-        
-        println "Source Inheritance Chains:"        
-        
-        def latestMcVersion = rootProject.property('minecraft_version')
-        println "LATEST (${latestMcVersion}):"
-        
-        // Show versioned projects grouped by type
-        def versionProjects = subprojects.findAll { it.path.startsWith(':mc') && it.path != ':mods' }
-        def fabricProjects = versionProjects.findAll { it.path.endsWith('-fabric') }
-        def commonProjects = versionProjects.findAll { it.path.endsWith('-common') }
-        
-        if (commonProjects) {
-            println "VERSIONED COMMON:"
-            commonProjects.sort { it.path }.each { proj ->
-                def mcVersion = proj.hasProperty('minecraft_version') ? proj.property('minecraft_version') : 'unknown'
-                def chain = buildChain(proj, 'base_project')
-                def chainStr = chain.join(' -> ')
-                println "  ${proj.path} (${mcVersion}): ${chainStr}"
-            }
-            println ""
-        }
-        
-        if (fabricProjects) {
-            println "VERSIONED FABRIC:"
-            fabricProjects.sort { it.path }.each { proj ->
-                def mcVersion = proj.hasProperty('minecraft_version') ? proj.property('minecraft_version') : 'unknown'
-                def fabricChain = buildChain(proj, 'base_project')
-                def commonProjPath = proj.hasProperty('common_project') ? proj.property('common_project') : ':common'
-                def commonProj = commonProjPath ? rootProject.findProject(commonProjPath) : null
-                def commonChain = commonProj ? buildChain(commonProj, 'base_project') : [':common']
-                
-                println "  ${proj.path} (${mcVersion}):"
-                println "    Fabric: ${fabricChain.join(' -> ')}"
-                println "    Common: ${commonChain.join(' -> ')}"
-            }
-            println ""
-        }
-        
-        println "To freeze a version for major refactors:"
-        println "  1. Copy sources to versions/X.X.X/{module}/src/"
-        println "  2. Set base_project= (empty) in gradle.properties"
-        println "  3. Point dependent versions to the frozen project"
+
+        zipTree(sourcesJar)
     }
+
+    into(layout.projectDirectory.dir('minecraft'))
 }

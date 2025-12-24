@@ -1,6 +1,6 @@
 # Terrasect
 
-Multi-loader starter for Fabric and NeoForge targeting Minecraft 1.21.1+. The project keeps a shared `common` module for logic and resources, and per-loader entrypoints for Fabric and NeoForge so developers can run and test the mod across ecosystems.
+Multi-loader starter for Fabric and NeoForge targeting Minecraft 1.21.x. The project keeps a shared `common` module for logic and resources, and per-loader entrypoints for Fabric and NeoForge so developers can run and test the mod across ecosystems.
 
 ## Modules
 - `common` – shared code and resources, plus JUnit 5 unit tests.
@@ -22,9 +22,12 @@ Multi-loader starter for Fabric and NeoForge targeting Minecraft 1.21.1+. The pr
    ./gradlew :fabric:runClient
    ./gradlew :fabric:runServer
    ```
-   NeoForge compilation is wired in, and you can layer in the full userdev plugin later if you want runtime debugging from the same workspace.
+5. (Optional) Unpack Minecraft sources into `minecraft/` for browsing:
+   ```
+   ./gradlew unpackMinecraft
+   ```
 
 ## Development notes
-- The build uses official Mojang mappings for Fabric and a lightweight NeoForge dev dependency to keep compilation fast. Game sources and models are available in IDEs via the mapping downloads performed by Loom and the NeoForge dependency.
-- `common` exposes a simple `Terrasect.hello()` method with a unit test to validate shared logic; extend this module for gameplay features.
-- Gradle 8.10.2 is configured to satisfy Loom 1.8.x requirements.
+- The Gradle build currently includes only `common`, `fabric`, and `neoforge` (the `versions/` folder is ignored for now).
+- Fabric uses official Mojang mappings via Fabric Loom; NeoForge/common use `net.neoforged.moddev`.
+- Gradle wrapper is `9.2.1`.

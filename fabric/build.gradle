@@ -2,13 +2,27 @@ plugins {
     id 'fabric-loom'
 }
 
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+
 dependencies {
     minecraft "com.mojang:minecraft:${property('minecraft_version')}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
     
-    // Client GameTest API - required for client-side game tests with TestWorldBuilder
     modImplementation fabricApi.module("fabric-client-gametest-api-v1", property('fabric_api_version'))
 
     implementation project(':common')
@@ -18,7 +32,6 @@ dependencies {
 
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
-    // Fabric Loader JUnit for unit tests
     testImplementation "net.fabricmc:fabric-loader-junit:${property('fabric_loader_version')}"
 }
 
@@ -29,7 +42,6 @@ loom {
         create('terrasect') {
             sourceSet(sourceSets.main)
             sourceSet(sourceSets.client)
-            sourceSet(project(':common').sourceSets.main)
         }
     }
     runs {
@@ -46,8 +58,6 @@ loom {
     }
 }
 
-// Configure Fabric API game tests (both server and client)
-
 fabricApi {
     configureTests {
         // Use main source set for tests (not a separate test source set)
@@ -58,43 +68,21 @@ fabricApi {
     }
 }
 
-test {
-    useJUnitPlatform {
-        // Exclude slow visualization tests by default
-        excludeTags 'slow'
-    }
+jar {
+    from(project(':common').sourceSets.main.output)
+}
+
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
+    from(project(':common').sourceSets.main.allSource)
 }
 
 processResources {
-    inputs.properties([
-        version: project.version,
-        minecraft_version: project.property('minecraft_version'),
-        fabric_loader_version: project.property('fabric_loader_version'),
-        java_version: project.property('java_version')
-    ])
     filesMatching("fabric.mod.json") {
         expand([
             version: project.version,
-            minecraft_version: project.property('minecraft_version'),
+            minecraft_version: rootProject.property('minecraft_version'),
             fabric_loader_version: project.property('fabric_loader_version'),
-            java_version: project.property('java_version')
+            java_version: rootProject.property('java_version')
         ])
-    }
-}
-
-repositories {
-    maven { url = 'https://maven.fabricmc.net/' }
-    mavenCentral()
-    
-    exclusiveContent {
-        forRepository {
-            maven {
-                name = "Modrinth"
-                url = "https://api.modrinth.com/maven"
-            }
-        }
-        filter {
-            includeGroup "maven.modrinth"
-        }
     }
 }
