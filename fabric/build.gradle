@@ -1,3 +1,8 @@
+plugins {
+    id 'java'
+    id 'fabric-loom' version "${fabric_loom_version}"
+}
+
 repositories {
     exclusiveContent {
         forRepository {
@@ -10,10 +15,6 @@ repositories {
             includeGroup "maven.modrinth"
         }
     }
-}
-
-plugins {
-    id 'fabric-loom'
 }
 
 dependencies {
@@ -65,14 +66,6 @@ fabricApi {
         enableClientGameTests = true
         eula = true
     }
-}
-
-jar {
-    from(project(':common').sourceSets.main.output)
-}
-
-tasks.matching { it.name == 'sourcesJar' }.configureEach {
-    from(project(':common').sourceSets.main.allSource)
 }
 
 processResources {

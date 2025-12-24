@@ -1,2 +1,29 @@
+pluginManagement {
+        repositories {
+                maven { url = 'https://maven.fabricmc.net/' }
+                maven { url = 'https://maven.neoforged.net/releases' }
+                mavenCentral()
+                gradlePluginPortal()
+        }
+}
+
 rootProject.name = 'terrasect'
-include('common', 'fabric', 'neoforge')
+
+def excludedDirs = [
+        '.git',
+        '.github',
+        '.gradle',
+        '.idea',
+        '.vscode',
+        'build',
+        'gradle',
+        'logs',
+        'minecraft',
+        'mods',
+        'versions'
+]
+
+rootDir.listFiles()
+        .findAll { it.isDirectory() && !excludedDirs.contains(it.name) && file("${it.name}/build.gradle").isFile() }
+        .sort { it.name }
+        .each { include(it.name) }
