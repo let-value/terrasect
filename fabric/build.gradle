@@ -1,7 +1,3 @@
-plugins {
-    id 'fabric-loom'
-}
-
 repositories {
     exclusiveContent {
         forRepository {
@@ -16,9 +12,12 @@ repositories {
     }
 }
 
+plugins {
+    id 'fabric-loom'
+}
 
 dependencies {
-    minecraft "com.mojang:minecraft:${property('minecraft_version')}"
+    minecraft "com.mojang:minecraft:${rootProject.property('minecraft_version')}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
@@ -79,7 +78,7 @@ tasks.matching { it.name == 'sourcesJar' }.configureEach {
 processResources {
     filesMatching("fabric.mod.json") {
         expand([
-            version: project.version,
+            version: rootProject.version,
             minecraft_version: rootProject.property('minecraft_version'),
             fabric_loader_version: project.property('fabric_loader_version'),
             java_version: rootProject.property('java_version')
