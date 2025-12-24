@@ -62,7 +62,6 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 ServerPlayer player = server.getPlayerList().getPlayers().get(0);
                 double playerY = player.getY();
                 int blockX = (int) Math.floor(player.getX());
-                int blockY = (int) Math.floor(playerY);
                 int blockZ = (int) Math.floor(player.getZ());
                 
                 System.out.println("\n=== TERRAIN ANALYSIS AT TEST LOCATION ===");

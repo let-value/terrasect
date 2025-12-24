@@ -8,7 +8,6 @@ import com.terrasect.common.devtools.PerfTracker;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.runtime.BiomeFilter;
-import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.generation.definition.GenerationStrategyType;

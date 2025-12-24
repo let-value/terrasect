@@ -14,18 +14,13 @@ public final class TerrainHeightLookup {
     private final float[] edgeInfluences;
     private final int chunkMinX;
     private final int chunkMinZ;
-    private final boolean hasAnyConstraint;
-    private final boolean hasAnyBlending;
     
     private TerrainHeightLookup(int[] heights, float[] edgeInfluences, 
-                                 int chunkMinX, int chunkMinZ, 
-                                 boolean hasAnyConstraint, boolean hasAnyBlending) {
+                                 int chunkMinX, int chunkMinZ) {
         this.heights = heights;
         this.edgeInfluences = edgeInfluences;
         this.chunkMinX = chunkMinX;
         this.chunkMinZ = chunkMinZ;
-        this.hasAnyConstraint = hasAnyConstraint;
-        this.hasAnyBlending = hasAnyBlending;
     }
     
     public static @Nullable TerrainHeightLookup build(@Nullable Context context, int chunkMinX, int chunkMinZ) {
@@ -115,8 +110,7 @@ public final class TerrainHeightLookup {
             heights = blendedHeights;
         }
         
-        return new TerrainHeightLookup(heights, edgeInfluences, chunkMinX, chunkMinZ, 
-                                        hasAnyConstraint, hasAnyBlending);
+        return new TerrainHeightLookup(heights, edgeInfluences, chunkMinX, chunkMinZ);
     }
     
     private static int computeBlendedHeight(int localX, int localZ, 

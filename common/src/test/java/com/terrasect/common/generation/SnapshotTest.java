@@ -4,7 +4,6 @@ import com.terrasect.common.api.Region;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.devtools.TestRegions;
-import com.terrasect.common.runtime.Config;
 import com.terrasect.common.runtime.TraversalResult;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.util.MathUtils;

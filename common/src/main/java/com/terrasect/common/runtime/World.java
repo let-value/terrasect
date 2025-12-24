@@ -3,7 +3,6 @@ package com.terrasect.common.runtime;
 import com.terrasect.common.Terrasect;
 import com.terrasect.common.api.Context;
 import com.terrasect.common.api.Region;
-import com.terrasect.common.devtools.Profiler;
 import com.terrasect.common.generation.definition.RegionDefinition;
 import org.jetbrains.annotations.Nullable;
 

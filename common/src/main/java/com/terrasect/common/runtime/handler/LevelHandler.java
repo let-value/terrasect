@@ -1,9 +1,6 @@
 package com.terrasect.common.runtime.handler;
 
-import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
-
 import com.mojang.datafixers.util.Either;
-import com.terrasect.common.Terrasect;
 import com.terrasect.common.generation.MinecraftContext;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;

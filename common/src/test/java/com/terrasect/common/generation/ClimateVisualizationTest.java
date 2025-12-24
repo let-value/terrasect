@@ -6,7 +6,6 @@ import com.terrasect.common.api.Context;
 import com.terrasect.common.util.Packer;
 
 import com.terrasect.common.compat.BiomeCompat;
-import com.terrasect.common.generation.definition.ClimateSettings;
 import com.terrasect.common.generation.definition.GenerationStrategyType;
 import com.terrasect.common.runtime.World;
 import com.terrasect.common.runtime.handler.ClimateHandler;
@@ -105,10 +104,7 @@ public class ClimateVisualizationTest {
                 
                 // Get region and calculate modified climate
                 Region region = World.getRegion(context, blockX, blockZ);
-                ClimateSettings climate = region != null ? region.definition().climate() : null;
                 
-                // Detect region boundaries by comparing neighbors at step distance
-                // Only mark as boundary if both regions exist and have different names
                 Region rightRegion = World.getRegion(context, blockX + SCALE, blockZ);
                 Region downRegion = World.getRegion(context, blockX, blockZ + SCALE);
                 
