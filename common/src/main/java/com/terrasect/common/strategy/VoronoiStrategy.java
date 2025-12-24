@@ -18,6 +18,9 @@ public final class VoronoiStrategy {
 
     private static final int DEFAULT_RELAXATION_ITERATIONS = 5;
 
+    private static final ThreadLocal<float[]> RADII_BUFFER = ThreadLocal.withInitial(() -> new float[8]);
+    private static final ThreadLocal<float[]> SITES_BUFFER = ThreadLocal.withInitial(() -> new float[16]);
+
     private VoronoiStrategy() {}
 
     /**
@@ -68,7 +71,7 @@ public final class VoronoiStrategy {
         float invSqrtTotal = 1.0f / (float) Math.sqrt(childrenTotalBudget);
 
         // Compute normalized radii using pre-baked child radius
-        float[] radii = new float[count];
+        float[] radii = getRadiiBuffer(count);
         for (int i = 0; i < count; i++) {
             // child.radius() = sqrt(areaBudget), so:
             // sqrt(areaBudget / totalBudget) = radius * invSqrtTotal
@@ -76,7 +79,8 @@ public final class VoronoiStrategy {
         }
 
         // Compute relaxed site positions (2 floats per site: x, z)
-        float[] sites = computeRelaxedSites(seed, count, radii, relaxationIterations);
+        float[] sites = getSitesBuffer(count);
+        computeRelaxedSites(seed, count, radii, relaxationIterations, sites);
 
         // Find best cell using power diagram metric
         int bestIndex = 0;
@@ -143,8 +147,7 @@ public final class VoronoiStrategy {
      * Compute relaxed site positions deterministically.
      * Uses initial ring placement + quick push-apart relaxation.
      */
-    private static float[] computeRelaxedSites(long seed, int count, float[] radii, int iterations) {
-        float[] sites = new float[count * 2];
+    private static void computeRelaxedSites(long seed, int count, float[] radii, int iterations, float[] sites) {
         
         // Initial placement: ring distribution
         float baseAngle = hashToFloat(seed, 0) * (float) (Math.PI * 2);
@@ -217,8 +220,6 @@ public final class VoronoiStrategy {
             sites[i * 2] -= cx;
             sites[i * 2 + 1] -= cz;
         }
-
-        return sites;
     }
 
     /**
@@ -231,5 +232,24 @@ public final class VoronoiStrategy {
     private static float hashToFloat(long seed, int a) {
         long h = MathUtils.hash64(seed, a, 0, 0);
         return (h & 0xFFFF) / 65536.0f;
+    }
+
+    private static float[] getRadiiBuffer(int count) {
+        float[] buffer = RADII_BUFFER.get();
+        if (buffer.length < count) {
+            buffer = new float[count];
+            RADII_BUFFER.set(buffer);
+        }
+        return buffer;
+    }
+
+    private static float[] getSitesBuffer(int count) {
+        int needed = count * 2;
+        float[] buffer = SITES_BUFFER.get();
+        if (buffer.length < needed) {
+            buffer = new float[needed];
+            SITES_BUFFER.set(buffer);
+        }
+        return buffer;
     }
 }

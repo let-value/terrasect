@@ -7,7 +7,7 @@ import com.terrasect.common.generation.World;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.ToIntBiFunction;
+import java.util.function.IntBinaryOperator;
 
 public final class TerrainHeightLookup {
     public static final int NO_CONSTRAINT = Integer.MIN_VALUE;
@@ -32,7 +32,7 @@ public final class TerrainHeightLookup {
             @Nullable Context context, 
             int chunkMinX, 
             int chunkMinZ,
-            @Nullable ToIntBiFunction<Integer, Integer> surfaceSampler) {
+            @Nullable IntBinaryOperator surfaceSampler) {
     
         
         if (context == null) {

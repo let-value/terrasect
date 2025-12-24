@@ -1,7 +1,8 @@
 package com.terrasect.neoforge.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.handler.TerrainHeightLookup;
+import com.terrasect.common.lookup.TerrainHeightLookup;
+import com.terrasect.common.util.MutablePointContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.DensityFunction;
@@ -22,13 +23,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseChunk.class)
 public class NoiseChunkMixin {
+
     @Unique
     private TerrainHeightLookup terrasect$heightLookup;
 
     @Unique
     private Aquifer.FluidPicker terrasect$fluidPicker;
 
-    @Inject(method = "<init>", at = @At(value = "FIELD", target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;", opcode = Opcodes.PUTFIELD, shift = At.Shift.AFTER))
+    @Inject(method = "<init>", at = @At(
+        value = "FIELD",
+        target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
+        opcode = Opcodes.PUTFIELD,
+        shift = At.Shift.AFTER
+    ))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
@@ -46,23 +53,18 @@ public class NoiseChunkMixin {
         NoiseRouter router = randomState.router();
         DensityFunction depth = router.depth();
 
+        MutablePointContext pointCtx = new MutablePointContext();
         terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ,
-                (x, z) -> {
-
-                    DensityFunction.SinglePointContext pointCtx = new DensityFunction.SinglePointContext(x, 64, z);
-                    double depthValue = depth.compute(pointCtx);
-
-                    return 64 + (int) (depthValue * 128);
-                });
+            (x, z) -> {
+                pointCtx.set(x, 64, z);
+                double depthValue = depth.compute(pointCtx);
+                return 64 + (int) (depthValue * 128);
+            });
     }
 
-    /**
-     * For positions above height constraint, return fluid directly.
-     */
     @Inject(method = "getInterpolatedState", at = @At("HEAD"), cancellable = true)
     private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
-        if (terrasect$heightLookup == null)
-            return;
+        if (terrasect$heightLookup == null) return;
 
         NoiseChunk self = (NoiseChunk) (Object) this;
         int blockX = self.blockX();
@@ -73,17 +75,12 @@ public class NoiseChunkMixin {
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
             Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
-            return;
         }
     }
 
-    /**
-     * Clamp preliminary surface level to max height constraint.
-     */
     @Inject(method = "computePreliminarySurfaceLevel", at = @At("RETURN"), cancellable = true)
     private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
-        if (terrasect$heightLookup == null)
-            return;
+        if (terrasect$heightLookup == null) return;
 
         int x = (int) (packedPos & 0xFFFFFFFFL);
         int z = (int) (packedPos >>> 32);
@@ -93,7 +90,6 @@ public class NoiseChunkMixin {
             int original = cir.getReturnValue();
             if (original > maxHeight) {
                 cir.setReturnValue(maxHeight);
-                return;
             }
         }
     }

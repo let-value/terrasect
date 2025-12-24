@@ -2,6 +2,7 @@ package com.terrasect.neoforge.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.TerrainHeightLookup;
+import com.terrasect.common.util.MutablePointContext;
 
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
@@ -77,10 +78,10 @@ public class NoiseChunkMixin {
         NoiseRouter router = randomState.router();
         DensityFunction surfaceLevel = router.preliminarySurfaceLevel();
         
+        MutablePointContext pointCtx = new MutablePointContext();
         terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, 
             (x, z) -> {
-                DensityFunction.SinglePointContext pointCtx = 
-                    new DensityFunction.SinglePointContext(x, 0, z);
+                pointCtx.set(x, 0, z);
                 return (int) Math.floor(surfaceLevel.compute(pointCtx));
             });
     }

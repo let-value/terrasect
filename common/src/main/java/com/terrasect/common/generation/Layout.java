@@ -31,6 +31,8 @@ final class Layout {
     private static final int DETAIL_SCALE = 500;         // Edge detail scale - keep large!
     private static final float DETAIL_AMPLITUDE = 20.0f; // Edge detail (blocks) - subtle
     private static final float SPAWN_SAFE_RADIUS = 512.0f; // Reduced warp near spawn
+    private static final float INV_SPAWN_SAFE_RADIUS = 1.0f / SPAWN_SAFE_RADIUS;
+    private static final long SPAWN_SAFE_RADIUS_SQ = (long) SPAWN_SAFE_RADIUS * (long) SPAWN_SAFE_RADIUS;
 
     /**
      * Traverse the region hierarchy and return full result.
@@ -124,8 +126,11 @@ final class Layout {
      */
     private static long getWarpedPoint(int x, int z, long seed, Context context) {
         // Spawn protection: reduce warp near origin for predictable starting area
-        float dist = (float) Math.sqrt(x * x + z * z);
-        float damp = Math.min(1.0f, dist / SPAWN_SAFE_RADIUS);
+        long distSq = (long) x * x + (long) z * z;
+        float damp = 1.0f;
+        if (distSq < SPAWN_SAFE_RADIUS_SQ) {
+            damp = (float) Math.sqrt((double) distSq) * INV_SPAWN_SAFE_RADIUS;
+        }
         
         // Layer 1: Base warp - organic region shapes
         float baseX = (NoiseUtils.valueNoise(x, z, seed, 1001, WARP_SCALE) - 0.5f) * 2.0f;

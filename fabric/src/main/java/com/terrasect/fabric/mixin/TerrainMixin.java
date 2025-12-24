@@ -2,6 +2,7 @@ package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.TerrainHeightLookup;
+import com.terrasect.common.util.MutablePointContext;
 
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
@@ -87,11 +88,10 @@ public class TerrainMixin {
         DensityFunction surfaceLevel = router.preliminarySurfaceLevel();
         
         // Build lookup with surface sampler for interesting terrain
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, 
+        MutablePointContext pointCtx = new MutablePointContext();
+        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ,
             (x, z) -> {
-                // Sample at Y=0 since preliminary surface level is 2D
-                DensityFunction.SinglePointContext pointCtx = 
-                    new DensityFunction.SinglePointContext(x, 0, z);
+                pointCtx.set(x, 0, z);
                 return (int) Math.floor(surfaceLevel.compute(pointCtx));
             });
     }

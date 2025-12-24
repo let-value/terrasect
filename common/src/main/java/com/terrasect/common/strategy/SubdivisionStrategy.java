@@ -21,6 +21,9 @@ public final class SubdivisionStrategy {
     private static final float WARP_AMPLITUDE = 0.12f;
     private static final int WARP_OCTAVES = 2;
 
+    private static final ThreadLocal<float[]> BUDGETS_BUFFER = ThreadLocal.withInitial(() -> new float[8]);
+    private static final ThreadLocal<int[]> INDICES_BUFFER = ThreadLocal.withInitial(() -> new int[8]);
+
     private SubdivisionStrategy() {}
 
     /**
@@ -63,13 +66,14 @@ public final class SubdivisionStrategy {
             totalBudget += children.get(i).areaBudget();
         }
 
-        float[] budgets = new float[count];
+        float[] budgets = getBudgetsBuffer(count);
         for (int i = 0; i < count; i++) {
             budgets[i] = children.get(i).areaBudget() / totalBudget;
         }
 
         // Sort indices by budget descending (deterministic)
-        int[] indices = sortByBudgetDescending(budgets, count);
+        int[] indices = getIndicesBuffer(count);
+        sortByBudgetDescending(budgets, indices, count);
 
         // Traverse BSP to find containing region
         traverseBSP(nx, nz, budgets, indices, 0, count, -1, -1, 1, 1, seed, 0, jitter, out);
@@ -185,9 +189,10 @@ public final class SubdivisionStrategy {
     /**
      * Sort indices by budget descending. Simple O(n²) fine for n < 10.
      */
-    private static int[] sortByBudgetDescending(float[] budgets, int count) {
-        int[] indices = new int[count];
-        for (int i = 0; i < count; i++) indices[i] = i;
+    private static void sortByBudgetDescending(float[] budgets, int[] indices, int count) {
+        for (int i = 0; i < count; i++) {
+            indices[i] = i;
+        }
         
         for (int i = 0; i < count - 1; i++) {
             for (int j = i + 1; j < count; j++) {
@@ -198,7 +203,6 @@ public final class SubdivisionStrategy {
                 }
             }
         }
-        return indices;
     }
 
     /**
@@ -236,5 +240,23 @@ public final class SubdivisionStrategy {
 
     private static float clamp(float v, float min, float max) {
         return v < min ? min : (v > max ? max : v);
+    }
+
+    private static float[] getBudgetsBuffer(int count) {
+        float[] buffer = BUDGETS_BUFFER.get();
+        if (buffer.length < count) {
+            buffer = new float[count];
+            BUDGETS_BUFFER.set(buffer);
+        }
+        return buffer;
+    }
+
+    private static int[] getIndicesBuffer(int count) {
+        int[] buffer = INDICES_BUFFER.get();
+        if (buffer.length < count) {
+            buffer = new int[count];
+            INDICES_BUFFER.set(buffer);
+        }
+        return buffer;
     }
 }
