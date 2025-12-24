@@ -1,10 +1,10 @@
 package com.terrasect.common.handler;
 
-import com.terrasect.common.ClimateModifier;
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
+import com.terrasect.common.helpers.ClimateModifier;
 
 import net.minecraft.world.level.biome.Climate;
 

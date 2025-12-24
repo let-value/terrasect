@@ -2,11 +2,11 @@ package com.terrasect.common.lookup;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
-import com.terrasect.common.BiomeFilter;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.World;
+import com.terrasect.common.helpers.BiomeFilter;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;

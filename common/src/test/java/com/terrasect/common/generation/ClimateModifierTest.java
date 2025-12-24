@@ -1,7 +1,7 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.ClimateModifier;
 import com.terrasect.common.definition.ClimateSettings;
+import com.terrasect.common.helpers.ClimateModifier;
 
 import net.minecraft.world.level.biome.Climate;
 

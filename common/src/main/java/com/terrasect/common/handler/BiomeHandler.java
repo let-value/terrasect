@@ -1,10 +1,10 @@
 package com.terrasect.common.handler;
 
-import com.terrasect.common.BiomeFilter;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.World;
+import com.terrasect.common.helpers.BiomeFilter;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;

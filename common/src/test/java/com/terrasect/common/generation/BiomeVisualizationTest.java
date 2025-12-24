@@ -1,7 +1,6 @@
 package com.terrasect.common.generation;
 
 import com.mojang.datafixers.util.Pair;
-import com.terrasect.common.BiomeFilter;
 import com.terrasect.common.Context;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.compat.BiomeCompat;
@@ -9,6 +8,7 @@ import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.SelectionRules;
+import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
 
 import net.minecraft.SharedConstants;

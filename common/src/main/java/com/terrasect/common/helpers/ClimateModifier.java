@@ -1,4 +1,4 @@
-package com.terrasect.common;
+package com.terrasect.common.helpers;
 
 import com.terrasect.common.compat.MutableClimateTargetPoint;
 import com.terrasect.common.definition.ClimateSettings;

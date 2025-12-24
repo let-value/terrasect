@@ -1,4 +1,4 @@
-package com.terrasect.common;
+package com.terrasect.common.helpers;
 
 import java.util.Set;
 
