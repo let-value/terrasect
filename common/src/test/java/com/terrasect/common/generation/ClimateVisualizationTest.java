@@ -1,14 +1,14 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.api.Context;
+import com.terrasect.common.Context;
+import com.terrasect.common.World;
 import com.terrasect.common.util.Packer;
 
 import com.terrasect.common.compat.BiomeCompat;
-import com.terrasect.common.generation.definition.GenerationStrategyType;
-import com.terrasect.common.runtime.World;
-import com.terrasect.common.runtime.handler.ClimateHandler;
+import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.RegionRegistry;
+import com.terrasect.common.handler.ClimateHandler;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;

@@ -1,11 +1,10 @@
 package com.terrasect.common;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.devtools.TestRegions;
-import com.terrasect.common.runtime.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.RegionRegistry;
 
 public final class Terrasect {
     public static final String MOD_ID = "terrasect";

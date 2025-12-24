@@ -4,13 +4,14 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
-import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Region;
+import com.terrasect.common.BiomeFilter;
+import com.terrasect.common.Context;
+import com.terrasect.common.World;
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.util.Packer;
-import com.terrasect.common.generation.definition.SelectionRules;
 import com.terrasect.common.lookup.BiomeLookup;
-import com.terrasect.common.runtime.BiomeFilter;
-import com.terrasect.common.runtime.World;
+
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;

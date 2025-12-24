@@ -1,8 +1,8 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Context;
-import com.terrasect.common.runtime.World;
+import com.terrasect.common.Context;
+import com.terrasect.common.World;
+import com.terrasect.common.definition.Region;
 
 import java.util.HashMap;
 import java.util.Map;

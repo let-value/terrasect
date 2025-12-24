@@ -1,10 +1,11 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.Context;
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.generation.definition.GenerationStrategyType;
-import com.terrasect.common.runtime.World;
+import com.terrasect.common.Context;
+import com.terrasect.common.World;
+import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.RegionRegistry;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,7 +123,7 @@ public class WorldTest {
     }
 
     private Context createTestContext(long seed) {
-        return new com.terrasect.common.api.Context() {
+        return new com.terrasect.common.Context() {
             @Override
             public long getSeed() {
                 return seed;

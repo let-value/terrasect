@@ -2,7 +2,7 @@ package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.VanillaSampler;
-import com.terrasect.common.runtime.handler.ClimateHandler;
+import com.terrasect.common.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

@@ -1,7 +1,8 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.runtime.handler.TerrainHeightLookup;
+import com.terrasect.common.lookup.TerrainHeightLookup;
+
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.DensityFunction;

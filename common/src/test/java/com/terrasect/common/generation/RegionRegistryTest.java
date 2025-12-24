@@ -1,8 +1,9 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.RegionRegistry;
-import com.terrasect.common.generation.definition.RegionDefinition;
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.RegionDefinition;
+import com.terrasect.common.definition.RegionRegistry;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;

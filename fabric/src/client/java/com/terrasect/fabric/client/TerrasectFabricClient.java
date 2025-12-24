@@ -1,6 +1,6 @@
 package com.terrasect.fabric.client;
 
-import com.terrasect.common.runtime.RegionDebugEntry;
+import com.terrasect.common.RegionDebugEntry;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.gui.components.debug.DebugScreenEntries;

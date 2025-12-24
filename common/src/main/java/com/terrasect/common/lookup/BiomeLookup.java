@@ -1,8 +1,8 @@
 package com.terrasect.common.lookup;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.generation.definition.SelectionRules;
-import com.terrasect.common.runtime.BiomeFilter;
+import com.terrasect.common.BiomeFilter;
+import com.terrasect.common.definition.Region;
+import com.terrasect.common.definition.SelectionRules;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;

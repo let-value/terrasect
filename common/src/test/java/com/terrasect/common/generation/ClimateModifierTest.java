@@ -1,7 +1,8 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.generation.definition.ClimateSettings;
-import com.terrasect.common.runtime.ClimateModifier;
+import com.terrasect.common.ClimateModifier;
+import com.terrasect.common.definition.ClimateSettings;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,11 +1,11 @@
 package com.terrasect.common.generation;
 
-import com.terrasect.common.api.Region;
-import com.terrasect.common.api.Context;
+import com.terrasect.common.Context;
+import com.terrasect.common.TestRegions;
+import com.terrasect.common.TraversalResult;
+import com.terrasect.common.World;
+import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.Packer;
-import com.terrasect.common.devtools.TestRegions;
-import com.terrasect.common.runtime.TraversalResult;
-import com.terrasect.common.runtime.World;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,7 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.runtime.handler.BiomeHandler;
+import com.terrasect.common.handler.BiomeHandler;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
