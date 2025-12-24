@@ -25,6 +25,7 @@ public class RegionSampler {
     }
 
     private static Region getRegionAtDepth(Context context, int x, int z, int targetDepth) {
-        return World.getRegion(context, x, z, targetDepth);
+        TraversalResult traversal = World.traverse(context, x, z, targetDepth);
+        return traversal != null ? traversal.region : null;
     }
 }

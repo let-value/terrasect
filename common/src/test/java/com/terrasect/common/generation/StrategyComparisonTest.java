@@ -69,7 +69,7 @@ public class StrategyComparisonTest {
                 long centerSeed = World.traverse(context, 0, 0, 1).seed;
                 
                 if (rootSeed == centerSeed) {
-                    Region child = World.getRegion(context, x, z, 2);
+                    Region child = World.traverse(context, x, z, 2).region;
                     depth2Counts.merge(child.name(), 1, Integer::sum);
                     totalSamples++;
                 }
@@ -137,7 +137,7 @@ public class StrategyComparisonTest {
                     long centerSeed = World.traverse(context, 0, 0, 1).seed;
                     
                     if (rootSeed == centerSeed) {
-                        Region child = World.getRegion(context, x, z, 2);
+                        Region child = World.traverse(context, x, z, 2).region;
                         counts.merge(child.name(), 1, Integer::sum);
                         samples++;
                     }

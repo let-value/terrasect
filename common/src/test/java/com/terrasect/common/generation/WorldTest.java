@@ -170,7 +170,7 @@ public class WorldTest {
 
         World.initialize(context);
 
-        Region atOrigin = World.getRegion(context, 0, 0);
+        Region atOrigin = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin, "Should find a region at origin after anchoring");
         assertEquals(anchoredName, atOrigin.name(),
                 "Region at origin should be the anchored region '" + anchoredName + "'");
@@ -222,12 +222,12 @@ public class WorldTest {
 
         World.initialize(context);
 
-        Region atOriginDepth4 = World.getRegion(context, 0, 0, 4);
+        Region atOriginDepth4 = World.traverse(context, 0, 0, 4).region;
         assertNotNull(atOriginDepth4, "Should find a region at origin depth 4");
         assertEquals("SPAWN_POINT", atOriginDepth4.name(),
                 "Region at origin should be the deeply nested anchored region 'SPAWN_POINT'");
 
-        Region atOriginFull = World.getRegion(context, 0, 0);
+        Region atOriginFull = World.traverse(context, 0, 0).region;
         assertNotNull(atOriginFull, "Should find a region at origin (full depth)");
         assertEquals("SPAWN_POINT", atOriginFull.name(),
                 "Full depth sampling at origin should also return 'SPAWN_POINT'");
@@ -284,7 +284,7 @@ public class WorldTest {
         World.register(root, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin = World.getRegion(context, 0, 0);
+        Region atOrigin = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin, "Should find some region at origin");
 
         assertTrue(
@@ -307,7 +307,7 @@ public class WorldTest {
         World.register(root1, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin1 = World.getRegion(context, 0, 0);
+        Region atOrigin1 = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin1);
         assertEquals("REGION_B", atOrigin1.name());
 
@@ -317,7 +317,7 @@ public class WorldTest {
         World.register(root2, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin2 = World.getRegion(context, 0, 0);
+        Region atOrigin2 = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin2);
         assertEquals("REGION_B", atOrigin2.name(),
                 "Re-initialized world with same seed should produce same result at origin");
@@ -335,7 +335,7 @@ public class WorldTest {
         Region root1 = buildTestRegionsWithAnchor("REGION_A");
         World.register(root1, World.OVERWORLD);
         World.initialize(context);
-        Region atOrigin1 = World.getRegion(context, 0, 0);
+        Region atOrigin1 = World.traverse(context, 0, 0).region;
         assertEquals("REGION_A", atOrigin1.name());
 
         World.clear();
@@ -343,7 +343,7 @@ public class WorldTest {
         Region root2 = buildTestRegionsWithAnchor("REGION_C");
         World.register(root2, World.OVERWORLD);
         World.initialize(context);
-        Region atOrigin2 = World.getRegion(context, 0, 0);
+        Region atOrigin2 = World.traverse(context, 0, 0).region;
         assertEquals("REGION_C", atOrigin2.name());
 
         assertNotEquals(atOrigin1.name(), atOrigin2.name(),

@@ -70,34 +70,6 @@ public final class World {
     }
 
     /**
-     * Get the leaf region at a coordinate (traverses to maximum depth).
-     * 
-     * @param context The generation context
-     * @param x       Block X coordinate
-     * @param z       Block Z coordinate
-     * @return The leaf region, or null if dimension not registered
-     */
-    public static @Nullable Region getRegion(Context context, int x, int z) {
-        return getRegion(context, x, z, Layout.MAX_DEPTH);
-    }
-
-    /**
-     * Get the region at a specific depth.
-     * 
-     * @param context The generation context
-     * @param x       Block X coordinate
-     * @param z       Block Z coordinate
-     * @param depth   Maximum depth to traverse (1 = first children, 2 =
-     *                grandchildren, etc.)
-     * @return The region at the specified depth, or null if dimension not
-     *         registered
-     */
-    public static @Nullable Region getRegion(Context context, int x, int z, int depth) {
-        TraversalResult result = traverse(context, x, z, depth);
-        return result != null ? result.region : null;
-    }
-
-    /**
      * Traverse the region hierarchy and return full result (leaf depth).
      * 
      * <p>

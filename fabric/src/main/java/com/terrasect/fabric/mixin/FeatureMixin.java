@@ -1,6 +1,7 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.Region;
@@ -27,8 +28,9 @@ public class FeatureMixin {
         }
         
         // Get dimension ID from context (which provides it via getDimensionId())
+        TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
         @SuppressWarnings("unused") // Will be used when feature gating is implemented
-        Region region = World.getRegion(context, pos.getX(), pos.getZ());
+        Region region = traversal != null ? traversal.region : null;
 
         // TODO: Apply feature gating based on region properties
     }

@@ -104,14 +104,17 @@ public class SnapshotTest {
                 
                 // We skip the actual root (Universe) which is just a container
                 
-                regions.add(World.getRegion(context, wx, wz, 1));
-                seeds.add(World.traverse(context, wx, wz, 1).seed);
+                TraversalResult traversal = World.traverse(context, wx, wz, 1);
+                regions.add(traversal.region);
+                seeds.add(traversal.seed);
                 
-                regions.add(World.getRegion(context, wx, wz, 2));
-                seeds.add(World.traverse(context, wx, wz, 2).seed);
+                traversal = World.traverse(context, wx, wz, 2);
+                regions.add(traversal.region);
+                seeds.add(traversal.seed);
                 
-                regions.add(World.getRegion(context, wx, wz, 3));
-                seeds.add(World.traverse(context, wx, wz, 3).seed);
+                traversal = World.traverse(context, wx, wz, 3);
+                regions.add(traversal.region);
+                seeds.add(traversal.seed);
                 
                 // Ensure we have enough images for the depth
                 while (depthImages.size() < regions.size()) {
@@ -121,13 +124,13 @@ public class SnapshotTest {
                 Region leafRegion = regions.get(regions.size() - 1);
                 
                 // Get edge distance from the traversal result (1 = center, 0 = edge)
-                TraversalResult traversal = World.traverse(context, wx, wz);
-                float edgeDistance = traversal != null ? traversal.edgeDistance : 1.0f;
+                TraversalResult leafTraversal = World.traverse(context, wx, wz);
+                float edgeDistance = leafTraversal != null ? leafTraversal.edgeDistance : 1.0f;
                 boolean isEdge = false;
                 
                 // Check leaf edge
-                Region right = World.getRegion(context, wx + step, wz);
-                Region down = World.getRegion(context, wx, wz + step);
+                Region right = World.traverse(context, wx + step, wz).region;
+                Region down = World.traverse(context, wx, wz + step).region;
                 if (!leafRegion.name().equals(right.name()) || !leafRegion.name().equals(down.name())) {
                     isEdge = true;
                 }
@@ -156,11 +159,13 @@ public class SnapshotTest {
                     
                     // Check neighbors for edge of current layer
                     // We check both region name AND seed to detect edges between identical regions (e.g. Root tiles)
-                    Region layerRight = World.getRegion(context, wx + step, wz, i + 1);
-                    long seedRight = World.traverse(context, wx + step, wz, i + 1).seed;
+                    TraversalResult rightTraversal = World.traverse(context, wx + step, wz, i + 1);
+                    Region layerRight = rightTraversal.region;
+                    long seedRight = rightTraversal.seed;
                     
-                    Region layerDown = World.getRegion(context, wx, wz + step, i + 1);
-                    long seedDown = World.traverse(context, wx, wz + step, i + 1).seed;
+                    TraversalResult downTraversal = World.traverse(context, wx, wz + step, i + 1);
+                    Region layerDown = downTraversal.region;
+                    long seedDown = downTraversal.seed;
                     
                     if (!region.name().equals(layerRight.name()) || regionSeed != seedRight ||
                         !region.name().equals(layerDown.name()) || regionSeed != seedDown) {
@@ -176,11 +181,13 @@ public class SnapshotTest {
                         Region parent = regions.get(i - 1);
                         long parentSeed = seeds.get(i - 1);
                         
-                        Region parentRight = World.getRegion(context, wx + step, wz, i);
-                        long parentSeedRight = World.traverse(context, wx + step, wz, i).seed;
+                        TraversalResult parentRightTraversal = World.traverse(context, wx + step, wz, i);
+                        Region parentRight = parentRightTraversal.region;
+                        long parentSeedRight = parentRightTraversal.seed;
                         
-                        Region parentDown = World.getRegion(context, wx, wz + step, i);
-                        long parentSeedDown = World.traverse(context, wx, wz + step, i).seed;
+                        TraversalResult parentDownTraversal = World.traverse(context, wx, wz + step, i);
+                        Region parentDown = parentDownTraversal.region;
+                        long parentSeedDown = parentDownTraversal.seed;
                         
                         if (!parent.name().equals(parentRight.name()) || parentSeed != parentSeedRight ||
                             !parent.name().equals(parentDown.name()) || parentSeed != parentSeedDown) {

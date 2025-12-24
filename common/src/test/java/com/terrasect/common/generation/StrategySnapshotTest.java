@@ -531,8 +531,9 @@ public class StrategySnapshotTest {
                 int wz = (y - IMG_SIZE / 2) * step;
 
                 for (int d = 1; d <= maxDepth; d++) {
-                    Region region = World.getRegion(context, wx, wz, d);
-                    long regionSeed = World.traverse(context, wx, wz, d).seed;
+                    TraversalResult traversal = World.traverse(context, wx, wz, d);
+                    Region region = traversal.region;
+                    long regionSeed = traversal.seed;
 
                     depthCounts.get(d).merge(region.name(), 1, Integer::sum);
 
@@ -541,10 +542,12 @@ public class StrategySnapshotTest {
 
                     int color = getRegionColor(region);
 
-                    Region right = World.getRegion(context, wx + step, wz, d);
-                    long rightSeed = World.traverse(context, wx + step, wz, d).seed;
-                    Region down = World.getRegion(context, wx, wz + step, d);
-                    long downSeed = World.traverse(context, wx, wz + step, d).seed;
+                    TraversalResult rightTraversal = World.traverse(context, wx + step, wz, d);
+                    Region right = rightTraversal.region;
+                    long rightSeed = rightTraversal.seed;
+                    TraversalResult downTraversal = World.traverse(context, wx, wz + step, d);
+                    Region down = downTraversal.region;
+                    long downSeed = downTraversal.seed;
 
                     boolean isEdge = !region.name().equals(right.name()) || regionSeed != rightSeed ||
                             !region.name().equals(down.name()) || regionSeed != downSeed;
@@ -556,17 +559,20 @@ public class StrategySnapshotTest {
                     depthImages.get(d).setRGB(x, y, color);
                 }
 
-                Region leafRegion = World.getRegion(context, wx, wz, maxDepth);
+                Region leafRegion = World.traverse(context, wx, wz, maxDepth).region;
                 int color = getRegionColor(leafRegion);
 
                 for (int d = 1; d <= maxDepth; d++) {
-                    Region region = World.getRegion(context, wx, wz, d);
-                    long regionSeed = World.traverse(context, wx, wz, d).seed;
+                    TraversalResult traversal = World.traverse(context, wx, wz, d);
+                    Region region = traversal.region;
+                    long regionSeed = traversal.seed;
 
-                    Region right = World.getRegion(context, wx + step, wz, d);
-                    long rightSeed = World.traverse(context, wx + step, wz, d).seed;
-                    Region down = World.getRegion(context, wx, wz + step, d);
-                    long downSeed = World.traverse(context, wx, wz + step, d).seed;
+                    TraversalResult rightTraversal = World.traverse(context, wx + step, wz, d);
+                    Region right = rightTraversal.region;
+                    long rightSeed = rightTraversal.seed;
+                    TraversalResult downTraversal = World.traverse(context, wx, wz + step, d);
+                    Region down = downTraversal.region;
+                    long downSeed = downTraversal.seed;
 
                     if (!region.name().equals(right.name()) || regionSeed != rightSeed ||
                             !region.name().equals(down.name()) || regionSeed != downSeed) {

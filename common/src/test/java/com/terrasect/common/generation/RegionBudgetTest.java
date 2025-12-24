@@ -156,10 +156,10 @@ public class RegionBudgetTest {
     }
     
     private void samplePoint(int x, int z, Context context) {
-        Region d1 = World.getRegion(context, x, z,  1);
-        Region d2 = World.getRegion(context, x, z,  2);
-        Region d3 = World.getRegion(context, x, z,  3);
-        Region d4 = World.getRegion(context, x, z,  4);
+        Region d1 = World.traverse(context, x, z, 1).region;
+        Region d2 = World.traverse(context, x, z, 2).region;
+        Region d3 = World.traverse(context, x, z, 3).region;
+        Region d4 = World.traverse(context, x, z, 4).region;
         
         System.out.printf("  Depth 1: %s%n", d1.name());
         System.out.printf("  Depth 2: %s%n", d2.name());
@@ -175,7 +175,7 @@ public class RegionBudgetTest {
             int x = startX + i * stepX;
             int z = startZ + i * stepZ;
             
-            Region d3 = World.getRegion(context, x, z,  3);
+            Region d3 = World.traverse(context, x, z, 3).region;
             String regionName = d3.name();
             
             if (!regionName.equals(lastRegion)) {
@@ -208,7 +208,8 @@ public class RegionBudgetTest {
         
         for (int z = -range; z <= range && foundCount < 5; z += step) {
             for (int x = -range; x <= range && foundCount < 5; x += step) {
-                Region region = World.getRegion(context, x, z, depth);
+                TraversalResult traversal = World.traverse(context, x, z, depth);
+                Region region = traversal != null ? traversal.region : null;
                 if (region != null && region.name().equals(targetRegion)) {
                     if (foundCount == 0) {
                         firstX = x;
@@ -299,8 +300,9 @@ public class RegionBudgetTest {
 
     private void checkRegion(Context context, int centerX, int centerZ) {
         // 2. Identify the Target Root Region Instance
-        long targetRootId = World.traverse(context, centerX, centerZ, 1).seed;
-        Region targetRegion = World.getRegion(context, centerX, centerZ, 1);
+        TraversalResult target = World.traverse(context, centerX, centerZ, 1);
+        long targetRootId = target.seed;
+        Region targetRegion = target.region;
 
         // 3. Scan and Sample
         // Scale range based on root radius + warping buffer
@@ -321,8 +323,9 @@ public class RegionBudgetTest {
                 long rootId = World.traverse(context, x, z, 1).seed;
                 
                 if (rootId == targetRootId) {
-                    Region child = World.getRegion(context, x, z, 2);
-                    long childId = World.traverse(context, x, z, 2).seed;
+                    TraversalResult childTraversal = World.traverse(context, x, z, 2);
+                    Region child = childTraversal.region;
+                    long childId = childTraversal.seed;
                     
                     counts.put(child.name(), counts.getOrDefault(child.name(), 0) + 1);
                     uniqueRegionInstances.add(childId);
@@ -330,7 +333,7 @@ public class RegionBudgetTest {
                     totalSamplesInTarget++;
 
                     if (child.name().equals("CITY")) {
-                        Region grandChild = World.getRegion(context, x, z, 3);
+                        Region grandChild = World.traverse(context, x, z, 3).region;
                         cityCounts.put(grandChild.name(), cityCounts.getOrDefault(grandChild.name(), 0) + 1);
                         citySamples++;
                     }

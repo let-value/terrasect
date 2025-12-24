@@ -3,6 +3,7 @@ package com.terrasect.common.handler;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.BiomeFilter;
 
@@ -23,7 +24,8 @@ public final class BiomeHandler {
         int blockX = quartX << 2;
         int blockZ = quartZ << 2;
         
-        Region region = World.getRegion(context, blockX, blockZ);
+        TraversalResult traversal = World.traverse(context, blockX, blockZ);
+        Region region = traversal != null ? traversal.region : null;
         SelectionRules rules = getRules(region);        
         Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
         Holder<Biome> result = parameterList.findValue(targetPoint);

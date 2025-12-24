@@ -102,10 +102,10 @@ public class ClimateVisualizationTest {
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
                 
                 // Get region and calculate modified climate
-                Region region = World.getRegion(context, blockX, blockZ);
+                Region region = World.traverse(context, blockX, blockZ).region;
                 
-                Region rightRegion = World.getRegion(context, blockX + SCALE, blockZ);
-                Region downRegion = World.getRegion(context, blockX, blockZ + SCALE);
+                Region rightRegion = World.traverse(context, blockX + SCALE, blockZ).region;
+                Region downRegion = World.traverse(context, blockX, blockZ + SCALE).region;
                 
                 boolean isRightBoundary = region != null && rightRegion != null && !region.name().equals(rightRegion.name());
                 boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());
