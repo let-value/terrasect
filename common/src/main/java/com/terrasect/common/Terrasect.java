@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
+import com.terrasect.common.generation.World;
 
 public final class Terrasect {
     public static final String MOD_ID = "terrasect";

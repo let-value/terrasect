@@ -1,9 +1,8 @@
 package com.terrasect.common.generation;
 
+import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.BiomeFilter;
 import com.terrasect.common.Context;
-import com.terrasect.common.TraversalResult;
-import com.terrasect.common.World;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.definition.GenerationStrategyType;
@@ -83,17 +82,15 @@ public class BiomeVisualizationTest {
         // Build BiomeMetadataLookup - pre-computes biome IDs and tags for O(1) lookups
         // This is the production-ready pattern for fast biome filtering
 
-        BiomeLookup.Builder<Holder<Biome>, Void> lookupBuilder = BiomeLookup.builder();
-        Set<Holder<Biome>> seenBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (var entry : parameterList.values()) {
+        IdentityHashMap<Holder<Biome>, BiomeLookup.Entry> metadata = new IdentityHashMap<>();
+        for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
-            if (seenBiomes.add(biome)) {
-                String biomeId = getBiomeId(biome);
-                Set<String> tags = getBiomeTags(biome);
-                lookupBuilder.add(biome, biomeId, tags);
+            if (metadata.containsKey(biome)) {
+                continue;
             }
+            metadata.put(biome, new BiomeLookup.Entry(getBiomeId(biome), getBiomeTags(biome)));
         }
-        BiomeLookup<Holder<Biome>, Void> biomeLookup = lookupBuilder.buildSimple();
+        BiomeLookup biomeLookup = BiomeLookup.metadataOnly(metadata);
 
         BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         BufferedImage filteredBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -248,7 +245,7 @@ public class BiomeVisualizationTest {
      * Uses O(1) biome metadata retrieval.
      */
     private Holder<Biome> findAllowedBiomeFallback(
-            BiomeLookup<Holder<Biome>, Void> biomeLookup,
+            BiomeLookup biomeLookup,
             Climate.TargetPoint target,
             SelectionRules rules,
             Climate.ParameterList<Holder<Biome>> parameterList) {

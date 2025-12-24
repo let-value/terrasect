@@ -1,9 +1,9 @@
 package com.terrasect.common.lookup;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.TraversalResult;
-import com.terrasect.common.World;
 import com.terrasect.common.definition.ClimateSettings;
+import com.terrasect.common.generation.TraversalResult;
+import com.terrasect.common.generation.World;
 
 import org.jetbrains.annotations.Nullable;
 

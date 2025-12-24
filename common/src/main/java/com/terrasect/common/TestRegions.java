@@ -4,6 +4,7 @@ import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.StrategySettings;
+import com.terrasect.common.generation.World;
 
 /**
  * Utilitarian test regions for development and visual testing.

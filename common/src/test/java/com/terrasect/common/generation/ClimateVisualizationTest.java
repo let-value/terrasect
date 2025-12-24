@@ -1,7 +1,6 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.World;
 import com.terrasect.common.util.Packer;
 
 import com.terrasect.common.compat.BiomeCompat;
@@ -112,29 +111,41 @@ public class ClimateVisualizationTest {
                 boolean isDownBoundary = region != null && downRegion != null && !region.name().equals(downRegion.name());
                 boolean isBoundary = isRightBoundary || isDownBoundary;
                 
-                // Calculate modified climate using the shared handler to match runtime logic
-                ClimateHandler.ClimateResult result = ClimateHandler.modifyClimate(
-                    context, quartX, 16, quartZ, 
-                    vanilla.temperature(), vanilla.humidity(), vanilla.continentalness(),
-                    vanilla.erosion(), vanilla.depth(), vanilla.weirdness()
-                );
-                long modTemp = result.temperature();
-                long modHumid = result.humidity();
+                long vanillaTempValue = vanilla.temperature();
+                long vanillaHumidityValue = vanilla.humidity();
+                long vanillaContinentalnessValue = vanilla.continentalness();
+                long vanillaErosionValue = vanilla.erosion();
+                long vanillaDepthValue = vanilla.depth();
+                long vanillaWeirdnessValue = vanilla.weirdness();
 
-                // Track stats
-                if (result.modified()) {
-                    totalModified++;
-                }
-                totalTempDelta += Math.abs(modTemp - vanilla.temperature());
-                totalHumidityDelta += Math.abs(modHumid - vanilla.humidity());
-                
                 // Get biomes (for showing climate effect on biome selection)
                 Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
-                Climate.TargetPoint modifiedPoint = new Climate.TargetPoint(
-                    modTemp, modHumid,
-                    result.continentalness(), result.erosion(),
-                    result.depth(), result.weirdness()
-                );
+
+                // Calculate modified climate using the shared handler to match runtime logic
+                Climate.TargetPoint modifiedPoint = ClimateHandler.modifyTargetPoint(
+                        context, quartX, 16, quartZ, vanilla);
+                long modTemp = modifiedPoint.temperature();
+                long modHumid = modifiedPoint.humidity();
+                long modCont = modifiedPoint.continentalness();
+                long modErosion = modifiedPoint.erosion();
+                long modDepth = modifiedPoint.depth();
+                long modWeirdness = modifiedPoint.weirdness();
+
+                // Track stats
+                boolean modified = modTemp != vanillaTempValue
+                        || modHumid != vanillaHumidityValue
+                        || modCont != vanillaContinentalnessValue
+                        || modErosion != vanillaErosionValue
+                        || modDepth != vanillaDepthValue
+                        || modWeirdness != vanillaWeirdnessValue;
+
+                if (modified) {
+                    totalModified++;
+                }
+
+                totalTempDelta += Math.abs(modTemp - vanillaTempValue);
+                totalHumidityDelta += Math.abs(modHumid - vanillaHumidityValue);
+                
                 Holder<Biome> modifiedBiome = parameterList.findValue(modifiedPoint);
                 
                 if (!vanillaBiome.equals(modifiedBiome)) {
@@ -142,8 +153,8 @@ public class ClimateVisualizationTest {
                 }
                 
                 // Draw images
-                vanillaTemp.setRGB(px, py, climateToColor(vanilla.temperature(), true));
-                vanillaHumidity.setRGB(px, py, climateToColor(vanilla.humidity(), false));
+                vanillaTemp.setRGB(px, py, climateToColor(vanillaTempValue, true));
+                vanillaHumidity.setRGB(px, py, climateToColor(vanillaHumidityValue, false));
                 modifiedTemp.setRGB(px, py, climateToColor(modTemp, true));
                 modifiedHumidity.setRGB(px, py, climateToColor(modHumid, false));
                 
@@ -158,7 +169,7 @@ public class ClimateVisualizationTest {
                 modifiedBiomes.setRGB(px, py, biomeToColor(modifiedBiome));
                 
                 // Temperature difference
-                long tempDelta = modTemp - vanilla.temperature();
+                long tempDelta = modTemp - vanillaTempValue;
                 tempDiff.setRGB(px, py, deltaToColor(tempDelta));
             }
         }

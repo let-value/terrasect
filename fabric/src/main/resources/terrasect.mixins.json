@@ -5,6 +5,7 @@
   "mixins": [
     "BiomeMixin",
     "ClimateMixin",
+    "ClimateTargetPointAccessor",
     "FeatureMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceAccessor",

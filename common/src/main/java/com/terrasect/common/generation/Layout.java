@@ -1,7 +1,8 @@
-package com.terrasect.common;
+package com.terrasect.common.generation;
 
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.util.NoiseUtils;
+import com.terrasect.common.Context;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.strategy.LayoutStrategies;
 import com.terrasect.common.strategy.QueryResult;

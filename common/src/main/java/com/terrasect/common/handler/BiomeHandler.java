@@ -1,11 +1,10 @@
 package com.terrasect.common.handler;
 
 import com.terrasect.common.BiomeFilter;
-import com.terrasect.common.World;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.lookup.BiomeLookup;
+import com.terrasect.common.generation.World;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -27,7 +26,6 @@ public final class BiomeHandler {
         Region region = World.getRegion(context, blockX, blockZ);
         SelectionRules rules = getRules(region);        
         Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
-        boolean wasFiltered = rules != null && (rules.hasAllowRules() || rules.hasBlockRules());
         Holder<Biome> result = parameterList.findValue(targetPoint);
 
         return result;
@@ -42,9 +40,5 @@ public final class BiomeHandler {
             return null;
         }
         return rules;
-    }
-    
-    public static <K, P> boolean isBiomeAllowed(BiomeLookup<K, P> lookup, K biomeKey, SelectionRules rules) {
-        return lookup.isAllowed(biomeKey, rules);
     }
 }

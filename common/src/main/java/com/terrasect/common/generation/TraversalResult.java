@@ -1,4 +1,4 @@
-package com.terrasect.common;
+package com.terrasect.common.generation;
 
 import com.terrasect.common.definition.Region;
 

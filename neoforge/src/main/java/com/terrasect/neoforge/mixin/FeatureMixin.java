@@ -1,8 +1,8 @@
 package com.terrasect.neoforge.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.World;
 import com.terrasect.common.Context;
-import com.terrasect.common.World;
 import com.terrasect.common.definition.Region;
 
 import net.minecraft.core.BlockPos;

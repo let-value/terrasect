@@ -1,9 +1,11 @@
-package com.terrasect.common;
+package com.terrasect.common.gui;
 
 import org.jspecify.annotations.Nullable;
 
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.TraversalResult;
+import com.terrasect.common.generation.World;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.debug.DebugEntryCategory;

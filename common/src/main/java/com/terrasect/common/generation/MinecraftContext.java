@@ -3,11 +3,7 @@ package com.terrasect.common.generation;
 import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 
 import com.mojang.datafixers.util.Either;
-import com.mojang.datafixers.util.Pair;
-import com.terrasect.common.BiomeFilter;
 import com.terrasect.common.Context;
-import com.terrasect.common.World;
-import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.lookup.BiomeLookup;
@@ -20,13 +16,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -44,10 +34,10 @@ public class MinecraftContext implements Context {
     private final long seed;
     private final String dimensionId;
     private final Climate.Sampler sampler;
-    private final BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup;
+    private final BiomeLookup biomeLookup;
 
     private MinecraftContext(long seed, String dimensionId, Climate.Sampler sampler,
-            BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> biomeLookup) {
+            BiomeLookup biomeLookup) {
         this.seed = seed;
         this.dimensionId = dimensionId;
         this.sampler = sampler;
@@ -64,7 +54,7 @@ public class MinecraftContext implements Context {
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
         
         String dimensionId = getKeyId(dimension);
-        BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> lookup = buildLookup(parameters, dimensionId);
+        BiomeLookup lookup = BiomeLookup.build(parameters, dimensionId);
         
         MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, lookup);
         
@@ -76,68 +66,6 @@ public class MinecraftContext implements Context {
         World.initialize(context);
         
         return context;
-    }
-    
-    /**
-     * Build the BiomeLookup with pre-baked filtered parameter lists.
-     */
-    private static BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> buildLookup(
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters,
-            String dimensionId) {
-        
-        if (parameters == null) {
-            return BiomeLookup.<Holder<Biome>, Climate.ParameterList<Holder<Biome>>>builder().buildSimple();
-        }
-        
-        Climate.ParameterList<Holder<Biome>> paramList = parameters.map(
-            list -> list,
-            holder -> holder.value().parameters()
-        );
-        
-        // Collect biome metadata
-        BiomeLookup.Builder<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> builder = BiomeLookup.builder();
-        Set<Holder<Biome>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        
-        for (var entry : paramList.values()) {
-            Holder<Biome> biome = entry.getSecond();
-            if (seen.add(biome)) {
-                String id = biome.unwrapKey().map(key -> getKeyId(key)).orElse("unknown");
-                Set<String> tags = new HashSet<>();
-                biome.tags().forEach(tag -> tags.add("#" + tag.location().toString()));
-                builder.add(biome, id, tags);
-            }
-        }
-        
-        builder.withParameterList(paramList);
-        
-        // Pre-bake filtered lists for all rules in the region tree
-        Region root = World.getRoot(dimensionId);
-        if (root != null) {
-            builder.withRegionTree(root);
-        }
-        
-        return builder.build((metadata, original, rules) -> {
-            List<Pair<Climate.ParameterPoint, Holder<Biome>>> filtered = new ArrayList<>();
-            
-            for (var entry : original.values()) {
-                Holder<Biome> biome = entry.getSecond();
-                BiomeLookup.Entry meta = metadata.get(biome);
-                
-                boolean allowed = meta == null || 
-                    BiomeFilter.checkBiome(rules, meta.id(), meta.tags()) != BiomeFilter.FilterResult.BLOCKED;
-                
-                if (allowed) {
-                    filtered.add(entry);
-                }
-            }
-            
-            // Fallback: keep first biome if everything was filtered
-            if (filtered.isEmpty() && !original.values().isEmpty()) {
-                filtered.add(original.values().get(0));
-            }
-            
-            return new Climate.ParameterList<>(filtered);
-        });
     }
     
     // ==================== Lookup ====================
@@ -186,7 +114,7 @@ public class MinecraftContext implements Context {
         return dimensionId;
     }
     
-    public BiomeLookup<Holder<Biome>, Climate.ParameterList<Holder<Biome>>> getBiomeLookup() {
+    public BiomeLookup getBiomeLookup() {
         return biomeLookup;
     }
     

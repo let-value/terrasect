@@ -1,7 +1,9 @@
-package com.terrasect.common;
+package com.terrasect.common.generation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.terrasect.common.Context;
+import com.terrasect.common.Terrasect;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
 

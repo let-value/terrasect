@@ -1,5 +1,7 @@
 package com.terrasect.common;
 
+import com.terrasect.common.generation.World;
+
 /**
  * Generation context interface that provides world-specific information
  * needed for narrative region generation.

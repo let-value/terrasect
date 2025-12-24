@@ -1,7 +1,6 @@
 package com.terrasect.common.generation;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.World;
 import com.terrasect.common.definition.Region;
 
 import java.util.HashMap;
