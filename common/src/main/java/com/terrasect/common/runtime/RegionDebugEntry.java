@@ -36,7 +36,7 @@ public class RegionDebugEntry implements DebugScreenEntry {
         int blockZ = cameraEntity.getBlockZ();
         
         // Build region hierarchy with per-region edge/influence info
-        StringBuilder sb = new StringBuilder("[Terrasect] Regions: ");
+        StringBuilder sb = new StringBuilder("Regions: ");
         
         int depth = 1;
         String prevName = null;
@@ -53,10 +53,10 @@ public class RegionDebugEntry implements DebugScreenEntry {
             }
             
             if (depth > 1) {
-                sb.append(" > ");
+                sb.append(">");
             }
             sb.append(region.name());
-            sb.append(String.format(" (e:%.0f%%,i:%.0f%%)", 
+            sb.append(String.format("(e:%.0f%%,i:%.0f%%)", 
                 traversal.edgeDistance * 100, 
                 traversal.edgeInfluence * 100));
             

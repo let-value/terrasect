@@ -85,6 +85,7 @@ public final class TestRegions {
                 // ===== SEASONS HUB (at spawn) =====
                 .child("SEASONS_HUB", hub -> hub
                     .strategy(GenerationStrategyType.TEMPLATE)
+                    .climate(c -> c.continentalness(0.8f, 1.0f))
                     .settings(StrategySettings.builder()
                         .template(StrategySettings.TemplateType.CENTER_SURROUND)
                         .centerSurround("SPAWN")
@@ -164,9 +165,9 @@ public final class TestRegions {
                 .child("BIOME_LAB", lab -> lab
                     .radius(LAB_SIZE)
                     .strategy(GenerationStrategyType.SUBDIVISION)
-                        
                     .child("OCEANS_ONLY", zone -> zone
                         .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.continentalness(-1.0f, -0.7f))
                         .biomes(b -> b.allowTags("#minecraft:is_ocean")))
                         
                     .child("FORESTS_ONLY", zone -> zone
@@ -175,6 +176,7 @@ public final class TestRegions {
                         
                     .child("MOUNTAINS_ONLY", zone -> zone
                         .radius(LAB_ZONE_SIZE)
+                        .climate(c -> c.continentalness(0.8f, 1.0f))
                         .biomes(b -> b.allowTags("#minecraft:is_mountain")))
                         
                     .child("RIVERS_ONLY", zone -> zone
