@@ -34,7 +34,7 @@ public class MinecraftContext implements Context {
     private final long seed;
     private final String dimensionId;
     private final Climate.Sampler sampler;
-    private final BiomeLookup biomeLookup;
+    public final BiomeLookup biomeLookup;
 
     private MinecraftContext(long seed, String dimensionId, Climate.Sampler sampler,
             BiomeLookup biomeLookup) {
@@ -85,18 +85,6 @@ public class MinecraftContext implements Context {
         return BY_DIMENSION.values().stream().findFirst().orElse(null);
     }
 
-    /**
-     * Get any available context, preferring overworld.
-     * Useful for mixins that don't have access to sampler or dimension.
-     * 
-     * @return A context if any is registered, null otherwise
-     */
-    public static MinecraftContext getAny() {
-        MinecraftContext ctx = BY_DIMENSION.get(Level.OVERWORLD);
-        if (ctx != null) return ctx;
-        return BY_DIMENSION.values().stream().findFirst().orElse(null);
-    }
-
     public static void clear() {
         BY_DIMENSION.clear();
         BY_SAMPLER.clear();
@@ -114,26 +102,6 @@ public class MinecraftContext implements Context {
         return dimensionId;
     }
     
-    public BiomeLookup getBiomeLookup() {
-        return biomeLookup;
-    }
-    
-    /**
-     * Get a filtered parameter list for the given rules. O(1) lookup.
-     */
-    public Climate.ParameterList<Holder<Biome>> getFilteredParameterList(SelectionRules rules) {
-        return biomeLookup.getFilteredParameterList(rules);
-    }
-    
-    /**
-     * Extract biome ID from a holder (for debug/logging).
-     */
-    public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(key -> getKeyId(key)).orElse("unknown");
-    }
-
-    // ==================== Context Interface ====================
-
     @Override
     public long getInfluence(int x, int z) {
         Climate.ParameterList<Holder<Biome>> paramList = biomeLookup.getParameterList();

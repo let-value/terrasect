@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.helper;
 
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.helpers.BiomeFilter;

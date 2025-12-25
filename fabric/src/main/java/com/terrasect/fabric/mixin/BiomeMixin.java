@@ -31,11 +31,7 @@ public class BiomeMixin {
             int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
         
         var context = MinecraftContext.get(sampler);
-        if (context == null) {
-            return ((MultiNoiseBiomeSourceAccessor) self).getParameters()
-                .map(list -> list, holder -> holder.value().parameters())
-                .findValue(targetPoint);
-        }
+        assert context != null : "MinecraftContext not found in Climate.Sampler";
         
         return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
     }

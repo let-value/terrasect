@@ -1,8 +1,4 @@
-package com.terrasect.common.generation;
-
-import com.terrasect.common.definition.Region;
-import com.terrasect.common.definition.RegionDefinition;
-import com.terrasect.common.definition.RegionRegistry;
+package com.terrasect.common.definition;
 
 import org.junit.jupiter.api.Test;
 

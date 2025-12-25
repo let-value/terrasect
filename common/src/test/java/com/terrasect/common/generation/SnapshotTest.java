@@ -3,6 +3,7 @@ package com.terrasect.common.generation;
 import com.terrasect.common.Context;
 import com.terrasect.common.TestRegions;
 import com.terrasect.common.definition.Region;
+import com.terrasect.common.helpers.RegionSampler;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;

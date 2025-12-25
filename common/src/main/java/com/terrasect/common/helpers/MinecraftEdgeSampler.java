@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.helpers;
 
 import com.terrasect.common.compat.BiomeCompat;
 import net.minecraft.core.Holder;

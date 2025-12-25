@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.integration;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderGetter;
@@ -12,6 +12,8 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import com.terrasect.common.helpers.MinecraftEdgeSampler;
 
 import static org.junit.jupiter.api.Assertions.*;
 

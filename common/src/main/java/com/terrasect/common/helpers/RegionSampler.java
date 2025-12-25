@@ -1,7 +1,9 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.helpers;
 
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.Region;
+import com.terrasect.common.generation.TraversalResult;
+import com.terrasect.common.generation.World;
 
 import java.util.HashMap;
 import java.util.Map;

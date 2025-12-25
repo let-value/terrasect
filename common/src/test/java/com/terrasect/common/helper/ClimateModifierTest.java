@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.helper;
 
 import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.helpers.ClimateModifier;

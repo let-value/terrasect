@@ -27,7 +27,7 @@ public final class BiomeHandler {
         TraversalResult traversal = World.traverse(context, blockX, blockZ);
         Region region = traversal != null ? traversal.region : null;
         SelectionRules rules = getRules(region);        
-        Climate.ParameterList<Holder<Biome>> parameterList = context.getFilteredParameterList(rules);
+        var parameterList = context.biomeLookup.getFilteredParameterList(rules);
         Holder<Biome> result = parameterList.findValue(targetPoint);
 
         return result;
