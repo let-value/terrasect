@@ -1,6 +1,0 @@
-plugins {
-    id 'java'
-    id 'net.neoforged.moddev'
-}
-
-apply from: rootProject.file('gradle/common-versioned.gradle')
