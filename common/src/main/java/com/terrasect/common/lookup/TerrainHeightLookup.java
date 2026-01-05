@@ -1,7 +1,7 @@
 package com.terrasect.common.lookup;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.definition.ClimateSettings;
+import com.terrasect.common.definition.HeightConstraints;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 
@@ -62,18 +62,14 @@ public final class TerrainHeightLookup {
                     hasAnyBlending = true;
                 }
                 
-                ClimateSettings climate = traversal.region.definition().climate();
-                if (climate == null || !climate.hasHeightConstraints()) {
+                HeightConstraints constraints = traversal.region.definition().height();
+                if (!constraints.hasConstraints()) {
                     heights[index] = NO_CONSTRAINT;
                     continue;
                 }
                 
-                Integer min = climate.minHeight();
-                Integer max = climate.maxHeight();
-                if (min == null || max == null) {
-                    heights[index] = NO_CONSTRAINT;
-                    continue;
-                }
+                int min = constraints.minY();
+                int max = constraints.maxY();
                 
                 int height;
                 if (surfaceSampler != null) {

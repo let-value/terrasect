@@ -192,8 +192,8 @@ public final class TestRegions {
                 // height(40, 55) means ocean floor varies from Y=40 to Y=55
                 // Natural terrain variation is mapped into this range for interesting topography
                 // Sea level in Minecraft is 63 (water at 62 and below)
+                .height(40, 55)                     // Ocean floor with variation
                 .climate(c -> c
-                    .height(40, 55)                 // Ocean floor with variation
                     .depth(-1.5f, -0.5f)            // Force underwater depth (ocean floor)
                     .continentalness(-1.0f, -0.7f)  // Deep ocean biome selection
                     .erosion(0.5f, 1.0f))           // Flat terrain

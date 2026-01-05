@@ -7,6 +7,7 @@ import java.util.function.Consumer;
  */
 public record RegionDefinition(
     ClimateSettings climate,
+    HeightConstraints height,
     SelectionRules biomes,
     StructureRules structures,
     SelectionRules mobs,
@@ -15,6 +16,7 @@ public record RegionDefinition(
 ) {
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
+        if (height == null) height = HeightConstraints.inherit();
         if (biomes == null) biomes = SelectionRules.empty();
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
@@ -30,6 +32,7 @@ public record RegionDefinition(
         if (parent == null) return this;
         return new RegionDefinition(
             climate.resolveWithParent(parent.climate),
+            height.resolveWithParent(parent.height),
             biomes.resolveWithParent(parent.biomes),
             structures.resolveWithParent(parent.structures),
             mobs.resolveWithParent(parent.mobs),
@@ -51,6 +54,7 @@ public record RegionDefinition(
 
     public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
         protected ClimateSettings climate = ClimateSettings.empty();
+        protected HeightConstraints height = HeightConstraints.inherit();
         protected SelectionRules biomes = SelectionRules.empty();
         protected StructureRules structures = StructureRules.empty();
         protected SelectionRules mobs = SelectionRules.empty();
@@ -63,6 +67,21 @@ public record RegionDefinition(
             ClimateSettings.Builder builder = ClimateSettings.builder().copyFrom(climate);
             consumer.accept(builder);
             climate = builder.build();
+            return self();
+        }
+
+        public T height(int minY, int maxY) {
+            this.height = HeightConstraints.range(minY, maxY);
+            return self();
+        }
+
+        public T height(int y) {
+            this.height = HeightConstraints.exact(y);
+            return self();
+        }
+
+        public T noHeightConstraints() {
+            this.height = HeightConstraints.unconstrained();
             return self();
         }
 
@@ -111,7 +130,7 @@ public record RegionDefinition(
         }
 
         public RegionDefinition build() {
-            return new RegionDefinition(climate, biomes, structures, mobs, generationStrategy, strategySettings);
+            return new RegionDefinition(climate, height, biomes, structures, mobs, generationStrategy, strategySettings);
         }
     }
 }
