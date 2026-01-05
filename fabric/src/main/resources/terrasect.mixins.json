@@ -3,11 +3,11 @@
   "package": "com.terrasect.fabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "LevelMixin",
     "BiomeMixin",
     "ClimateMixin",
     "ClimateTargetPointAccessor",
     "FeatureMixin",
-    "LevelMixin",
     "MultiNoiseBiomeSourceAccessor",
     "TerrainMixin"
   ],

@@ -24,13 +24,19 @@ import java.util.concurrent.Executor;
 /**
  * NeoForge mixin for ServerLevel that registers the generation context.
  * 
- * <p>Injects at RETURN because NeoForge doesn't have the spawn-finding-during-init
- * issue. All logic is in {@link LevelHandler}.
+ * <p>Injects before the first {@code ensureStructuresGenerated()} call during construction,
+ * so other worldgen mixins can safely rely on the context being available.
+ * All logic is in {@link LevelHandler}.
  */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "<init>", at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+            ordinal = 0,
+            shift = At.Shift.BEFORE
+    ))
     private void onInit(MinecraftServer server, Executor executor, 
             LevelStorageSource.LevelStorageAccess storage, ServerLevelData levelData, 
             ResourceKey<Level> dimension, LevelStem levelStem, 

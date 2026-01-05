@@ -24,14 +24,19 @@ import java.util.concurrent.Executor;
 /**
  * Mixin for ServerLevel that registers the generation context.
  * 
- * <p>Injects at RETURN after the level is fully constructed.
- * If biome/climate lookups happen during construction (e.g., spawn finding),
- * they gracefully fall back to vanilla behavior. All logic is in {@link LevelHandler}.
+ * <p>Injects before the first {@code ensureStructuresGenerated()} call during construction,
+ * so other worldgen mixins can safely rely on the context being available.
+ * All logic is in {@link LevelHandler}.
  */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "<init>", at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+            ordinal = 0,
+            shift = At.Shift.BEFORE
+    ))
     private void onInit(MinecraftServer server, Executor executor, 
             LevelStorageSource.LevelStorageAccess storage, ServerLevelData levelData, 
             ResourceKey<Level> dimension, LevelStem levelStem, boolean bl, long seed, 
