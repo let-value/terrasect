@@ -9,7 +9,12 @@
     "ClimateTargetPointAccessor",
     "FeatureMixin",
     "MultiNoiseBiomeSourceAccessor",
-    "NoiseChunkMixin"
+    "NoiseChunkMixin",
+    "NoiseChunkNoiseMixin",
+    "NoiseMixin",
+    "ShiftedNoiseMixin",
+    "WeirdScaledSamplerMixin",
+    "ShiftNoiseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

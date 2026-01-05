@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 public record RegionDefinition(
     ClimateSettings climate,
     HeightConstraints height,
+    NoiseConstraints noise,
     SelectionRules biomes,
     StructureRules structures,
     SelectionRules mobs,
@@ -17,6 +18,7 @@ public record RegionDefinition(
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
         if (height == null) height = HeightConstraints.inherit();
+        if (noise == null) noise = NoiseConstraints.empty();
         if (biomes == null) biomes = SelectionRules.empty();
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
@@ -33,6 +35,7 @@ public record RegionDefinition(
         return new RegionDefinition(
             climate.resolveWithParent(parent.climate),
             height.resolveWithParent(parent.height),
+            noise.resolveWithParent(parent.noise),
             biomes.resolveWithParent(parent.biomes),
             structures.resolveWithParent(parent.structures),
             mobs.resolveWithParent(parent.mobs),
@@ -55,6 +58,7 @@ public record RegionDefinition(
     public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
         protected ClimateSettings climate = ClimateSettings.empty();
         protected HeightConstraints height = HeightConstraints.inherit();
+        protected NoiseConstraints noise = NoiseConstraints.empty();
         protected SelectionRules biomes = SelectionRules.empty();
         protected StructureRules structures = StructureRules.empty();
         protected SelectionRules mobs = SelectionRules.empty();
@@ -82,6 +86,18 @@ public record RegionDefinition(
 
         public T noHeightConstraints() {
             this.height = HeightConstraints.unconstrained();
+            return self();
+        }
+
+        public T noise(java.util.function.Consumer<NoiseConstraints.Builder> consumer) {
+            NoiseConstraints.Builder builder = NoiseConstraints.builder().copyFrom(noise);
+            consumer.accept(builder);
+            noise = builder.build();
+            return self();
+        }
+
+        public T noNoiseConstraints() {
+            this.noise = NoiseConstraints.clearParent();
             return self();
         }
 
@@ -130,7 +146,7 @@ public record RegionDefinition(
         }
 
         public RegionDefinition build() {
-            return new RegionDefinition(climate, height, biomes, structures, mobs, generationStrategy, strategySettings);
+            return new RegionDefinition(climate, height, noise, biomes, structures, mobs, generationStrategy, strategySettings);
         }
     }
 }
