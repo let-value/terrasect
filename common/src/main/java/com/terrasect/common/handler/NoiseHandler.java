@@ -38,7 +38,39 @@ public final class NoiseHandler {
     private static final ThreadLocal<IdentityHashMap<RegionDefinition, CompiledNoiseConstraints>> COMPILED_BY_DEFINITION =
             ThreadLocal.withInitial(IdentityHashMap::new);
 
+    /**
+     * Fallback for code paths that use {@link net.minecraft.world.level.levelgen.DensityFunction.SinglePointContext}
+     * (and therefore cannot implement {@link NoiseChunkNoiseAccess}).
+     *
+     * <p>This is set by loader mixins around vanilla computations that allocate those contexts (e.g. flat caches and
+     * preliminary surface level).
+     */
+    private static final ThreadLocal<NoiseChunkLookup> ACTIVE_LOOKUP = new ThreadLocal<>();
+
     private NoiseHandler() {}
+
+    /**
+     * Set the thread-local active lookup for noise sampling performed with contexts that cannot carry a lookup.
+     *
+     * @return the previous active lookup (may be {@code null})
+     */
+    public static @Nullable NoiseChunkLookup setActiveLookup(@Nullable NoiseChunkLookup lookup) {
+        NoiseChunkLookup previous = ACTIVE_LOOKUP.get();
+        if (lookup == null) {
+            ACTIVE_LOOKUP.remove();
+        } else {
+            ACTIVE_LOOKUP.set(lookup);
+        }
+        return previous;
+    }
+
+    public static void restoreActiveLookup(@Nullable NoiseChunkLookup previous) {
+        if (previous == null) {
+            ACTIVE_LOOKUP.remove();
+        } else {
+            ACTIVE_LOOKUP.set(previous);
+        }
+    }
 
     /**
      * Precompute region noise constraints for a chunk at quart (4-block) resolution.
@@ -107,12 +139,17 @@ public final class NoiseHandler {
             DensityFunction.FunctionContext functionContext,
             double original) {
 
-        if (!(functionContext instanceof NoiseChunkNoiseAccess access)) {
-            return original;
-        }
-        NoiseChunkLookup lookup = access.terrasect$getNoiseLookup();
-        if (lookup == null) {
-            return original;
+        NoiseChunkLookup lookup;
+        if (functionContext instanceof NoiseChunkNoiseAccess access) {
+            lookup = access.terrasect$getNoiseLookup();
+            if (lookup == null) {
+                return original;
+            }
+        } else {
+            lookup = ACTIVE_LOOKUP.get();
+            if (lookup == null) {
+                return original;
+            }
         }
 
         int blockX = functionContext.blockX();
@@ -329,4 +366,3 @@ public final class NoiseHandler {
         }
     }
 }
-
