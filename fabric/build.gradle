@@ -3,17 +3,16 @@ plugins {
     id 'fabric-loom' version "${fabric_loom_version}"
 }
 
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(rootProject.property('java_version'))
+    withSourcesJar()
+}
+
 repositories {
+    mavenCentral()
     exclusiveContent {
-        forRepository {
-            maven {
-                name = "Modrinth"
-                url = "https://api.modrinth.com/maven"
-            }
-        }
-        filter {
-            includeGroup "maven.modrinth"
-        }
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
     }
 }
 
@@ -22,37 +21,52 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
-    
-    modImplementation fabricApi.module("fabric-client-gametest-api-v1", property('fabric_api_version'))
 
     implementation project(':common')
 
-    modLocalRuntime "maven.modrinth:fabric-permissions-api:0.6.1"
-    modLocalRuntime "maven.modrinth:spark:1.10.156-fabric"
+    modLocalRuntime 'maven.modrinth:fabric-permissions-api:0.6.1'
+    modLocalRuntime 'maven.modrinth:spark:1.10.156-fabric'
 
-    testImplementation(platform('org.junit:junit-bom:5.10.3'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+
+    testImplementation platform('org.junit:junit-bom:5.10.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation "net.fabricmc:fabric-loader-junit:${property('fabric_loader_version')}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 loom {
     splitEnvironmentSourceSets()
-    accessWidenerPath = file("src/main/resources/terrasect.accesswidener")
+    accessWidenerPath = file('src/main/resources/terrasect.accesswidener')
+    
     mods {
         create('terrasect') {
-            sourceSet(sourceSets.main)
-            sourceSet(sourceSets.client)
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
         }
     }
+    
     runs {
         client {
             ideConfigGenerated true
-            runDir "runs/fabric-client"
+            runDir 'runs/fabric-client'
             client()
         }
         server {
             ideConfigGenerated true
-            runDir "runs/fabric-server"
+            runDir 'runs/fabric-server'
             server()
         }
     }
@@ -60,7 +74,6 @@ loom {
 
 fabricApi {
     configureTests {
-        // Use main source set for tests (not a separate test source set)
         createSourceSet = false
         enableGameTests = false
         enableClientGameTests = true
@@ -69,12 +82,12 @@ fabricApi {
 }
 
 processResources {
-    filesMatching("fabric.mod.json") {
-        expand([
-            version: rootProject.version,
-            minecraft_version: rootProject.property('minecraft_version'),
-            fabric_loader_version: project.property('fabric_loader_version'),
-            java_version: rootProject.property('java_version')
-        ])
-    }
+    def expandProps = [
+        version              : rootProject.property('mod_version'),
+        minecraft_version    : rootProject.property('minecraft_version'),
+        java_version         : rootProject.property('java_version'),
+        fabric_loader_version: project.property('fabric_loader_version')
+    ]
+    inputs.properties(expandProps)
+    filesMatching('fabric.mod.json') { expand(expandProps) }
 }

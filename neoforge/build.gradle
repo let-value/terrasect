@@ -4,6 +4,15 @@ plugins {
     id 'net.neoforged.moddev' version "${moddev_version}"
 }
 
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(rootProject.property('java_version'))
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
 def neoforgeVersion = property('neoforge_version')
 def neoforgeVersionMajor = neoforgeVersion.split('\\.').take(2).join('.')
 
@@ -28,6 +37,24 @@ neoForge {
 
 dependencies {
     implementation project(':common')
+    
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+    
+    testImplementation platform('org.junit:junit-bom:5.10.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jar {
@@ -44,18 +71,18 @@ jar {
     }
 }
 
-tasks.matching { it.name == 'sourcesJar' }.configureEach {
+sourcesJar {
     from(project(':common').sourceSets.main.allSource)
 }
 
 processResources {
-    filesMatching('neoforge.mods.toml') {
-        expand([
-            mod_version: project.version,
-            minecraft_version: rootProject.property('minecraft_version'),
-            neoforge_version: neoforgeVersion,
-            neoforge_version_major: neoforgeVersionMajor,
-            java_version: rootProject.property('java_version')
-        ])
-    }
+    def expandProps = [
+        mod_version          : rootProject.property('mod_version'),
+        minecraft_version    : rootProject.property('minecraft_version'),
+        java_version         : rootProject.property('java_version'),
+        neoforge_version     : neoforgeVersion,
+        neoforge_version_major: neoforgeVersionMajor
+    ]
+    inputs.properties(expandProps)
+    filesMatching('META-INF/neoforge.mods.toml') { expand(expandProps) }
 }

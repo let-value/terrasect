@@ -3,9 +3,13 @@ plugins {
     id 'net.neoforged.moddev' version "${moddev_version}"
 }
 
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(rootProject.property('java_version'))
+    withSourcesJar()
+}
+
 repositories {
     mavenCentral()
-    maven { url = 'https://libraries.minecraft.net/' }
     maven { url = 'https://maven.neoforged.net/releases' }
 }
 
@@ -15,12 +19,20 @@ neoForge {
 }
 
 dependencies {
-    compileOnly('org.slf4j:slf4j-api')
-    implementation('org.jetbrains:annotations:24.1.0')
-    
-    testImplementation(platform('org.junit:junit-bom:5.10.3'))
-    testImplementation('org.junit.jupiter:junit-jupiter')
-    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+    compileOnly 'org.slf4j:slf4j-api'
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+
+    testImplementation platform('org.junit:junit-bom:5.10.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
 }
 
 test {
