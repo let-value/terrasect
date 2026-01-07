@@ -6,6 +6,7 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.handler.NoiseHandler;
+import com.terrasect.common.lookup.NoiseChunkLookup;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
@@ -40,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Demonstrates "no ocean" and "only ocean" outcomes by constraining root noise inputs.
  *
  * <p>This does not rely on loader mixins; it exercises {@link NoiseHandler} directly using a
- * precomputed {@link NoiseHandler.NoiseChunkLookup} per chunk.
+ * precomputed {@link NoiseChunkLookup} per chunk.
  */
 class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static final int IMG_SIZE = 256;
@@ -515,7 +516,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * QUART_SIZE;
 
-                NoiseHandler.NoiseChunkLookup lookup = rootDefinition != null ? NoiseHandler.buildLookup(context, chunkMinX, chunkMinZ) : null;
+                NoiseChunkLookup lookup = rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
                 for (int qz = 0; qz < QUART_SIZE; qz++) {
                     int blockZ = chunkMinZ + (qz << 2);
@@ -528,9 +529,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
                         double x = blockX * 0.25;
                         double z = blockZ * 0.25;
-                        double v = (lookup == null)
-                            ? noise.getValue(x, 0.0, z)
-                            : NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
+                        double v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
 
                         if (!Double.isFinite(v)) v = 0.0;
                         values[ix + iz * IMG_SIZE] = v;
@@ -581,7 +580,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * QUART_SIZE;
 
-                NoiseHandler.NoiseChunkLookup lookup = NoiseHandler.buildLookup(context, chunkMinX, chunkMinZ);
+                NoiseChunkLookup lookup = NoiseChunkLookup.build(context, chunkMinX, chunkMinZ);
 
                 for (int qz = 0; qz < QUART_SIZE; qz++) {
                     int blockZ = chunkMinZ + (qz << 2);
@@ -596,9 +595,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
                         double x = blockX * 0.25;
                         double z = blockZ * 0.25;
-                        double v = lookup == null
-                            ? noise.getValue(x, 0.0, z)
-                            : NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
+                        double v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
 
                         if (!Double.isFinite(v)) v = 0.0;
                         values[pixelIndex] = v;
@@ -681,31 +678,27 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
 
-                NoiseHandler.NoiseChunkLookup lookup = rootDefinition != null ? NoiseHandler.buildLookup(context, chunkMinX, chunkMinZ) : null;
-                NoiseHandler.NoiseChunkLookup previous = NoiseHandler.setActiveLookup(lookup);
-                try {
-                    for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
-                        int blockZ = chunkMinZ + pz * SURFACE_STEP;
-                        int iz = pixelBaseZ + pz;
-                        for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
-                            int blockX = chunkMinX + px * SURFACE_STEP;
-                            int ix = pixelBaseX + px;
-                            int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
+                NoiseChunkLookup lookup = rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
-                            functionContext.set(blockX, 0, blockZ, lookup);
+                for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
+                    int blockZ = chunkMinZ + pz * SURFACE_STEP;
+                    int iz = pixelBaseZ + pz;
+                    for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
+                        int blockX = chunkMinX + px * SURFACE_STEP;
+                        int ix = pixelBaseX + px;
+                        int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
 
-                            double surface = preliminarySurfaceLevel.compute(functionContext);
-                            if (!Double.isFinite(surface)) surface = minY;
-                            int height = (int) Math.floor(surface);
+                        functionContext.set(blockX, 0, blockZ, lookup);
 
-                            heights[pixelIndex] = height;
-                            if (height < seaLevel) belowSeaPixels++;
-                            if (height < minHeight) minHeight = height;
-                            if (height > maxHeight) maxHeight = height;
-                        }
+                        double surface = preliminarySurfaceLevel.compute(functionContext);
+                        if (!Double.isFinite(surface)) surface = minY;
+                        int height = (int) Math.floor(surface);
+
+                        heights[pixelIndex] = height;
+                        if (height < seaLevel) belowSeaPixels++;
+                        if (height < minHeight) minHeight = height;
+                        if (height > maxHeight) maxHeight = height;
                     }
-                } finally {
-                    NoiseHandler.restoreActiveLookup(previous);
                 }
             }
         }
@@ -755,44 +748,40 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
 
-                NoiseHandler.NoiseChunkLookup lookup = NoiseHandler.buildLookup(context, chunkMinX, chunkMinZ);
-                NoiseHandler.NoiseChunkLookup previous = NoiseHandler.setActiveLookup(lookup);
-                try {
-                    for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
-                        int blockZ = chunkMinZ + pz * SURFACE_STEP;
-                        int iz = pixelBaseZ + pz;
-                        for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
-                            int blockX = chunkMinX + px * SURFACE_STEP;
-                            int ix = pixelBaseX + px;
+                NoiseChunkLookup lookup = NoiseChunkLookup.build(context, chunkMinX, chunkMinZ);
 
-                            int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
+                for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
+                    int blockZ = chunkMinZ + pz * SURFACE_STEP;
+                    int iz = pixelBaseZ + pz;
+                    for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
+                        int blockX = chunkMinX + px * SURFACE_STEP;
+                        int ix = pixelBaseX + px;
 
-                            functionContext.set(blockX, 0, blockZ, lookup);
+                        int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
 
-                            double surface = preliminarySurfaceLevel.compute(functionContext);
-                            if (!Double.isFinite(surface)) surface = minY;
-                            int height = (int) Math.floor(surface);
-                            heights[pixelIndex] = height;
+                        functionContext.set(blockX, 0, blockZ, lookup);
 
-                            var traversal = World.traverse(context, blockX, blockZ);
-                            String regionName = traversal != null && traversal.region != null ? traversal.region.name() : "";
-                            int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
+                        double surface = preliminarySurfaceLevel.compute(functionContext);
+                        if (!Double.isFinite(surface)) surface = minY;
+                        int height = (int) Math.floor(surface);
+                        heights[pixelIndex] = height;
 
-                            boolean interior = traversal != null && traversal.edgeInfluence <= 0.0f;
-                            boolean belowSea = height < seaLevel;
-                            if (interior) {
-                                if (regionId == 1) {
-                                    noOceanInteriorPixels++;
-                                    if (belowSea) noOceanInteriorBelowSea++;
-                                } else if (regionId == 2) {
-                                    onlyOceanInteriorPixels++;
-                                    if (belowSea) onlyOceanInteriorBelowSea++;
-                                }
+                        var traversal = World.traverse(context, blockX, blockZ);
+                        String regionName = traversal != null && traversal.region != null ? traversal.region.name() : "";
+                        int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
+
+                        boolean interior = traversal != null && traversal.edgeInfluence <= 0.0f;
+                        boolean belowSea = height < seaLevel;
+                        if (interior) {
+                            if (regionId == 1) {
+                                noOceanInteriorPixels++;
+                                if (belowSea) noOceanInteriorBelowSea++;
+                            } else if (regionId == 2) {
+                                onlyOceanInteriorPixels++;
+                                if (belowSea) onlyOceanInteriorBelowSea++;
                             }
                         }
                     }
-                } finally {
-                    NoiseHandler.restoreActiveLookup(previous);
                 }
             }
         }
@@ -960,9 +949,9 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         private int blockX;
         private int blockY;
         private int blockZ;
-        private @Nullable NoiseHandler.NoiseChunkLookup lookup;
+        private @Nullable NoiseChunkLookup lookup;
 
-        void set(int blockX, int blockY, int blockZ, @Nullable NoiseHandler.NoiseChunkLookup lookup) {
+        void set(int blockX, int blockY, int blockZ, @Nullable NoiseChunkLookup lookup) {
             this.blockX = blockX;
             this.blockY = blockY;
             this.blockZ = blockZ;
@@ -985,12 +974,12 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         @Override
-        public @Nullable NoiseHandler.NoiseChunkLookup terrasect$getNoiseLookup() {
+        public @Nullable NoiseChunkLookup terrasect$getNoiseLookup() {
             return lookup;
         }
 
         @Override
-        public void terrasect$setNoiseLookup(@Nullable NoiseHandler.NoiseChunkLookup lookup) {
+        public void terrasect$setNoiseLookup(@Nullable NoiseChunkLookup lookup) {
             this.lookup = lookup;
         }
     }

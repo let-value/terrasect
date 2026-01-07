@@ -20,7 +20,7 @@ public class NoiseMixin {
     private double terrasect$sampleNoise(
             DensityFunction.NoiseHolder noiseHolder,
             double x, double y, double z,
-            DensityFunction.FunctionContext functionContext) {
-        return NoiseHandler.sampleNoise(noiseHolder, x, y, z, functionContext);
+            DensityFunction.FunctionContext context) {
+        return NoiseHandler.sampleNoise(noiseHolder, x, y, z, context);
     }
 }

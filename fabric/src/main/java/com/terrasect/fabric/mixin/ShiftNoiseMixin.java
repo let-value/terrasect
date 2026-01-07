@@ -38,10 +38,9 @@ public class ShiftNoiseMixin implements ShiftNoiseAccess {
     private double terrasect$computeShift(
             @Coerce Object self,
             double x, double y, double z,
-            DensityFunction.FunctionContext functionContext) {
+            DensityFunction.FunctionContext context) {
 
         DensityFunction.NoiseHolder noiseHolder = ((ShiftNoiseAccess) self).terrasect$getOffsetNoise();
-        double sample = NoiseHandler.sampleNoise(noiseHolder, x * 0.25, y * 0.25, z * 0.25, functionContext);
-        return sample * 4.0;
+        return NoiseHandler.sampleNoise(noiseHolder, x * 0.25, y * 0.25, z * 0.25, context) * 4.0;
     }
 }

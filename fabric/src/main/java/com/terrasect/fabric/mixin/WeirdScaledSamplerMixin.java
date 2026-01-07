@@ -20,8 +20,8 @@ public class WeirdScaledSamplerMixin {
     private double terrasect$sampleWeirdNoise(
             DensityFunction.NoiseHolder noiseHolder,
             double x, double y, double z,
-            DensityFunction.FunctionContext functionContext,
+            DensityFunction.FunctionContext context,
             double input) {
-        return NoiseHandler.sampleNoise(noiseHolder, x, y, z, functionContext);
+        return NoiseHandler.sampleNoise(noiseHolder, x, y, z, context);
     }
 }

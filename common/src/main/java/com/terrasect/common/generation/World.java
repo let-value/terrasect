@@ -6,6 +6,7 @@ import com.terrasect.common.Context;
 import com.terrasect.common.Terrasect;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
+import com.terrasect.common.lookup.CompiledNoiseRegistry;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,8 +26,9 @@ public final class World {
 
     public static void register(Region root, String... dimensionIds) {
         Objects.requireNonNull(root, "root region cannot be null");
+        CompiledNoiseRegistry noiseRegistry = CompiledNoiseRegistry.build(root);
         for (String dimensionId : dimensionIds) {
-            DIMENSIONS.put(dimensionId, new DimensionState(root));
+            DIMENSIONS.put(dimensionId, new DimensionState(root, noiseRegistry));
         }
     }
 
@@ -67,6 +69,17 @@ public final class World {
     public static @Nullable Region getRoot(String dimensionId) {
         DimensionState state = DIMENSIONS.get(dimensionId);
         return state != null ? state.root : null;
+    }
+
+    /**
+     * Get the pre-compiled noise registry for a dimension.
+     * 
+     * @param dimensionId The dimension ID
+     * @return The noise registry, or null if not registered
+     */
+    public static @Nullable CompiledNoiseRegistry getNoiseRegistry(String dimensionId) {
+        DimensionState state = DIMENSIONS.get(dimensionId);
+        return state != null ? state.noiseRegistry : null;
     }
 
     /**
@@ -243,13 +256,15 @@ public final class World {
 
     private static class DimensionState {
         final Region root;
+        final CompiledNoiseRegistry noiseRegistry;
         volatile long seed;
         volatile float offsetX;
         volatile float offsetZ;
         volatile boolean initialized;
 
-        DimensionState(Region root) {
+        DimensionState(Region root, CompiledNoiseRegistry noiseRegistry) {
             this.root = root;
+            this.noiseRegistry = noiseRegistry;
         }
 
         boolean needsInitialization(long seed) {
