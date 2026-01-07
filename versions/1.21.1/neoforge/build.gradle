@@ -36,7 +36,10 @@ repositories {
 neoForge {
     version = neoforgeVersion
     mods {
-        terrasect { sourceSet sourceSets.main }
+        terrasect {
+            sourceSet sourceSets.main
+            sourceSet commonProject.sourceSets.main
+        }
     }
     runs {
         client { client() }

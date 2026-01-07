@@ -102,7 +102,7 @@
       ],
       "vmArgs": [
         "@D:\\terrasect\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main"
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
@@ -124,7 +124,7 @@
       ],
       "vmArgs": [
         "@D:\\terrasect\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main"
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
@@ -146,7 +146,7 @@
       ],
       "vmArgs": [
         "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\versions\\1.21.1\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
       "env": {},
@@ -168,7 +168,7 @@
       ],
       "vmArgs": [
         "@D:\\terrasect\\versions\\1.21.1\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main"
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\versions\\1.21.1\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\versions\\1.21.1\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\versions\\1.21.1\\neoforge\\run",
       "env": {},

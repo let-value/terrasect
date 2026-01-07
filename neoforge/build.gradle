@@ -19,7 +19,10 @@ def neoforgeVersionMajor = neoforgeVersion.split('\\.').take(2).join('.')
 neoForge {
     version = neoforgeVersion
     mods {
-        terrasect { sourceSet sourceSets.main }
+        terrasect {
+            sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
+        }
     }
     runs {
         client { client() }

@@ -1,7 +1,6 @@
 package com.terrasect.fabric.mixin;
 
-import com.terrasect.common.generation.MinecraftContext;
-import net.minecraft.core.registries.Registries;
+import com.terrasect.common.handler.LevelHandler;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -14,8 +13,6 @@ import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-import net.minecraft.world.level.levelgen.RandomState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,72 +29,36 @@ import java.util.concurrent.Executor;
  * in MC 1.21.1 but removed in MC 1.21.11.
  * 
  * <p>Registers the narrative generation context when a level is initialized.
+ * All logic is in {@link LevelHandler}.
  */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
-    @Inject(method = "<init>", at = @At("HEAD"))
-    private static void onInitHead(MinecraftServer minecraftServer, Executor executor, 
-            LevelStorageSource.LevelStorageAccess levelStorageAccess, ServerLevelData serverLevelData, 
-            ResourceKey<Level> resourceKey, LevelStem levelStem,
+    @Inject(method = "<init>", at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+            ordinal = 0,
+            shift = At.Shift.BEFORE
+    ))
+    private void onInit(MinecraftServer server, Executor executor, 
+            LevelStorageSource.LevelStorageAccess storage, ServerLevelData levelData, 
+            ResourceKey<Level> dimension, LevelStem levelStem,
             ChunkProgressListener chunkProgressListener,  // Present in 1.21.1, removed in 1.21.11
-            boolean bl, long seed, List<CustomSpawner> list, boolean bl2, 
+            boolean bl, long seed, List<CustomSpawner> spawners, boolean bl2, 
             @Nullable RandomSequences randomSequences, 
             CallbackInfo ci) {
         
-        var generator = levelStem.generator();
+        ServerLevel level = (ServerLevel) (Object) this;
+        var generator = level.getChunkSource().getGenerator();
         var biomeSource = generator.getBiomeSource();
-
         
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise 
                 && generator instanceof NoiseBasedChunkGenerator) {
             
-            
-            var settings = getNoiseSettings(minecraftServer, resourceKey);
-            
-            
-            var noiseParams = minecraftServer.registryAccess().lookupOrThrow(Registries.NOISE);
-            
-            
-            var randomState = RandomState.create(settings, noiseParams, seed);
-            var sampler = randomState.sampler();
-            
-            
             var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            var sampler = level.getChunkSource().randomState().sampler();
             
-            
-            MinecraftContext.create(resourceKey, seed, sampler, parameters);
-        }
-        
-        
-    }
-    
-    /**
-     * Get the appropriate noise settings for a dimension.
-     * 
-     * @param server The Minecraft server
-     * @param dimension The dimension resource key
-     * @return NoiseGeneratorSettings for this dimension
-     */
-    private static NoiseGeneratorSettings getNoiseSettings(MinecraftServer server, ResourceKey<Level> dimension) {
-        try {
-            var noiseSettingsRegistry = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS);
-            
-            
-            if (dimension == Level.OVERWORLD) {
-                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
-            } else if (dimension == Level.NETHER) {
-                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.NETHER).value();
-            } else if (dimension == Level.END) {
-                return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.END).value();
-            }
-            
-            
-            
-            return noiseSettingsRegistry.getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
-        } catch (Exception e) {
-            
-            return NoiseGeneratorSettings.dummy();
+            LevelHandler.registerContext(dimension, seed, sampler, parameters);
         }
     }
 }

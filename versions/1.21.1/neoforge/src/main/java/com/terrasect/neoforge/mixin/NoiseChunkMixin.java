@@ -21,6 +21,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * 1.21.1 version of NoiseChunkMixin.
+ * 
+ * <p>In 1.21.1, there is no {@code preliminarySurfaceLevel} DensityFunction field.
+ * Instead, we inject BEFORE the {@code aquifer} field is assigned, which achieves
+ * the same goal of initializing our height lookup before aquifer construction.
+ */
 @Mixin(NoiseChunk.class)
 public class NoiseChunkMixin {
 
@@ -30,11 +37,16 @@ public class NoiseChunkMixin {
     @Unique
     private Aquifer.FluidPicker terrasect$fluidPicker;
 
+    /**
+     * Build TerrainHeightLookup BEFORE Aquifer is constructed.
+     * 
+     * <p>In 1.21.1, we target the first write to the {@code aquifer} field.
+     * By using BEFORE shift, our code runs before aquifer is assigned.
+     */
     @Inject(method = "<init>", at = @At(
         value = "FIELD",
-        target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
-        opcode = Opcodes.PUTFIELD,
-        shift = At.Shift.AFTER
+        target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
+        opcode = Opcodes.PUTFIELD
     ))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
@@ -47,6 +59,9 @@ public class NoiseChunkMixin {
             Aquifer.FluidPicker fluidPicker,
             Blender blender,
             CallbackInfo ci) {
+        // Only initialize once (there are two writes to aquifer in the if/else)
+        if (this.terrasect$heightLookup != null) return;
+        
         this.terrasect$fluidPicker = fluidPicker;
         MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
 

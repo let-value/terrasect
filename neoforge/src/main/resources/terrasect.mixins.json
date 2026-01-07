@@ -14,7 +14,9 @@
     "NoiseMixin",
     "ShiftedNoiseMixin",
     "WeirdScaledSamplerMixin",
-    "ShiftNoiseMixin"
+    "ShiftNoiseMixin",
+    "ShiftANoiseMixin",
+    "ShiftBNoiseMixin"
   ],
   "injectors": {
     "defaultRequire": 1
