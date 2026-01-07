@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'fabric-loom' version "${fabric_loom_version}"
+}
+
+apply from: rootProject.file('gradle/versioned.gradle')
+
+def javaVersion = property('java_version')
+def baseProjectPath = property('base_project')
+def minecraftVersion = property('minecraft_version')
+def fabricLoaderVersion = property('fabric_loader_version')
+
+evaluationDependsOn(baseProjectPath)
+def baseProject = project(baseProjectPath)
+
+// API incompatibilities (no local override)
+def excludedFiles = [
+    'com/terrasect/common/gui/RegionDebugEntry.java',
+]
+def allExclusions = excludedFiles + collectLocalFiles('src/main/java')
+
+// Filtered base sources
+def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
+def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+}
+
+configureInheritedSourceSet(sourceSets.main, 'src/main/java', filteredDir, baseProject.sourceSets.main.resources.srcDirs)
+configureCompileTask(tasks.compileJava, copyTask, javaVersion)
+
+configureSourcesJar([copyTask]) {
+    from(baseProject.sourceSets.main.allSource) { exclude allExclusions }
+}

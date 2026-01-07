@@ -18,20 +18,12 @@ def neoforgeVersionMajor = neoforgeVersion.split('\\.').take(2).join('.')
 
 neoForge {
     version = neoforgeVersion
-    
     mods {
-        terrasect {
-            sourceSet sourceSets.main
-        }
+        terrasect { sourceSet sourceSets.main }
     }
-    
     runs {
-        client {
-            client()
-        }
-        server {
-            server()
-        }
+        client { client() }
+        server { server() }
     }
 }
 
@@ -45,30 +37,19 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-compileJava {
-    options.encoding = 'UTF-8'
-}
-
-compileTestJava {
-    options.encoding = 'UTF-8'
-}
-
-test {
-    useJUnitPlatform()
-}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+test { useJUnitPlatform() }
 
 jar {
     from(project(':common').sourceSets.main.output)
-    manifest {
-        attributes([
-                'Specification-Title'     : 'terrasect',
-                'Specification-Vendor'    : 'terrasect',
-                'Specification-Version'   : project.version,
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.version,
-                'Implementation-Vendor'   : 'terrasect'
-        ])
-    }
+    manifest.attributes([
+        'Specification-Title'   : 'terrasect',
+        'Specification-Vendor'  : 'terrasect',
+        'Specification-Version' : project.version,
+        'Implementation-Title'  : project.name,
+        'Implementation-Version': project.version,
+        'Implementation-Vendor' : 'terrasect'
+    ])
 }
 
 sourcesJar {

@@ -35,40 +35,21 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-compileJava {
-    options.encoding = 'UTF-8'
-}
-
-compileTestJava {
-    options.encoding = 'UTF-8'
-}
-
-test {
-    useJUnitPlatform()
-}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+test { useJUnitPlatform() }
 
 loom {
     splitEnvironmentSourceSets()
     accessWidenerPath = file('src/main/resources/terrasect.accesswidener')
-    
     mods {
         create('terrasect') {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
     }
-    
     runs {
-        client {
-            ideConfigGenerated true
-            runDir 'runs/fabric-client'
-            client()
-        }
-        server {
-            ideConfigGenerated true
-            runDir 'runs/fabric-server'
-            server()
-        }
+        client { ideConfigGenerated true; runDir 'runs/fabric-client'; client() }
+        server { ideConfigGenerated true; runDir 'runs/fabric-server'; server() }
     }
 }
 

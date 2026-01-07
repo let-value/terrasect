@@ -23,7 +23,23 @@ def excludedDirs = [
         'versions'
 ]
 
+// Include root-level projects (common, fabric, neoforge)
 rootDir.listFiles()
         .findAll { it.isDirectory() && !excludedDirs.contains(it.name) && file("${it.name}/build.gradle").isFile() }
         .sort { it.name }
         .each { include(it.name) }
+
+// Include versioned projects (e.g., versions/1.21.1/common -> common-1_21_1)
+file('versions').listFiles()
+        ?.findAll { it.isDirectory() && !it.name.startsWith('.') }
+        ?.sort { it.name }
+        ?.each { versionDir ->
+                def versionId = versionDir.name.replace('.', '_')
+                versionDir.listFiles()
+                        ?.findAll { it.isDirectory() && file("${it.absolutePath}/build.gradle").isFile() }
+                        ?.each { loaderDir ->
+                                def projectName = "${loaderDir.name}-${versionId}"
+                                include(projectName)
+                                project(":${projectName}").projectDir = loaderDir
+                        }
+        }

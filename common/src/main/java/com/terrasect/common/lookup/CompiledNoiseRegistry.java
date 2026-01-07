@@ -1,13 +1,13 @@
 package com.terrasect.common.lookup;
 
 import com.terrasect.common.Terrasect;
+import com.terrasect.common.compat.ResourceKeyCompat;
 import com.terrasect.common.definition.NoiseConstraints;
 import com.terrasect.common.definition.NoiseTransform;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
@@ -87,8 +87,7 @@ public final class CompiledNoiseRegistry {
         for (var entry : noises.entrySet()) {
             NoiseTransform transform = entry.getValue();
             if (transform == null || transform.isEmpty()) continue;
-            Identifier id = Identifier.tryParse(entry.getKey());
-            if (id == null) continue;
+            if (ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey()) == null) continue;
             count++;
         }
 
@@ -105,13 +104,13 @@ public final class CompiledNoiseRegistry {
             NoiseTransform transform = entry.getValue();
             if (transform == null || transform.isEmpty()) continue;
 
-            Identifier id = Identifier.tryParse(entry.getKey());
-            if (id == null) {
+            ResourceKey<NormalNoise.NoiseParameters> key = ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey());
+            if (key == null) {
                 Terrasect.LOGGER.warn("Invalid noise key '{}' in NoiseConstraints; skipping", entry.getKey());
                 continue;
             }
 
-            keys[i] = ResourceKey.create(Registries.NOISE, id);
+            keys[i] = key;
             transforms[i] = CompiledTransform.compile(transform);
             i++;
         }

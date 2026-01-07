@@ -1,0 +1,71 @@
+/**
+ * Shared utilities for versioned projects that inherit sources from base projects.
+ * 
+ * Usage in versioned build.gradle:
+ *   apply from: rootProject.file('gradle/versioned.gradle')
+ *   
+ *   ext.excludedFiles = ['path/to/File.java']
+ *   ext.baseProjectPath = property('base_project')
+ *   
+ *   configureSourceInheritance(baseProjectPath, excludedFiles)
+ */
+
+ext {
+    /**
+     * Collect relative paths of all Java files in a directory.
+     */
+    collectLocalFiles = { String srcDir ->
+        def dir = file(srcDir)
+        if (!dir.exists()) return []
+        fileTree(dir).files.collect {
+            it.path.replace(dir.path, '').replace('\\', '/').substring(1)
+        }
+    }
+    
+    /**
+     * Create a Copy task that filters base sources, excluding local overrides and incompatible files.
+     */
+    createFilteredSourceTask = { String taskName, baseSourceDirs, Provider<Directory> outputDir, List<String> exclusions ->
+        tasks.register(taskName, Copy) {
+            from(baseSourceDirs)
+            into(outputDir)
+            exclude(exclusions)
+        }
+    }
+    
+    /**
+     * Configure a source set to include local sources and filtered base sources.
+     */
+    configureInheritedSourceSet = { sourceSet, String localDir, Provider<Directory> filteredDir, baseResources ->
+        sourceSet.java {
+            srcDir localDir
+            srcDir filteredDir
+        }
+        if (baseResources) {
+            sourceSet.resources.srcDirs += baseResources
+        }
+    }
+    
+    /**
+     * Configure compile task with standard options and copy task dependency.
+     */
+    configureCompileTask = { compileTask, copyTask, String javaVersion ->
+        compileTask.configure {
+            dependsOn copyTask
+            options.encoding = 'UTF-8'
+            options.release = Integer.parseInt(javaVersion)
+        }
+    }
+    
+    /**
+     * Configure sourcesJar with proper dependencies and duplicate handling.
+     */
+    configureSourcesJar = { List<TaskProvider> copyTasks, Closure fromConfig ->
+        tasks.named('sourcesJar') {
+            copyTasks.each { dependsOn it }
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            fromConfig.delegate = delegate
+            fromConfig()
+        }
+    }
+}
