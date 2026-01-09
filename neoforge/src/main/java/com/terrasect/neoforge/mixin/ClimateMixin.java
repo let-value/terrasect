@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * The only mixin-specific logic is the vanilla sampling bypass via ThreadLocal.
  */
 @Mixin(Climate.Sampler.class)
-public class ClimateMixin implements VanillaSampler {
+public class ClimateMixin implements VanillaSamplerAccessor {
     
     /** Thread-local flag to bypass modifications (prevents recursion). */
     @Unique
