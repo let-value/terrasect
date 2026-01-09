@@ -9,11 +9,19 @@ import com.terrasect.common.strategy.QueryResult;
 
 final class Layout {
 
-    // Thread-local result to avoid allocations
-    private static final ThreadLocal<TraversalResult> RESULT = ThreadLocal.withInitial(TraversalResult::new);
+    // Thread-local iterator to avoid allocations
+    private static final ThreadLocal<TraversalIterator> ITERATOR = ThreadLocal.withInitial(TraversalIterator::new);
     
-    /** Maximum depth to traverse (effectively infinite) */
-    static final int MAX_DEPTH = 100;
+    // Thread-local traversal state (kept separate from iterator for encapsulation)
+    private static final ThreadLocal<TraversalState> STATE = ThreadLocal.withInitial(TraversalState::new);
+    
+    /** Internal traversal state - all layout logic stays here */
+    private static final class TraversalState {
+        long currentSeed;
+        float cx, cz, radius;
+        float wx, wz;
+        float minBlockDistToEdge;
+    }
 
     // Warp configuration - simple 3-layer approach:
     // 1. Base warp: organic region shapes (like vanilla biomes)
@@ -35,85 +43,89 @@ final class Layout {
     private static final long SPAWN_SAFE_RADIUS_SQ = (long) SPAWN_SAFE_RADIUS * (long) SPAWN_SAFE_RADIUS;
 
     /**
-     * Traverse the region hierarchy and return full result.
+     * Start an iterative traversal of the region hierarchy.
      * 
-     * <p>Returns thread-local result - caller must use values before next call on same thread.
+     * <p>Returns thread-local iterator - caller must consume values before next call on same thread.
+     * Use {@link TraversalIterator#next()} to step through each depth level.
      * 
      * @param root The root region
      * @param x Block X coordinate
      * @param z Block Z coordinate
      * @param context The generation context
-     * @param targetDepth Maximum depth to traverse (use MAX_DEPTH for leaf)
      * @param gridOffsetX Grid offset X for anchor alignment
      * @param gridOffsetZ Grid offset Z for anchor alignment
-     * @return TraversalResult with region, seed, edgeDistance, and edgeInfluence
+     * @return TraversalIterator positioned at root, ready to iterate
      */
-    static TraversalResult traverse(Region root, int x, int z, Context context, int targetDepth,
-                             float gridOffsetX, float gridOffsetZ) {
-        TraversalResult out = RESULT.get();
-        out.edgeDistance = 1.0f;  // Start at center, take minimum during traversal
-        float minBlockDistToEdge = Float.MAX_VALUE;  // Track actual block distance for edgeInfluence
-        
-        long currentSeed = context.getSeed();
-        // WARPED TRAVERSAL: Apply offset first, then warp, then traverse.
-        // This creates organic region boundaries while maintaining proper parent-child containment.
-        // Offset is applied BEFORE warp so that the anchored region's input coords become (0,0).
+    static TraversalIterator startTraversal(Region root, int x, int z, Context context,
+                                            float gridOffsetX, float gridOffsetZ) {
+        long seed = context.getSeed();
         
         // Apply grid offset first (shifts input coords so anchored region is at origin)
         int offsetX = x + (int) gridOffsetX;
         int offsetZ = z + (int) gridOffsetZ;
         
         // Then apply warp to the offset coordinates
-        long packedWarp = getWarpedPoint(offsetX, offsetZ, currentSeed, context);
+        long packedWarp = getWarpedPoint(offsetX, offsetZ, seed, context);
         float wx = Packer.unpackPairSecond(packedWarp);
         float wz = Packer.unpackPairFirst(packedWarp);
-
-        Region currentRegion = root;
-        float cx = 0;
-        float cz = 0;
-        // Use pre-baked radius from Region
-        float radius = root.radius();
-
-        int currentDepth = 0;
-        while (currentRegion.hasChildren() && currentDepth < targetDepth) {
-            // Use WARPED coordinates relative to parent center
-            // Same warped coords used at all depths ensures children stay in parent bounds
-            float dx = wx - cx;
-            float dz = wz - cz;
-
-            // Single query returns all needed values
-            QueryResult result = LayoutStrategies.query(currentRegion, currentSeed, dx, dz, radius);
-            
-            currentRegion = currentRegion.children().get(result.childIndex);
-            currentSeed = result.childSeed;
-            cx += result.centerX * radius;
-            cz += result.centerZ * radius;
-            radius *= result.radius;
-            
-            // Track minimum edge distance across all hierarchy levels
-            out.edgeDistance = Math.min(out.edgeDistance, result.edgeDistance);
-            
-            // Compute actual block distance to edge for this level
-            // edgeDistance is normalized (0=edge, 1=center), radius is in blocks
-            float blockDist = result.edgeDistance * radius;
-            minBlockDistToEdge = Math.min(minBlockDistToEdge, blockDist);
-
-            currentDepth++;
+        
+        // Initialize state
+        TraversalState state = STATE.get();
+        state.currentSeed = seed;
+        state.cx = 0;
+        state.cz = 0;
+        state.radius = root.radius();
+        state.wx = wx;
+        state.wz = wz;
+        state.minBlockDistToEdge = Float.MAX_VALUE;
+        
+        // Initialize iterator
+        TraversalIterator iter = ITERATOR.get();
+        iter.currentRegion = root;
+        iter.result.region = root;
+        iter.result.seed = seed;
+        iter.result.edgeDistance = 1.0f;
+        iter.result.edgeInfluence = 0.0f;
+        
+        return iter;
+    }
+    
+    /**
+     * Advance the iterator one depth level.
+     * Called by TraversalIterator.next().
+     */
+    static TraversalIterator step(TraversalIterator iter) {
+        if (!iter.currentRegion.hasChildren()) {
+            return null;
         }
-
-        out.region = currentRegion;
-        out.seed = currentSeed;
+        
+        TraversalState state = STATE.get();
+        
+        float dx = state.wx - state.cx;
+        float dz = state.wz - state.cz;
+        
+        QueryResult query = LayoutStrategies.query(iter.currentRegion, state.currentSeed, dx, dz, state.radius);
+        
+        iter.currentRegion = iter.currentRegion.children().get(query.childIndex);
+        state.currentSeed = query.childSeed;
+        state.cx += query.centerX * state.radius;
+        state.cz += query.centerZ * state.radius;
+        state.radius *= query.radius;
+        
+        // Update result
+        iter.result.region = iter.currentRegion;
+        iter.result.seed = state.currentSeed;
+        iter.result.edgeDistance = Math.min(iter.result.edgeDistance, query.edgeDistance);
+        
+        // Track block distance for edgeInfluence
+        float blockDist = query.edgeDistance * state.radius;
+        state.minBlockDistToEdge = Math.min(state.minBlockDistToEdge, blockDist);
         
         // Compute edgeInfluence: 0 when >8 blocks from edge, ramps to 1 at edge
-        // Formula: 1 - clamp(blockDist / 8, 0, 1)
-        if (minBlockDistToEdge == Float.MAX_VALUE) {
-            out.edgeInfluence = 0.0f;  // No traversal happened, assume interior
-        } else {
-            float normalized = minBlockDistToEdge / 8.0f;
-            out.edgeInfluence = 1.0f - Math.min(normalized, 1.0f);
-        }
+        float normalized = state.minBlockDistToEdge / 8.0f;
+        iter.result.edgeInfluence = 1.0f - Math.min(normalized, 1.0f);
         
-        return out;
+        return iter;
     }
 
     /**

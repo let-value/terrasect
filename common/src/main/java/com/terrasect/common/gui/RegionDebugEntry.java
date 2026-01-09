@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 
 import com.terrasect.common.generation.MinecraftContext;
+import com.terrasect.common.generation.TraversalIterator;
 import com.terrasect.common.generation.World;
 
 import net.minecraft.client.Minecraft;
@@ -38,33 +39,27 @@ public class RegionDebugEntry implements DebugScreenEntry {
         // Build region hierarchy with per-region edge/influence info
         var sb = new StringBuilder("Regions: ");
         
-        int depth = 1;
-        String prevName = null;
-        while (depth <= 5) {
-            var traversal = World.traverse(context, blockX, blockZ, depth);
-            if (traversal == null) break;
-            
-            var region = traversal.region;
+        TraversalIterator iter = World.traverseIterator(context, blockX, blockZ);
+        if (iter == null) return;
+        
+        int depth = 0;
+        do {
+            var step = iter.current();
+            var region = step.region;
             if (region == null) break;
             
-            // Stop if we've reached a leaf (same region as previous depth)
-            if (prevName != null && prevName.equals(region.name())) {
-                break;
-            }
-            
-            if (depth > 1) {
+            if (depth > 0) {
                 sb.append(">");
             }
             sb.append(region.name());
             sb.append(String.format("(e:%.0f%%,i:%.0f%%)", 
-                traversal.edgeDistance * 100, 
-                traversal.edgeInfluence * 100));
+                step.edgeDistance * 100, 
+                step.edgeInfluence * 100));
             
-            prevName = region.name();
             depth++;
-        }
+        } while (iter.hasNext() && iter.next() != null && depth < 5);
         
-        if (depth > 1) {
+        if (depth > 0) {
             lines.addLine(sb.toString());
         }
     }

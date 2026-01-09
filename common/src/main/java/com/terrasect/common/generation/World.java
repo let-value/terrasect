@@ -96,7 +96,11 @@ public final class World {
      * @return TraversalResult, or null if dimension not registered
      */
     public static @Nullable TraversalResult traverse(Context context, int x, int z) {
-        return traverse(context, x, z, Layout.MAX_DEPTH);
+        TraversalIterator iter = traverseIterator(context, x, z);
+        if (iter == null) {
+            return null;
+        }
+        return iter.toLeaf().current();
     }
 
     /**
@@ -115,15 +119,52 @@ public final class World {
      * @return TraversalResult, or null if dimension not registered
      */
     public static @Nullable TraversalResult traverse(Context context, int x, int z, int depth) {
+        TraversalIterator iter = traverseIterator(context, x, z);
+        if (iter == null) {
+            return null;
+        }
+        
+        int currentDepth = 0;
+        while (iter.hasNext() && currentDepth < depth) {
+            iter.next();
+            currentDepth++;
+        }
+        
+        return iter.current();
+    }
+
+    /**
+     * Start an iterative traversal of the region hierarchy.
+     * 
+     * <p>
+     * Returns thread-local iterator - caller must consume values before next call
+     * on same thread. Use to step through each depth level without redundant work.
+     * 
+     * <p>Usage:
+     * <pre>{@code
+     * TraversalIterator iter = World.traverseIterator(context, x, z);
+     * if (iter != null) {
+     *     do {
+     *         TraversalResult step = iter.current();
+     *         // use step.region, step.seed, step.edgeDistance, step.edgeInfluence
+     *     } while (iter.hasNext() && iter.next() != null);
+     * }
+     * }</pre>
+     * 
+     * @param context The generation context
+     * @param x       Block X coordinate
+     * @param z       Block Z coordinate
+     * @return TraversalIterator positioned at root, or null if dimension not registered
+     */
+    public static @Nullable TraversalIterator traverseIterator(Context context, int x, int z) {
         DimensionState state = DIMENSIONS.get(context.getDimensionId());
         if (state == null) {
             return null;
         }
-    
-        TraversalResult result = Layout.traverse(
-                state.root, x, z, context, depth,
+        
+        return Layout.startTraversal(
+                state.root, x, z, context,
                 state.offsetX, state.offsetZ);
-        return result;
     }
 
     /**
@@ -224,7 +265,11 @@ public final class World {
 
         String targetName = anchored.name();
 
-        TraversalResult atOrigin = Layout.traverse(root, 0, 0, context, targetDepth, 0, 0);
+        TraversalIterator iter = Layout.startTraversal(root, 0, 0, context, 0, 0);
+        for (int d = 0; d < targetDepth && iter.hasNext(); d++) {
+            iter.next();
+        }
+        TraversalResult atOrigin = iter.current();
         if (atOrigin.region != null && atOrigin.region.name().equals(targetName)) {
             Terrasect.LOGGER.info("Anchored region '{}' already at origin", targetName);
             return new float[] { 0, 0 };
@@ -240,7 +285,11 @@ public final class World {
                 int sampleX = (int) (Math.cos(angle) * ringRadius);
                 int sampleZ = (int) (Math.sin(angle) * ringRadius);
 
-                TraversalResult sampled = Layout.traverse(root, sampleX, sampleZ, context, targetDepth, 0, 0);
+                iter = Layout.startTraversal(root, sampleX, sampleZ, context, 0, 0);
+                for (int d = 0; d < targetDepth && iter.hasNext(); d++) {
+                    iter.next();
+                }
+                TraversalResult sampled = iter.current();
                 if (sampled.region != null && sampled.region.name().equals(targetName)) {
 
                     Terrasect.LOGGER.info("Found anchored region '{}' at ({}, {})",
