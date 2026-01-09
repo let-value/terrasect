@@ -75,5 +75,4 @@ processResources {
     filesMatching('fabric.mod.json') { expand(expandProps) }
 }
 
-// Register unpackMinecraft task for this Minecraft version
 createUnpackMinecraftTask(rootProject.property('minecraft_version'))

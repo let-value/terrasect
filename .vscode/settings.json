@@ -11,5 +11,12 @@
         "node_modules",
         "\\.git",
         "minecraft"
+    ],
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/.metadata/**",
+        "**/archetype-resources/**",
+        "**/META-INF/maven/**",
+        "**/minecraft/**"
     ]
 }
