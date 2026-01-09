@@ -1,6 +1,6 @@
 package com.terrasect.common.helpers;
 
-import com.terrasect.common.compat.MutableClimateTargetPoint;
+import com.terrasect.common.mixin.ClimateTargetPointAccessor;
 import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.definition.ClimateSettings.ClimateRange;
 
@@ -18,7 +18,7 @@ public final class ClimateModifier {
     /**
      * Apply region climate constraints to a {@link Climate.TargetPoint}.
      *
-     * <p>If {@code point} is mixin-extended to implement {@link MutableClimateTargetPoint}, it is mutated in place and
+     * <p>If {@code point} is mixin-extended to implement {@link ClimateTargetPointAccessor}, it is mutated in place and
      * returned. Otherwise, a new {@link Climate.TargetPoint} is allocated when modifications are needed.
      */
     public static Climate.TargetPoint modify(ClimateSettings climate, Climate.TargetPoint point, float edgeFactor) {
@@ -65,7 +65,7 @@ public final class ClimateModifier {
             return point;
         }
 
-        if ((Object) point instanceof MutableClimateTargetPoint mutable) {
+        if ((Object) point instanceof ClimateTargetPointAccessor mutable) {
             mutable.terrasect$setTemperature(newTemp);
             mutable.terrasect$setHumidity(newHumidity);
             mutable.terrasect$setContinentalness(newContinentalness);

@@ -1,4 +1,4 @@
-package com.terrasect.common.generation;
+package com.terrasect.common.mixin;
 
 import net.minecraft.world.level.biome.Climate;
 
@@ -8,6 +8,6 @@ import net.minecraft.world.level.biome.Climate;
  * <p>This interface is implemented via mixin on Climate.Sampler to allow
  * getting the original climate values before any modifications are applied.
  */
-public interface VanillaSampler {
+public interface VanillaSamplerAccessor {
     Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z);
 }

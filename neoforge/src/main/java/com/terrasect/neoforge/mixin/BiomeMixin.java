@@ -2,6 +2,7 @@ package com.terrasect.neoforge.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.handler.BiomeHandler;
+import com.terrasect.common.mixin.MultiNoiseBiomeSourceAccessor;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
@@ -32,7 +33,7 @@ public class BiomeMixin {
         
         MinecraftContext context = MinecraftContext.get(sampler);
         if (context == null) {
-            return ((MultiNoiseBiomeSourceAccessor) self).getParameters().map(
+            return ((MultiNoiseBiomeSourceAccessor) self).terrasect$getParameters().map(
                 list -> list,
                 holder -> holder.value().parameters()
             ).findValue(targetPoint);

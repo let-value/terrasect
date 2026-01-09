@@ -1,6 +1,7 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.handler.LevelHandler;
+import com.terrasect.common.mixin.MultiNoiseBiomeSourceAccessor;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -55,7 +56,7 @@ public class LevelMixin {
         if (biomeSource instanceof MultiNoiseBiomeSource multiNoise 
                 && generator instanceof NoiseBasedChunkGenerator) {
             
-            var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).getParameters();
+            var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
             var sampler = level.getChunkSource().randomState().sampler();
             
             LevelHandler.registerContext(dimension, seed, sampler, parameters);

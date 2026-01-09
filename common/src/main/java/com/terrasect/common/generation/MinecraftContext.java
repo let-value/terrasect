@@ -5,6 +5,7 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 import com.mojang.datafixers.util.Either;
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.SelectionRules;
+import com.terrasect.common.mixin.VanillaSamplerAccessor;
 import com.terrasect.common.util.Packer;
 import com.terrasect.common.lookup.BiomeLookup;
 
@@ -108,7 +109,7 @@ public class MinecraftContext implements Context {
         if (sampler == null || paramList == null) return 0L;
         
         // Sample climate once for both river and ridge influence
-        Climate.TargetPoint target = ((VanillaSampler) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
+        Climate.TargetPoint target = ((VanillaSamplerAccessor) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
         
         // River influence: binary check against biome tag
         Holder<Biome> biome = paramList.findValue(target);

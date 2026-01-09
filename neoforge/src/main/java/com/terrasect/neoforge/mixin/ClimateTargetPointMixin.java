@@ -1,13 +1,13 @@
-package com.terrasect.fabric.mixin;
+package com.terrasect.neoforge.mixin;
 
-import com.terrasect.common.compat.MutableClimateTargetPoint;
+import com.terrasect.common.mixin.ClimateTargetPointAccessor;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Climate.TargetPoint.class)
-public interface ClimateTargetPointAccessor extends MutableClimateTargetPoint {
+public interface ClimateTargetPointMixin extends ClimateTargetPointAccessor {
     @Accessor("temperature")
     @Mutable
     @Override

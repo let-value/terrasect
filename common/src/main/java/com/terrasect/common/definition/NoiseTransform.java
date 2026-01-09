@@ -9,6 +9,7 @@ import java.util.List;
  *
  * <p>This is configuration data only. Hot-path integration is expected to interpret these operations
  * without allocating (e.g. via precompiled switch loops or by rewriting density functions at setup time).
+ * TODO: Move somewhere else?
  */
 public record NoiseTransform(List<NoiseTransform.Operation> operations) {
     private static final NoiseTransform EMPTY = new NoiseTransform(Collections.emptyList());

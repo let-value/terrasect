@@ -1,6 +1,6 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.common.compat.ShiftNoiseAccess;
+import com.terrasect.common.mixin.ShiftNoiseAccess;
 import com.terrasect.common.handler.NoiseHandler;
 
 import net.minecraft.world.level.levelgen.DensityFunction;

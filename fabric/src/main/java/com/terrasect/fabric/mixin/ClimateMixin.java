@@ -1,7 +1,7 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.generation.VanillaSampler;
+import com.terrasect.common.mixin.VanillaSamplerAccessor;
 import com.terrasect.common.handler.ClimateHandler;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * The only mixin-specific logic is the vanilla sampling bypass via ThreadLocal.
  */
 @Mixin(Climate.Sampler.class)
-public class ClimateMixin implements VanillaSampler {
+public class ClimateMixin implements VanillaSamplerAccessor {
     
     /** Thread-local flag to bypass modifications (prevents recursion). */
     @Unique
