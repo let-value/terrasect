@@ -4,6 +4,7 @@ plugins {
 }
 
 apply from: rootProject.file('gradle/versioned.gradle')
+apply from: rootProject.file('gradle/loaders/fabric.gradle')
 
 def javaVersion = property('java_version')
 def baseProjectPath = property('base_project')
@@ -81,3 +82,5 @@ configureSourcesJar([copyMain, copyClient]) {
     from(baseProject.sourceSets.main.allSource) { exclude mainExclusions }
     from(baseProject.sourceSets.client.allSource) { exclude clientExclusions }
 }
+
+createUnpackMinecraftTask(minecraftVersion)

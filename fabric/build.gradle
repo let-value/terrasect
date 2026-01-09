@@ -3,6 +3,8 @@ plugins {
     id 'fabric-loom' version "${fabric_loom_version}"
 }
 
+apply from: rootProject.file('gradle/loaders/fabric.gradle')
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(rootProject.property('java_version'))
     withSourcesJar()
@@ -72,3 +74,6 @@ processResources {
     inputs.properties(expandProps)
     filesMatching('fabric.mod.json') { expand(expandProps) }
 }
+
+// Register unpackMinecraft task for this Minecraft version
+createUnpackMinecraftTask(rootProject.property('minecraft_version'))

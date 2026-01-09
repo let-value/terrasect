@@ -5,5 +5,11 @@
         "name": "Fabric Tests",
         "workingDirectory": "${workspaceFolder}",
         "vmArgs": ["-ea"]
-    }
+    },
+    "java.project.sourcePaths": [],
+    "java.project.resourceFilters": [
+        "node_modules",
+        "\\.git",
+        "minecraft"
+    ]
 }

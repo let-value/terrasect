@@ -56,3 +56,4 @@ common/dist
 fabric/dist
 
 minecraft
+**/minecraft
