@@ -38,4 +38,3 @@ public interface ClimateTargetPointMixin extends ClimateTargetPointAccessor {
     @Override
     void terrasect$setWeirdness(long weirdness);
 }
-

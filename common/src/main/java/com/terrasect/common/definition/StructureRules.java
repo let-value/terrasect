@@ -7,10 +7,7 @@ import java.util.Set;
 /**
  * Structure-specific rules, including required placements for narrative beats.
  */
-public record StructureRules(
-    SelectionRules selection,
-    Set<String> requiredStructures
-) {
+public record StructureRules(SelectionRules selection, Set<String> requiredStructures) {
     public StructureRules {
         if (selection == null) selection = SelectionRules.empty();
         if (requiredStructures == null) requiredStructures = Collections.emptySet();

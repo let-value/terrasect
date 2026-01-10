@@ -1,10 +1,9 @@
 package com.terrasect.common.compat;
 
+import java.util.stream.Stream;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
-
-import java.util.stream.Stream;
 
 /**
  * Compatibility helpers for accessing biome metadata across Minecraft versions.
@@ -17,9 +16,7 @@ public final class BiomeCompat {
      * Get the string ID for a biome holder.
      */
     public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey()
-            .map(ResourceKeyCompat::getKeyId)
-            .orElse("unknown");
+        return biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
     }
 
     /**

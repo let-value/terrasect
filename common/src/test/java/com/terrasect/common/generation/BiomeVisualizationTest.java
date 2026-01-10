@@ -2,7 +2,6 @@ package com.terrasect.common.generation;
 
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.Context;
-import com.terrasect.common.util.Packer;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
@@ -10,7 +9,13 @@ import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
-
+import com.terrasect.common.util.Packer;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -26,13 +31,6 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
 
 public class BiomeVisualizationTest {
 
@@ -63,7 +61,8 @@ public class BiomeVisualizationTest {
         NoiseGeneratorSettings settings;
         try {
             settings = lookup.lookupOrThrow(Registries.NOISE_SETTINGS)
-                    .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+                    .getOrThrow(NoiseGeneratorSettings.OVERWORLD)
+                    .value();
         } catch (Exception e) {
             settings = NoiseGeneratorSettings.dummy();
         }
@@ -75,7 +74,8 @@ public class BiomeVisualizationTest {
         var overworldParameters = parameterListLookup.getOrThrow(
                 net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists.OVERWORLD);
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(overworldParameters);
-        Climate.ParameterList<Holder<Biome>> parameterList = overworldParameters.value().parameters();
+        Climate.ParameterList<Holder<Biome>> parameterList =
+                overworldParameters.value().parameters();
 
         Context context = createStrategy(seed, sampler, biomeSource);
 
@@ -163,7 +163,6 @@ public class BiomeVisualizationTest {
                 filteredBiomes.setRGB(px, py, biomeToColor(finalBiome));
                 filterOverlay.setRGB(px, py, overlayColor);
                 regionMap.setRGB(px, py, getRegionColor(region, edgeFactor));
-
             }
         }
 
@@ -198,10 +197,10 @@ public class BiomeVisualizationTest {
         System.out.println("Pixels with filtering rules: " + totalWithRules);
         System.out.println("Biomes blocked: " + blockedCount);
         System.out.println("Biomes replaced with fallback: " + replacedCount);
-        System.out.println("Block rate (of filtered area): " +
-                String.format("%.2f%%", totalWithRules > 0 ? 100.0 * blockedCount / totalWithRules : 0));
-        System.out.println("Biomes changed: " + replacedCount +
-                " (" + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
+        System.out.println("Block rate (of filtered area): "
+                + String.format("%.2f%%", totalWithRules > 0 ? 100.0 * blockedCount / totalWithRules : 0));
+        System.out.println("Biomes changed: " + replacedCount + " ("
+                + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
 
         // Print performance summary
@@ -216,25 +215,21 @@ public class BiomeVisualizationTest {
         registry.region("WORLD")
                 .strategy(GenerationStrategyType.VORONOI)
                 // Forest-only region - blocks everything except forests
-                .child("ETERNAL_FOREST", region -> region
-                        .radius(150)
-                        .biomes(b -> b.allowTags("#minecraft:is_forest")))
+                .child("ETERNAL_FOREST", region -> region.radius(150).biomes(b -> b.allowTags("#minecraft:is_forest")))
                 // No-ocean region - blocks all ocean biomes
-                .child("LANDLOCKED", region -> region
-                        .radius(200)
+                .child("LANDLOCKED", region -> region.radius(200)
                         .biomes(b -> b.blockTags("#minecraft:is_ocean", "#minecraft:is_river")))
                 // Vanilla-only region - only minecraft biomes allowed
-                .child("PURIST_LANDS", region -> region
-                        .radius(500)
-                        .biomes(b -> b.allowMods("minecraft")))
+                .child("PURIST_LANDS", region -> region.radius(500).biomes(b -> b.allowMods("minecraft")))
                 // Specific biome allowlist
-                .child("CURATED_ZONE", region -> region
-                        .radius(300)
-                        .biomes(b -> b.allowNames("minecraft:plains", "minecraft:sunflower_plains",
-                                "minecraft:meadow", "minecraft:flower_forest")))
+                .child("CURATED_ZONE", region -> region.radius(300)
+                        .biomes(b -> b.allowNames(
+                                "minecraft:plains",
+                                "minecraft:sunflower_plains",
+                                "minecraft:meadow",
+                                "minecraft:flower_forest")))
                 // No filtering - vanilla behavior
-                .child("WILDERNESS", region -> region
-                        .radius(400));
+                .child("WILDERNESS", region -> region.radius(400));
 
         return registry.build("WORLD");
     }
@@ -277,7 +272,8 @@ public class BiomeVisualizationTest {
     private long calculateClimateDistance(Climate.TargetPoint target, Climate.ParameterPoint params) {
         long tempDist = Math.abs(target.temperature() - params.temperature().min());
         long humidDist = Math.abs(target.humidity() - params.humidity().min());
-        long contDist = Math.abs(target.continentalness() - params.continentalness().min());
+        long contDist =
+                Math.abs(target.continentalness() - params.continentalness().min());
         long erosionDist = Math.abs(target.erosion() - params.erosion().min());
         return tempDist + humidDist + contDist + erosionDist;
     }
@@ -291,7 +287,8 @@ public class BiomeVisualizationTest {
         // In test environment, biome.tags() may throw because tags aren't bound
         // So we use try-catch and fall back to inferring tags from biome name
         try {
-            BiomeCompat.getTags(biome).forEach(tag -> tags.add("#" + tag.location().toString()));
+            BiomeCompat.getTags(biome)
+                    .forEach(tag -> tags.add("#" + tag.location().toString()));
         } catch (IllegalStateException e) {
             // Tags not bound in this test environment - fall through to inference
         }
@@ -377,18 +374,18 @@ public class BiomeVisualizationTest {
      * Get color for a region based on its name and edge proximity.
      */
     private int getRegionColor(Region region, float edgeFactor) {
-        if (region == null)
-            return 0x000000;
+        if (region == null) return 0x000000;
 
-        int baseColor = switch (region.name()) {
-            case "ETERNAL_FOREST" -> 0x228B22; // Forest green
-            case "LANDLOCKED" -> 0xDEB887; // Burlywood (land)
-            case "PURIST_LANDS" -> 0x9370DB; // Medium purple
-            case "CURATED_ZONE" -> 0xFFD700; // Gold
-            case "WILDERNESS" -> 0x808080; // Gray
-            case "WORLD" -> 0x444444;
-            default -> 0x666666;
-        };
+        int baseColor =
+                switch (region.name()) {
+                    case "ETERNAL_FOREST" -> 0x228B22; // Forest green
+                    case "LANDLOCKED" -> 0xDEB887; // Burlywood (land)
+                    case "PURIST_LANDS" -> 0x9370DB; // Medium purple
+                    case "CURATED_ZONE" -> 0xFFD700; // Gold
+                    case "WILDERNESS" -> 0x808080; // Gray
+                    case "WORLD" -> 0x444444;
+                    default -> 0x666666;
+                };
 
         // Darken at edges to show boundaries
         if (edgeFactor > 0.5f) {

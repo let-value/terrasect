@@ -2,10 +2,10 @@ package com.terrasect.common.definition;
 
 /**
  * Narrative-friendly climate knobs. Values are optional so children can inherit or override selectively.
- * 
+ *
  * <p>All parameters use {@link ClimateRange} which defines an allowed min/max range.
  * Original world values are mapped into this range, preserving relative variation.
- * 
+ *
  * <p>Climate parameters and their effects:
  * <ul>
  *   <li><b>temperature</b>: -1.0 (freezing) to 1.0 (hot) - affects biome selection</li>
@@ -15,7 +15,7 @@ package com.terrasect.common.definition;
  *   <li><b>depth</b>: surface depth parameter - affects underground features</li>
  *   <li><b>weirdness</b>: -1.0 to 1.0 - affects biome variant selection (e.g., shattered vs normal)</li>
  * </ul>
- * 
+ *
  * <p>Continentalness values (approximate):
  * <ul>
  *   <li>-1.0 to -0.5: Deep ocean</li>
@@ -24,7 +24,7 @@ package com.terrasect.common.definition;
  *   <li>0.0 to 0.3: Near-inland</li>
  *   <li>0.3 to 1.0: Inland/mountains</li>
  * </ul>
- * 
+ *
  * <p>Erosion values (approximate):
  * <ul>
  *   <li>-1.0: Very steep terrain, mountains</li>
@@ -33,20 +33,19 @@ package com.terrasect.common.definition;
  * </ul>
  */
 public record ClimateSettings(
-    ClimateRange temperature,
-    ClimateRange humidity,
-    ClimateRange continentalness,
-    ClimateRange erosion,
-    ClimateRange depth,
-    ClimateRange weirdness,
-    String precipitation,
-    String climatePreset
-) {
+        ClimateRange temperature,
+        ClimateRange humidity,
+        ClimateRange continentalness,
+        ClimateRange erosion,
+        ClimateRange depth,
+        ClimateRange weirdness,
+        String precipitation,
+        String climatePreset) {
     /**
      * Represents an allowed range for a climate parameter.
      * Original world values are mapped from [-1, 1] into this range,
      * preserving relative variation but constraining to the allowed bounds.
-     * 
+     *
      * <p>Examples:
      * <ul>
      *   <li>{@code range(-1.0f, -0.5f)} - force deep ocean terrain</li>
@@ -62,28 +61,28 @@ public record ClimateSettings(
         public static ClimateRange range(float min, float max) {
             return new ClimateRange(Math.min(min, max), Math.max(min, max));
         }
-        
+
         /**
          * Create a range that forces an exact value (no variation).
          */
         public static ClimateRange exact(float value) {
             return new ClimateRange(value, value);
         }
-        
+
         /**
          * @return true if this range allows any variation
          */
         public boolean hasVariation() {
             return min != max;
         }
-        
+
         /**
          * @return the center value of this range
          */
         public float center() {
             return (min + max) / 2.0f;
         }
-        
+
         /**
          * @return the size of this range
          */
@@ -91,7 +90,7 @@ public record ClimateSettings(
             return max - min;
         }
     }
-    
+
     public static ClimateSettings empty() {
         return builder().build();
     }
@@ -106,8 +105,15 @@ public record ClimateSettings(
         ClimateRange mergedWeirdness = weirdness != null ? weirdness : parent.weirdness;
         String mergedPrecipitation = precipitation != null ? precipitation : parent.precipitation;
         String mergedPreset = climatePreset != null ? climatePreset : parent.climatePreset;
-        return new ClimateSettings(mergedTemperature, mergedHumidity, mergedContinentalness, 
-            mergedErosion, mergedDepth, mergedWeirdness, mergedPrecipitation, mergedPreset);
+        return new ClimateSettings(
+                mergedTemperature,
+                mergedHumidity,
+                mergedContinentalness,
+                mergedErosion,
+                mergedDepth,
+                mergedWeirdness,
+                mergedPrecipitation,
+                mergedPreset);
     }
 
     public static Builder builder() {
@@ -133,7 +139,7 @@ public record ClimateSettings(
             this.temperature = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact temperature value.
          * @param value -1.0 (freezing) to 1.0 (hot)
@@ -152,7 +158,7 @@ public record ClimateSettings(
             this.humidity = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact humidity value.
          * @param value -1.0 (dry) to 1.0 (wet)
@@ -161,7 +167,7 @@ public record ClimateSettings(
             this.humidity = ClimateRange.exact(value);
             return this;
         }
-        
+
         /**
          * Set continentalness range to control ocean vs land terrain.
          * @param min minimum continentalness (-1.0 = deep ocean)
@@ -171,7 +177,7 @@ public record ClimateSettings(
             this.continentalness = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact continentalness value.
          * @param value -1.0 (deep ocean) to 1.0 (inland)
@@ -180,7 +186,7 @@ public record ClimateSettings(
             this.continentalness = ClimateRange.exact(value);
             return this;
         }
-        
+
         /**
          * Set erosion range to control terrain steepness.
          * @param min minimum erosion (-1.0 = steep/mountains)
@@ -190,7 +196,7 @@ public record ClimateSettings(
             this.erosion = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact erosion value.
          * @param value -1.0 (steep) to 1.0 (flat)
@@ -199,7 +205,7 @@ public record ClimateSettings(
             this.erosion = ClimateRange.exact(value);
             return this;
         }
-        
+
         /**
          * Set depth range for underground features.
          * @param min minimum depth
@@ -209,7 +215,7 @@ public record ClimateSettings(
             this.depth = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact depth value.
          * @param value depth parameter value
@@ -218,7 +224,7 @@ public record ClimateSettings(
             this.depth = ClimateRange.exact(value);
             return this;
         }
-        
+
         /**
          * Set weirdness range to control biome variants.
          * @param min minimum weirdness
@@ -228,7 +234,7 @@ public record ClimateSettings(
             this.weirdness = ClimateRange.range(min, max);
             return this;
         }
-        
+
         /**
          * Set exact weirdness value.
          * @param value -1.0 to 1.0, affects variant selection
@@ -249,8 +255,8 @@ public record ClimateSettings(
         }
 
         public ClimateSettings build() {
-            return new ClimateSettings(temperature, humidity, continentalness, 
-                erosion, depth, weirdness, precipitation, climatePreset);
+            return new ClimateSettings(
+                    temperature, humidity, continentalness, erosion, depth, weirdness, precipitation, climatePreset);
         }
 
         public Builder copyFrom(ClimateSettings settings) {

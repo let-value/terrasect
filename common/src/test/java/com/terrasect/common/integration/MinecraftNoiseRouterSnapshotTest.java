@@ -1,7 +1,33 @@
 package com.terrasect.common.integration;
 
-import com.terrasect.common.util.MutablePointContext;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.terrasect.common.util.MutablePointContext;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -24,38 +50,8 @@ import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.synth.BlendedNoise;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.RecordComponent;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HexFormat;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.TreeSet;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Generates snapshot images of vanilla {@link NoiseRouter} density functions.
@@ -83,7 +79,8 @@ class MinecraftNoiseRouterSnapshotTest {
         NoiseGeneratorSettings settings;
         try {
             settings = lookup.lookupOrThrow(Registries.NOISE_SETTINGS)
-                .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+                    .getOrThrow(NoiseGeneratorSettings.OVERWORLD)
+                    .value();
         } catch (Exception e) {
             settings = NoiseGeneratorSettings.dummy();
         }
@@ -104,37 +101,56 @@ class MinecraftNoiseRouterSnapshotTest {
         assertTrue(!functions.isEmpty(), "expected NoiseRouter density functions");
 
         Map<String, DensityFunction> sources = new LinkedHashMap<>();
-        sources.put("source_overworld_offset", wireForRandomState(densityFunctions.getOrThrow(NoiseRouterData.OFFSET).value(), randomState, settings, seed));
-        sources.put("source_overworld_factor", wireForRandomState(densityFunctions.getOrThrow(NoiseRouterData.FACTOR).value(), randomState, settings, seed));
+        sources.put(
+                "source_overworld_offset",
+                wireForRandomState(
+                        densityFunctions.getOrThrow(NoiseRouterData.OFFSET).value(), randomState, settings, seed));
+        sources.put(
+                "source_overworld_factor",
+                wireForRandomState(
+                        densityFunctions.getOrThrow(NoiseRouterData.FACTOR).value(), randomState, settings, seed));
 
         MutablePointContext point = new MutablePointContext();
 
         StringBuilder index = new StringBuilder(32 * 1024);
         index.append("<!doctype html>\n<html><head><meta charset=\"utf-8\">")
-            .append("<title>Vanilla NoiseRouter Snapshots</title>")
-            .append("<style>")
-            .append("body{font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;vertical-align:top}")
-            .append("img{image-rendering:pixelated}")
-            .append("a{color:inherit}a:hover{text-decoration:underline}")
-            .append("ul.deps{margin:4px 0;padding-left:18px}")
-            .append("div.preset{margin:6px 0}")
-            .append("</style></head><body>\n");
+                .append("<title>Vanilla NoiseRouter Snapshots</title>")
+                .append("<style>")
+                .append(
+                        "body{font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;vertical-align:top}")
+                .append("img{image-rendering:pixelated}")
+                .append("a{color:inherit}a:hover{text-decoration:underline}")
+                .append("ul.deps{margin:4px 0;padding-left:18px}")
+                .append("div.preset{margin:6px 0}")
+                .append("</style></head><body>\n");
         index.append("<h1>Vanilla NoiseRouter Snapshots</h1>\n");
-        index.append("<p>seed=").append(seed)
-            .append(" step=").append(STEP)
-            .append(" size=").append(IMG_SIZE)
-            .append(" y=").append(seaLevel)
-            .append(" minY=").append(minY)
-            .append(" maxY=").append(maxY)
-            .append("</p>\n");
-        index.append("<p><b>NoiseRouter</b> = the final wired router used by worldgen (from <code>RandomState.router()</code>).</p>\n");
-        index.append("<p><b>NoiseRouterData density functions</b> = the registered building blocks (splines, caches, noise sources) used to construct generator settings.</p>\n");
-        index.append("<p><b>Note:</b> Overworld <code>depth</code> is derived from <code>overworld/offset</code> (plus a Y-gradient). ")
-            .append("<code>preliminary_surface_level</code> uses <code>overworld/offset</code> and <code>overworld/factor</code>, ")
-            .append("so similarity between them is expected.</p>\n");
+        index.append("<p>seed=")
+                .append(seed)
+                .append(" step=")
+                .append(STEP)
+                .append(" size=")
+                .append(IMG_SIZE)
+                .append(" y=")
+                .append(seaLevel)
+                .append(" minY=")
+                .append(minY)
+                .append(" maxY=")
+                .append(maxY)
+                .append("</p>\n");
+        index.append(
+                "<p><b>NoiseRouter</b> = the final wired router used by worldgen (from <code>RandomState.router()</code>).</p>\n");
+        index.append(
+                "<p><b>NoiseRouterData density functions</b> = the registered building blocks (splines, caches, noise sources) used to construct generator settings.</p>\n");
+        index.append(
+                        "<p><b>Note:</b> Overworld <code>depth</code> is derived from <code>overworld/offset</code> (plus a Y-gradient). ")
+                .append(
+                        "<code>preliminary_surface_level</code> uses <code>overworld/offset</code> and <code>overworld/factor</code>, ")
+                .append("so similarity between them is expected.</p>\n");
 
         index.append("<h2>NoiseRouter Outputs</h2>\n");
-        index.append("<table><tr><th>Noise</th><th>XZ @ y=").append(seaLevel).append("</th><th>YZ @ x=0</th><th>Stats</th></tr>\n");
+        index.append("<table><tr><th>Noise</th><th>XZ @ y=")
+                .append(seaLevel)
+                .append("</th><th>YZ @ x=0</th><th>Stats</th></tr>\n");
 
         int writtenImages = 0;
         int varyingImages = 0;
@@ -151,19 +167,45 @@ class MinecraftNoiseRouterSnapshotTest {
             if (xz.max > xz.min) varyingImages++;
             if (yz.max > yz.min) varyingImages++;
 
-            index.append("<tr><td><code>").append(name).append("</code></td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(xzFile).append("\"></td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(yzFile).append("\"></td>")
-                .append("<td>")
-                .append("xz[min=").append(format(xz.min)).append(", max=").append(format(xz.max)).append("]<br>")
-                .append("yz[min=").append(format(yz.min)).append(", max=").append(format(yz.max)).append("]<br>")
-                .append("theoretical[min=").append(format(function.minValue()))
-                .append(", max=").append(format(function.maxValue())).append("]<br>")
-                .append("xzDigest=").append(xz.digest).append("<br>")
-                .append("yzDigest=").append(yz.digest)
-                .append("</td></tr>\n");
+            index.append("<tr><td><code>")
+                    .append(name)
+                    .append("</code></td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(xzFile)
+                    .append("\"></td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(yzFile)
+                    .append("\"></td>")
+                    .append("<td>")
+                    .append("xz[min=")
+                    .append(format(xz.min))
+                    .append(", max=")
+                    .append(format(xz.max))
+                    .append("]<br>")
+                    .append("yz[min=")
+                    .append(format(yz.min))
+                    .append(", max=")
+                    .append(format(yz.max))
+                    .append("]<br>")
+                    .append("theoretical[min=")
+                    .append(format(function.minValue()))
+                    .append(", max=")
+                    .append(format(function.maxValue()))
+                    .append("]<br>")
+                    .append("xzDigest=")
+                    .append(xz.digest)
+                    .append("<br>")
+                    .append("yzDigest=")
+                    .append(yz.digest)
+                    .append("</td></tr>\n");
         }
 
         index.append("<tr><th colspan=\"4\">Sources (density function registry)</th></tr>\n");
@@ -180,19 +222,45 @@ class MinecraftNoiseRouterSnapshotTest {
             if (xz.max > xz.min) varyingImages++;
             if (yz.max > yz.min) varyingImages++;
 
-            index.append("<tr><td><code>").append(name).append("</code></td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(xzFile).append("\"></td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(yzFile).append("\"></td>")
-                .append("<td>")
-                .append("xz[min=").append(format(xz.min)).append(", max=").append(format(xz.max)).append("]<br>")
-                .append("yz[min=").append(format(yz.min)).append(", max=").append(format(yz.max)).append("]<br>")
-                .append("theoretical[min=").append(format(function.minValue()))
-                .append(", max=").append(format(function.maxValue())).append("]<br>")
-                .append("xzDigest=").append(xz.digest).append("<br>")
-                .append("yzDigest=").append(yz.digest)
-                .append("</td></tr>\n");
+            index.append("<tr><td><code>")
+                    .append(name)
+                    .append("</code></td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(xzFile)
+                    .append("\"></td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(yzFile)
+                    .append("\"></td>")
+                    .append("<td>")
+                    .append("xz[min=")
+                    .append(format(xz.min))
+                    .append(", max=")
+                    .append(format(xz.max))
+                    .append("]<br>")
+                    .append("yz[min=")
+                    .append(format(yz.min))
+                    .append(", max=")
+                    .append(format(yz.max))
+                    .append("]<br>")
+                    .append("theoretical[min=")
+                    .append(format(function.minValue()))
+                    .append(", max=")
+                    .append(format(function.maxValue()))
+                    .append("]<br>")
+                    .append("xzDigest=")
+                    .append(xz.digest)
+                    .append("<br>")
+                    .append("yzDigest=")
+                    .append(yz.digest)
+                    .append("</td></tr>\n");
         }
 
         index.append("</table>\n");
@@ -201,7 +269,8 @@ class MinecraftNoiseRouterSnapshotTest {
         assertTrue(varyingImages > 0, "expected at least one varying noise slice");
 
         File densityOutDir = new File(outDir, "density-functions");
-        int densityImages = appendNoiseRouterDataDensityFunctionSnapshots(index, densityOutDir, lookup, noiseParams, seed);
+        int densityImages =
+                appendNoiseRouterDataDensityFunctionSnapshots(index, densityOutDir, lookup, noiseParams, seed);
         assertTrue(densityImages > 0, "expected at least one density function snapshot image");
 
         index.append("</body></html>\n");
@@ -214,7 +283,8 @@ class MinecraftNoiseRouterSnapshotTest {
         for (RecordComponent component : NoiseRouter.class.getRecordComponents()) {
             if (component.getType() != DensityFunction.class) continue;
             try {
-                DensityFunction function = (DensityFunction) component.getAccessor().invoke(router);
+                DensityFunction function =
+                        (DensityFunction) component.getAccessor().invoke(router);
                 out.put(component.getName(), function);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException("Failed to read NoiseRouter component: " + component.getName(), e);
@@ -228,7 +298,8 @@ class MinecraftNoiseRouterSnapshotTest {
             File outDir,
             HolderLookup.Provider lookup,
             HolderGetter<NormalNoise.NoiseParameters> noiseParams,
-            long seed) throws IOException {
+            long seed)
+            throws IOException {
 
         Files.createDirectories(outDir.toPath());
         Files.deleteIfExists(outDir.toPath().resolve("index.html"));
@@ -244,10 +315,9 @@ class MinecraftNoiseRouterSnapshotTest {
         Preset end = Preset.from("end", endSettings, noiseParams, seed);
 
         Map<String, Preset> presets = Map.of(
-            overworld.name, overworld,
-            nether.name, nether,
-            end.name, end
-        );
+                overworld.name, overworld,
+                nether.name, nether,
+                end.name, end);
 
         List<DensityKeyEntry> keys = collectNoiseRouterDataKeys();
         assertTrue(!keys.isEmpty(), "expected NoiseRouterData density function keys");
@@ -266,17 +336,23 @@ class MinecraftNoiseRouterSnapshotTest {
         for (DensityKeyMeta meta : metas.values()) {
             allNoiseKeys.addAll(meta.deps.noiseKeys);
             for (String noiseKey : meta.deps.noiseKeys) {
-                noiseToPresets.computeIfAbsent(noiseKey, ignored -> new TreeSet<>()).add(meta.presetName);
+                noiseToPresets
+                        .computeIfAbsent(noiseKey, ignored -> new TreeSet<>())
+                        .add(meta.presetName);
             }
         }
 
         File rootDir = outDir.getParentFile() != null ? outDir.getParentFile() : outDir;
         File noiseOutDir = new File(rootDir, "noise");
-        int noiseImages = appendNoiseParameterSnapshots(index, noiseOutDir, allNoiseKeys, noiseToPresets, presets, noiseParams, seed);
+        int noiseImages = appendNoiseParameterSnapshots(
+                index, noiseOutDir, allNoiseKeys, noiseToPresets, presets, noiseParams, seed);
         if (!allNoiseKeys.isEmpty()) {
             int expectedNoiseImages = 0;
             for (String noiseKey : allNoiseKeys) {
-                expectedNoiseImages += 2 * noiseToPresets.getOrDefault(noiseKey, Set.of("overworld")).size();
+                expectedNoiseImages += 2
+                        * noiseToPresets
+                                .getOrDefault(noiseKey, Set.of("overworld"))
+                                .size();
             }
             assertEquals(expectedNoiseImages, noiseImages, "expected 2 images per (noise key, preset)");
         }
@@ -288,16 +364,16 @@ class MinecraftNoiseRouterSnapshotTest {
 
         index.append("<h2>NoiseRouterData Density Functions</h2>\n");
         index.append("<p>Rows are ordered by direct dependency depth (best-effort topo sort) so roots appear first. ")
-            .append("Images are written under <code>density-functions/</code>.</p>\n");
+                .append("Images are written under <code>density-functions/</code>.</p>\n");
 
         index.append("<table><tr>")
-            .append("<th>Level</th>")
-            .append("<th>Key</th>")
-            .append("<th>Preset</th>")
-            .append("<th>XZ</th>")
-            .append("<th>YZ</th>")
-            .append("<th>Deps</th>")
-            .append("</tr>\n");
+                .append("<th>Level</th>")
+                .append("<th>Key</th>")
+                .append("<th>Preset</th>")
+                .append("<th>XZ</th>")
+                .append("<th>YZ</th>")
+                .append("<th>Deps</th>")
+                .append("</tr>\n");
 
         int writtenImages = 0;
         for (String id : orderedIds) {
@@ -320,57 +396,93 @@ class MinecraftNoiseRouterSnapshotTest {
             writtenImages += 2;
 
             int level = levels.getOrDefault(id, 0);
-            index.append("<tr id=\"").append(escapeHtml(anchor)).append("\">")
-                .append("<td>").append(level).append("</td>")
-                .append("<td><code>").append(escapeHtml(meta.entry.fieldName)).append("</code><br><code>")
-                .append("<a href=\"#").append(escapeHtml(anchor)).append("\">")
-                .append(escapeHtml(id))
-                .append("</a></code></td>")
-                .append("<td>").append(escapeHtml(preset.name)).append("<br>")
-                .append("xzY=").append(preset.xzY).append("<br>")
-                .append("y=[").append(preset.minY).append("..").append(preset.maxY).append("]")
-                .append("</td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(escapeHtml(relXzFile)).append("\"></td>")
-                .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                .append("\" src=\"").append(escapeHtml(relYzFile)).append("\"></td>")
-                .append("<td>")
-                .append(depsList("density", meta.deps.densityFunctionKeys, metas.keySet(), "df_"))
-                .append(depsList("noise", meta.deps.noiseKeys, allNoiseKeys, "noise_"))
-                .append("<div>min/max xz=").append(escapeHtml(format(xz.min))).append("/").append(escapeHtml(format(xz.max))).append("</div>")
-                .append("<div>min/max yz=").append(escapeHtml(format(yz.min))).append("/").append(escapeHtml(format(yz.max))).append("</div>")
-                .append("</td>")
-                .append("</tr>\n");
+            index.append("<tr id=\"")
+                    .append(escapeHtml(anchor))
+                    .append("\">")
+                    .append("<td>")
+                    .append(level)
+                    .append("</td>")
+                    .append("<td><code>")
+                    .append(escapeHtml(meta.entry.fieldName))
+                    .append("</code><br><code>")
+                    .append("<a href=\"#")
+                    .append(escapeHtml(anchor))
+                    .append("\">")
+                    .append(escapeHtml(id))
+                    .append("</a></code></td>")
+                    .append("<td>")
+                    .append(escapeHtml(preset.name))
+                    .append("<br>")
+                    .append("xzY=")
+                    .append(preset.xzY)
+                    .append("<br>")
+                    .append("y=[")
+                    .append(preset.minY)
+                    .append("..")
+                    .append(preset.maxY)
+                    .append("]")
+                    .append("</td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(escapeHtml(relXzFile))
+                    .append("\"></td>")
+                    .append("<td><img width=\"")
+                    .append(IMG_SIZE)
+                    .append("\" height=\"")
+                    .append(IMG_SIZE)
+                    .append("\" src=\"")
+                    .append(escapeHtml(relYzFile))
+                    .append("\"></td>")
+                    .append("<td>")
+                    .append(depsList("density", meta.deps.densityFunctionKeys, metas.keySet(), "df_"))
+                    .append(depsList("noise", meta.deps.noiseKeys, allNoiseKeys, "noise_"))
+                    .append("<div>min/max xz=")
+                    .append(escapeHtml(format(xz.min)))
+                    .append("/")
+                    .append(escapeHtml(format(xz.max)))
+                    .append("</div>")
+                    .append("<div>min/max yz=")
+                    .append(escapeHtml(format(yz.min)))
+                    .append("/")
+                    .append(escapeHtml(format(yz.max)))
+                    .append("</div>")
+                    .append("</td>")
+                    .append("</tr>\n");
         }
 
         index.append("</table>\n");
         assertEquals(keys.size() * 2, writtenImages, "expected 2 images per density function key");
-        System.out.println("Wrote NoiseRouterData density function snapshots (images only) to: " + outDir.getAbsolutePath());
+        System.out.println(
+                "Wrote NoiseRouterData density function snapshots (images only) to: " + outDir.getAbsolutePath());
         return writtenImages;
     }
 
     private static int appendNoiseParameterSnapshots(
-        StringBuilder index,
-        File outDir,
-        Set<String> noiseKeys,
-        Map<String, Set<String>> noiseToPresets,
-        Map<String, Preset> presets,
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams,
-        long seed
-    ) throws IOException {
+            StringBuilder index,
+            File outDir,
+            Set<String> noiseKeys,
+            Map<String, Set<String>> noiseToPresets,
+            Map<String, Preset> presets,
+            HolderGetter<NormalNoise.NoiseParameters> noiseParams,
+            long seed)
+            throws IOException {
         Files.createDirectories(outDir.toPath());
 
         index.append("<h2>Noise Parameters</h2>\n");
-        index.append("<p>Rows are the underlying <code>minecraft:noise</code> entries referenced by density functions. ")
-            .append("Images are written under <code>noise/</code>.</p>\n");
+        index.append(
+                        "<p>Rows are the underlying <code>minecraft:noise</code> entries referenced by density functions. ")
+                .append("Images are written under <code>noise/</code>.</p>\n");
 
         index.append("<table><tr>")
-            .append("<th>Key</th>")
-            .append("<th>Used In</th>")
-            .append("<th>XZ</th>")
-            .append("<th>YZ</th>")
-            .append("<th>Stats</th>")
-            .append("</tr>\n");
+                .append("<th>Key</th>")
+                .append("<th>Used In</th>")
+                .append("<th>XZ</th>")
+                .append("<th>YZ</th>")
+                .append("<th>Stats</th>")
+                .append("</tr>\n");
 
         int writtenImages = 0;
         MutablePointContext point = new MutablePointContext();
@@ -416,39 +528,88 @@ class MinecraftNoiseRouterSnapshotTest {
                 RenderStats yz = renderYZ(outDir, yzFile, wired, point, preset.minY, preset.maxY);
                 writtenImages += 2;
 
-                xzCell.append("<div class=\"preset\"><code>").append(escapeHtml(preset.name)).append("</code><br>")
-                    .append("<img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                    .append("\" src=\"").append(escapeHtml(relXzFile)).append("\"></div>");
+                xzCell.append("<div class=\"preset\"><code>")
+                        .append(escapeHtml(preset.name))
+                        .append("</code><br>")
+                        .append("<img width=\"")
+                        .append(IMG_SIZE)
+                        .append("\" height=\"")
+                        .append(IMG_SIZE)
+                        .append("\" src=\"")
+                        .append(escapeHtml(relXzFile))
+                        .append("\"></div>");
 
-                yzCell.append("<div class=\"preset\"><code>").append(escapeHtml(preset.name)).append("</code><br>")
-                    .append("<img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE)
-                    .append("\" src=\"").append(escapeHtml(relYzFile)).append("\"></div>");
+                yzCell.append("<div class=\"preset\"><code>")
+                        .append(escapeHtml(preset.name))
+                        .append("</code><br>")
+                        .append("<img width=\"")
+                        .append(IMG_SIZE)
+                        .append("\" height=\"")
+                        .append(IMG_SIZE)
+                        .append("\" src=\"")
+                        .append(escapeHtml(relYzFile))
+                        .append("\"></div>");
 
-                statsCell.append("<div class=\"preset\"><code>").append(escapeHtml(preset.name)).append("</code><br>")
-                    .append("xz[min=").append(escapeHtml(format(xz.min))).append(", max=").append(escapeHtml(format(xz.max))).append("]<br>")
-                    .append("yz[min=").append(escapeHtml(format(yz.min))).append(", max=").append(escapeHtml(format(yz.max))).append("]<br>")
-                    .append("theoretical[min=").append(escapeHtml(format(base.minValue()))).append(", max=").append(escapeHtml(format(base.maxValue()))).append("]<br>")
-                    .append("xzDigest=").append(escapeHtml(xz.digest)).append("<br>")
-                    .append("yzDigest=").append(escapeHtml(yz.digest))
-                    .append("</div>");
+                statsCell
+                        .append("<div class=\"preset\"><code>")
+                        .append(escapeHtml(preset.name))
+                        .append("</code><br>")
+                        .append("xz[min=")
+                        .append(escapeHtml(format(xz.min)))
+                        .append(", max=")
+                        .append(escapeHtml(format(xz.max)))
+                        .append("]<br>")
+                        .append("yz[min=")
+                        .append(escapeHtml(format(yz.min)))
+                        .append(", max=")
+                        .append(escapeHtml(format(yz.max)))
+                        .append("]<br>")
+                        .append("theoretical[min=")
+                        .append(escapeHtml(format(base.minValue())))
+                        .append(", max=")
+                        .append(escapeHtml(format(base.maxValue())))
+                        .append("]<br>")
+                        .append("xzDigest=")
+                        .append(escapeHtml(xz.digest))
+                        .append("<br>")
+                        .append("yzDigest=")
+                        .append(escapeHtml(yz.digest))
+                        .append("</div>");
             }
 
-            index.append("<tr id=\"").append(escapeHtml(anchor)).append("\">")
-                .append("<td><code><a href=\"#").append(escapeHtml(anchor)).append("\">").append(escapeHtml(noiseKey)).append("</a></code></td>")
-                .append("<td>").append(usedIn).append("</td>")
-                .append("<td>").append(xzCell).append("</td>")
-                .append("<td>").append(yzCell).append("</td>")
-                .append("<td>").append(statsCell).append("</td>")
-                .append("</tr>\n");
+            index.append("<tr id=\"")
+                    .append(escapeHtml(anchor))
+                    .append("\">")
+                    .append("<td><code><a href=\"#")
+                    .append(escapeHtml(anchor))
+                    .append("\">")
+                    .append(escapeHtml(noiseKey))
+                    .append("</a></code></td>")
+                    .append("<td>")
+                    .append(usedIn)
+                    .append("</td>")
+                    .append("<td>")
+                    .append(xzCell)
+                    .append("</td>")
+                    .append("<td>")
+                    .append(yzCell)
+                    .append("</td>")
+                    .append("<td>")
+                    .append(statsCell)
+                    .append("</td>")
+                    .append("</tr>\n");
         }
 
         index.append("</table>\n");
         return writtenImages;
     }
 
-    private static NoiseGeneratorSettings resolveSettings(HolderLookup.Provider lookup, ResourceKey<NoiseGeneratorSettings> key) {
+    private static NoiseGeneratorSettings resolveSettings(
+            HolderLookup.Provider lookup, ResourceKey<NoiseGeneratorSettings> key) {
         try {
-            return lookup.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(key).value();
+            return lookup.lookupOrThrow(Registries.NOISE_SETTINGS)
+                    .getOrThrow(key)
+                    .value();
         } catch (Exception e) {
             return NoiseGeneratorSettings.dummy();
         }
@@ -493,10 +654,7 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static void walkDependencies(
-            Object obj,
-            Set<String> densityKeys,
-            Set<String> noiseKeys,
-            IdentityHashMap<Object, Boolean> visited) {
+            Object obj, Set<String> densityKeys, Set<String> noiseKeys, IdentityHashMap<Object, Boolean> visited) {
         if (obj == null) return;
         if (visited.put(obj, Boolean.TRUE) != null) return;
 
@@ -636,13 +794,21 @@ class MinecraftNoiseRouterSnapshotTest {
         }
 
         StringBuilder sb = new StringBuilder(256);
-        sb.append("<div><code>").append(escapeHtml(label)).append("(").append(items.size()).append(")</code></div>");
+        sb.append("<div><code>")
+                .append(escapeHtml(label))
+                .append("(")
+                .append(items.size())
+                .append(")</code></div>");
         sb.append("<ul class=\"deps\">");
         for (String item : items) {
             String id = Identifier.parse(item).toDebugFileName();
             String anchor = anchorPrefix + id;
             if (linkable != null && linkable.contains(item)) {
-                sb.append("<li><a href=\"#").append(escapeHtml(anchor)).append("\"><code>").append(escapeHtml(item)).append("</code></a></li>");
+                sb.append("<li><a href=\"#")
+                        .append(escapeHtml(anchor))
+                        .append("\"><code>")
+                        .append(escapeHtml(item))
+                        .append("</code></a></li>");
             } else {
                 sb.append("<li><code>").append(escapeHtml(item)).append("</code></li>");
             }
@@ -654,18 +820,14 @@ class MinecraftNoiseRouterSnapshotTest {
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&#39;");
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private static RenderStats renderXZ(
-            File outDir,
-            String fileName,
-            DensityFunction function,
-            MutablePointContext point,
-            int y) {
+            File outDir, String fileName, DensityFunction function, MutablePointContext point, int y) {
 
         int[] xs = axisCoordinates(-WORLD_SIZE / 2, STEP, IMG_SIZE);
         int[] zs = axisCoordinates(-WORLD_SIZE / 2, STEP, IMG_SIZE);
@@ -699,7 +861,8 @@ class MinecraftNoiseRouterSnapshotTest {
         return new RenderStats(min, max, HexFormat.of().formatHex(digest.digest()));
     }
 
-    private static DensityFunction wireForRandomState(DensityFunction function, RandomState randomState, NoiseGeneratorSettings settings, long seed) {
+    private static DensityFunction wireForRandomState(
+            DensityFunction function, RandomState randomState, NoiseGeneratorSettings settings, long seed) {
         PositionalRandomFactory randomFactory = getRootRandomFactory(randomState);
         boolean legacy = settings.useLegacyRandomSource();
 
@@ -733,25 +896,20 @@ class MinecraftNoiseRouterSnapshotTest {
                 if (legacy) {
                     if (holder.is(Noises.TEMPERATURE)) {
                         NormalNoise normalNoise = NormalNoise.createLegacyNetherBiome(
-                            new LegacyRandomSource(seed),
-                            new NormalNoise.NoiseParameters(-7, 1.0, 1.0)
-                        );
+                                new LegacyRandomSource(seed), new NormalNoise.NoiseParameters(-7, 1.0, 1.0));
                         return new DensityFunction.NoiseHolder(holder, normalNoise);
                     }
 
                     if (holder.is(Noises.VEGETATION)) {
                         NormalNoise normalNoise = NormalNoise.createLegacyNetherBiome(
-                            new LegacyRandomSource(seed + 1L),
-                            new NormalNoise.NoiseParameters(-7, 1.0, 1.0)
-                        );
+                                new LegacyRandomSource(seed + 1L), new NormalNoise.NoiseParameters(-7, 1.0, 1.0));
                         return new DensityFunction.NoiseHolder(holder, normalNoise);
                     }
 
                     if (holder.is(Noises.SHIFT) && randomFactory != null) {
                         NormalNoise normalNoise = NormalNoise.create(
-                            randomFactory.fromHashOf(Noises.SHIFT.identifier()),
-                            new NormalNoise.NoiseParameters(0, 0.0)
-                        );
+                                randomFactory.fromHashOf(Noises.SHIFT.identifier()),
+                                new NormalNoise.NoiseParameters(0, 0.0));
                         return new DensityFunction.NoiseHolder(holder, normalNoise);
                     }
                 }
@@ -775,12 +933,16 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static boolean isEndIslandDensityFunction(DensityFunction function) {
-        return function != null && function.getClass().getName().equals("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
+        return function != null
+                && function.getClass()
+                        .getName()
+                        .equals("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
     }
 
     private static DensityFunction newEndIslandDensityFunction(long seed) {
         try {
-            Class<?> cls = Class.forName("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
+            Class<?> cls =
+                    Class.forName("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
             var ctor = cls.getDeclaredConstructor(long.class);
             ctor.setAccessible(true);
             return (DensityFunction) ctor.newInstance(seed);
@@ -790,12 +952,7 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static RenderStats renderYZ(
-            File outDir,
-            String fileName,
-            DensityFunction function,
-            MutablePointContext point,
-            int minY,
-            int maxY) {
+            File outDir, String fileName, DensityFunction function, MutablePointContext point, int minY, int maxY) {
 
         int[] ys = verticalCoordinates(minY, maxY, IMG_SIZE);
         int[] zs = axisCoordinates(-WORLD_SIZE / 2, STEP, IMG_SIZE);
@@ -831,11 +988,7 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static void writeNormalizedGrayscale(
-            BufferedImage img,
-            double[] values,
-            double min,
-            double max,
-            MessageDigest digest) {
+            BufferedImage img, double[] values, double min, double max, MessageDigest digest) {
 
         double range = max - min;
         if (range <= 0.0 || Double.isNaN(range) || Double.isInfinite(range)) {
@@ -904,14 +1057,12 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private record Preset(
-        String name,
-        NoiseGeneratorSettings settings,
-        RandomState randomState,
-        int minY,
-        int maxY,
-        int xzY
-    ) {
-        static Preset from(String name, NoiseGeneratorSettings settings, HolderGetter<NormalNoise.NoiseParameters> noiseParams, long seed) {
+            String name, NoiseGeneratorSettings settings, RandomState randomState, int minY, int maxY, int xzY) {
+        static Preset from(
+                String name,
+                NoiseGeneratorSettings settings,
+                HolderGetter<NormalNoise.NoiseParameters> noiseParams,
+                long seed) {
             RandomState randomState = RandomState.create(settings, noiseParams, seed);
             NoiseSettings noiseSettings = settings.noiseSettings();
             int minY = noiseSettings.minY();
@@ -921,15 +1072,11 @@ class MinecraftNoiseRouterSnapshotTest {
         }
     }
 
-    private record DensityKeyEntry(String fieldName, ResourceKey<DensityFunction> key) {
-    }
+    private record DensityKeyEntry(String fieldName, ResourceKey<DensityFunction> key) {}
 
-    private record DirectDeps(Set<String> densityFunctionKeys, Set<String> noiseKeys) {
-    }
+    private record DirectDeps(Set<String> densityFunctionKeys, Set<String> noiseKeys) {}
 
-    private record DensityKeyMeta(DensityKeyEntry entry, String presetName, DirectDeps deps) {
-    }
+    private record DensityKeyMeta(DensityKeyEntry entry, String presetName, DirectDeps deps) {}
 
-    private record RenderStats(double min, double max, String digest) {
-    }
+    private record RenderStats(double min, double max, String digest) {}
 }

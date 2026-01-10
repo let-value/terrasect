@@ -6,27 +6,24 @@ import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.BiomeFilter;
-
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 
 public final class BiomeHandler {
-    
+
     private BiomeHandler() {}
-    
+
     public static Holder<Biome> selectBiome(
-            MinecraftContext context,
-            int quartX, int quartZ,
-            Climate.TargetPoint targetPoint) {
-        
+            MinecraftContext context, int quartX, int quartZ, Climate.TargetPoint targetPoint) {
+
         // Convert quartile coordinates to block coordinates
         int blockX = quartX << 2;
         int blockZ = quartZ << 2;
-        
+
         TraversalResult traversal = World.traverse(context, blockX, blockZ);
         Region region = traversal != null ? traversal.region : null;
-        SelectionRules rules = getRules(region);        
+        SelectionRules rules = getRules(region);
         var parameterList = context.biomeLookup.getFilteredParameterList(rules);
         Holder<Biome> result = parameterList.findValue(targetPoint);
 

@@ -2,16 +2,15 @@ package com.terrasect.common.strategy;
 
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.MathUtils;
-
 import java.util.List;
 
 /**
  * Cache-free power diagram strategy with inline relaxation.
- * 
+ *
  * Uses deterministic initial placement followed by configurable relaxation
  * iterations to achieve budget-weighted Voronoi cells. The relaxation is
  * fast because n is small (typically 2-8 children).
- * 
+ *
  * All computations are O(n²·k) where n = children, k = relaxation iterations.
  */
 public final class VoronoiStrategy {
@@ -27,14 +26,20 @@ public final class VoronoiStrategy {
      * Query which child region contains the point, writing results to output buffer.
      * Uses default relaxation iterations.
      */
-    public static void query(long seed, List<Region> children, float dx, float dz, 
-                             float radius, int childrenTotalBudget, QueryResult out) {
+    public static void query(
+            long seed,
+            List<Region> children,
+            float dx,
+            float dz,
+            float radius,
+            int childrenTotalBudget,
+            QueryResult out) {
         query(seed, children, dx, dz, radius, childrenTotalBudget, DEFAULT_RELAXATION_ITERATIONS, out);
     }
 
     /**
      * Query which child region contains the point, writing results to output buffer.
-     * 
+     *
      * @param seed Parent region seed
      * @param children List of child regions
      * @param dx X offset from parent center
@@ -44,8 +49,15 @@ public final class VoronoiStrategy {
      * @param relaxationIterations Number of relaxation iterations (0-20)
      * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
      */
-    public static void query(long seed, List<Region> children, float dx, float dz, 
-                             float radius, int childrenTotalBudget, int relaxationIterations, QueryResult out) {
+    public static void query(
+            long seed,
+            List<Region> children,
+            float dx,
+            float dz,
+            float radius,
+            int childrenTotalBudget,
+            int relaxationIterations,
+            QueryResult out) {
         if (children.isEmpty()) {
             out.childIndex = 0;
             out.centerX = 0;
@@ -129,14 +141,14 @@ public final class VoronoiStrategy {
         // Cell "radius" is half distance to nearest neighbor (Voronoi edge is at midpoint)
         // Use 0.45x for some safety margin
         float cellRadius = Math.max(minNeighborDist * 0.45f, 0.15f);
-        
-        out.centerX = bestX;    // Center at voronoi site
+
+        out.centerX = bestX; // Center at voronoi site
         out.centerZ = bestZ;
         out.radius = cellRadius; // Approximate cell radius
         // Store site position for seed uniqueness
         out.siteX = bestX;
         out.siteZ = bestZ;
-        
+
         // Edge distance: difference between second-best and best metric
         // Larger value = deeper inside cell. Normalize to approximate [0,1] range.
         float rawEdge = secondBestMetric - bestMetric;
@@ -148,7 +160,7 @@ public final class VoronoiStrategy {
      * Uses initial ring placement + quick push-apart relaxation.
      */
     private static void computeRelaxedSites(long seed, int count, float[] radii, int iterations, float[] sites) {
-        
+
         // Initial placement: ring distribution
         float baseAngle = hashToFloat(seed, 0) * (float) (Math.PI * 2);
         for (int i = 0; i < count; i++) {

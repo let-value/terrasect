@@ -5,13 +5,13 @@ import net.minecraft.gametest.framework.GameTestHelper;
 
 /**
  * Server-side GameTest placeholder.
- * 
+ *
  * VERSION OVERRIDE for 1.21.1: Uses Minecraft's GameTest annotation.
- * 
+ *
  * NOTE: Server GameTest uses a FLAT WORLD (FlatLevelSource + FixedBiomeSource),
  * which bypasses MultiNoiseBiomeSource entirely. Our ClimateMixin won't be
  * called during server GameTest execution.
- * 
+ *
  * For actual biome/climate testing with real world generation, use:
  * - Client GameTest: ./gradlew :mc1_21_1-fabric:runClientGameTest
  * - Manual testing: ./gradlew :mc1_21_1-fabric:runClient

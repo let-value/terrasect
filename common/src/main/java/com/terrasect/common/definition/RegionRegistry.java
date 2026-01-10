@@ -1,5 +1,6 @@
 package com.terrasect.common.definition;
 
+import com.terrasect.common.Terrasect;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -9,8 +10,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import com.terrasect.common.Terrasect;
 
 /**
  * Collects region definitions before baking them into a fully resolved tree in a single pass.
@@ -27,14 +26,16 @@ public class RegionRegistry {
         DraftRegion rootDraft = drafts.get(rootName);
         if (rootDraft == null) {
             Terrasect.LOGGER.error("Unknown region root '{}'; returning empty region", rootName);
-            return new Region(rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
+            return new Region(
+                    rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
         }
 
         rootDraft.strategy(GenerationStrategyType.HEX);
 
         Map<String, List<String>> childIndex = indexChildren();
         if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
-            Terrasect.LOGGER.warn("Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootDraft.parent);
+            Terrasect.LOGGER.warn(
+                    "Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootDraft.parent);
             rootDraft.parent = null;
         }
 
@@ -46,11 +47,11 @@ public class RegionRegistry {
         List<Region> roots = new ArrayList<>();
         Set<String> visiting = new HashSet<>();
         drafts.values().stream()
-            .filter(draft -> draft.parent == null || draft.parent.isBlank())
-            .forEach(draft -> {
-                draft.strategy(GenerationStrategyType.HEX);
-                roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
-            });
+                .filter(draft -> draft.parent == null || draft.parent.isBlank())
+                .forEach(draft -> {
+                    draft.strategy(GenerationStrategyType.HEX);
+                    roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
+                });
         return roots;
     }
 
@@ -60,17 +61,23 @@ public class RegionRegistry {
             if (draft.parent != null && !draft.parent.isBlank()) {
                 DraftRegion parentDraft = drafts.get(draft.parent);
                 if (parentDraft == null) {
-                    Terrasect.LOGGER.error("Region '{}' references unknown parent '{}'; treating it as a root", draft.name, draft.parent);
+                    Terrasect.LOGGER.error(
+                            "Region '{}' references unknown parent '{}'; treating it as a root",
+                            draft.name,
+                            draft.parent);
                     draft.parent = null;
                     return;
                 }
-                childIndex.computeIfAbsent(draft.parent, key -> new ArrayList<>()).add(draft.name);
+                childIndex
+                        .computeIfAbsent(draft.parent, key -> new ArrayList<>())
+                        .add(draft.name);
             }
         });
         return childIndex;
     }
 
-    private Region buildResolved(String name, RegionDefinition inherited, Map<String, List<String>> childIndex, Set<String> visiting) {
+    private Region buildResolved(
+            String name, RegionDefinition inherited, Map<String, List<String>> childIndex, Set<String> visiting) {
         DraftRegion draft = drafts.get(name);
         if (draft == null) {
             Terrasect.LOGGER.error("Missing draft for region '{}'; creating empty placeholder", name);
@@ -85,9 +92,9 @@ public class RegionRegistry {
         RegionDefinition resolvedDefinition = draft.build().resolveInherited(inherited);
 
         List<Region> children = childIndex.getOrDefault(name, Collections.emptyList()).stream()
-            .map(childName -> buildResolved(childName, resolvedDefinition, childIndex, visiting))
-            .filter(Objects::nonNull)
-            .toList();
+                .map(childName -> buildResolved(childName, resolvedDefinition, childIndex, visiting))
+                .filter(Objects::nonNull)
+                .toList();
 
         int budget;
         if (draft.areaBudget != null) {
@@ -100,7 +107,8 @@ public class RegionRegistry {
         }
 
         visiting.remove(name);
-        return new Region(name, budget, resolvedDefinition, draft.adjacentTo, children, List.of(), draft.anchoredToOrigin);
+        return new Region(
+                name, budget, resolvedDefinition, draft.adjacentTo, children, List.of(), draft.anchoredToOrigin);
     }
 
     public static class DraftRegion extends RegionDefinition.AbstractBuilder<DraftRegion> {
@@ -123,7 +131,11 @@ public class RegionRegistry {
 
         public DraftRegion parent(String parentName) {
             if (this.parent != null && !this.parent.equals(parentName)) {
-                Terrasect.LOGGER.warn("Region '{}' already has parent '{}'; ignoring new parent '{}'.", this.name, this.parent, parentName);
+                Terrasect.LOGGER.warn(
+                        "Region '{}' already has parent '{}'; ignoring new parent '{}'.",
+                        this.name,
+                        this.parent,
+                        parentName);
                 return this;
             }
             this.parent = parentName;

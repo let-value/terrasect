@@ -7,18 +7,16 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.BiomeFilter;
-
-import net.minecraft.core.Holder;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Climate;
-import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 /**
  * Pre-computed biome metadata and pre-baked filtered parameter lists.
@@ -26,7 +24,7 @@ import java.util.Set;
  * <p>Built once per dimension; runtime lookups are O(1) with no allocations.
  */
 public final class BiomeLookup {
-    
+
     /**
      * Pre-computed metadata for a single biome.
      */
@@ -35,11 +33,11 @@ public final class BiomeLookup {
     public static BiomeLookup metadataOnly(IdentityHashMap<Holder<Biome>, Entry> metadata) {
         return new BiomeLookup(metadata, null, new IdentityHashMap<>());
     }
-    
+
     private final IdentityHashMap<Holder<Biome>, Entry> metadata;
     private final Climate.ParameterList<Holder<Biome>> originalParameterList;
     private final IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredParameterLists;
-    
+
     private BiomeLookup(
             IdentityHashMap<Holder<Biome>, Entry> metadata,
             Climate.ParameterList<Holder<Biome>> originalParameterList,
@@ -48,21 +46,21 @@ public final class BiomeLookup {
         this.originalParameterList = originalParameterList;
         this.filteredParameterLists = filteredParameterLists;
     }
-    
+
     /**
      * Get the pre-computed metadata for a biome.
-     * 
+     *
      * @param key The biome holder (identity-based lookup)
      * @return The metadata entry, or null if not found
      */
     public Entry get(Holder<Biome> key) {
         return metadata.get(key);
     }
-    
+
     /**
      * Check if a biome is allowed by the given selection rules.
      * Uses pre-computed metadata for O(1) lookup.
-     * 
+     *
      * @param key The biome holder
      * @param rules The selection rules to check against
      * @return true if the biome is allowed (not blocked)
@@ -74,10 +72,10 @@ public final class BiomeLookup {
         }
         return BiomeFilter.checkBiome(rules, entry.id(), entry.tags()) != BiomeFilter.FilterResult.BLOCKED;
     }
-    
+
     /**
      * Check a biome against selection rules and return the filter result.
-     * 
+     *
      * @param key The biome holder
      * @param rules The selection rules to check against
      * @return The filter result
@@ -89,20 +87,20 @@ public final class BiomeLookup {
         }
         return BiomeFilter.checkBiome(rules, entry.id(), entry.tags());
     }
-    
+
     /**
      * Get the original (unfiltered) parameter list.
-     * 
+     *
      * @return The original parameter list
      */
     public Climate.ParameterList<Holder<Biome>> getParameterList() {
         return originalParameterList;
     }
-    
+
     /**
      * Get the pre-baked filtered parameter list for the given rules.
      * O(1) lookup - all filtering was done at construction time.
-     * 
+     *
      * @param rules The selection rules (null returns original list)
      * @return The filtered parameter list
      */
@@ -113,7 +111,7 @@ public final class BiomeLookup {
         Climate.ParameterList<Holder<Biome>> filtered = filteredParameterLists.get(rules);
         return filtered != null ? filtered : originalParameterList;
     }
-    
+
     /**
      * Convenience builder for Minecraft's multi-noise biome parameters.
      * Builds biome metadata and pre-bakes filtered parameter lists for all biome rules in the
@@ -127,10 +125,8 @@ public final class BiomeLookup {
             return new BiomeLookup(new IdentityHashMap<>(), null, new IdentityHashMap<>());
         }
 
-        Climate.ParameterList<Holder<Biome>> parameterList = parameters.map(
-            list -> list,
-            holder -> holder.value().parameters()
-        );
+        Climate.ParameterList<Holder<Biome>> parameterList =
+                parameters.map(list -> list, holder -> holder.value().parameters());
 
         IdentityHashMap<Holder<Biome>, Entry> metadata = new IdentityHashMap<>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
@@ -148,7 +144,7 @@ public final class BiomeLookup {
 
         return new BiomeLookup(metadata, parameterList, filteredParameterLists);
     }
-    
+
     /**
      * Collect all unique {@link SelectionRules} from a region tree.
      */
@@ -157,18 +153,18 @@ public final class BiomeLookup {
         collectRulesRecursive(root, rules);
         return rules;
     }
-    
+
     private static void collectRulesRecursive(Region region, Set<SelectionRules> rules) {
         SelectionRules biomeRules = region.definition().biomes();
         if (biomeRules != null && (biomeRules.hasAllowRules() || biomeRules.hasBlockRules())) {
             rules.add(biomeRules);
         }
-        
+
         for (Region child : region.children()) {
             collectRulesRecursive(child, rules);
         }
     }
-    
+
     private static Set<String> buildTags(Holder<Biome> biome) {
         Set<String> tags = new HashSet<>();
         BiomeCompat.getTags(biome).forEach(tag -> tags.add("#" + tag.location().toString()));

@@ -1,9 +1,7 @@
 package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.handler.NoiseHandler;
-
 import net.minecraft.world.level.levelgen.DensityFunction;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -12,14 +10,15 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class WeirdScaledSamplerMixin {
     @Redirect(
             method = "transform",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/levelgen/DensityFunction$NoiseHolder;getValue(DDD)D"
-            )
-    )
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target = "Lnet/minecraft/world/level/levelgen/DensityFunction$NoiseHolder;getValue(DDD)D"))
     private double terrasect$sampleWeirdNoise(
             DensityFunction.NoiseHolder noiseHolder,
-            double x, double y, double z,
+            double x,
+            double y,
+            double z,
             DensityFunction.FunctionContext context,
             double input) {
         return NoiseHandler.sampleNoise(noiseHolder, x, y, z, context);

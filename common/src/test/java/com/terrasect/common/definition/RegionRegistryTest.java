@@ -1,11 +1,10 @@
 package com.terrasect.common.definition;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.Comparator;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Comparator;
+import org.junit.jupiter.api.Test;
 
 public class RegionRegistryTest {
 
@@ -13,23 +12,28 @@ public class RegionRegistryTest {
     public void buildsTreeFromFlatAndNestedRegistrations() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-            .biomes(biomes -> biomes.allowMods("minecraft"))
-            .child("NESTED", child -> child
-                .radius(14)  // 14^2 = 196 area
-                .biomes(biomes -> biomes.allowNames("custom:grove")));
+                .biomes(biomes -> biomes.allowMods("minecraft"))
+                .child("NESTED", child -> child.radius(14) // 14^2 = 196 area
+                        .biomes(biomes -> biomes.allowNames("custom:grove")));
 
         registry.region("FLAT")
-            .parent("ROOT")
-            .radius(12)  // 12^2 = 144 area
-            .biomes(biomes -> biomes.blockMods("minecraft").allowTags("#mystic"));
+                .parent("ROOT")
+                .radius(12) // 12^2 = 144 area
+                .biomes(biomes -> biomes.blockMods("minecraft").allowTags("#mystic"));
 
         Region root = registry.build("ROOT");
 
         // Root budget is sum of children: 196 + 144 = 340
         assertEquals(340, root.areaBudget());
 
-        Region flatChild = root.children().stream().filter(r -> r.name().equals("FLAT")).findFirst().orElseThrow();
-        Region nestedChild = root.children().stream().filter(r -> r.name().equals("NESTED")).findFirst().orElseThrow();
+        Region flatChild = root.children().stream()
+                .filter(r -> r.name().equals("FLAT"))
+                .findFirst()
+                .orElseThrow();
+        Region nestedChild = root.children().stream()
+                .filter(r -> r.name().equals("NESTED"))
+                .findFirst()
+                .orElseThrow();
 
         RegionDefinition nestedDefinition = nestedChild.definition();
         assertTrue(nestedDefinition.biomes().allowedMods().contains("minecraft"));
@@ -40,7 +44,12 @@ public class RegionRegistryTest {
         assertTrue(flatDefinition.biomes().allowedTags().contains("#mystic"));
 
         // Ensure build order is stable for consumers that iterate children.
-        assertEquals("FLAT", root.children().stream().min(Comparator.comparingInt(r -> r.name().length())).get().name());
+        assertEquals(
+                "FLAT",
+                root.children().stream()
+                        .min(Comparator.comparingInt(r -> r.name().length()))
+                        .get()
+                        .name());
     }
 
     @Test

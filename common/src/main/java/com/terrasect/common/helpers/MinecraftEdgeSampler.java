@@ -1,16 +1,15 @@
 package com.terrasect.common.helpers;
 
 import com.terrasect.common.compat.BiomeCompat;
-import net.minecraft.core.Holder;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Climate;
-import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 
 /**
  * Utility for collecting biome adjacency/run-length statistics from the vanilla noise sampler.
@@ -21,12 +20,13 @@ import java.util.Objects;
  */
 public class MinecraftEdgeSampler {
 
-    public record EdgeStatistics(Map<String, Integer> biomeCounts,
-                                 Map<String, Integer> transitionCounts,
-                                 Map<Integer, Integer> runLengthHistogram,
-                                 EdgeRoughness roughness,
-                                 ClimateEdgeDeltas climateEdgeDeltas,
-                                 int sampleStep) {
+    public record EdgeStatistics(
+            Map<String, Integer> biomeCounts,
+            Map<String, Integer> transitionCounts,
+            Map<Integer, Integer> runLengthHistogram,
+            EdgeRoughness roughness,
+            ClimateEdgeDeltas climateEdgeDeltas,
+            int sampleStep) {
         public double averageRunLength() {
             long totalCells = 0;
             long weighted = 0;
@@ -46,30 +46,34 @@ public class MinecraftEdgeSampler {
         }
 
         public int transitionTotal() {
-            return transitionCounts.values().stream().mapToInt(Integer::intValue).sum();
+            return transitionCounts.values().stream()
+                    .mapToInt(Integer::intValue)
+                    .sum();
         }
     }
 
-    public record EdgeRoughness(double meanHorizontalJitter,
-                                double meanVerticalJitter,
-                                double transitionDensity) {
-    }
+    public record EdgeRoughness(double meanHorizontalJitter, double meanVerticalJitter, double transitionDensity) {}
 
-    public record ClimateEdgeDeltas(long samples,
-                                    double averageTemperatureDelta,
-                                    double averageHumidityDelta,
-                                    double averageContinentalnessDelta,
-                                    double averageErosionDelta,
-                                    double averageWeirdnessDelta,
-                                    double averageDepthDelta) {
+    public record ClimateEdgeDeltas(
+            long samples,
+            double averageTemperatureDelta,
+            double averageHumidityDelta,
+            double averageContinentalnessDelta,
+            double averageErosionDelta,
+            double averageWeirdnessDelta,
+            double averageDepthDelta) {
         public boolean hasSamples() {
             return samples > 0;
         }
     }
 
-    private record ClimateSample(double temperature, double humidity, double continentalness,
-                                 double erosion, double weirdness, double depth) {
-    }
+    private record ClimateSample(
+            double temperature,
+            double humidity,
+            double continentalness,
+            double erosion,
+            double weirdness,
+            double depth) {}
 
     private final MultiNoiseBiomeSource biomeSource;
     private final Climate.Sampler climateSampler;
@@ -147,14 +151,17 @@ public class MinecraftEdgeSampler {
         }
 
         EdgeRoughness roughness = new EdgeRoughness(
-            meanJitter(rowTransitions),
-            meanJitter(columnTransitions),
-            transitionCounts.isEmpty() || totalAdjacencies == 0
-                ? 0.0
-                : transitionCounts.values().stream().mapToLong(Integer::longValue).sum() / (double) totalAdjacencies
-        );
+                meanJitter(rowTransitions),
+                meanJitter(columnTransitions),
+                transitionCounts.isEmpty() || totalAdjacencies == 0
+                        ? 0.0
+                        : transitionCounts.values().stream()
+                                        .mapToLong(Integer::longValue)
+                                        .sum()
+                                / (double) totalAdjacencies);
 
-        return new EdgeStatistics(biomeCounts, transitionCounts, runLengthHistogram, roughness, climateAccumulator.finish(), step);
+        return new EdgeStatistics(
+                biomeCounts, transitionCounts, runLengthHistogram, roughness, climateAccumulator.finish(), step);
     }
 
     private String biomeKeyAt(int x, int z) {
@@ -165,13 +172,12 @@ public class MinecraftEdgeSampler {
     private ClimateSample climateAt(int x, int z) {
         Climate.TargetPoint point = climateSampler.sample(x, 0, z);
         return new ClimateSample(
-            point.temperature(),
-            point.humidity(),
-            point.continentalness(),
-            point.erosion(),
-            point.weirdness(),
-            point.depth()
-        );
+                point.temperature(),
+                point.humidity(),
+                point.continentalness(),
+                point.erosion(),
+                point.weirdness(),
+                point.depth());
     }
 
     private void incrementTransition(Map<String, Integer> transitionCounts, String a, String b) {
@@ -231,14 +237,13 @@ public class MinecraftEdgeSampler {
         ClimateEdgeDeltas finish() {
             double inv = samples == 0 ? 0.0 : 1.0 / samples;
             return new ClimateEdgeDeltas(
-                samples,
-                temperature * inv,
-                humidity * inv,
-                continentalness * inv,
-                erosion * inv,
-                weirdness * inv,
-                depth * inv
-            );
+                    samples,
+                    temperature * inv,
+                    humidity * inv,
+                    continentalness * inv,
+                    erosion * inv,
+                    weirdness * inv,
+                    depth * inv);
         }
     }
 }

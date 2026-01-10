@@ -5,7 +5,6 @@ import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.ClimateModifier;
-
 import net.minecraft.world.level.biome.Climate;
 
 /**
@@ -15,9 +14,7 @@ public final class ClimateHandler {
     private ClimateHandler() {}
 
     public static Climate.TargetPoint modifyTargetPoint(
-            Context context,
-            int x, int y, int z,
-            Climate.TargetPoint original) {
+            Context context, int x, int y, int z, Climate.TargetPoint original) {
 
         if (context == null || original == null) {
             return original;
@@ -49,4 +46,3 @@ public final class ClimateHandler {
         return ClimateModifier.modify(climate, original, edgeFactor);
     }
 }
-

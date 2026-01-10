@@ -2,16 +2,12 @@ package com.terrasect.common.definition;
 
 /**
  * Strategy-specific settings for region generation.
- * 
+ *
  * Each strategy has its own settings record. Configure the ones you need,
  * ignore the rest - strategies use sensible defaults for unconfigured values.
  */
 public record StrategySettings(
-    HexSettings hex,
-    VoronoiSettings voronoi,
-    SubdivisionSettings subdivision,
-    TemplateSettings template
-) {
+        HexSettings hex, VoronoiSettings voronoi, SubdivisionSettings subdivision, TemplateSettings template) {
     /** Default settings - all null, strategies use their own defaults */
     public static StrategySettings defaults() {
         return new StrategySettings(null, null, null, null);
@@ -23,7 +19,7 @@ public record StrategySettings(
     }
 
     // ========== HEX Settings ==========
-    
+
     /**
      * @param ringRegionName Name of region for buffer zone between hex cells (null = no ring)
      */
@@ -34,7 +30,7 @@ public record StrategySettings(
     }
 
     // ========== VORONOI Settings ==========
-    
+
     /**
      * @param relaxationIterations Lloyd relaxation iterations (0-20, default 15)
      */
@@ -42,14 +38,14 @@ public record StrategySettings(
         public VoronoiSettings {
             relaxationIterations = Math.max(0, Math.min(20, relaxationIterations));
         }
-        
+
         public static VoronoiSettings defaults() {
             return new VoronoiSettings(15);
         }
     }
 
     // ========== SUBDIVISION Settings ==========
-    
+
     /**
      * @param jitter Randomness in split positions (0.0-0.5, default 0.15)
      */
@@ -57,35 +53,29 @@ public record StrategySettings(
         public SubdivisionSettings {
             jitter = Math.max(0f, Math.min(0.5f, jitter));
         }
-        
+
         public static SubdivisionSettings defaults() {
             return new SubdivisionSettings(0.15f);
         }
     }
 
     // ========== TEMPLATE Settings ==========
-    
+
     /**
      * @param type Template layout type (null = auto-select based on children)
      * @param centerSurround Settings for CENTER_SURROUND template
      */
-    public record TemplateSettings(
-        TemplateType type,
-        CenterSurroundSettings centerSurround
-    ) {
+    public record TemplateSettings(TemplateType type, CenterSurroundSettings centerSurround) {
         public static TemplateSettings auto() {
             return new TemplateSettings(null, null);
         }
-        
+
         public static TemplateSettings of(TemplateType type) {
             return new TemplateSettings(type, null);
         }
-        
+
         public static TemplateSettings centerSurround(String centerRegionName) {
-            return new TemplateSettings(
-                TemplateType.CENTER_SURROUND, 
-                new CenterSurroundSettings(centerRegionName)
-            );
+            return new TemplateSettings(TemplateType.CENTER_SURROUND, new CenterSurroundSettings(centerRegionName));
         }
     }
 
@@ -101,13 +91,13 @@ public record StrategySettings(
     public enum TemplateType {
         /** Two regions split along a random axis */
         BINARY,
-        
+
         /** Three regions in triangular formation */
         TRIANGLE,
-        
+
         /** One region in center, others distributed around */
         CENTER_SURROUND,
-        
+
         /** Regions arranged in concentric rings from center */
         RADIAL
     }

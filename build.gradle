@@ -1,8 +1,50 @@
 plugins {
     id 'base'
+    id 'com.diffplug.spotless' version "${spotless_version}" apply false
 }
 
 allprojects {
     group = property('maven_group')
     version = property('mod_version')
+}
+
+apply plugin: 'com.diffplug.spotless'
+
+spotless {
+    format 'misc', {
+        target '**/*.md', '**/*.properties', '**/*.toml', '**/*.json', '**/*.yml', '**/*.yaml', '.gitignore'
+        targetExclude '**/build/**', '**/.gradle/**', 'minecraft/**', 'mods/**'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'gradle', {
+        target 'build.gradle', 'settings.gradle', 'gradle/**/*.gradle'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+subprojects {
+    plugins.withId('java') {
+        apply plugin: 'com.diffplug.spotless'
+
+        spotless {
+            java {
+                palantirJavaFormat("${palantir_java_format_version}")
+                formatAnnotations()
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
+        }
+
+        tasks.register('updateSnapshots', Test) {
+            group = 'verification'
+            description = 'Runs tests with snapshot update mode enabled.'
+            testClassesDirs = sourceSets.test.output.classesDirs
+            classpath = sourceSets.test.runtimeClasspath
+            useJUnitPlatform()
+            systemProperty 'forceUpdateSnapshots', 'true'
+            systemProperty 'terrasect.inlineSnapshots', 'update'
+        }
+    }
 }

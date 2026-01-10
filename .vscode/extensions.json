@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "redhat.java",
+        "palantir.java-format",
+        "vscjava.vscode-gradle"
+    ]
+}

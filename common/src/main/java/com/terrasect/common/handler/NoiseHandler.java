@@ -3,7 +3,6 @@ package com.terrasect.common.handler;
 import com.terrasect.common.compat.NoiseChunkNoiseAccess;
 import com.terrasect.common.lookup.CompiledNoiseRegistry;
 import com.terrasect.common.lookup.NoiseChunkLookup;
-
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.levelgen.DensityFunction;
@@ -27,7 +26,9 @@ public final class NoiseHandler {
      */
     public static double sampleNoise(
             DensityFunction.NoiseHolder noiseHolder,
-            double x, double y, double z,
+            double x,
+            double y,
+            double z,
             DensityFunction.FunctionContext context) {
 
         double original = noiseHolder.getValue(x, y, z);

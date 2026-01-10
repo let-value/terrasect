@@ -1,19 +1,17 @@
 package com.terrasect.common.generation;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.terrasect.common.Context;
 import com.terrasect.common.Terrasect;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.lookup.CompiledNoiseRegistry;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.Nullable;
 
 public final class World {
     public static final String OVERWORLD = "minecraft:overworld";
@@ -48,8 +46,8 @@ public final class World {
 
         Region anchored = findAnchoredRegion(state.root);
         if (anchored != null) {
-            Terrasect.LOGGER.info("Calculating grid offset for anchored region '{}' in '{}'",
-                    anchored.name(), dimensionId);
+            Terrasect.LOGGER.info(
+                    "Calculating grid offset for anchored region '{}' in '{}'", anchored.name(), dimensionId);
 
             float[] offset = calculateAnchorOffset(state.root, anchored, seed, context);
             state.initialize(seed, offset[0], offset[1]);
@@ -62,7 +60,7 @@ public final class World {
 
     /**
      * Get the root region for a dimension.
-     * 
+     *
      * @param dimensionId The dimension ID
      * @return The root region, or null if not registered
      */
@@ -73,7 +71,7 @@ public final class World {
 
     /**
      * Get the pre-compiled noise registry for a dimension.
-     * 
+     *
      * @param dimensionId The dimension ID
      * @return The noise registry, or null if not registered
      */
@@ -84,12 +82,12 @@ public final class World {
 
     /**
      * Traverse the region hierarchy and return full result (leaf depth).
-     * 
+     *
      * <p>
      * Returns thread-local result - caller must use values before next call on same
      * thread.
      * Contains: region, seed, edgeDistance, and edgeInfluence.
-     * 
+     *
      * @param context The generation context
      * @param x       Block X coordinate
      * @param z       Block Z coordinate
@@ -105,12 +103,12 @@ public final class World {
 
     /**
      * Traverse the region hierarchy to a specific depth.
-     * 
+     *
      * <p>
      * Returns thread-local result - caller must use values before next call on same
      * thread.
      * Contains: region, seed, edgeDistance, and edgeInfluence.
-     * 
+     *
      * @param context The generation context
      * @param x       Block X coordinate
      * @param z       Block Z coordinate
@@ -123,23 +121,23 @@ public final class World {
         if (iter == null) {
             return null;
         }
-        
+
         int currentDepth = 0;
         while (iter.hasNext() && currentDepth < depth) {
             iter.next();
             currentDepth++;
         }
-        
+
         return iter.current();
     }
 
     /**
      * Start an iterative traversal of the region hierarchy.
-     * 
+     *
      * <p>
      * Returns thread-local iterator - caller must consume values before next call
      * on same thread. Use to step through each depth level without redundant work.
-     * 
+     *
      * <p>Usage:
      * <pre>{@code
      * TraversalIterator iter = World.traverseIterator(context, x, z);
@@ -150,7 +148,7 @@ public final class World {
      *     } while (iter.hasNext() && iter.next() != null);
      * }
      * }</pre>
-     * 
+     *
      * @param context The generation context
      * @param x       Block X coordinate
      * @param z       Block Z coordinate
@@ -161,10 +159,8 @@ public final class World {
         if (state == null) {
             return null;
         }
-        
-        return Layout.startTraversal(
-                state.root, x, z, context,
-                state.offsetX, state.offsetZ);
+
+        return Layout.startTraversal(state.root, x, z, context, state.offsetX, state.offsetZ);
     }
 
     /**
@@ -251,8 +247,7 @@ public final class World {
      * The offset is applied BEFORE warping, so it's simply the negative of
      * where we find the anchored region.
      */
-    private static float[] calculateAnchorOffset(Region root, Region anchored,
-            long seed, Context context) {
+    private static float[] calculateAnchorOffset(Region root, Region anchored, long seed, Context context) {
 
         float baseRadius = root.radius();
         int stepSize = Math.max(100, (int) (baseRadius * 0.5f));
@@ -260,7 +255,7 @@ public final class World {
         int targetDepth = findAnchoredDepth(root, anchored);
         if (targetDepth < 0) {
             Terrasect.LOGGER.warn("Could not determine depth of anchored region '{}'", anchored.name());
-            return new float[] { 0, 0 };
+            return new float[] {0, 0};
         }
 
         String targetName = anchored.name();
@@ -272,7 +267,7 @@ public final class World {
         TraversalResult atOrigin = iter.current();
         if (atOrigin.region != null && atOrigin.region.name().equals(targetName)) {
             Terrasect.LOGGER.info("Anchored region '{}' already at origin", targetName);
-            return new float[] { 0, 0 };
+            return new float[] {0, 0};
         }
 
         int maxRings = 20;
@@ -292,15 +287,14 @@ public final class World {
                 TraversalResult sampled = iter.current();
                 if (sampled.region != null && sampled.region.name().equals(targetName)) {
 
-                    Terrasect.LOGGER.info("Found anchored region '{}' at ({}, {})",
-                            targetName, sampleX, sampleZ);
-                    return new float[] { sampleX, sampleZ };
+                    Terrasect.LOGGER.info("Found anchored region '{}' at ({}, {})", targetName, sampleX, sampleZ);
+                    return new float[] {sampleX, sampleZ};
                 }
             }
         }
 
         Terrasect.LOGGER.warn("Could not find anchored region '{}' within {} rings", targetName, maxRings);
-        return new float[] { 0, 0 };
+        return new float[] {0, 0};
     }
 
     private static class DimensionState {

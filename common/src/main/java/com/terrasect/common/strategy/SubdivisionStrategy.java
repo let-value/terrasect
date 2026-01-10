@@ -2,16 +2,15 @@ package com.terrasect.common.strategy;
 
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.MathUtils;
-
 import java.util.List;
 
 /**
  * Cache-free BSP subdivision using recursive traversal.
- * 
+ *
  * Instead of pre-computing and caching the full BSP tree, we traverse it
  * on-the-fly for each query. Since BSP depth is O(log n) and n is typically
  * 2-8 children, this is just 1-3 recursive calls per query.
- * 
+ *
  * The split decisions are fully deterministic from seed, so repeated queries
  * with the same inputs produce identical results without caching.
  */
@@ -28,17 +27,17 @@ public final class SubdivisionStrategy {
 
     /**
      * Query which child region contains the point, writing results to output buffer.
-     * 
+     *
      * @param seed Parent seed for deterministic splits
      * @param children Child regions with budget weights
      * @param dx X offset from parent center
-     * @param dz Z offset from parent center  
+     * @param dz Z offset from parent center
      * @param radius Parent radius
      * @param jitter Split jitter amount (0.0 = precise, 0.5 = very organic)
      * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
      */
-    public static void query(long seed, List<Region> children, float dx, float dz,
-                             float radius, float jitter, QueryResult out) {
+    public static void query(
+            long seed, List<Region> children, float dx, float dz, float radius, float jitter, QueryResult out) {
         if (children.isEmpty()) {
             out.childIndex = 0;
             out.centerX = 0;
@@ -83,19 +82,28 @@ public final class SubdivisionStrategy {
      * Recursively traverse BSP tree to find containing region.
      * Returns immediately when leaf node is reached.
      */
-    private static void traverseBSP(float px, float pz,
-                                     float[] budgets, int[] indices,
-                                     int start, int end,
-                                     float minX, float minZ, float maxX, float maxZ,
-                                     long seed, int depth, float jitterAmount,
-                                     QueryResult out) {
+    private static void traverseBSP(
+            float px,
+            float pz,
+            float[] budgets,
+            int[] indices,
+            int start,
+            int end,
+            float minX,
+            float minZ,
+            float maxX,
+            float maxZ,
+            long seed,
+            int depth,
+            float jitterAmount,
+            QueryResult out) {
         int count = end - start;
 
         if (count == 1) {
             // Leaf node - this is our region
             int originalIdx = indices[start];
             out.childIndex = originalIdx;
-            
+
             // Subdivision produces rectangles. Transform to cell-local coordinates.
             float centerX = (minX + maxX) / 2.0f;
             float centerZ = (minZ + maxZ) / 2.0f;
@@ -104,14 +112,14 @@ public final class SubdivisionStrategy {
             // Use the smaller dimension as the "radius" for circular child layout
             float cellRadius = Math.min(halfWidth, halfHeight);
             cellRadius = Math.max(cellRadius, 0.1f); // Minimum size
-            
+
             out.centerX = centerX;
             out.centerZ = centerZ;
             out.radius = cellRadius;
             // Store cell center for seed uniqueness
             out.siteX = centerX;
             out.siteZ = centerZ;
-            
+
             // Edge distance: minimum distance to any cell boundary (normalized)
             float distToLeft = px - minX;
             float distToRight = maxX - px;
@@ -132,7 +140,7 @@ public final class SubdivisionStrategy {
         float accumulated = 0;
         int bestMid = start + 1;
         float bestDiff = Float.MAX_VALUE;
-        
+
         for (int i = start; i < end - 1; i++) {
             accumulated += budgets[indices[i]];
             float diff = Math.abs(accumulated - totalBudget / 2);
@@ -143,7 +151,7 @@ public final class SubdivisionStrategy {
         }
 
         int mid = bestMid;
-        
+
         // Calculate split ratio
         float leftBudget = 0;
         for (int i = start; i < mid; i++) {
@@ -163,25 +171,81 @@ public final class SubdivisionStrategy {
         // Compute split position (no warp for debugging)
         if (splitVertical) {
             float splitX = minX + width * splitRatio;
-            
+
             long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
             long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
-            
+
             if (px < splitX) {
-                traverseBSP(px, pz, budgets, indices, start, mid, minX, minZ, splitX, maxZ, leftSeed, depth + 1, jitterAmount, out);
+                traverseBSP(
+                        px,
+                        pz,
+                        budgets,
+                        indices,
+                        start,
+                        mid,
+                        minX,
+                        minZ,
+                        splitX,
+                        maxZ,
+                        leftSeed,
+                        depth + 1,
+                        jitterAmount,
+                        out);
             } else {
-                traverseBSP(px, pz, budgets, indices, mid, end, splitX, minZ, maxX, maxZ, rightSeed, depth + 1, jitterAmount, out);
+                traverseBSP(
+                        px,
+                        pz,
+                        budgets,
+                        indices,
+                        mid,
+                        end,
+                        splitX,
+                        minZ,
+                        maxX,
+                        maxZ,
+                        rightSeed,
+                        depth + 1,
+                        jitterAmount,
+                        out);
             }
         } else {
             float splitZ = minZ + height * splitRatio;
-            
+
             long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
             long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
-            
+
             if (pz < splitZ) {
-                traverseBSP(px, pz, budgets, indices, start, mid, minX, minZ, maxX, splitZ, leftSeed, depth + 1, jitterAmount, out);
+                traverseBSP(
+                        px,
+                        pz,
+                        budgets,
+                        indices,
+                        start,
+                        mid,
+                        minX,
+                        minZ,
+                        maxX,
+                        splitZ,
+                        leftSeed,
+                        depth + 1,
+                        jitterAmount,
+                        out);
             } else {
-                traverseBSP(px, pz, budgets, indices, mid, end, minX, splitZ, maxX, maxZ, rightSeed, depth + 1, jitterAmount, out);
+                traverseBSP(
+                        px,
+                        pz,
+                        budgets,
+                        indices,
+                        mid,
+                        end,
+                        minX,
+                        splitZ,
+                        maxX,
+                        maxZ,
+                        rightSeed,
+                        depth + 1,
+                        jitterAmount,
+                        out);
             }
         }
     }
@@ -193,7 +257,7 @@ public final class SubdivisionStrategy {
         for (int i = 0; i < count; i++) {
             indices[i] = i;
         }
-        
+
         for (int i = 0; i < count - 1; i++) {
             for (int j = i + 1; j < count; j++) {
                 if (budgets[indices[j]] > budgets[indices[i]]) {

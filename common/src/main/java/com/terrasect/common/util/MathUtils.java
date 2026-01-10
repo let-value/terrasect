@@ -36,7 +36,7 @@ public class MathUtils {
         h = h ^ (h >>> 31);
         return h;
     }
-    
+
     public static long hash64(long seed, int x, int z, int salt) {
         return hash64(seed, x, z, (long) salt);
     }
@@ -53,15 +53,15 @@ public class MathUtils {
     public static float clamp01(float v) {
         return v < 0 ? 0 : (v > 1 ? 1 : v);
     }
-    
+
     public static float lerp(float t, float a, float b) {
         return a + t * (b - a);
     }
-    
+
     /**
      * Returns the axial coordinates (q, r) of the hex cell containing (x, z).
      * Uses pointy-topped hexagon orientation.
-     * 
+     *
      * @param x World X coordinate
      * @param z World Z coordinate
      * @param size Hex cell size (distance from center to corner)
@@ -69,8 +69,8 @@ public class MathUtils {
      */
     public static long getHexCell(float x, float z, float size) {
         // Pointy-topped hex conversion
-        float q = (float) (Math.sqrt(3)/3 * x - 1.0/3 * z) / size;
-        float r = (float) (2.0/3 * z) / size;
+        float q = (float) (Math.sqrt(3) / 3 * x - 1.0 / 3 * z) / size;
+        float r = (float) (2.0 / 3 * z) / size;
         return hexRound(q, r);
     }
 
@@ -89,7 +89,7 @@ public class MathUtils {
         } else if (r_diff > s_diff) {
             rr = -rq - rs;
         }
-        
+
         return ((long) rq << 32) | (rr & 0xFFFFFFFFL);
     }
 }

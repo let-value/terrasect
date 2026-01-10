@@ -1,6 +1,6 @@
 /**
  * Shared utilities for Fabric projects.
- * 
+ *
  * Usage in fabric build.gradle:
  *   apply from: rootProject.file('gradle/loaders/fabric.gradle')
  */
@@ -13,30 +13,30 @@ ext {
      */
     findMinecraftSourcesJars = { String minecraftVersion ->
         def sourcesJars = []
-        
+
         // Cache locations to search
         def cacheLocations = [
             new File(gradle.gradleUserHomeDir, 'caches/fabric-loom/minecraftMaven/net/minecraft'),
             rootProject.file('.gradle/loom-cache/minecraftMaven/net/minecraft')
         ]
-        
+
         // Artifact type prefixes to look for (in order of preference)
         // Newer Loom uses hash suffixes like minecraft-common-c95dce33dd
         def artifactPrefixes = ['minecraft-merged', 'minecraft-common', 'minecraft-clientOnly']
-        
+
         for (cacheLocation in cacheLocations) {
             if (!cacheLocation.exists()) continue
-            
+
             for (artifactPrefix in artifactPrefixes) {
                 // Find directories that start with the artifact prefix (handles hash suffixes)
-                def artifactDirs = cacheLocation.listFiles()?.findAll { 
+                def artifactDirs = cacheLocation.listFiles()?.findAll {
                     it.isDirectory() && it.name.startsWith(artifactPrefix)
                 } ?: []
-                
+
                 for (artifactDir in artifactDirs) {
                     def versionDir = artifactDir.listFiles()?.find { it.name.startsWith(minecraftVersion) }
                     if (versionDir == null) continue
-                    
+
                     def sourcesJar = versionDir.listFiles()?.find { it.name.endsWith('-sources.jar') }
                     if (sourcesJar?.exists()) {
                         sourcesJars.add(sourcesJar)
@@ -47,23 +47,23 @@ ext {
                     }
                 }
             }
-            
+
             // If we found sources in this cache location, use them
             if (!sourcesJars.isEmpty()) {
                 return sourcesJars
             }
         }
-        
+
         return sourcesJars
     }
-    
+
     /**
      * Extracts Minecraft sources with proper Mojang mappings (human-readable parameter names)
      * to a version-specific folder under minecraft/.
-     * 
+     *
      * Uses Fabric Loom's mapped sources which have better parameter names than
      * raw NeoForm/Mojang mappings (e.g., 'levelHeightAccessor' instead of 'p_178938_').
-     * 
+     *
      * @param minecraftVersion The Minecraft version to extract (e.g., '1.21.11', '1.20.1')
      * @return The registered task
      */
@@ -71,38 +71,38 @@ ext {
         tasks.register('unpackMinecraft', Copy) {
             group = 'terrasect'
             description = "Extracts Minecraft ${minecraftVersion} sources with Mojang mappings"
-            
+
             // Root fabric project extracts to minecraft/, versioned projects to versions/<version>/minecraft/
             def isVersionedProject = project.projectDir.path.contains('versions')
-            def outputDir = isVersionedProject 
+            def outputDir = isVersionedProject
                 ? project.projectDir.parentFile.toPath().resolve('minecraft').toFile()
                 : rootProject.file('minecraft')
-            
+
             // Ensure sources are generated first
             dependsOn 'genSources'
-            
+
             from {
                 def sourcesJars = findMinecraftSourcesJars(minecraftVersion)
-                
+
                 if (sourcesJars.isEmpty()) {
                     throw new GradleException("Could not find Minecraft ${minecraftVersion} sources jar. Run './gradlew ${project.path}:genSources' first, then try again.")
                 }
-                
+
                 // Extract all sources jars (may be merged or common+clientOnly)
                 sourcesJars.collect { zipTree(it) }
             }
-            
+
             into outputDir
-            
+
             // Only include Java sources, handle duplicates from split jars
             include '**/*.java'
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
-            
+
             doFirst {
                 // Clean existing sources for this version
                 delete outputDir
             }
-            
+
             doLast {
                 println "Minecraft ${minecraftVersion} sources extracted to: ${outputDir}"
             }

@@ -1,5 +1,8 @@
 package com.terrasect.common.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.terrasect.common.Context;
 import com.terrasect.common.compat.NoiseChunkNoiseAccess;
 import com.terrasect.common.definition.Region;
@@ -7,7 +10,13 @@ import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.handler.NoiseHandler;
 import com.terrasect.common.lookup.NoiseChunkLookup;
-
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
@@ -21,21 +30,9 @@ import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.Noises;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
-
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.lang.reflect.Method;
-import java.lang.reflect.RecordComponent;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Demonstrates "no ocean" and "only ocean" outcomes by constraining root noise inputs.
@@ -75,7 +72,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         NoiseGeneratorSettings settings;
         try {
             settings = lookup.lookupOrThrow(Registries.NOISE_SETTINGS)
-                .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+                    .getOrThrow(NoiseGeneratorSettings.OVERWORLD)
+                    .value();
         } catch (Exception e) {
             settings = NoiseGeneratorSettings.dummy();
         }
@@ -88,38 +86,45 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
         Holder<NormalNoise.NoiseParameters> continentalnessHolder = noiseParams.getOrThrow(Noises.CONTINENTALNESS);
         NormalNoise continentalnessNoise = randomState.getOrCreateNoise(Noises.CONTINENTALNESS);
-        DensityFunction.NoiseHolder continentalness = new DensityFunction.NoiseHolder(continentalnessHolder, continentalnessNoise);
+        DensityFunction.NoiseHolder continentalness =
+                new DensityFunction.NoiseHolder(continentalnessHolder, continentalnessNoise);
 
         File outDir = new File("build/test-snapshots/noise-constraints/ocean-control");
         Files.createDirectories(outDir.toPath());
 
         StringBuilder index = new StringBuilder(8 * 1024);
         index.append("<!doctype html><html><head><meta charset=\"utf-8\">")
-            .append("<title>Terrasect Ocean Control (NoiseConstraints)</title>")
-            .append("<style>body{font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px}code{white-space:nowrap}</style>")
-            .append("</head><body>")
-            .append("<h1>Terrasect Ocean Control (NoiseConstraints)</h1>")
-            .append("<p>Noise sampled: <code>minecraft:continentalness</code> (scaled coords x/z * 0.25). Ocean mask uses threshold &lt; 0.</p>")
-            .append("<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Ocean Pixels</th></tr>");
+                .append("<title>Terrasect Ocean Control (NoiseConstraints)</title>")
+                .append(
+                        "<style>body{font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px}code{white-space:nowrap}</style>")
+                .append("</head><body>")
+                .append("<h1>Terrasect Ocean Control (NoiseConstraints)</h1>")
+                .append(
+                        "<p>Noise sampled: <code>minecraft:continentalness</code> (scaled coords x/z * 0.25). Ocean mask uses threshold &lt; 0.</p>")
+                .append("<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Ocean Pixels</th></tr>");
 
         RenderResult vanilla = render(outDir, "vanilla", continentalness, seed, null);
         indexRow(index, "Vanilla (no constraints)", vanilla);
-        assertTrue(vanilla.oceanPixels > 0 && vanilla.oceanPixels < (long) IMG_SIZE * IMG_SIZE,
-            "expected vanilla continentalness to contain both signs");
+        assertTrue(
+                vanilla.oceanPixels > 0 && vanilla.oceanPixels < (long) IMG_SIZE * IMG_SIZE,
+                "expected vanilla continentalness to contain both signs");
 
         RegionDefinition noOceanDef = RegionDefinition.builder()
-            .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(0.05, 2.0)))
-            .build();
+                .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(0.05, 2.0)))
+                .build();
         RenderResult noOcean = render(outDir, "no_ocean", continentalness, seed, noOceanDef);
         indexRow(index, "No ocean (clamp to +)", noOcean);
         assertEquals(0L, noOcean.oceanPixels, "expected no-ocean clamp to remove all ocean pixels");
 
         RegionDefinition onlyOceanDef = RegionDefinition.builder()
-            .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(-2.0, -0.05)))
-            .build();
+                .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(-2.0, -0.05)))
+                .build();
         RenderResult onlyOcean = render(outDir, "only_ocean", continentalness, seed, onlyOceanDef);
         indexRow(index, "Only ocean (clamp to -)", onlyOcean);
-        assertEquals((long) IMG_SIZE * IMG_SIZE, onlyOcean.oceanPixels, "expected only-ocean clamp to make all pixels ocean");
+        assertEquals(
+                (long) IMG_SIZE * IMG_SIZE,
+                onlyOcean.oceanPixels,
+                "expected only-ocean clamp to make all pixels ocean");
 
         index.append("</table>");
 
@@ -128,59 +133,113 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         RenderRegionsResult regions = renderRegions(outDir, "two_regions", continentalness, seed, regionsRoot);
 
         index.append("<h2>Two-region demo</h2>")
-            .append("<p>Same clamp rules, but applied per-region with edge blending (8-block boundary zone).</p>")
-            .append("<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Region Map</th><th>Interior Stats</th></tr>");
+                .append("<p>Same clamp rules, but applied per-region with edge blending (8-block boundary zone).</p>")
+                .append(
+                        "<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Region Map</th><th>Interior Stats</th></tr>");
         index.append("<tr><td><code>NO_OCEAN</code> vs <code>ONLY_OCEAN</code></td>")
-            .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE).append("\" src=\"")
-            .append(regions.valuesFile).append("\"></td>")
-            .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE).append("\" src=\"")
-            .append(regions.maskFile).append("\"></td>")
-            .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE).append("\" src=\"")
-            .append(regions.regionFile).append("\"></td>")
-            .append("<td><code>")
-            .append("NO_OCEAN=").append(regions.noOceanInteriorOceanPixels).append("/").append(regions.noOceanInteriorPixels)
-            .append("<br>")
-            .append("ONLY_OCEAN=").append(regions.onlyOceanInteriorOceanPixels).append("/").append(regions.onlyOceanInteriorPixels)
-            .append("</code></td></tr>\n");
+                .append("<td><img width=\"")
+                .append(IMG_SIZE)
+                .append("\" height=\"")
+                .append(IMG_SIZE)
+                .append("\" src=\"")
+                .append(regions.valuesFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(IMG_SIZE)
+                .append("\" height=\"")
+                .append(IMG_SIZE)
+                .append("\" src=\"")
+                .append(regions.maskFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(IMG_SIZE)
+                .append("\" height=\"")
+                .append(IMG_SIZE)
+                .append("\" src=\"")
+                .append(regions.regionFile)
+                .append("\"></td>")
+                .append("<td><code>")
+                .append("NO_OCEAN=")
+                .append(regions.noOceanInteriorOceanPixels)
+                .append("/")
+                .append(regions.noOceanInteriorPixels)
+                .append("<br>")
+                .append("ONLY_OCEAN=")
+                .append(regions.onlyOceanInteriorOceanPixels)
+                .append("/")
+                .append(regions.onlyOceanInteriorPixels)
+                .append("</code></td></tr>\n");
         index.append("</table>");
 
         assertTrue(regions.noOceanInteriorPixels > 0, "expected at least one NO_OCEAN interior sample");
         assertTrue(regions.onlyOceanInteriorPixels > 0, "expected at least one ONLY_OCEAN interior sample");
         assertEquals(0L, regions.noOceanInteriorOceanPixels, "NO_OCEAN interior should contain no ocean pixels");
-        assertEquals(regions.onlyOceanInteriorPixels, regions.onlyOceanInteriorOceanPixels, "ONLY_OCEAN interior should be all ocean pixels");
+        assertEquals(
+                regions.onlyOceanInteriorPixels,
+                regions.onlyOceanInteriorOceanPixels,
+                "ONLY_OCEAN interior should be all ocean pixels");
 
         // ===== Terrain impact (preliminary surface level) =====
         index.append("<h2>Terrain impact</h2>")
-            .append("<p>Computed <code>NoiseRouter.preliminary_surface_level</code> under the same constraints. ")
-            .append("Below-sea mask uses <code>height &lt; seaLevel</code> (seaLevel=").append(seaLevel).append(").</p>")
-            .append("<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Below Sea Pixels</th><th>Min/Max</th></tr>");
+                .append("<p>Computed <code>NoiseRouter.preliminary_surface_level</code> under the same constraints. ")
+                .append("Below-sea mask uses <code>height &lt; seaLevel</code> (seaLevel=")
+                .append(seaLevel)
+                .append(").</p>")
+                .append(
+                        "<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Below Sea Pixels</th><th>Min/Max</th></tr>");
 
-        SurfaceRenderResult vanillaSurface = renderPreliminarySurfaceLevel(outDir, "vanilla", randomState, seed, seaLevel, minY, maxY, null);
+        SurfaceRenderResult vanillaSurface =
+                renderPreliminarySurfaceLevel(outDir, "vanilla", randomState, seed, seaLevel, minY, maxY, null);
         indexSurfaceRow(index, "Vanilla (no constraints)", vanillaSurface);
 
-        SurfaceRenderResult noOceanSurface = renderPreliminarySurfaceLevel(outDir, "no_ocean", randomState, seed, seaLevel, minY, maxY, noOceanDef);
+        SurfaceRenderResult noOceanSurface =
+                renderPreliminarySurfaceLevel(outDir, "no_ocean", randomState, seed, seaLevel, minY, maxY, noOceanDef);
         indexSurfaceRow(index, "No ocean (clamp to +)", noOceanSurface);
 
-        SurfaceRenderResult onlyOceanSurface = renderPreliminarySurfaceLevel(outDir, "only_ocean", randomState, seed, seaLevel, minY, maxY, onlyOceanDef);
+        SurfaceRenderResult onlyOceanSurface = renderPreliminarySurfaceLevel(
+                outDir, "only_ocean", randomState, seed, seaLevel, minY, maxY, onlyOceanDef);
         indexSurfaceRow(index, "Only ocean (clamp to -)", onlyOceanSurface);
 
         index.append("</table>");
 
-        SurfaceRegionsRenderResult regionsSurface = renderPreliminarySurfaceLevelRegions(outDir, "two_regions", randomState, seed, seaLevel, minY, maxY, regionsRoot);
+        SurfaceRegionsRenderResult regionsSurface = renderPreliminarySurfaceLevelRegions(
+                outDir, "two_regions", randomState, seed, seaLevel, minY, maxY, regionsRoot);
         index.append("<h3>Two-region terrain</h3>")
-            .append("<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Region Map</th><th>Interior Stats</th></tr>");
+                .append(
+                        "<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Region Map</th><th>Interior Stats</th></tr>");
         index.append("<tr><td><code>NO_OCEAN</code> vs <code>ONLY_OCEAN</code></td>")
-            .append("<td><img width=\"").append(SURFACE_IMG_SIZE).append("\" height=\"").append(SURFACE_IMG_SIZE).append("\" src=\"")
-            .append(regionsSurface.heightFile).append("\"></td>")
-            .append("<td><img width=\"").append(SURFACE_IMG_SIZE).append("\" height=\"").append(SURFACE_IMG_SIZE).append("\" src=\"")
-            .append(regionsSurface.belowSeaFile).append("\"></td>")
-            .append("<td><img width=\"").append(SURFACE_IMG_SIZE).append("\" height=\"").append(SURFACE_IMG_SIZE).append("\" src=\"")
-            .append(regions.regionFile).append("\"></td>")
-            .append("<td><code>")
-            .append("NO_OCEAN=").append(regionsSurface.noOceanInteriorBelowSea).append("/").append(regionsSurface.noOceanInteriorPixels)
-            .append("<br>")
-            .append("ONLY_OCEAN=").append(regionsSurface.onlyOceanInteriorBelowSea).append("/").append(regionsSurface.onlyOceanInteriorPixels)
-            .append("</code></td></tr>\n");
+                .append("<td><img width=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" height=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" src=\"")
+                .append(regionsSurface.heightFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" height=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" src=\"")
+                .append(regionsSurface.belowSeaFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" height=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" src=\"")
+                .append(regions.regionFile)
+                .append("\"></td>")
+                .append("<td><code>")
+                .append("NO_OCEAN=")
+                .append(regionsSurface.noOceanInteriorBelowSea)
+                .append("/")
+                .append(regionsSurface.noOceanInteriorPixels)
+                .append("<br>")
+                .append("ONLY_OCEAN=")
+                .append(regionsSurface.onlyOceanInteriorBelowSea)
+                .append("/")
+                .append(regionsSurface.onlyOceanInteriorPixels)
+                .append("</code></td></tr>\n");
         index.append("</table>");
 
         index.append("</body></html>\n");
@@ -189,32 +248,68 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static void indexRow(StringBuilder index, String title, RenderResult result) {
-        index.append("<tr><td>").append(escapeHtml(title)).append("</td>")
-            .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE).append("\" src=\"")
-            .append(result.valuesFile).append("\"></td>")
-            .append("<td><img width=\"").append(IMG_SIZE).append("\" height=\"").append(IMG_SIZE).append("\" src=\"")
-            .append(result.maskFile).append("\"></td>")
-            .append("<td><code>").append(result.oceanPixels).append(" / ").append((long) IMG_SIZE * IMG_SIZE).append("</code></td></tr>\n");
+        index.append("<tr><td>")
+                .append(escapeHtml(title))
+                .append("</td>")
+                .append("<td><img width=\"")
+                .append(IMG_SIZE)
+                .append("\" height=\"")
+                .append(IMG_SIZE)
+                .append("\" src=\"")
+                .append(result.valuesFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(IMG_SIZE)
+                .append("\" height=\"")
+                .append(IMG_SIZE)
+                .append("\" src=\"")
+                .append(result.maskFile)
+                .append("\"></td>")
+                .append("<td><code>")
+                .append(result.oceanPixels)
+                .append(" / ")
+                .append((long) IMG_SIZE * IMG_SIZE)
+                .append("</code></td></tr>\n");
     }
 
     private static void indexSurfaceRow(StringBuilder index, String title, SurfaceRenderResult result) {
-        index.append("<tr><td>").append(escapeHtml(title)).append("</td>")
-            .append("<td><img width=\"").append(SURFACE_IMG_SIZE).append("\" height=\"").append(SURFACE_IMG_SIZE).append("\" src=\"")
-            .append(result.heightFile).append("\"></td>")
-            .append("<td><img width=\"").append(SURFACE_IMG_SIZE).append("\" height=\"").append(SURFACE_IMG_SIZE).append("\" src=\"")
-            .append(result.belowSeaFile).append("\"></td>")
-            .append("<td><code>").append(result.belowSeaPixels).append(" / ").append((long) SURFACE_IMG_SIZE * SURFACE_IMG_SIZE).append("</code></td>")
-            .append("<td><code>").append(result.minHeight).append(" / ").append(result.maxHeight).append("</code></td>")
-            .append("</tr>\n");
+        index.append("<tr><td>")
+                .append(escapeHtml(title))
+                .append("</td>")
+                .append("<td><img width=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" height=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" src=\"")
+                .append(result.heightFile)
+                .append("\"></td>")
+                .append("<td><img width=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" height=\"")
+                .append(SURFACE_IMG_SIZE)
+                .append("\" src=\"")
+                .append(result.belowSeaFile)
+                .append("\"></td>")
+                .append("<td><code>")
+                .append(result.belowSeaPixels)
+                .append(" / ")
+                .append((long) SURFACE_IMG_SIZE * SURFACE_IMG_SIZE)
+                .append("</code></td>")
+                .append("<td><code>")
+                .append(result.minHeight)
+                .append(" / ")
+                .append(result.maxHeight)
+                .append("</code></td>")
+                .append("</tr>\n");
     }
 
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&#39;");
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private static DensityFunction constrainNoiseSampling(DensityFunction function) {
@@ -234,11 +329,15 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 accessor.setAccessible(true);
                 return accessor.invoke(record);
             } catch (ReflectiveOperationException e) {
-                throw new RuntimeException("Failed to read record component '" + name + "' from " + record.getClass().getName(), e);
+                throw new RuntimeException(
+                        "Failed to read record component '" + name + "' from "
+                                + record.getClass().getName(),
+                        e);
             }
         }
 
-        throw new IllegalArgumentException("Record component '" + name + "' not found on " + record.getClass().getName());
+        throw new IllegalArgumentException("Record component '" + name + "' not found on "
+                + record.getClass().getName());
     }
 
     private static final class ConstrainedNoiseVisitor implements DensityFunction.Visitor {
@@ -247,7 +346,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             String className = function.getClass().getName();
             return switch (className) {
                 case "net.minecraft.world.level.levelgen.DensityFunctions$Noise" -> ConstrainedNoise.wrap(function);
-                case "net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise" -> ConstrainedShiftedNoise.wrap(function);
+                case "net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise" ->
+                    ConstrainedShiftedNoise.wrap(function);
                 case "net.minecraft.world.level.levelgen.DensityFunctions$Shift" -> ConstrainedShift.wrap(function);
                 case "net.minecraft.world.level.levelgen.DensityFunctions$ShiftA" -> ConstrainedShiftA.wrap(function);
                 case "net.minecraft.world.level.levelgen.DensityFunctions$ShiftB" -> ConstrainedShiftB.wrap(function);
@@ -361,7 +461,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             DensityFunction mappedShiftY = shiftY.mapAll(visitor);
             DensityFunction mappedShiftZ = shiftZ.mapAll(visitor);
             DensityFunction.NoiseHolder mappedNoise = visitor.visitNoise(noise);
-            return visitor.apply(new ConstrainedShiftedNoise(mappedShiftX, mappedShiftY, mappedShiftZ, xzScale, yScale, mappedNoise));
+            return visitor.apply(new ConstrainedShiftedNoise(
+                    mappedShiftX, mappedShiftY, mappedShiftZ, xzScale, yScale, mappedNoise));
         }
 
         @Override
@@ -421,7 +522,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise = (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
+            DensityFunction.NoiseHolder offsetNoise =
+                    (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShift(offsetNoise);
         }
 
@@ -445,7 +547,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise = (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
+            DensityFunction.NoiseHolder offsetNoise =
+                    (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShiftA(offsetNoise);
         }
 
@@ -468,7 +571,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise = (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
+            DensityFunction.NoiseHolder offsetNoise =
+                    (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShiftB(offsetNoise);
         }
 
@@ -490,13 +594,23 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             String name,
             DensityFunction.NoiseHolder noise,
             long seed,
-            @Nullable RegionDefinition rootDefinition) throws Exception {
+            @Nullable RegionDefinition rootDefinition)
+            throws Exception {
 
         TestContext context = new TestContext(seed);
 
         World.clear();
         if (rootDefinition != null) {
-            World.register(new Region("ROOT", 10000, rootDefinition, java.util.Collections.emptySet(), java.util.List.of(), java.util.List.of(), false), World.OVERWORLD);
+            World.register(
+                    new Region(
+                            "ROOT",
+                            10000,
+                            rootDefinition,
+                            java.util.Collections.emptySet(),
+                            java.util.List.of(),
+                            java.util.List.of(),
+                            false),
+                    World.OVERWORLD);
         } else {
             World.register(World.emptyRoot("ROOT"), World.OVERWORLD);
         }
@@ -516,7 +630,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * QUART_SIZE;
 
-                NoiseChunkLookup lookup = rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
+                NoiseChunkLookup lookup =
+                        rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
                 for (int qz = 0; qz < QUART_SIZE; qz++) {
                     int blockZ = chunkMinZ + (qz << 2);
@@ -549,11 +664,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static RenderRegionsResult renderRegions(
-            File outDir,
-            String name,
-            DensityFunction.NoiseHolder noise,
-            long seed,
-            Region root) throws Exception {
+            File outDir, String name, DensityFunction.NoiseHolder noise, long seed, Region root) throws Exception {
 
         TestContext context = new TestContext(seed);
 
@@ -601,7 +712,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                         values[pixelIndex] = v;
 
                         var traversal = World.traverse(context, blockX, blockZ);
-                        String regionName = traversal != null && traversal.region != null ? traversal.region.name() : "";
+                        String regionName =
+                                traversal != null && traversal.region != null ? traversal.region.name() : "";
                         int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
                         regionIds[pixelIndex] = regionId;
 
@@ -630,14 +742,13 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         writeRegionMap(outDir, regionFile, regionIds);
 
         return new RenderRegionsResult(
-            valuesFile,
-            maskFile,
-            regionFile,
-            noOceanInteriorPixels,
-            noOceanInteriorOceanPixels,
-            onlyOceanInteriorPixels,
-            onlyOceanInteriorOceanPixels
-        );
+                valuesFile,
+                maskFile,
+                regionFile,
+                noOceanInteriorPixels,
+                noOceanInteriorOceanPixels,
+                onlyOceanInteriorPixels,
+                onlyOceanInteriorOceanPixels);
     }
 
     private static SurfaceRenderResult renderPreliminarySurfaceLevel(
@@ -648,18 +759,29 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             int seaLevel,
             int minY,
             int maxY,
-            @Nullable RegionDefinition rootDefinition) throws Exception {
+            @Nullable RegionDefinition rootDefinition)
+            throws Exception {
 
         TestContext context = new TestContext(seed);
 
         World.clear();
         if (rootDefinition != null) {
-            World.register(new Region("ROOT", 10000, rootDefinition, java.util.Collections.emptySet(), java.util.List.of(), java.util.List.of(), false), World.OVERWORLD);
+            World.register(
+                    new Region(
+                            "ROOT",
+                            10000,
+                            rootDefinition,
+                            java.util.Collections.emptySet(),
+                            java.util.List.of(),
+                            java.util.List.of(),
+                            false),
+                    World.OVERWORLD);
         } else {
             World.register(World.emptyRoot("ROOT"), World.OVERWORLD);
         }
 
-        DensityFunction preliminarySurfaceLevel = constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
+        DensityFunction preliminarySurfaceLevel =
+                constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
 
         NoiseTestContext functionContext = new NoiseTestContext();
 
@@ -678,7 +800,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 int chunkMinX = start + cx * CHUNK_SIZE;
                 int pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
 
-                NoiseChunkLookup lookup = rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
+                NoiseChunkLookup lookup =
+                        rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
                 for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
                     int blockZ = chunkMinZ + pz * SURFACE_STEP;
@@ -713,21 +836,16 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static SurfaceRegionsRenderResult renderPreliminarySurfaceLevelRegions(
-            File outDir,
-            String name,
-            RandomState randomState,
-            long seed,
-            int seaLevel,
-            int minY,
-            int maxY,
-            Region root) throws Exception {
+            File outDir, String name, RandomState randomState, long seed, int seaLevel, int minY, int maxY, Region root)
+            throws Exception {
 
         TestContext context = new TestContext(seed);
 
         World.clear();
         World.register(root, World.OVERWORLD);
 
-        DensityFunction preliminarySurfaceLevel = constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
+        DensityFunction preliminarySurfaceLevel =
+                constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
 
         NoiseTestContext functionContext = new NoiseTestContext();
 
@@ -767,7 +885,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                         heights[pixelIndex] = height;
 
                         var traversal = World.traverse(context, blockX, blockZ);
-                        String regionName = traversal != null && traversal.region != null ? traversal.region.name() : "";
+                        String regionName =
+                                traversal != null && traversal.region != null ? traversal.region.name() : "";
                         int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
 
                         boolean interior = traversal != null && traversal.edgeInfluence <= 0.0f;
@@ -793,26 +912,46 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         writeBelowSeaMask(outDir, belowSeaFile, SURFACE_IMG_SIZE, heights, seaLevel);
 
         return new SurfaceRegionsRenderResult(
-            heightFile,
-            belowSeaFile,
-            noOceanInteriorPixels,
-            noOceanInteriorBelowSea,
-            onlyOceanInteriorPixels,
-            onlyOceanInteriorBelowSea
-        );
+                heightFile,
+                belowSeaFile,
+                noOceanInteriorPixels,
+                noOceanInteriorBelowSea,
+                onlyOceanInteriorPixels,
+                onlyOceanInteriorBelowSea);
     }
 
     private static Region buildTwoRegionRoot(RegionDefinition noOcean, RegionDefinition onlyOcean) {
-        Region noOceanRegion = new Region("NO_OCEAN", 10_000, noOcean, java.util.Collections.emptySet(), java.util.List.of(), java.util.List.of(), false);
-        Region onlyOceanRegion = new Region("ONLY_OCEAN", 10_000, onlyOcean, java.util.Collections.emptySet(), java.util.List.of(), java.util.List.of(), false);
+        Region noOceanRegion = new Region(
+                "NO_OCEAN",
+                10_000,
+                noOcean,
+                java.util.Collections.emptySet(),
+                java.util.List.of(),
+                java.util.List.of(),
+                false);
+        Region onlyOceanRegion = new Region(
+                "ONLY_OCEAN",
+                10_000,
+                onlyOcean,
+                java.util.Collections.emptySet(),
+                java.util.List.of(),
+                java.util.List.of(),
+                false);
 
         RegionDefinition rootDef = RegionDefinition.builder()
-            .strategy(com.terrasect.common.definition.GenerationStrategyType.HEX)
-            .build();
+                .strategy(com.terrasect.common.definition.GenerationStrategyType.HEX)
+                .build();
 
         int rootRadiusBlocks = 128;
         int rootBudget = rootRadiusBlocks * rootRadiusBlocks;
-        return new Region("ROOT", rootBudget, rootDef, java.util.Collections.emptySet(), java.util.List.of(noOceanRegion, onlyOceanRegion), java.util.List.of(), false);
+        return new Region(
+                "ROOT",
+                rootBudget,
+                rootDef,
+                java.util.Collections.emptySet(),
+                java.util.List.of(noOceanRegion, onlyOceanRegion),
+                java.util.List.of(),
+                false);
     }
 
     private static void writeSignedGreenBlue(File outDir, String fileName, double[] values) throws Exception {
@@ -840,11 +979,12 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         for (int y = 0; y < IMG_SIZE; y++) {
             for (int x = 0; x < IMG_SIZE; x++) {
                 int id = regionIds[x + y * IMG_SIZE];
-                int rgb = switch (id) {
-                    case 1 -> 0xCC0000;
-                    case 2 -> 0x00CCCC;
-                    default -> 0x000000;
-                };
+                int rgb =
+                        switch (id) {
+                            case 1 -> 0xCC0000;
+                            case 2 -> 0x00CCCC;
+                            default -> 0x000000;
+                        };
                 img.setRGB(x, y, rgb);
             }
         }
@@ -866,7 +1006,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         ImageIO.write(img, "png", outDir.toPath().resolve(fileName).toFile());
     }
 
-    private static void writeHeightMap(File outDir, String fileName, int size, int[] heights, int minY, int maxY) throws Exception {
+    private static void writeHeightMap(File outDir, String fileName, int size, int[] heights, int minY, int maxY)
+            throws Exception {
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
         int range = Math.max(1, maxY - minY);
@@ -883,7 +1024,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         ImageIO.write(img, "png", outDir.toPath().resolve(fileName).toFile());
     }
 
-    private static void writeBelowSeaMask(File outDir, String fileName, int size, int[] heights, int seaLevel) throws Exception {
+    private static void writeBelowSeaMask(File outDir, String fileName, int size, int[] heights, int seaLevel)
+            throws Exception {
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
         for (int y = 0; y < size; y++) {
@@ -897,8 +1039,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         ImageIO.write(img, "png", outDir.toPath().resolve(fileName).toFile());
     }
 
-    private record RenderResult(String valuesFile, String maskFile, long oceanPixels) {
-    }
+    private record RenderResult(String valuesFile, String maskFile, long oceanPixels) {}
 
     private record RenderRegionsResult(
             String valuesFile,
@@ -907,16 +1048,10 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             long noOceanInteriorPixels,
             long noOceanInteriorOceanPixels,
             long onlyOceanInteriorPixels,
-            long onlyOceanInteriorOceanPixels) {
-    }
+            long onlyOceanInteriorOceanPixels) {}
 
     private record SurfaceRenderResult(
-            String heightFile,
-            String belowSeaFile,
-            long belowSeaPixels,
-            int minHeight,
-            int maxHeight) {
-    }
+            String heightFile, String belowSeaFile, long belowSeaPixels, int minHeight, int maxHeight) {}
 
     private record SurfaceRegionsRenderResult(
             String heightFile,
@@ -924,8 +1059,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             long noOceanInteriorPixels,
             long noOceanInteriorBelowSea,
             long onlyOceanInteriorPixels,
-            long onlyOceanInteriorBelowSea) {
-    }
+            long onlyOceanInteriorBelowSea) {}
 
     private static final class TestContext implements Context {
         private final long seed;

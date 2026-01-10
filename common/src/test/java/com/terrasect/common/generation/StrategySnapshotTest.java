@@ -1,16 +1,12 @@
 package com.terrasect.common.generation;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.StrategySettings;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -21,12 +17,14 @@ import java.security.MessageDigest;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import javax.imageio.ImageIO;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Comprehensive snapshot tests for all generation strategies.
- * 
+ *
  * Each test:
  * 1. Builds a region hierarchy with specific strategy configuration
  * 2. Samples the world to generate debug images
@@ -48,15 +46,16 @@ public class StrategySnapshotTest {
             Map.entry("kitchen_sink", "521c8ccf28bc47a3e10c63367649f60e56965cd2bf7eac9499b1df53f19a17a4"),
             Map.entry("nested_hex_subdivision", "1f1406cb315c0aa6d23b3f28e1c07441b1be24836e7365af1f75804ce1ec23ad"),
             Map.entry("nested_hex_voronoi", "1113e85013fd80483ccfc9c62e0f6edbd8057f35d528c15c49f56735f88240b4"),
-            Map.entry("nested_subdivision_template",
-                    "1a93f63bf663eaaf1d650cf9632c9c3d73f94097e8a696fa680474c777d68191"),
+            Map.entry(
+                    "nested_subdivision_template", "1a93f63bf663eaaf1d650cf9632c9c3d73f94097e8a696fa680474c777d68191"),
             Map.entry("nested_voronoi_template", "42c4177fe9d66630674919cd72a452646cda3eb300b8731107e3753959127e25"),
             Map.entry("subdivision_default", "7b45100d40faaedd0aa19c0e12b059524bc852e3dfaf166a033978c87926cc12"),
             Map.entry("subdivision_high_jitter", "8c3a8ad8ace906fa4dd9c736eab06db6f1b3f74aefa964026ac69848728bc7ec"),
             Map.entry("subdivision_low_jitter", "3123bc3190c1fb04df9721720f68b0fd53df5634211058eb5fe2877937efe8b4"),
             Map.entry("template_binary", "b00a0860a1f1d25c43535e69b9832c5cd8de4282ce003a6fa03051d2d9160f04"),
             Map.entry("template_center_surround", "134fd07cacde9bbf419e68b8881ff5fcc696b58b8501b59531906ff0b97e7870"),
-            Map.entry("template_center_surround_named",
+            Map.entry(
+                    "template_center_surround_named",
                     "afe789b6a3c8348f0a6c589f9c9953832aecab1e79618ad3388a2c3504c81a9d"),
             Map.entry("template_radial", "08a3e775f0a5b726b9062e78e00dd4c86105becdf9d3b945de08365756b19cf2"),
             Map.entry("template_triangle", "2efb9a9bfd02d9e583fede0c27880b31d150767e108ef3d08d31b548b0b2c147"),
@@ -74,8 +73,8 @@ public class StrategySnapshotTest {
         try (PrintWriter out = new PrintWriter(new FileWriter(digestFile))) {
             out.println();
             COLLECTED_DIGESTS.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(e -> out.printf("Map.entry(\"%s\", \"%s\"),%n", e.getKey(), e.getValue()));
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(e -> out.printf("Map.entry(\"%s\", \"%s\"),%n", e.getKey(), e.getValue()));
         }
         System.out.println("\n=== DIGESTS WRITTEN TO: " + digestFile.getAbsolutePath() + " ===\n");
     }
@@ -93,18 +92,16 @@ public class StrategySnapshotTest {
 
     @Test
     void voronoi_low_relaxation() throws Exception {
-        StrategySettings settings = StrategySettings.builder()
-                .voronoiRelaxation(2)
-                .build();
+        StrategySettings settings =
+                StrategySettings.builder().voronoiRelaxation(2).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.VORONOI, settings);
         runSnapshot("voronoi_low_relaxation", root, 2);
     }
 
     @Test
     void voronoi_high_relaxation() throws Exception {
-        StrategySettings settings = StrategySettings.builder()
-                .voronoiRelaxation(20)
-                .build();
+        StrategySettings settings =
+                StrategySettings.builder().voronoiRelaxation(20).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.VORONOI, settings);
         runSnapshot("voronoi_high_relaxation", root, 2);
     }
@@ -117,18 +114,16 @@ public class StrategySnapshotTest {
 
     @Test
     void subdivision_low_jitter() throws Exception {
-        StrategySettings settings = StrategySettings.builder()
-                .subdivisionJitter(0.0f)
-                .build();
+        StrategySettings settings =
+                StrategySettings.builder().subdivisionJitter(0.0f).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.SUBDIVISION, settings);
         runSnapshot("subdivision_low_jitter", root, 2);
     }
 
     @Test
     void subdivision_high_jitter() throws Exception {
-        StrategySettings settings = StrategySettings.builder()
-                .subdivisionJitter(0.5f)
-                .build();
+        StrategySettings settings =
+                StrategySettings.builder().subdivisionJitter(0.5f).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.SUBDIVISION, settings);
         runSnapshot("subdivision_high_jitter", root, 2);
     }
@@ -188,9 +183,7 @@ public class StrategySnapshotTest {
 
     @Test
     void hex_with_ring() throws Exception {
-        StrategySettings settings = StrategySettings.builder()
-                .hexRing("BORDER")
-                .build();
+        StrategySettings settings = StrategySettings.builder().hexRing("BORDER").build();
         Region root = buildHexHierarchy(settings);
         runSnapshot("hex_with_ring", root, 2);
     }
@@ -238,72 +231,61 @@ public class StrategySnapshotTest {
 
     private Region buildSimpleHierarchy(GenerationStrategyType strategy, StrategySettings settings) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(strategy)
-                        .settings(settings)
-                        .child("ZONE_A", a -> a.radius(100))
-                        .child("ZONE_B", b -> b.radius(200))
-                        .child("ZONE_C", c -> c.radius(150))
-                        .child("ZONE_D", d -> d.radius(50)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(strategy)
+                .settings(settings)
+                .child("ZONE_A", a -> a.radius(100))
+                .child("ZONE_B", b -> b.radius(200))
+                .child("ZONE_C", c -> c.radius(150))
+                .child("ZONE_D", d -> d.radius(50)));
         return registry.build("WORLD");
     }
 
     private Region buildBinaryHierarchy(StrategySettings settings) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.TEMPLATE)
-                        .settings(settings)
-                        .child("LEFT", a -> a.radius(100))
-                        .child("RIGHT", b -> b.radius(100)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.TEMPLATE)
+                .settings(settings)
+                .child("LEFT", a -> a.radius(100))
+                .child("RIGHT", b -> b.radius(100)));
         return registry.build("WORLD");
     }
 
     private Region buildTriangleHierarchy(StrategySettings settings) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.TEMPLATE)
-                        .settings(settings)
-                        .child("NORTH", a -> a.radius(100))
-                        .child("SOUTHWEST", b -> b.radius(100))
-                        .child("SOUTHEAST", c -> c.radius(100)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.TEMPLATE)
+                .settings(settings)
+                .child("NORTH", a -> a.radius(100))
+                .child("SOUTHWEST", b -> b.radius(100))
+                .child("SOUTHEAST", c -> c.radius(100)));
         return registry.build("WORLD");
     }
 
     private Region buildCenterSurroundHierarchy(StrategySettings settings, String centerName) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.TEMPLATE)
-                        .settings(settings)
-                        .child("CAPITAL", c -> c.radius(centerName == null ? 300 : 50))
-                        .child("VILLAGE_N", a -> a.radius(100))
-                        .child("VILLAGE_E", b -> b.radius(100))
-                        .child("VILLAGE_S", c2 -> c2.radius(100))
-                        .child("VILLAGE_W", d -> d.radius(100))
-                        .child("SMALL_CENTER", sc -> sc.radius(centerName != null ? 300 : 50)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.TEMPLATE)
+                .settings(settings)
+                .child("CAPITAL", c -> c.radius(centerName == null ? 300 : 50))
+                .child("VILLAGE_N", a -> a.radius(100))
+                .child("VILLAGE_E", b -> b.radius(100))
+                .child("VILLAGE_S", c2 -> c2.radius(100))
+                .child("VILLAGE_W", d -> d.radius(100))
+                .child("SMALL_CENTER", sc -> sc.radius(centerName != null ? 300 : 50)));
         return registry.build("WORLD");
     }
 
     private Region buildRadialHierarchy(StrategySettings settings) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.TEMPLATE)
-                        .settings(settings)
-                        .child("SECTOR_1", a -> a.radius(80))
-                        .child("SECTOR_2", b -> b.radius(80))
-                        .child("SECTOR_3", c -> c.radius(80))
-                        .child("SECTOR_4", d -> d.radius(80))
-                        .child("SECTOR_5", e -> e.radius(80))
-                        .child("SECTOR_6", f -> f.radius(80)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.TEMPLATE)
+                .settings(settings)
+                .child("SECTOR_1", a -> a.radius(80))
+                .child("SECTOR_2", b -> b.radius(80))
+                .child("SECTOR_3", c -> c.radius(80))
+                .child("SECTOR_4", d -> d.radius(80))
+                .child("SECTOR_5", e -> e.radius(80))
+                .child("SECTOR_6", f -> f.radius(80)));
         return registry.build("WORLD");
     }
 
@@ -328,20 +310,17 @@ public class StrategySnapshotTest {
         RegionRegistry registry = new RegionRegistry();
         registry.region("WORLD")
                 .strategy(GenerationStrategyType.HEX)
-                .child("PLAINS_REALM", plains -> plains
-                        .radius(100)
+                .child("PLAINS_REALM", plains -> plains.radius(100)
                         .strategy(GenerationStrategyType.VORONOI)
                         .child("FARMLAND", f -> f.radius(60))
                         .child("VILLAGE_N", v -> v.radius(20))
                         .child("GRASSLAND", g -> g.radius(40)))
-                .child("FOREST_REALM", forest -> forest
-                        .radius(80)
+                .child("FOREST_REALM", forest -> forest.radius(80)
                         .strategy(GenerationStrategyType.VORONOI)
                         .child("DENSE_FOREST", d -> d.radius(50))
                         .child("GROVE", g -> g.radius(30))
                         .child("CLEARING", c -> c.radius(20)))
-                .child("MOUNTAIN_REALM", mountain -> mountain
-                        .radius(50)
+                .child("MOUNTAIN_REALM", mountain -> mountain.radius(50)
                         .strategy(GenerationStrategyType.VORONOI)
                         .child("PEAK_1", p -> p.radius(40))
                         .child("VALLEY", v -> v.radius(30))
@@ -354,22 +333,25 @@ public class StrategySnapshotTest {
         RegionRegistry registry = new RegionRegistry();
         registry.region("WORLD")
                 .strategy(GenerationStrategyType.HEX)
-                .child("PLAINS_REALM", plains -> plains
-                        .radius(100)
+                .child("PLAINS_REALM", plains -> plains.radius(100)
                         .strategy(GenerationStrategyType.SUBDIVISION)
-                        .settings(StrategySettings.builder().subdivisionJitter(0.1f).build())
+                        .settings(StrategySettings.builder()
+                                .subdivisionJitter(0.1f)
+                                .build())
                         .child("NORTH_LANDS", n -> n.radius(200))
                         .child("SOUTH_LANDS", s -> s.radius(200)))
-                .child("FOREST_REALM", forest -> forest
-                        .radius(80)
+                .child("FOREST_REALM", forest -> forest.radius(80)
                         .strategy(GenerationStrategyType.SUBDIVISION)
-                        .settings(StrategySettings.builder().subdivisionJitter(0.1f).build())
+                        .settings(StrategySettings.builder()
+                                .subdivisionJitter(0.1f)
+                                .build())
                         .child("EAST_LANDS", e -> e.radius(150))
                         .child("WEST_LANDS", w -> w.radius(150)))
-                .child("MOUNTAIN_REALM", mountain -> mountain
-                        .radius(50)
+                .child("MOUNTAIN_REALM", mountain -> mountain.radius(50)
                         .strategy(GenerationStrategyType.SUBDIVISION)
-                        .settings(StrategySettings.builder().subdivisionJitter(0.1f).build())
+                        .settings(StrategySettings.builder()
+                                .subdivisionJitter(0.1f)
+                                .build())
                         .child("PEAK_1", p -> p.radius(100))
                         .child("VALLEY", v -> v.radius(100)));
         return registry.build("WORLD");
@@ -377,68 +359,58 @@ public class StrategySnapshotTest {
 
     private Region buildNestedVoronoiTemplate() {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.VORONOI)
-                        .child("CAPITAL_REGION", cap -> cap
-                                .radius(300)
-                                .strategy(GenerationStrategyType.TEMPLATE)
-                                .settings(StrategySettings.builder()
-                                        .template(StrategySettings.TemplateType.CENTER_SURROUND)
-                                        .centerSurround("PALACE")
-                                        .build())
-                                .child("PALACE", p -> p.radius(100))
-                                .child("GARDENS", g -> g.radius(100))
-                                .child("MARKET", m -> m.radius(100)))
-                        .child("FARMLAND", farm -> farm.radius(200))
-                        .child("FOREST", forest -> forest.radius(150)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.VORONOI)
+                .child("CAPITAL_REGION", cap -> cap.radius(300)
+                        .strategy(GenerationStrategyType.TEMPLATE)
+                        .settings(StrategySettings.builder()
+                                .template(StrategySettings.TemplateType.CENTER_SURROUND)
+                                .centerSurround("PALACE")
+                                .build())
+                        .child("PALACE", p -> p.radius(100))
+                        .child("GARDENS", g -> g.radius(100))
+                        .child("MARKET", m -> m.radius(100)))
+                .child("FARMLAND", farm -> farm.radius(200))
+                .child("FOREST", forest -> forest.radius(150)));
         return registry.build("WORLD");
     }
 
     private Region buildNestedSubdivisionTemplate() {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .child("REALM", realm -> realm
-                        .strategy(GenerationStrategyType.SUBDIVISION)
-                        .child("CITY", city -> city
-                                .radius(250)
-                                .strategy(GenerationStrategyType.TEMPLATE)
-                                .settings(StrategySettings.builder()
-                                        .template(StrategySettings.TemplateType.RADIAL)
-                                        .build())
-                                .child("DISTRICT_1", d1 -> d1.radius(50))
-                                .child("DISTRICT_2", d2 -> d2.radius(50))
-                                .child("DISTRICT_3", d3 -> d3.radius(50))
-                                .child("DISTRICT_4", d4 -> d4.radius(50)))
-                        .child("OUTSKIRTS", out -> out.radius(200))
-                        .child("WILDERNESS", wild -> wild.radius(250)));
+        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REALM", realm -> realm.strategy(
+                        GenerationStrategyType.SUBDIVISION)
+                .child("CITY", city -> city.radius(250)
+                        .strategy(GenerationStrategyType.TEMPLATE)
+                        .settings(StrategySettings.builder()
+                                .template(StrategySettings.TemplateType.RADIAL)
+                                .build())
+                        .child("DISTRICT_1", d1 -> d1.radius(50))
+                        .child("DISTRICT_2", d2 -> d2.radius(50))
+                        .child("DISTRICT_3", d3 -> d3.radius(50))
+                        .child("DISTRICT_4", d4 -> d4.radius(50)))
+                .child("OUTSKIRTS", out -> out.radius(200))
+                .child("WILDERNESS", wild -> wild.radius(250)));
         return registry.build("WORLD");
     }
 
     private Region buildDeeplyNested() {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("COSMOS")
-                .strategy(GenerationStrategyType.HEX)
-                .child("GALAXY", galaxy -> galaxy
-                        .strategy(GenerationStrategyType.VORONOI)
-                        .child("STAR_SYSTEM", system -> system
-                                .radius(400)
-                                .strategy(GenerationStrategyType.SUBDIVISION)
-                                .child("INNER_PLANETS", inner -> inner
-                                        .radius(200)
-                                        .strategy(GenerationStrategyType.TEMPLATE)
-                                        .settings(StrategySettings.builder()
-                                                .template(StrategySettings.TemplateType.RADIAL)
-                                                .build())
-                                        .child("MERCURY", m -> m.radius(30))
-                                        .child("VENUS", v -> v.radius(50))
-                                        .child("EARTH", e -> e.radius(60))
-                                        .child("MARS", mars -> mars.radius(40)))
-                                .child("OUTER_PLANETS", outer -> outer.radius(200)))
-                        .child("NEBULA", neb -> neb.radius(200))
-                        .child("VOID", v -> v.radius(100)));
+        registry.region("COSMOS").strategy(GenerationStrategyType.HEX).child("GALAXY", galaxy -> galaxy.strategy(
+                        GenerationStrategyType.VORONOI)
+                .child("STAR_SYSTEM", system -> system.radius(400)
+                        .strategy(GenerationStrategyType.SUBDIVISION)
+                        .child("INNER_PLANETS", inner -> inner.radius(200)
+                                .strategy(GenerationStrategyType.TEMPLATE)
+                                .settings(StrategySettings.builder()
+                                        .template(StrategySettings.TemplateType.RADIAL)
+                                        .build())
+                                .child("MERCURY", m -> m.radius(30))
+                                .child("VENUS", v -> v.radius(50))
+                                .child("EARTH", e -> e.radius(60))
+                                .child("MARS", mars -> mars.radius(40)))
+                        .child("OUTER_PLANETS", outer -> outer.radius(200)))
+                .child("NEBULA", neb -> neb.radius(200))
+                .child("VOID", v -> v.radius(100)));
         return registry.build("COSMOS");
     }
 
@@ -447,43 +419,37 @@ public class StrategySnapshotTest {
         registry.region("WORLD")
                 .strategy(GenerationStrategyType.HEX)
                 .settings(StrategySettings.builder().hexRing("OCEAN").build())
-
-                .child("LANDMASS", land -> land
-                        .strategy(GenerationStrategyType.VORONOI)
-
-                        .child("KINGDOM", kingdom -> kingdom
-                                .radius(400)
+                .child("LANDMASS", land -> land.strategy(GenerationStrategyType.VORONOI)
+                        .child("KINGDOM", kingdom -> kingdom.radius(400)
                                 .strategy(GenerationStrategyType.TEMPLATE)
                                 .settings(StrategySettings.builder()
                                         .template(StrategySettings.TemplateType.CENTER_SURROUND)
                                         .centerSurround("CASTLE")
                                         .build())
-                                .child("CASTLE", castle -> castle
-                                        .radius(100)
+                                .child("CASTLE", castle -> castle.radius(100)
                                         .strategy(GenerationStrategyType.SUBDIVISION)
-                                        .settings(StrategySettings.builder().subdivisionJitter(0.1f).build())
+                                        .settings(StrategySettings.builder()
+                                                .subdivisionJitter(0.1f)
+                                                .build())
                                         .child("KEEP", k -> k.radius(50))
                                         .child("COURTYARD", cy -> cy.radius(30))
                                         .child("BARRACKS", b -> b.radius(20)))
                                 .child("VILLAGE_NORTH", vn -> vn.radius(75))
                                 .child("VILLAGE_SOUTH", vs -> vs.radius(75))
                                 .child("FARMLAND", farm -> farm.radius(150)))
-
-                        .child("WILDERNESS", wild -> wild
-                                .radius(350)
+                        .child("WILDERNESS", wild -> wild.radius(350)
                                 .strategy(GenerationStrategyType.SUBDIVISION)
-                                .settings(StrategySettings.builder().subdivisionJitter(0.3f).build())
-                                .child("DENSE_FOREST", df -> df
-                                        .radius(150)
+                                .settings(StrategySettings.builder()
+                                        .subdivisionJitter(0.3f)
+                                        .build())
+                                .child("DENSE_FOREST", df -> df.radius(150)
                                         .strategy(GenerationStrategyType.VORONOI)
                                         .child("GROVE", g -> g.radius(50))
                                         .child("THICKET", t -> t.radius(50))
                                         .child("CLEARING", c -> c.radius(50)))
                                 .child("SWAMP", swamp -> swamp.radius(100))
                                 .child("HILLS", hills -> hills.radius(100)))
-
-                        .child("MOUNTAINS", mtns -> mtns
-                                .radius(250)
+                        .child("MOUNTAINS", mtns -> mtns.radius(250)
                                 .strategy(GenerationStrategyType.TEMPLATE)
                                 .settings(StrategySettings.builder()
                                         .template(StrategySettings.TemplateType.RADIAL)
@@ -492,9 +458,7 @@ public class StrategySnapshotTest {
                                 .child("PEAK_2", p2 -> p2.radius(60))
                                 .child("PEAK_3", p3 -> p3.radius(60))
                                 .child("VALLEY", val -> val.radius(70))))
-
-                .child("OCEAN", ocean -> ocean
-                        .radius(1000)
+                .child("OCEAN", ocean -> ocean.radius(1000)
                         .strategy(GenerationStrategyType.VORONOI)
                         .child("DEEP_SEA", deep -> deep.radius(500))
                         .child("SHALLOWS", shallow -> shallow.radius(300))
@@ -549,8 +513,10 @@ public class StrategySnapshotTest {
                     Region down = downTraversal.region;
                     long downSeed = downTraversal.seed;
 
-                    boolean isEdge = !region.name().equals(right.name()) || regionSeed != rightSeed ||
-                            !region.name().equals(down.name()) || regionSeed != downSeed;
+                    boolean isEdge = !region.name().equals(right.name())
+                            || regionSeed != rightSeed
+                            || !region.name().equals(down.name())
+                            || regionSeed != downSeed;
 
                     if (isEdge) {
                         color = darken(color, 0.5f);
@@ -574,8 +540,10 @@ public class StrategySnapshotTest {
                     Region down = downTraversal.region;
                     long downSeed = downTraversal.seed;
 
-                    if (!region.name().equals(right.name()) || regionSeed != rightSeed ||
-                            !region.name().equals(down.name()) || regionSeed != downSeed) {
+                    if (!region.name().equals(right.name())
+                            || regionSeed != rightSeed
+                            || !region.name().equals(down.name())
+                            || regionSeed != downSeed) {
 
                         float edgeBrightness = 0.3f + 0.2f * (maxDepth - d);
                         color = darken(color, edgeBrightness);
@@ -665,7 +633,6 @@ public class StrategySnapshotTest {
         int hash = name.hashCode();
 
         return switch (name) {
-
             case "OCEAN", "DEEP_SEA" -> 0x1E90FF;
             case "SHALLOWS" -> 0x87CEEB;
             case "REEF" -> 0x00CED1;

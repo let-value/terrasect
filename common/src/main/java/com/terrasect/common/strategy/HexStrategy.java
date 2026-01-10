@@ -1,28 +1,27 @@
 package com.terrasect.common.strategy;
 
-import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.StrategySettings;
-
+import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
 /**
  * Infinite hex grid tiling strategy.
- * 
+ *
  * Unlike other strategies that partition a bounded parent region, HEX tiles
  * infinitely across the world. Each hex cell picks a child region weighted
  * by budget, with the origin hex (0,0) always getting the first child.
- * 
+ *
  * Supports optional "ring" regions - buffer zones BETWEEN hex cells that
  * act as spacing/borders. The ring increases hex grid spacing rather than
  * reducing interior area, so children get full budget space.
- * 
+ *
  * Ring model:
  * - Interior radius = radius parameter (children use this full space)
  * - Ring width = derived from ring region's budget (e.g., 30 = 30% of interior)
  * - Hex grid spacing = interior + ring (hexes are farther apart)
  * - Points outside any hex's interior circle belong to the ring
- * 
+ *
  * Best for root level to create repeating narrative "stories" across the world.
  */
 public final class HexStrategy {
@@ -31,27 +30,33 @@ public final class HexStrategy {
 
     /**
      * Query which child region contains the point (dx, dz).
-     * 
+     *
      * @param seed Parent seed
-     * @param children Child regions  
+     * @param children Child regions
      * @param dx X offset from parent center
      * @param dz Z offset from parent center
      * @param radius Interior hex cell size (children use this full space)
      * @param settings Strategy settings (may be HexSettings with ring region)
      * @param out Output result with childIndex, centerX, centerZ, radius, siteX (hex Q), siteZ (hex R), isRing
      */
-    public static void query(long seed, List<Region> children, float dx, float dz,
-                              float radius, StrategySettings settings, QueryResult out) {
-        
+    public static void query(
+            long seed,
+            List<Region> children,
+            float dx,
+            float dz,
+            float radius,
+            StrategySettings settings,
+            QueryResult out) {
+
         // Determine ring configuration
         String ringRegionName = null;
-        float ringWidth = 0;  // As fraction of interior radius
+        float ringWidth = 0; // As fraction of interior radius
         int ringIndex = -1;
-        
+
         if (settings != null && settings.hex() != null) {
             ringRegionName = settings.hex().ringRegionName();
         }
-        
+
         if (ringRegionName != null) {
             ringIndex = findChildByName(children, ringRegionName);
             if (ringIndex >= 0) {
@@ -61,29 +66,29 @@ public final class HexStrategy {
                 ringWidth = Math.max(0.05f, Math.min(0.5f, ringWidth));
             }
         }
-        
+
         // Effective hex size for grid spacing = interior + ring
         float gridRadius = radius * (1.0f + ringWidth);
-        
+
         // Get hex cell using the larger grid spacing
         long packedHex = MathUtils.getHexCell(dx, dz, gridRadius);
         int q = (int) (packedHex >> 32);
         int r = (int) packedHex;
-        
+
         // Store hex coords for seed calculation
         out.siteX = q;
         out.siteZ = r;
         out.isRing = false;
-        
+
         // Calculate hex center in world space (using grid spacing)
         float hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
         float hexCenterWorldZ = (3.0f / 2.0f * r) * gridRadius;
-        
+
         // Distance from hex center (in world units)
         float offsetX = dx - hexCenterWorldX;
         float offsetZ = dz - hexCenterWorldZ;
         float distFromCenter = (float) Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
-        
+
         // Check if in ring zone (outside interior circle but inside hex boundary)
         // Interior uses the original radius, ring fills the gap
         if (ringIndex >= 0 && distFromCenter > radius) {
@@ -92,24 +97,24 @@ public final class HexStrategy {
             // Normalize by radius so traverse computes correct world position
             out.centerX = hexCenterWorldX / radius;
             out.centerZ = hexCenterWorldZ / radius;
-            out.radius = ringWidth;  // Ring's effective radius
+            out.radius = ringWidth; // Ring's effective radius
             out.isRing = true;
             // Edge distance in ring: how far from the interior boundary (normalized)
             float ringDist = distFromCenter - radius;
             out.edgeDistance = 1.0f - Math.min(1.0f, ringDist / (ringWidth * radius));
             return;
         }
-        
+
         // Inside hex interior - pick child weighted by budget
         int hexDist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
-        
+
         int childIndex;
         if (hexDist == 0) {
-            childIndex = 0;  // Origin hex gets first child
+            childIndex = 0; // Origin hex gets first child
         } else {
             childIndex = pickChildWeighted(children, ringRegionName, MathUtils.hash64(seed, q, r, 9999));
         }
-        
+
         out.childIndex = childIndex;
         // Hex center normalized by radius (so traverse computes correct world position)
         out.centerX = hexCenterWorldX / radius;

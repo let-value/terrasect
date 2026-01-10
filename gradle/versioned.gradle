@@ -1,12 +1,12 @@
 /**
  * Shared utilities for versioned projects that inherit sources from base projects.
- * 
+ *
  * Usage in versioned build.gradle:
  *   apply from: rootProject.file('gradle/versioned.gradle')
- *   
+ *
  *   ext.excludedFiles = ['path/to/File.java']
  *   ext.baseProjectPath = property('base_project')
- *   
+ *
  *   configureSourceInheritance(baseProjectPath, excludedFiles)
  */
 
@@ -21,7 +21,7 @@ ext {
             it.path.replace(dir.path, '').replace('\\', '/').substring(1)
         }
     }
-    
+
     /**
      * Create a Copy task that filters base sources, excluding local overrides and incompatible files.
      */
@@ -32,7 +32,7 @@ ext {
             exclude(exclusions)
         }
     }
-    
+
     /**
      * Configure a source set to include local sources and filtered base sources.
      */
@@ -45,7 +45,7 @@ ext {
             sourceSet.resources.srcDirs += baseResources
         }
     }
-    
+
     /**
      * Configure compile task with standard options and copy task dependency.
      */
@@ -56,7 +56,7 @@ ext {
             options.release = Integer.parseInt(javaVersion)
         }
     }
-    
+
     /**
      * Configure sourcesJar with proper dependencies and duplicate handling.
      */

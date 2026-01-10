@@ -1,9 +1,8 @@
 package com.terrasect.common.helpers;
 
-import com.terrasect.common.mixin.ClimateTargetPointAccessor;
 import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.definition.ClimateSettings.ClimateRange;
-
+import com.terrasect.common.mixin.ClimateTargetPointAccessor;
 import net.minecraft.world.level.biome.Climate;
 
 /**
@@ -75,13 +74,7 @@ public final class ClimateModifier {
             return point;
         }
 
-        return new Climate.TargetPoint(
-                newTemp,
-                newHumidity,
-                newContinentalness,
-                newErosion,
-                newDepth,
-                newWeirdness);
+        return new Climate.TargetPoint(newTemp, newHumidity, newContinentalness, newErosion, newDepth, newWeirdness);
     }
 
     private static long mapToRange(ClimateRange range, long originalValue) {

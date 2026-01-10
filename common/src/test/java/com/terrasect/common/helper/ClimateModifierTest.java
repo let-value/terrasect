@@ -1,13 +1,11 @@
 package com.terrasect.common.helper;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.terrasect.common.definition.ClimateSettings;
 import com.terrasect.common.helpers.ClimateModifier;
-
 import net.minecraft.world.level.biome.Climate;
-
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class ClimateModifierTest {
     private static final long DEFAULT_ORIGINAL = 0L;
@@ -52,9 +50,7 @@ public class ClimateModifierTest {
 
     @Test
     public void temperatureOnlyModification() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .temperature(0.8f)
-                .build();
+        ClimateSettings climate = ClimateSettings.builder().temperature(0.8f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -76,9 +72,7 @@ public class ClimateModifierTest {
 
     @Test
     public void exactValueMapsNeutralToTarget() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .temperature(0.8f)
-                .build();
+        ClimateSettings climate = ClimateSettings.builder().temperature(0.8f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -95,9 +89,8 @@ public class ClimateModifierTest {
 
     @Test
     public void rangeMapsCenterToCenter() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .temperature(0.0f, 1.0f)
-                .build();
+        ClimateSettings climate =
+                ClimateSettings.builder().temperature(0.0f, 1.0f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -114,9 +107,8 @@ public class ClimateModifierTest {
 
     @Test
     public void rangeMapsMinToMin() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .continentalness(-1.0f, -0.5f)
-                .build();
+        ClimateSettings climate =
+                ClimateSettings.builder().continentalness(-1.0f, -0.5f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -133,9 +125,8 @@ public class ClimateModifierTest {
 
     @Test
     public void rangeMapsMaxToMax() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .continentalness(-1.0f, -0.5f)
-                .build();
+        ClimateSettings climate =
+                ClimateSettings.builder().continentalness(-1.0f, -0.5f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -152,9 +143,8 @@ public class ClimateModifierTest {
 
     @Test
     public void deepOceanRangeForcesNegativeContinentalness() {
-        ClimateSettings oceanClimate = ClimateSettings.builder()
-                .continentalness(-1.0f, -0.5f)
-                .build();
+        ClimateSettings oceanClimate =
+                ClimateSettings.builder().continentalness(-1.0f, -0.5f).build();
 
         long inlandOriginal = 8000L;
         Climate.TargetPoint original = new Climate.TargetPoint(
@@ -168,15 +158,15 @@ public class ClimateModifierTest {
         Climate.TargetPoint result = ClimateModifier.modify(oceanClimate, original, 0.0f);
 
         assertTrue(result.continentalness() < inlandOriginal);
-        assertTrue(result.continentalness() >= -CLIMATE_SCALE && result.continentalness() <= -5000L,
+        assertTrue(
+                result.continentalness() >= -CLIMATE_SCALE && result.continentalness() <= -5000L,
                 "Result should be in ocean range [-10000, -5000], got: " + result.continentalness());
     }
 
     @Test
     public void fullRangeProducesNoChange() {
-        ClimateSettings fullRange = ClimateSettings.builder()
-                .temperature(-1.0f, 1.0f)
-                .build();
+        ClimateSettings fullRange =
+                ClimateSettings.builder().temperature(-1.0f, 1.0f).build();
 
         Climate.TargetPoint original = new Climate.TargetPoint(
                 DEFAULT_ORIGINAL,
@@ -194,9 +184,8 @@ public class ClimateModifierTest {
 
     @Test
     public void variationPreservedWithinRange() {
-        ClimateSettings climate = ClimateSettings.builder()
-                .temperature(0.0f, 0.5f)
-                .build();
+        ClimateSettings climate =
+                ClimateSettings.builder().temperature(0.0f, 0.5f).build();
 
         Climate.TargetPoint low = new Climate.TargetPoint(
                 -CLIMATE_SCALE,
@@ -221,4 +210,3 @@ public class ClimateModifierTest {
         assertEquals(5000L, resultHigh.temperature());
     }
 }
-

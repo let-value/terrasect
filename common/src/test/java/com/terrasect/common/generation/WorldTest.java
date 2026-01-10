@@ -1,15 +1,14 @@
 package com.terrasect.common.generation;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for dimension-aware region root registration via World class.
@@ -71,18 +70,13 @@ public class WorldTest {
     void allowsSameRootForMultipleDimensions() {
         Region sharedRoot = buildSimpleRoot("SHARED");
 
-        World.register(sharedRoot,
-                World.OVERWORLD,
-                "mymod:overworld_copy",
-                "mymod:alternate_world");
+        World.register(sharedRoot, World.OVERWORLD, "mymod:overworld_copy", "mymod:alternate_world");
 
         assertEquals("SHARED", World.getRoot(World.OVERWORLD).name());
         assertEquals("SHARED", World.getRoot("mymod:overworld_copy").name());
         assertEquals("SHARED", World.getRoot("mymod:alternate_world").name());
 
-        assertSame(
-                World.getRoot(World.OVERWORLD),
-                World.getRoot("mymod:overworld_copy"));
+        assertSame(World.getRoot(World.OVERWORLD), World.getRoot("mymod:overworld_copy"));
     }
 
     @Test
@@ -115,9 +109,7 @@ public class WorldTest {
 
     private Region buildSimpleRoot(String name) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region(name)
-                .strategy(GenerationStrategyType.HEX)
-                .radius(1000);
+        registry.region(name).strategy(GenerationStrategyType.HEX).radius(1000);
         return registry.build(name);
     }
 
@@ -172,8 +164,8 @@ public class WorldTest {
 
         Region atOrigin = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin, "Should find a region at origin after anchoring");
-        assertEquals(anchoredName, atOrigin.name(),
-                "Region at origin should be the anchored region '" + anchoredName + "'");
+        assertEquals(
+                anchoredName, atOrigin.name(), "Region at origin should be the anchored region '" + anchoredName + "'");
     }
 
     /**
@@ -187,23 +179,19 @@ public class WorldTest {
                 .radius(5000)
                 .child("REGION_A", r -> {
                     r.radius(1000);
-                    if ("REGION_A".equals(anchoredName))
-                        r.anchoredToOrigin();
+                    if ("REGION_A".equals(anchoredName)) r.anchoredToOrigin();
                 })
                 .child("REGION_B", r -> {
                     r.radius(1000);
-                    if ("REGION_B".equals(anchoredName))
-                        r.anchoredToOrigin();
+                    if ("REGION_B".equals(anchoredName)) r.anchoredToOrigin();
                 })
                 .child("REGION_C", r -> {
                     r.radius(1000);
-                    if ("REGION_C".equals(anchoredName))
-                        r.anchoredToOrigin();
+                    if ("REGION_C".equals(anchoredName)) r.anchoredToOrigin();
                 })
                 .child("REGION_D", r -> {
                     r.radius(1000);
-                    if ("REGION_D".equals(anchoredName))
-                        r.anchoredToOrigin();
+                    if ("REGION_D".equals(anchoredName)) r.anchoredToOrigin();
                 });
         return registry.build("ROOT");
     }
@@ -224,13 +212,15 @@ public class WorldTest {
 
         Region atOriginDepth4 = World.traverse(context, 0, 0, 4).region;
         assertNotNull(atOriginDepth4, "Should find a region at origin depth 4");
-        assertEquals("SPAWN_POINT", atOriginDepth4.name(),
+        assertEquals(
+                "SPAWN_POINT",
+                atOriginDepth4.name(),
                 "Region at origin should be the deeply nested anchored region 'SPAWN_POINT'");
 
         Region atOriginFull = World.traverse(context, 0, 0).region;
         assertNotNull(atOriginFull, "Should find a region at origin (full depth)");
-        assertEquals("SPAWN_POINT", atOriginFull.name(),
-                "Full depth sampling at origin should also return 'SPAWN_POINT'");
+        assertEquals(
+                "SPAWN_POINT", atOriginFull.name(), "Full depth sampling at origin should also return 'SPAWN_POINT'");
     }
 
     /**
@@ -249,17 +239,13 @@ public class WorldTest {
                 .child("CONTINENT", continent -> continent
                         .strategy(GenerationStrategyType.SUBDIVISION)
                         .radius(10000)
-                        .child("KINGDOM", kingdom -> kingdom
-                                .strategy(GenerationStrategyType.VORONOI)
+                        .child("KINGDOM", kingdom -> kingdom.strategy(GenerationStrategyType.VORONOI)
                                 .radius(3000)
-                                .child("PROVINCE", province -> province
-                                        .strategy(GenerationStrategyType.SUBDIVISION)
+                                .child("PROVINCE", province -> province.strategy(GenerationStrategyType.SUBDIVISION)
                                         .radius(1000)
-                                        .child("SPAWN_POINT", spawn -> spawn
-                                                .radius(200)
+                                        .child("SPAWN_POINT", spawn -> spawn.radius(200)
                                                 .anchoredToOrigin())
-                                        .child("WILDERNESS", wild -> wild
-                                                .radius(800)))));
+                                        .child("WILDERNESS", wild -> wild.radius(800)))));
         return registry.build("ROOT");
     }
 
@@ -288,9 +274,9 @@ public class WorldTest {
         assertNotNull(atOrigin, "Should find some region at origin");
 
         assertTrue(
-                atOrigin.name().equals("REGION_A") ||
-                        atOrigin.name().equals("REGION_B") ||
-                        atOrigin.name().equals("REGION_C"),
+                atOrigin.name().equals("REGION_A")
+                        || atOrigin.name().equals("REGION_B")
+                        || atOrigin.name().equals("REGION_C"),
                 "Origin region should be one of the defined regions");
     }
 
@@ -319,7 +305,9 @@ public class WorldTest {
 
         Region atOrigin2 = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin2);
-        assertEquals("REGION_B", atOrigin2.name(),
+        assertEquals(
+                "REGION_B",
+                atOrigin2.name(),
                 "Re-initialized world with same seed should produce same result at origin");
     }
 
@@ -346,7 +334,7 @@ public class WorldTest {
         Region atOrigin2 = World.traverse(context, 0, 0).region;
         assertEquals("REGION_C", atOrigin2.name());
 
-        assertNotEquals(atOrigin1.name(), atOrigin2.name(),
-                "Different anchored regions should produce different origins");
+        assertNotEquals(
+                atOrigin1.name(), atOrigin2.name(), "Different anchored regions should produce different origins");
     }
 }

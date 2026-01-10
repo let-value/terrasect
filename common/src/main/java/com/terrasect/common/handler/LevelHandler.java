@@ -10,15 +10,15 @@ import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 public final class LevelHandler {
-    
+
     private LevelHandler() {}
-    
+
     public static MinecraftContext registerContext(
             ResourceKey<Level> dimension,
             long seed,
             Climate.Sampler sampler,
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
-        
+
         return MinecraftContext.create(dimension, seed, sampler, parameters);
     }
 }

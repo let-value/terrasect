@@ -1,4 +1,8 @@
 {
+    "editor.formatOnSave": true,
+    "[java]": {
+        "editor.defaultFormatter": "palantir.java-format"
+    },
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.compile.nullAnalysis.mode": "disabled",
     "java.test.config": {

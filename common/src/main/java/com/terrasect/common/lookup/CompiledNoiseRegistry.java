@@ -6,17 +6,14 @@ import com.terrasect.common.definition.NoiseConstraints;
 import com.terrasect.common.definition.NoiseTransform;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
-
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
-
 import org.jetbrains.annotations.Nullable;
-
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Pre-compiled noise constraints for all regions in a dimension.
@@ -40,7 +37,8 @@ public final class CompiledNoiseRegistry {
         return new CompiledNoiseRegistry(map);
     }
 
-    private static void compileRecursively(Region region, IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> map) {
+    private static void compileRecursively(
+            Region region, IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> map) {
         RegionDefinition definition = region.definition();
         if (!map.containsKey(definition)) {
             NoiseConstraints noise = definition.noise();
@@ -96,7 +94,8 @@ public final class CompiledNoiseRegistry {
         }
 
         @SuppressWarnings("unchecked")
-        ResourceKey<NormalNoise.NoiseParameters>[] keys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[count];
+        ResourceKey<NormalNoise.NoiseParameters>[] keys =
+                (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[count];
         CompiledTransform[] transforms = new CompiledTransform[count];
 
         int i = 0;
@@ -121,7 +120,8 @@ public final class CompiledNoiseRegistry {
 
         if (i != count) {
             @SuppressWarnings("unchecked")
-            ResourceKey<NormalNoise.NoiseParameters>[] trimmedKeys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[i];
+            ResourceKey<NormalNoise.NoiseParameters>[] trimmedKeys =
+                    (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[i];
             CompiledTransform[] trimmedTransforms = new CompiledTransform[i];
             System.arraycopy(keys, 0, trimmedKeys, 0, i);
             System.arraycopy(transforms, 0, trimmedTransforms, 0, i);
@@ -137,7 +137,8 @@ public final class CompiledNoiseRegistry {
      * Compiled noise constraints for a region, holding transform operations keyed by noise parameter.
      */
     public static final class CompiledNoiseConstraints {
-        static final CompiledNoiseConstraints EMPTY = new CompiledNoiseConstraints(new ResourceKey<?>[0], new CompiledTransform[0]);
+        static final CompiledNoiseConstraints EMPTY =
+                new CompiledNoiseConstraints(new ResourceKey<?>[0], new CompiledTransform[0]);
 
         private final ResourceKey<NormalNoise.NoiseParameters>[] noiseKeys;
         private final CompiledTransform[] noiseTransforms;

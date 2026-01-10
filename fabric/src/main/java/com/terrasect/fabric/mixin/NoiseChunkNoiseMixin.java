@@ -3,7 +3,6 @@ package com.terrasect.fabric.mixin;
 import com.terrasect.common.compat.NoiseChunkNoiseAccess;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.NoiseChunkLookup;
-
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.NoiseChunk;
@@ -11,7 +10,6 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
-
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,8 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(NoiseChunk.class)
 public class NoiseChunkNoiseMixin implements NoiseChunkNoiseAccess {
 
-    @Unique
-    private @Nullable NoiseChunkLookup terrasect$noiseLookup;
+    @Unique private @Nullable NoiseChunkLookup terrasect$noiseLookup;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void terrasect$initNoiseLookup(

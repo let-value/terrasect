@@ -8,22 +8,22 @@ import java.util.Set;
 /**
  * Generic allow/block rules that can be applied to biomes, mobs, structures, or other identifiers.
  * Supports mixing mod namespaces, tags ("#namespace:tag"), and direct resource identifiers.
- * 
+ *
  * Optimized for fast lookups:
  * - Tags are pre-normalized (stored with and without # prefix)
  * - Uses HashSet for O(1) contains() checks
  * - Pre-computes hasAllowRules/hasBlockRules flags
  */
 public record SelectionRules(
-    Set<String> allowedMods,
-    Set<String> allowedTags,      // Normalized: contains both "#tag" and "tag" forms
-    Set<String> allowedNames,
-    Set<String> blockedMods,
-    Set<String> blockedTags,      // Normalized: contains both "#tag" and "tag" forms
-    Set<String> blockedNames,
-    boolean hasAllowRules,        // Pre-computed flag
-    boolean hasBlockRules         // Pre-computed flag
-) {
+        Set<String> allowedMods,
+        Set<String> allowedTags, // Normalized: contains both "#tag" and "tag" forms
+        Set<String> allowedNames,
+        Set<String> blockedMods,
+        Set<String> blockedTags, // Normalized: contains both "#tag" and "tag" forms
+        Set<String> blockedNames,
+        boolean hasAllowRules, // Pre-computed flag
+        boolean hasBlockRules // Pre-computed flag
+        ) {
     public SelectionRules {
         if (allowedMods == null) allowedMods = Collections.emptySet();
         if (allowedTags == null) allowedTags = Collections.emptySet();
@@ -32,35 +32,35 @@ public record SelectionRules(
         if (blockedTags == null) blockedTags = Collections.emptySet();
         if (blockedNames == null) blockedNames = Collections.emptySet();
     }
-    
+
     /**
      * Check if a biome name is explicitly allowed.
      */
     public boolean isNameAllowed(String biomeId) {
         return allowedNames.contains(biomeId);
     }
-    
+
     /**
      * Check if a biome name is explicitly blocked.
      */
     public boolean isNameBlocked(String biomeId) {
         return blockedNames.contains(biomeId);
     }
-    
+
     /**
      * Check if a mod namespace is allowed.
      */
     public boolean isModAllowed(String modNamespace) {
         return allowedMods.contains(modNamespace);
     }
-    
+
     /**
      * Check if a mod namespace is blocked.
      */
     public boolean isModBlocked(String modNamespace) {
         return blockedMods.contains(modNamespace);
     }
-    
+
     /**
      * Check if any of the given tags are in the allowed set.
      * Tags can be passed with or without # prefix - both will match.
@@ -72,7 +72,7 @@ public record SelectionRules(
         }
         return false;
     }
-    
+
     /**
      * Check if any of the given tags are in the blocked set.
      * Tags can be passed with or without # prefix - both will match.
@@ -105,19 +105,20 @@ public record SelectionRules(
         mergedAllowedTags.removeAll(mergedBlockedTags);
         mergedAllowedNames.removeAll(mergedBlockedNames);
 
-        boolean hasAllow = !mergedAllowedMods.isEmpty() || !mergedAllowedTags.isEmpty() || !mergedAllowedNames.isEmpty();
-        boolean hasBlock = !mergedBlockedMods.isEmpty() || !mergedBlockedTags.isEmpty() || !mergedBlockedNames.isEmpty();
+        boolean hasAllow =
+                !mergedAllowedMods.isEmpty() || !mergedAllowedTags.isEmpty() || !mergedAllowedNames.isEmpty();
+        boolean hasBlock =
+                !mergedBlockedMods.isEmpty() || !mergedBlockedTags.isEmpty() || !mergedBlockedNames.isEmpty();
 
         return new SelectionRules(
-            Collections.unmodifiableSet(mergedAllowedMods),
-            Collections.unmodifiableSet(mergedAllowedTags),
-            Collections.unmodifiableSet(mergedAllowedNames),
-            Collections.unmodifiableSet(mergedBlockedMods),
-            Collections.unmodifiableSet(mergedBlockedTags),
-            Collections.unmodifiableSet(mergedBlockedNames),
-            hasAllow,
-            hasBlock
-        );
+                Collections.unmodifiableSet(mergedAllowedMods),
+                Collections.unmodifiableSet(mergedAllowedTags),
+                Collections.unmodifiableSet(mergedAllowedNames),
+                Collections.unmodifiableSet(mergedBlockedMods),
+                Collections.unmodifiableSet(mergedBlockedTags),
+                Collections.unmodifiableSet(mergedBlockedNames),
+                hasAllow,
+                hasBlock);
     }
 
     private Set<String> merge(Set<String> parent, Set<String> child) {
@@ -187,26 +188,25 @@ public record SelectionRules(
         public SelectionRules build() {
             boolean hasAllow = !allowedMods.isEmpty() || !allowedTags.isEmpty() || !allowedNames.isEmpty();
             boolean hasBlock = !blockedMods.isEmpty() || !blockedTags.isEmpty() || !blockedNames.isEmpty();
-            
+
             return new SelectionRules(
-                Collections.unmodifiableSet(new HashSet<>(allowedMods)),
-                Collections.unmodifiableSet(new HashSet<>(allowedTags)),
-                Collections.unmodifiableSet(new HashSet<>(allowedNames)),
-                Collections.unmodifiableSet(new HashSet<>(blockedMods)),
-                Collections.unmodifiableSet(new HashSet<>(blockedTags)),
-                Collections.unmodifiableSet(new HashSet<>(blockedNames)),
-                hasAllow,
-                hasBlock
-            );
+                    Collections.unmodifiableSet(new HashSet<>(allowedMods)),
+                    Collections.unmodifiableSet(new HashSet<>(allowedTags)),
+                    Collections.unmodifiableSet(new HashSet<>(allowedNames)),
+                    Collections.unmodifiableSet(new HashSet<>(blockedMods)),
+                    Collections.unmodifiableSet(new HashSet<>(blockedTags)),
+                    Collections.unmodifiableSet(new HashSet<>(blockedNames)),
+                    hasAllow,
+                    hasBlock);
         }
 
         public Builder copyFrom(SelectionRules rules) {
             if (rules == null) return this;
             allowedMods.addAll(rules.allowedMods());
-            allowedTags.addAll(rules.allowedTags());  // Already normalized
+            allowedTags.addAll(rules.allowedTags()); // Already normalized
             allowedNames.addAll(rules.allowedNames());
             blockedMods.addAll(rules.blockedMods());
-            blockedTags.addAll(rules.blockedTags());  // Already normalized
+            blockedTags.addAll(rules.blockedTags()); // Already normalized
             blockedNames.addAll(rules.blockedNames());
             return this;
         }

@@ -27,6 +27,23 @@ Multi-loader starter for Fabric and NeoForge targeting Minecraft 1.21.x. The pro
    ./gradlew unpackMinecraft
    ```
 
+## Formatting
+- Spotless enforces Palantir Java Format across modules.
+- Format on demand:
+  ```
+  ./gradlew spotlessApply
+  ```
+- VS Code format-on-save is enabled in `.vscode/settings.json`; install the recommended extensions from `.vscode/extensions.json`.
+
+## Snapshot testing
+- File snapshots: use `@EnableSnapshotTests` with `Snapshot` injection (from `snapshot-tests`); snapshots default to `src/test/resources/<test class>_snapshots`.
+- Update snapshots:
+  ```
+  ./gradlew :common:updateSnapshots
+  ```
+  (or `./gradlew :common:test -DforceUpdateSnapshots=true`).
+- Inline snapshots: use `InlineSnapshots.assertInlineSnapshot(actual, """...""")`; update with `-Dterrasect.inlineSnapshots=update`.
+
 ## Development notes
 - The Gradle build currently includes only `common`, `fabric`, and `neoforge` (the `versions/` folder is ignored for now).
 - Fabric uses official Mojang mappings via Fabric Loom; NeoForge/common use `net.neoforged.moddev`.

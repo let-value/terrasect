@@ -23,10 +23,7 @@ import java.util.function.Consumer;
  *     .build();
  * }</pre>
  */
-public record NoiseConstraints(
-    Map<String, NoiseTransform> noises,
-    Map<String, NoiseTransform> densityFunctions
-) {
+public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, NoiseTransform> densityFunctions) {
     private static final String CLEAR_PARENT_MARKER = "\u0000terrasect:clear_parent\u0000";
     private static final NoiseTransform MARKER_VALUE = NoiseTransform.empty();
 
@@ -74,18 +71,21 @@ public record NoiseConstraints(
             return Objects.requireNonNullElse(parent, NoiseConstraints.empty());
         }
 
-        NoiseConstraints base = clearParent ? NoiseConstraints.empty() : Objects.requireNonNullElse(parent, NoiseConstraints.empty());
+        NoiseConstraints base =
+                clearParent ? NoiseConstraints.empty() : Objects.requireNonNullElse(parent, NoiseConstraints.empty());
         if (base.noises.isEmpty() && base.densityFunctions.isEmpty() && !clearParent) {
             return this;
         }
 
-        Map<String, NoiseTransform> mergedNoises = base.noises.isEmpty() ? new LinkedHashMap<>() : new LinkedHashMap<>(base.noises);
+        Map<String, NoiseTransform> mergedNoises =
+                base.noises.isEmpty() ? new LinkedHashMap<>() : new LinkedHashMap<>(base.noises);
         for (var entry : noises.entrySet()) {
             if (CLEAR_PARENT_MARKER.equals(entry.getKey())) continue;
             mergedNoises.put(entry.getKey(), entry.getValue());
         }
 
-        Map<String, NoiseTransform> mergedDensity = base.densityFunctions.isEmpty() ? new LinkedHashMap<>() : new LinkedHashMap<>(base.densityFunctions);
+        Map<String, NoiseTransform> mergedDensity =
+                base.densityFunctions.isEmpty() ? new LinkedHashMap<>() : new LinkedHashMap<>(base.densityFunctions);
         for (var entry : densityFunctions.entrySet()) {
             if (CLEAR_PARENT_MARKER.equals(entry.getKey())) continue;
             mergedDensity.put(entry.getKey(), entry.getValue());
@@ -146,7 +146,8 @@ public record NoiseConstraints(
             Objects.requireNonNull(consumer, "consumer");
             // Keep clearParent flag as-is; key additions apply even when parent is cleared.
 
-            NoiseTransform.Builder builder = NoiseTransform.builder().copyFrom(densityFunctions.get(densityFunctionKey));
+            NoiseTransform.Builder builder =
+                    NoiseTransform.builder().copyFrom(densityFunctions.get(densityFunctionKey));
             consumer.accept(builder);
             NoiseTransform transform = builder.build();
             if (transform.isEmpty()) {

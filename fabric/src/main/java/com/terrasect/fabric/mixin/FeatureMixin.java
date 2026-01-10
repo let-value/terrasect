@@ -1,11 +1,10 @@
 package com.terrasect.fabric.mixin;
 
+import com.terrasect.common.Context;
+import com.terrasect.common.definition.Region;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
-import com.terrasect.common.Context;
-import com.terrasect.common.definition.Region;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -20,13 +19,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class FeatureMixin {
 
     @Inject(method = "place", at = @At("HEAD"), cancellable = true)
-    private void onPlace(WorldGenLevel level, ChunkGenerator generator, RandomSource random, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+    private void onPlace(
+            WorldGenLevel level,
+            ChunkGenerator generator,
+            RandomSource random,
+            BlockPos pos,
+            CallbackInfoReturnable<Boolean> cir) {
         Context context = MinecraftContext.get(level.getLevel().dimension());
-        
+
         if (context == null) {
             return;
         }
-        
+
         // Get dimension ID from context (which provides it via getDimensionId())
         TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
         @SuppressWarnings("unused") // Will be used when feature gating is implemented

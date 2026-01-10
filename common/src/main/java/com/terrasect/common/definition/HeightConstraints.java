@@ -14,7 +14,8 @@ public record HeightConstraints(int minY, int maxY) {
     private static final int UNCONSTRAINED_SENTINEL = Integer.MIN_VALUE + 1;
 
     private static final HeightConstraints INHERIT = new HeightConstraints(INHERIT_SENTINEL, INHERIT_SENTINEL);
-    private static final HeightConstraints UNCONSTRAINED = new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
+    private static final HeightConstraints UNCONSTRAINED =
+            new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
 
     public HeightConstraints {
         boolean inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;

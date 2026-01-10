@@ -1,8 +1,9 @@
 package com.terrasect.common.generation;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.terrasect.common.util.MathUtils;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class MathUtilsTest {
 
@@ -22,7 +23,7 @@ public class MathUtilsTest {
         assertEquals(0, MathUtils.mod(5, 5));
         assertEquals(0, MathUtils.mod(-5, 5));
     }
-    
+
     @Test
     public void testHash64Determinism() {
         long h1 = MathUtils.hash64(123L, 10, 20, 30L);

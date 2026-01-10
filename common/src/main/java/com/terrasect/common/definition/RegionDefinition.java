@@ -6,15 +6,14 @@ import java.util.function.Consumer;
  * Narrative controls for a region. Everything here can be inherited and resolved ahead of time.
  */
 public record RegionDefinition(
-    ClimateSettings climate,
-    HeightConstraints height,
-    NoiseConstraints noise,
-    SelectionRules biomes,
-    StructureRules structures,
-    SelectionRules mobs,
-    GenerationStrategyType generationStrategy,
-    StrategySettings strategySettings
-) {
+        ClimateSettings climate,
+        HeightConstraints height,
+        NoiseConstraints noise,
+        SelectionRules biomes,
+        StructureRules structures,
+        SelectionRules mobs,
+        GenerationStrategyType generationStrategy,
+        StrategySettings strategySettings) {
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
         if (height == null) height = HeightConstraints.inherit();
@@ -33,15 +32,14 @@ public record RegionDefinition(
     public RegionDefinition resolveInherited(RegionDefinition parent) {
         if (parent == null) return this;
         return new RegionDefinition(
-            climate.resolveWithParent(parent.climate),
-            height.resolveWithParent(parent.height),
-            noise.resolveWithParent(parent.noise),
-            biomes.resolveWithParent(parent.biomes),
-            structures.resolveWithParent(parent.structures),
-            mobs.resolveWithParent(parent.mobs),
-            generationStrategy,
-            strategySettings
-        );
+                climate.resolveWithParent(parent.climate),
+                height.resolveWithParent(parent.height),
+                noise.resolveWithParent(parent.noise),
+                biomes.resolveWithParent(parent.biomes),
+                structures.resolveWithParent(parent.structures),
+                mobs.resolveWithParent(parent.mobs),
+                generationStrategy,
+                strategySettings);
     }
 
     public static Builder builder() {
@@ -110,7 +108,8 @@ public record RegionDefinition(
 
         public T structures(Consumer<StructureRules.Builder> consumer) {
             StructureRules.Builder builder = StructureRules.builder();
-            builder.selection(SelectionRules.builder().copyFrom(structures.selection()).build());
+            builder.selection(
+                    SelectionRules.builder().copyFrom(structures.selection()).build());
             structures.requiredStructures().forEach(builder::requireStructures);
             consumer.accept(builder);
             structures = builder.build();
@@ -146,7 +145,8 @@ public record RegionDefinition(
         }
 
         public RegionDefinition build() {
-            return new RegionDefinition(climate, height, noise, biomes, structures, mobs, generationStrategy, strategySettings);
+            return new RegionDefinition(
+                    climate, height, noise, biomes, structures, mobs, generationStrategy, strategySettings);
         }
     }
 }

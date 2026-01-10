@@ -31,8 +31,7 @@ public record NoiseTransform(List<NoiseTransform.Operation> operations) {
         return new Builder();
     }
 
-    public sealed interface Operation permits Clamp, Add, Multiply, Map {
-    }
+    public sealed interface Operation permits Clamp, Add, Multiply, Map {}
 
     public record Clamp(double min, double max) implements Operation {
         public Clamp {
@@ -44,11 +43,9 @@ public record NoiseTransform(List<NoiseTransform.Operation> operations) {
         }
     }
 
-    public record Add(double value) implements Operation {
-    }
+    public record Add(double value) implements Operation {}
 
-    public record Multiply(double value) implements Operation {
-    }
+    public record Multiply(double value) implements Operation {}
 
     /**
      * Unary mapping operations that correspond to vanilla density-function mappers.
@@ -134,4 +131,3 @@ public record NoiseTransform(List<NoiseTransform.Operation> operations) {
         }
     }
 }
-

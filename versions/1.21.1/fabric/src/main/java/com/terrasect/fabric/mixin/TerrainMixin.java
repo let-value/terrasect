@@ -30,22 +30,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(NoiseChunk.class)
 public class TerrainMixin {
 
-    @Unique
-    private TerrainHeightLookup terrasect$heightLookup;
+    @Unique private TerrainHeightLookup terrasect$heightLookup;
 
-    @Unique
-    private Aquifer.FluidPicker terrasect$fluidPicker;
+    @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
     /**
      * Build TerrainHeightLookup BEFORE Aquifer is constructed.
-     * 
+     *
      * <p>In 1.21.1, we target the first write to the {@code aquifer} field.
      */
-    @Inject(method = "<init>", at = @At(
-        value = "FIELD",
-        target = "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
-        opcode = Opcodes.PUTFIELD
-    ))
+    @Inject(
+            method = "<init>",
+            at =
+                    @At(
+                            value = "FIELD",
+                            target =
+                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
+                            opcode = Opcodes.PUTFIELD))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
@@ -59,7 +60,7 @@ public class TerrainMixin {
             CallbackInfo ci) {
         // Only initialize once (there are two writes to aquifer in the if/else)
         if (this.terrasect$heightLookup != null) return;
-        
+
         this.terrasect$fluidPicker = fluidPicker;
         MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
 
@@ -67,12 +68,11 @@ public class TerrainMixin {
         DensityFunction depth = router.depth();
 
         MutablePointContext pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ,
-            (x, z) -> {
-                pointCtx.set(x, 64, z);
-                double depthValue = depth.compute(pointCtx);
-                return 64 + (int) (depthValue * 128);
-            });
+        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, (x, z) -> {
+            pointCtx.set(x, 64, z);
+            double depthValue = depth.compute(pointCtx);
+            return 64 + (int) (depthValue * 128);
+        });
     }
 
     @Inject(method = "getInterpolatedState", at = @At("HEAD"), cancellable = true)

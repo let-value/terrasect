@@ -4,7 +4,6 @@ import com.terrasect.common.Context;
 import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -24,7 +23,11 @@ public final class NoiseChunkLookup {
     private final int chunkMinX;
     private final int chunkMinZ;
 
-    private NoiseChunkLookup(CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints, float[] strengths, int chunkMinX, int chunkMinZ) {
+    private NoiseChunkLookup(
+            CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints,
+            float[] strengths,
+            int chunkMinX,
+            int chunkMinZ) {
         this.constraints = constraints;
         this.strengths = strengths;
         this.chunkMinX = chunkMinX;
@@ -49,7 +52,8 @@ public final class NoiseChunkLookup {
             return null;
         }
 
-        CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints = new CompiledNoiseRegistry.CompiledNoiseConstraints[QUART_SIZE * QUART_SIZE];
+        CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints =
+                new CompiledNoiseRegistry.CompiledNoiseConstraints[QUART_SIZE * QUART_SIZE];
         float[] strengths = new float[QUART_SIZE * QUART_SIZE];
         boolean hasAny = false;
 
