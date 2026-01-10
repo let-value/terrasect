@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: hex_default_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: hex_default
+
+68acdb9b8d9c3b35da2a313da0404b5e1d80a866f292622a2b9a8ce6eba17d7b

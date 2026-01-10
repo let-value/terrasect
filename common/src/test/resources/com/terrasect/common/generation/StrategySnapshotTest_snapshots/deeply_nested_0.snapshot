@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: deeply_nested_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: deeply_nested
+
+ad7502cbaf31598771c52d1af1b1faa94cc8fbcc19b0f9eb4f4b79d2c2b46324

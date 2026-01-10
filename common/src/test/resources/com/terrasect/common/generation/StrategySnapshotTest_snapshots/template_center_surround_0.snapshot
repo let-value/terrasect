@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: template_center_surround_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: template_center_surround
+
+134fd07cacde9bbf419e68b8881ff5fcc696b58b8501b59531906ff0b97e7870

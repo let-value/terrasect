@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: generateSnapshots_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.SnapshotTest
+test-method: generateSnapshots
+
+ac5557559bf804851cf974e40cbcabfe4c86e77ccd1e52e7b346c0585a112831

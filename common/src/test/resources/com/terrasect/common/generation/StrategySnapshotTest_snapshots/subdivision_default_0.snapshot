@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: subdivision_default_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: subdivision_default
+
+7b45100d40faaedd0aa19c0e12b059524bc852e3dfaf166a033978c87926cc12

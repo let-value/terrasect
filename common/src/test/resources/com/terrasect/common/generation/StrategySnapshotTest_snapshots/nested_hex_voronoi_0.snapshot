@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: nested_hex_voronoi_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: nested_hex_voronoi
+
+1113e85013fd80483ccfc9c62e0f6edbd8057f35d528c15c49f56735f88240b4

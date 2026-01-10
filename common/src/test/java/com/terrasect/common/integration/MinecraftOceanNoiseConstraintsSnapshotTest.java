@@ -10,6 +10,9 @@ import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.handler.NoiseHandler;
 import com.terrasect.common.lookup.NoiseChunkLookup;
+import com.terrasect.common.testing.SnapshotHashes;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.lang.reflect.Method;
@@ -34,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static final int IMG_SIZE = 256;
     private static final int WORLD_SIZE = 1024;
@@ -52,7 +56,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     @Test
-    void writesNoOceanAndOnlyOceanSnapshots() throws Exception {
+    void writesNoOceanAndOnlyOceanSnapshots(Snapshot snapshot) throws Exception {
         assertEquals(4, STEP, "test assumes quart-aligned pixels");
         assertEquals(8, SURFACE_STEP, "test assumes 8-block pixels for surface views");
         assertEquals(2, SURFACE_PIXELS_PER_CHUNK, "surface pixels must divide chunk size");
@@ -234,7 +238,10 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         index.append("</table>");
 
         index.append("</body></html>\n");
-        Files.writeString(outDir.toPath().resolve("index.html"), index.toString(), StandardCharsets.UTF_8);
+        String indexHtml = index.toString();
+        String indexDigest = SnapshotHashes.sha256Hex(indexHtml);
+        snapshot.assertThat(indexDigest).asText().matchesSnapshotText();
+        Files.writeString(outDir.toPath().resolve("index.html"), indexHtml, StandardCharsets.UTF_8);
         System.out.println("Wrote ocean-control snapshot report to: " + outDir.getAbsolutePath());
     }
 

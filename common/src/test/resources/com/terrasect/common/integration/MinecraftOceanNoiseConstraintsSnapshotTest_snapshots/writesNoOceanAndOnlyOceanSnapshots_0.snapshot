@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: writesNoOceanAndOnlyOceanSnapshots_0
+snapshot-number: 0
+test-class: com.terrasect.common.integration.MinecraftOceanNoiseConstraintsSnapshotTest
+test-method: writesNoOceanAndOnlyOceanSnapshots
+
+b4dd567877b5ebc66c0ab2271395ab63bda6ccf8b2525b69d924e26a2ed965f0

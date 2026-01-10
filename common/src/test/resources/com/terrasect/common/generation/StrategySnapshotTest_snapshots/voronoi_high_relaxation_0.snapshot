@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: voronoi_high_relaxation_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: voronoi_high_relaxation
+
+dab01562315178054408e03822906b5e8ff42258b756090674e1c5798a4d448e

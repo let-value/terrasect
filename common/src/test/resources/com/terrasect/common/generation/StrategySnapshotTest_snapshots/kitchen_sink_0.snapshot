@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: kitchen_sink_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: kitchen_sink
+
+521c8ccf28bc47a3e10c63367649f60e56965cd2bf7eac9499b1df53f19a17a4

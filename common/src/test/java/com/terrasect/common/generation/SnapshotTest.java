@@ -4,10 +4,11 @@ import com.terrasect.common.Context;
 import com.terrasect.common.TestRegions;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.helpers.RegionSampler;
-import com.terrasect.common.testing.InlineSnapshots;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.util.Packer;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 public class SnapshotTest {
 
     @Test
@@ -62,7 +64,7 @@ public class SnapshotTest {
     }
 
     @Test
-    public void generateSnapshots() throws IOException, NoSuchAlgorithmException {
+    public void generateSnapshots(Snapshot snapshot) throws IOException, NoSuchAlgorithmException {
         World.register(TestRegions.buildTestWorld(), World.OVERWORLD);
         var seed = 987654321L;
         Context context = new MockStrategy(seed);
@@ -222,11 +224,7 @@ public class SnapshotTest {
 
         System.out.println("Snapshot digest: " + actualDigest);
 
-        InlineSnapshots.assertInlineSnapshot(
-                actualDigest,
-                """
-            ac5557559bf804851cf974e40cbcabfe4c86e77ccd1e52e7b346c0585a112831
-            """);
+        snapshot.assertThat(actualDigest).asText().matchesSnapshotText();
     }
 
     private void updateDigest(MessageDigest digest, int val) {

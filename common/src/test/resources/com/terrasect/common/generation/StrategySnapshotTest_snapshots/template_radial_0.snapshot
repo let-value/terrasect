@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: template_radial_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: template_radial
+
+08a3e775f0a5b726b9062e78e00dd4c86105becdf9d3b945de08365756b19cf2

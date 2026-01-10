@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: nested_voronoi_template_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: nested_voronoi_template
+
+42c4177fe9d66630674919cd72a452646cda3eb300b8731107e3753959127e25

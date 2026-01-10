@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: writesOverworldNoiseRouterSnapshots_0
+snapshot-number: 0
+test-class: com.terrasect.common.integration.MinecraftNoiseRouterSnapshotTest
+test-method: writesOverworldNoiseRouterSnapshots
+
+ae14499465fa5f3e6186bbc8854cc1fd11a0c432db056908cff5224eb79084ce

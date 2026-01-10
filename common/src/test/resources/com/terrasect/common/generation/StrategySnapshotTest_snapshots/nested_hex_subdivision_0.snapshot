@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: nested_hex_subdivision_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: nested_hex_subdivision
+
+1f1406cb315c0aa6d23b3f28e1c07441b1be24836e7365af1f75804ce1ec23ad

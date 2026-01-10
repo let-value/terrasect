@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: template_binary_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: template_binary
+
+b00a0860a1f1d25c43535e69b9832c5cd8de4282ce003a6fa03051d2d9160f04

@@ -1,74 +1,32 @@
 package com.terrasect.common.generation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.StrategySettings;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.imageio.ImageIO;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 public class StrategySnapshotTest {
 
     private static final long SEED = 42424242L;
     private static final int IMG_SIZE = 256;
     private static final int WORLD_SIZE = 2048;
 
-    private static final Map<String, String> COLLECTED_DIGESTS = new ConcurrentHashMap<>();
-
-    private static final Map<String, String> EXPECTED_DIGESTS = Map.ofEntries(
-            Map.entry("deeply_nested", "ad7502cbaf31598771c52d1af1b1faa94cc8fbcc19b0f9eb4f4b79d2c2b46324"),
-            Map.entry("hex_default", "68acdb9b8d9c3b35da2a313da0404b5e1d80a866f292622a2b9a8ce6eba17d7b"),
-            Map.entry("hex_with_ring", "e932860fe54368f1df4e04b7b69c94f83205f7668e387a7769e1722377af2bca"),
-            Map.entry("kitchen_sink", "521c8ccf28bc47a3e10c63367649f60e56965cd2bf7eac9499b1df53f19a17a4"),
-            Map.entry("nested_hex_subdivision", "1f1406cb315c0aa6d23b3f28e1c07441b1be24836e7365af1f75804ce1ec23ad"),
-            Map.entry("nested_hex_voronoi", "1113e85013fd80483ccfc9c62e0f6edbd8057f35d528c15c49f56735f88240b4"),
-            Map.entry(
-                    "nested_subdivision_template", "1a93f63bf663eaaf1d650cf9632c9c3d73f94097e8a696fa680474c777d68191"),
-            Map.entry("nested_voronoi_template", "42c4177fe9d66630674919cd72a452646cda3eb300b8731107e3753959127e25"),
-            Map.entry("subdivision_default", "7b45100d40faaedd0aa19c0e12b059524bc852e3dfaf166a033978c87926cc12"),
-            Map.entry("subdivision_high_jitter", "8c3a8ad8ace906fa4dd9c736eab06db6f1b3f74aefa964026ac69848728bc7ec"),
-            Map.entry("subdivision_low_jitter", "3123bc3190c1fb04df9721720f68b0fd53df5634211058eb5fe2877937efe8b4"),
-            Map.entry("template_binary", "b00a0860a1f1d25c43535e69b9832c5cd8de4282ce003a6fa03051d2d9160f04"),
-            Map.entry("template_center_surround", "134fd07cacde9bbf419e68b8881ff5fcc696b58b8501b59531906ff0b97e7870"),
-            Map.entry(
-                    "template_center_surround_named",
-                    "afe789b6a3c8348f0a6c589f9c9953832aecab1e79618ad3388a2c3504c81a9d"),
-            Map.entry("template_radial", "08a3e775f0a5b726b9062e78e00dd4c86105becdf9d3b945de08365756b19cf2"),
-            Map.entry("template_triangle", "2efb9a9bfd02d9e583fede0c27880b31d150767e108ef3d08d31b548b0b2c147"),
-            Map.entry("voronoi_default", "6d1f8d3e82dba41636fb6f3404fd6ba547d9cdcb0fcedfd7acdcab6bce313665"),
-            Map.entry("voronoi_high_relaxation", "dab01562315178054408e03822906b5e8ff42258b756090674e1c5798a4d448e"),
-            Map.entry("voronoi_low_relaxation", "6f1904742d5e00f028935f826bcc14604c5f9ec51799dd8dc222875ae8eaacab"));
-
     private File outDir;
     private Context context;
-
-    @AfterAll
-    static void writeDigestsSummary() throws IOException {
-        File digestFile = new File("build/test-snapshots/DIGESTS.txt");
-        digestFile.getParentFile().mkdirs();
-        try (PrintWriter out = new PrintWriter(new FileWriter(digestFile))) {
-            out.println();
-            COLLECTED_DIGESTS.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(e -> out.printf("Map.entry(\"%s\", \"%s\"),%n", e.getKey(), e.getValue()));
-        }
-        System.out.println("\n=== DIGESTS WRITTEN TO: " + digestFile.getAbsolutePath() + " ===\n");
-    }
 
     @BeforeEach
     void setup() {
@@ -76,148 +34,153 @@ public class StrategySnapshotTest {
     }
 
     @Test
-    void voronoi_default() throws Exception {
+    void voronoi_default(Snapshot snapshot) throws Exception {
         Region root = buildSimpleHierarchy(GenerationStrategyType.VORONOI, null);
-        runSnapshot("voronoi_default", root, 2);
+        runSnapshotTest(snapshot, "voronoi_default", root, 2);
     }
 
     @Test
-    void voronoi_low_relaxation() throws Exception {
+    void voronoi_low_relaxation(Snapshot snapshot) throws Exception {
         StrategySettings settings =
                 StrategySettings.builder().voronoiRelaxation(2).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.VORONOI, settings);
-        runSnapshot("voronoi_low_relaxation", root, 2);
+        runSnapshotTest(snapshot, "voronoi_low_relaxation", root, 2);
     }
 
     @Test
-    void voronoi_high_relaxation() throws Exception {
+    void voronoi_high_relaxation(Snapshot snapshot) throws Exception {
         StrategySettings settings =
                 StrategySettings.builder().voronoiRelaxation(20).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.VORONOI, settings);
-        runSnapshot("voronoi_high_relaxation", root, 2);
+        runSnapshotTest(snapshot, "voronoi_high_relaxation", root, 2);
     }
 
     @Test
-    void subdivision_default() throws Exception {
+    void subdivision_default(Snapshot snapshot) throws Exception {
         Region root = buildSimpleHierarchy(GenerationStrategyType.SUBDIVISION, null);
-        runSnapshot("subdivision_default", root, 2);
+        runSnapshotTest(snapshot, "subdivision_default", root, 2);
     }
 
     @Test
-    void subdivision_low_jitter() throws Exception {
+    void subdivision_low_jitter(Snapshot snapshot) throws Exception {
         StrategySettings settings =
                 StrategySettings.builder().subdivisionJitter(0.0f).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.SUBDIVISION, settings);
-        runSnapshot("subdivision_low_jitter", root, 2);
+        runSnapshotTest(snapshot, "subdivision_low_jitter", root, 2);
     }
 
     @Test
-    void subdivision_high_jitter() throws Exception {
+    void subdivision_high_jitter(Snapshot snapshot) throws Exception {
         StrategySettings settings =
                 StrategySettings.builder().subdivisionJitter(0.5f).build();
         Region root = buildSimpleHierarchy(GenerationStrategyType.SUBDIVISION, settings);
-        runSnapshot("subdivision_high_jitter", root, 2);
+        runSnapshotTest(snapshot, "subdivision_high_jitter", root, 2);
     }
 
     @Test
-    void template_binary() throws Exception {
+    void template_binary(Snapshot snapshot) throws Exception {
         StrategySettings settings = StrategySettings.builder()
                 .template(StrategySettings.TemplateType.BINARY)
                 .build();
         Region root = buildBinaryHierarchy(settings);
-        runSnapshot("template_binary", root, 2);
+        runSnapshotTest(snapshot, "template_binary", root, 2);
     }
 
     @Test
-    void template_triangle() throws Exception {
+    void template_triangle(Snapshot snapshot) throws Exception {
         StrategySettings settings = StrategySettings.builder()
                 .template(StrategySettings.TemplateType.TRIANGLE)
                 .build();
         Region root = buildTriangleHierarchy(settings);
-        runSnapshot("template_triangle", root, 2);
+        runSnapshotTest(snapshot, "template_triangle", root, 2);
     }
 
     @Test
-    void template_center_surround() throws Exception {
+    void template_center_surround(Snapshot snapshot) throws Exception {
         StrategySettings settings = StrategySettings.builder()
                 .template(StrategySettings.TemplateType.CENTER_SURROUND)
                 .build();
         Region root = buildCenterSurroundHierarchy(settings, null);
-        runSnapshot("template_center_surround", root, 2);
+        runSnapshotTest(snapshot, "template_center_surround", root, 2);
     }
 
     @Test
-    void template_center_surround_named() throws Exception {
+    void template_center_surround_named(Snapshot snapshot) throws Exception {
 
         StrategySettings settings = StrategySettings.builder()
                 .template(StrategySettings.TemplateType.CENTER_SURROUND)
                 .centerSurround("SMALL_CENTER")
                 .build();
         Region root = buildCenterSurroundHierarchy(settings, "SMALL_CENTER");
-        runSnapshot("template_center_surround_named", root, 2);
+        runSnapshotTest(snapshot, "template_center_surround_named", root, 2);
     }
 
     @Test
-    void template_radial() throws Exception {
+    void template_radial(Snapshot snapshot) throws Exception {
         StrategySettings settings = StrategySettings.builder()
                 .template(StrategySettings.TemplateType.RADIAL)
                 .build();
         Region root = buildRadialHierarchy(settings);
-        runSnapshot("template_radial", root, 2);
+        runSnapshotTest(snapshot, "template_radial", root, 2);
     }
 
     @Test
-    void hex_default() throws Exception {
+    void hex_default(Snapshot snapshot) throws Exception {
         Region root = buildHexHierarchy(null);
-        runSnapshot("hex_default", root, 2);
+        runSnapshotTest(snapshot, "hex_default", root, 2);
     }
 
     @Test
-    void hex_with_ring() throws Exception {
+    void hex_with_ring(Snapshot snapshot) throws Exception {
         StrategySettings settings = StrategySettings.builder().hexRing("BORDER").build();
         Region root = buildHexHierarchy(settings);
-        runSnapshot("hex_with_ring", root, 2);
+        runSnapshotTest(snapshot, "hex_with_ring", root, 2);
     }
 
     @Test
-    void nested_hex_voronoi() throws Exception {
+    void nested_hex_voronoi(Snapshot snapshot) throws Exception {
 
         Region root = buildNestedHexVoronoi();
-        runSnapshot("nested_hex_voronoi", root, 2);
+        runSnapshotTest(snapshot, "nested_hex_voronoi", root, 2);
     }
 
     @Test
-    void nested_hex_subdivision() throws Exception {
+    void nested_hex_subdivision(Snapshot snapshot) throws Exception {
 
         Region root = buildNestedHexSubdivision();
-        runSnapshot("nested_hex_subdivision", root, 2);
+        runSnapshotTest(snapshot, "nested_hex_subdivision", root, 2);
     }
 
     @Test
-    void nested_voronoi_template() throws Exception {
+    void nested_voronoi_template(Snapshot snapshot) throws Exception {
 
         Region root = buildNestedVoronoiTemplate();
-        runSnapshot("nested_voronoi_template", root, 3);
+        runSnapshotTest(snapshot, "nested_voronoi_template", root, 3);
     }
 
     @Test
-    void nested_subdivision_template() throws Exception {
+    void nested_subdivision_template(Snapshot snapshot) throws Exception {
 
         Region root = buildNestedSubdivisionTemplate();
-        runSnapshot("nested_subdivision_template", root, 3);
+        runSnapshotTest(snapshot, "nested_subdivision_template", root, 3);
     }
 
     @Test
-    void deeply_nested() throws Exception {
+    void deeply_nested(Snapshot snapshot) throws Exception {
 
         Region root = buildDeeplyNested();
-        runSnapshot("deeply_nested", root, 4);
+        runSnapshotTest(snapshot, "deeply_nested", root, 4);
     }
 
     @Test
-    void kitchen_sink() throws Exception {
+    void kitchen_sink(Snapshot snapshot) throws Exception {
         Region root = buildKitchenSink();
-        runSnapshot("kitchen_sink", root, 4);
+        runSnapshotTest(snapshot, "kitchen_sink", root, 4);
+    }
+
+    private void runSnapshotTest(Snapshot snapshot, String testName, Region root, int maxDepth) throws Exception {
+        String digest = runSnapshot(testName, root, maxDepth);
+        snapshot.assertThat(digest).asText().matchesSnapshotText();
     }
 
     private Region buildSimpleHierarchy(GenerationStrategyType strategy, StrategySettings settings) {
@@ -458,11 +421,10 @@ public class StrategySnapshotTest {
         return registry.build("WORLD");
     }
 
-    private void runSnapshot(String testName, Region root, int maxDepth) throws Exception {
+    private String runSnapshot(String testName, Region root, int maxDepth) throws Exception {
         World.register(root, World.OVERWORLD);
         outDir = new File("build/test-snapshots/" + testName);
         outDir.mkdirs();
-
         int step = WORLD_SIZE / IMG_SIZE;
 
         List<BufferedImage> depthImages = new ArrayList<>();
@@ -553,17 +515,13 @@ public class StrategySnapshotTest {
         generateLegend(testName, depthCounts, maxDepth);
 
         String actualDigest = java.util.HexFormat.of().formatHex(digest.digest());
-        COLLECTED_DIGESTS.put(testName, actualDigest);
         System.out.println("[" + testName + "] Digest: " + actualDigest);
 
         for (int d = 1; d <= maxDepth; d++) {
             System.out.println("  Depth " + d + ": " + depthCounts.get(d));
         }
 
-        String expected = EXPECTED_DIGESTS.get(testName);
-        if (!"PENDING".equals(expected)) {
-            assertEquals(expected, actualDigest, "Snapshot digest mismatch for " + testName);
-        }
+        return actualDigest;
     }
 
     private void generateLegend(String testName, Map<Integer, Map<String, Integer>> depthCounts, int maxDepth)

@@ -9,7 +9,10 @@ import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
+import com.terrasect.common.testing.SnapshotHashes;
 import com.terrasect.common.util.Packer;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -32,6 +35,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 public class BiomeVisualizationTest {
 
     private static final int WIDTH = 256;
@@ -45,7 +49,7 @@ public class BiomeVisualizationTest {
     }
 
     @Test
-    public void visualizeBiomeFiltering() throws IOException {
+    public void visualizeBiomeFiltering(Snapshot snapshot) throws IOException {
 
         long seed = 12345L;
 
@@ -183,6 +187,16 @@ public class BiomeVisualizationTest {
         System.out.println("Biomes changed: " + replacedCount + " ("
                 + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
+        StringBuilder snapshotText = new StringBuilder(256);
+        snapshotText.append("blockedCount=").append(blockedCount).append('\n');
+        snapshotText.append("replacedCount=").append(replacedCount).append('\n');
+        snapshotText.append("totalWithRules=").append(totalWithRules).append('\n');
+        appendImageHash(snapshotText, "vanilla_biomes", vanillaBiomes);
+        appendImageHash(snapshotText, "filtered_biomes", filteredBiomes);
+        appendImageHash(snapshotText, "filter_overlay", filterOverlay);
+        appendImageHash(snapshotText, "region_map", regionMap);
+        appendImageHash(snapshotText, "combined_biome_view", combinedView);
+        snapshot.assertThat(snapshotText.toString()).asText().matchesSnapshotText();
     }
 
     private Region buildFilteredBiomeRegions() {
@@ -360,5 +374,9 @@ public class BiomeVisualizationTest {
         }
 
         return (r << 16) | (g << 8) | b;
+    }
+
+    private static void appendImageHash(StringBuilder sb, String name, BufferedImage image) {
+        sb.append(name).append('=').append(SnapshotHashes.imageSha256(image)).append('\n');
     }
 }

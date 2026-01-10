@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: subdivision_low_jitter_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: subdivision_low_jitter
+
+3123bc3190c1fb04df9721720f68b0fd53df5634211058eb5fe2877937efe8b4

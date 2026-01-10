@@ -36,13 +36,11 @@ Multi-loader starter for Fabric and NeoForge targeting Minecraft 1.21.x. The pro
 - VS Code format-on-save is enabled in `.vscode/settings.json`; install the recommended extensions from `.vscode/extensions.json`.
 
 ## Snapshot testing
-- File snapshots: use `@EnableSnapshotTests` with `Snapshot` injection (from `snapshot-tests`); snapshots default to `src/test/resources/<test class>_snapshots`.
-- Update snapshots:
+- File snapshots: use `@SnapshotTests` (from `com.terrasect.common.testing`) with `Snapshot` injection; snapshots default to `src/test/resources/<test class>_snapshots`.
+- Update snapshots (jest-style, updates inline):
   ```
-  ./gradlew :common:updateSnapshots
+  ./gradlew :common:test -PupdateSnapshots
   ```
-  (or `./gradlew :common:test -DforceUpdateSnapshots=true`).
-- Inline snapshots: use `InlineSnapshots.assertInlineSnapshot(actual, """...""")`; update with `-Dterrasect.inlineSnapshots=update`.
 
 ## Development notes
 - The Gradle build currently includes only `common`, `fabric`, and `neoforge` (the `versions/` folder is ignored for now).

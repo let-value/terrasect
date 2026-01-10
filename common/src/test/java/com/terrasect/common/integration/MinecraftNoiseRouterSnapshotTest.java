@@ -3,7 +3,10 @@ package com.terrasect.common.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.terrasect.common.testing.SnapshotHashes;
 import com.terrasect.common.util.MutablePointContext;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +56,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 class MinecraftNoiseRouterSnapshotTest {
     private static final int IMG_SIZE = 256;
     private static final int WORLD_SIZE = 4096;
@@ -65,7 +69,7 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     @Test
-    void writesOverworldNoiseRouterSnapshots() throws Exception {
+    void writesOverworldNoiseRouterSnapshots(Snapshot snapshot) throws Exception {
         long seed = 12345L;
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
         HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
@@ -268,7 +272,10 @@ class MinecraftNoiseRouterSnapshotTest {
         assertTrue(densityImages > 0, "expected at least one density function snapshot image");
 
         index.append("</body></html>\n");
-        Files.writeString(outDir.toPath().resolve("index.html"), index.toString(), StandardCharsets.UTF_8);
+        String indexHtml = index.toString();
+        String indexDigest = SnapshotHashes.sha256Hex(indexHtml);
+        snapshot.assertThat(indexDigest).asText().matchesSnapshotText();
+        Files.writeString(outDir.toPath().resolve("index.html"), indexHtml, StandardCharsets.UTF_8);
         System.out.println("Wrote combined noise snapshot report to: " + outDir.getAbsolutePath());
     }
 

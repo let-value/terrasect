@@ -6,11 +6,15 @@ import com.terrasect.common.definition.GenerationStrategyType;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.handler.ClimateHandler;
+import com.terrasect.common.testing.SnapshotHashes;
 import com.terrasect.common.util.Packer;
+import de.skuzzle.test.snapshots.Snapshot;
+import com.terrasect.common.testing.SnapshotTests;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
@@ -28,6 +32,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SnapshotTests
 public class ClimateVisualizationTest {
 
     private static final int WIDTH = 256;
@@ -41,7 +46,7 @@ public class ClimateVisualizationTest {
     }
 
     @Test
-    public void visualizeClimateInfluence() throws IOException {
+    public void visualizeClimateInfluence(Snapshot snapshot) throws IOException {
         long seed = 12345L;
 
         Region root = buildClimateRegions();
@@ -217,8 +222,25 @@ public class ClimateVisualizationTest {
             System.out.println("Average humidity delta: " + String.format("%.1f", totalHumidityDelta / totalModified));
         }
         System.out.println("Biomes changed by climate: " + biomesChanged + " ("
-                + String.format("%.1f%%", 100.0 * biomesChanged / (WIDTH * HEIGHT)) + ")");
+            + String.format("%.1f%%", 100.0 * biomesChanged / (WIDTH * HEIGHT)) + ")");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
+        StringBuilder snapshotText = new StringBuilder(256);
+        snapshotText.append("totalModified=").append(totalModified).append('\n');
+        snapshotText.append("totalTempDelta=").append(String.format(Locale.ROOT, "%.4f", totalTempDelta)).append('\n');
+        snapshotText.append("totalHumidityDelta=").append(String.format(Locale.ROOT, "%.4f", totalHumidityDelta))
+            .append('\n');
+        snapshotText.append("biomesChanged=").append(biomesChanged).append('\n');
+        appendImageHash(snapshotText, "vanilla_temperature", vanillaTemp);
+        appendImageHash(snapshotText, "modified_temperature", modifiedTemp);
+        appendImageHash(snapshotText, "temperature_delta", tempDiff);
+        appendImageHash(snapshotText, "vanilla_humidity", vanillaHumidity);
+        appendImageHash(snapshotText, "modified_humidity", modifiedHumidity);
+        appendImageHash(snapshotText, "region_boundaries", regionBoundaries);
+        appendImageHash(snapshotText, "vanilla_biomes", vanillaBiomes);
+        appendImageHash(snapshotText, "climate_modified_biomes", modifiedBiomes);
+        appendImageHash(snapshotText, "region_overlay", regionOverlay);
+        appendImageHash(snapshotText, "combined_climate_view", combinedView);
+        snapshot.assertThat(snapshotText.toString()).asText().matchesSnapshotText();
     }
 
     private Region buildClimateRegions() {
@@ -363,5 +385,9 @@ public class ClimateVisualizationTest {
         }
 
         return (r << 16) | (g << 8) | b;
+    }
+
+    private static void appendImageHash(StringBuilder sb, String name, BufferedImage image) {
+        sb.append(name).append('=').append(SnapshotHashes.imageSha256(image)).append('\n');
     }
 }

@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: template_triangle_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StrategySnapshotTest
+test-method: template_triangle
+
+2efb9a9bfd02d9e583fede0c27880b31d150767e108ef3d08d31b548b0b2c147
