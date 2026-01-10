@@ -21,12 +21,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Version-specific mixin for 1.21.1 that applies terrain height constraints.
- *
- * <p>In 1.21.1, there is no {@code preliminarySurfaceLevel} DensityFunction field.
- * Instead, we inject BEFORE the {@code aquifer} field is assigned.
- */
 @Mixin(NoiseChunk.class)
 public class TerrainMixin {
 
@@ -34,11 +28,6 @@ public class TerrainMixin {
 
     @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
-    /**
-     * Build TerrainHeightLookup BEFORE Aquifer is constructed.
-     *
-     * <p>In 1.21.1, we target the first write to the {@code aquifer} field.
-     */
     @Inject(
             method = "<init>",
             at =
@@ -58,7 +47,7 @@ public class TerrainMixin {
             Aquifer.FluidPicker fluidPicker,
             Blender blender,
             CallbackInfo ci) {
-        // Only initialize once (there are two writes to aquifer in the if/else)
+
         if (this.terrasect$heightLookup != null) return;
 
         this.terrasect$fluidPicker = fluidPicker;

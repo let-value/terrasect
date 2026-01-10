@@ -11,10 +11,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
-/**
- * Collects region definitions before baking them into a fully resolved tree in a single pass.
- * Supports both nested (declarative) and flat (parent reference) registration styles.
- */
 public class RegionRegistry {
     private final Map<String, DraftRegion> drafts = new LinkedHashMap<>();
 
@@ -102,7 +98,7 @@ public class RegionRegistry {
         } else if (!children.isEmpty()) {
             budget = children.stream().mapToInt(Region::areaBudget).sum();
         } else {
-            // Default radius of 100 blocks = area of 10000
+
             budget = 100 * 100;
         }
 
@@ -143,7 +139,7 @@ public class RegionRegistry {
         }
 
         public DraftRegion radius(int radius) {
-            // User defines radius, we store area (radius^2) internally
+
             this.areaBudget = radius * radius;
             return this;
         }

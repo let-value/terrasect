@@ -1,11 +1,5 @@
 package com.terrasect.common.mixin;
 
-/**
- * Mixin-backed mutator interface for {@code Climate.TargetPoint}.
- *
- * <p>Implemented via loader mixins so hot paths can modify the sampler return value without
- * allocating a new {@code TargetPoint}.
- */
 public interface ClimateTargetPointAccessor {
     void terrasect$setTemperature(long temperature);
 

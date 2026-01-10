@@ -21,13 +21,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * NeoForge mixin for ServerLevel that registers the generation context.
- *
- * <p>Injects before the first {@code ensureStructuresGenerated()} call during construction,
- * so other worldgen mixins can safely rely on the context being available.
- * All logic is in {@link LevelHandler}.
- */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 

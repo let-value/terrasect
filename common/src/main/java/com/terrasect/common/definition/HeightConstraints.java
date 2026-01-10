@@ -1,14 +1,5 @@
 package com.terrasect.common.definition;
 
-/**
- * Optional terrain height constraints for a region.
- *
- * <p>When set, terrain surface heights in the region are mapped into the configured Y-range.
- * This is consumed by {@code TerrainHeightLookup} to clamp generation above the computed surface.
- *
- * <p>Constraints are inherited by default. Use {@link #unconstrained()} to explicitly clear any
- * parent constraints.
- */
 public record HeightConstraints(int minY, int maxY) {
     private static final int INHERIT_SENTINEL = Integer.MIN_VALUE;
     private static final int UNCONSTRAINED_SENTINEL = Integer.MIN_VALUE + 1;

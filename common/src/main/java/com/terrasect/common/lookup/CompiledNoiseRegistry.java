@@ -15,12 +15,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Pre-compiled noise constraints for all regions in a dimension.
- *
- * <p>Built once when a region hierarchy is registered, then used by
- * {@link NoiseChunkLookup} for O(1) constraint lookups.
- */
 public final class CompiledNoiseRegistry {
     private final IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> constraints;
 
@@ -28,9 +22,6 @@ public final class CompiledNoiseRegistry {
         this.constraints = constraints;
     }
 
-    /**
-     * Build a registry by traversing the entire region tree and compiling all noise constraints.
-     */
     public static CompiledNoiseRegistry build(Region root) {
         IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> map = new IdentityHashMap<>();
         compileRecursively(root, map);
@@ -55,21 +46,13 @@ public final class CompiledNoiseRegistry {
         }
     }
 
-    /**
-     * Get compiled constraints for a region definition, or {@code null} if none.
-     */
     public @Nullable CompiledNoiseConstraints get(RegionDefinition definition) {
         return constraints.get(definition);
     }
 
-    /**
-     * Check if any constraints are registered.
-     */
     public boolean isEmpty() {
         return constraints.isEmpty();
     }
-
-    // --- Compilation ---
 
     private static CompiledNoiseConstraints compileNoiseConstraints(NoiseConstraints constraints) {
         if (constraints == null) {
@@ -131,11 +114,6 @@ public final class CompiledNoiseRegistry {
         return new CompiledNoiseConstraints(keys, transforms);
     }
 
-    // --- Inner classes ---
-
-    /**
-     * Compiled noise constraints for a region, holding transform operations keyed by noise parameter.
-     */
     public static final class CompiledNoiseConstraints {
         static final CompiledNoiseConstraints EMPTY =
                 new CompiledNoiseConstraints(new ResourceKey<?>[0], new CompiledTransform[0]);
@@ -164,9 +142,6 @@ public final class CompiledNoiseRegistry {
         }
     }
 
-    /**
-     * Compiled sequence of transform operations to apply to a noise value.
-     */
     public static final class CompiledTransform {
         private static final CompiledTransform EMPTY = new CompiledTransform(new NoiseTransform.Operation[0]);
 

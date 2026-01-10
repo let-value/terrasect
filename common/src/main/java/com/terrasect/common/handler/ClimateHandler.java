@@ -7,9 +7,6 @@ import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.ClimateModifier;
 import net.minecraft.world.level.biome.Climate;
 
-/**
- * Shared climate modification logic for platform mixins.
- */
 public final class ClimateHandler {
     private ClimateHandler() {}
 

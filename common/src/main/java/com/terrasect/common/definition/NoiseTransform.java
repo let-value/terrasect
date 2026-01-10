@@ -4,13 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * A region-defined transformation pipeline for a sampled noise/density function value.
- *
- * <p>This is configuration data only. Hot-path integration is expected to interpret these operations
- * without allocating (e.g. via precompiled switch loops or by rewriting density functions at setup time).
- * TODO: Move somewhere else?
- */
 public record NoiseTransform(List<NoiseTransform.Operation> operations) {
     private static final NoiseTransform EMPTY = new NoiseTransform(Collections.emptyList());
 
@@ -47,9 +40,6 @@ public record NoiseTransform(List<NoiseTransform.Operation> operations) {
 
     public record Multiply(double value) implements Operation {}
 
-    /**
-     * Unary mapping operations that correspond to vanilla density-function mappers.
-     */
     public record Map(MapType type) implements Operation {
         public Map {
             if (type == null) throw new IllegalArgumentException("Map type cannot be null");

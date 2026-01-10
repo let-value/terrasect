@@ -2,9 +2,6 @@ package com.terrasect.common.definition;
 
 import java.util.function.Consumer;
 
-/**
- * Narrative controls for a region. Everything here can be inherited and resolved ahead of time.
- */
 public record RegionDefinition(
         ClimateSettings climate,
         HeightConstraints height,
@@ -22,7 +19,6 @@ public record RegionDefinition(
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
         if (generationStrategy == null) generationStrategy = GenerationStrategyType.VORONOI;
-        // strategySettings can be null - strategies use defaults
     }
 
     public static RegionDefinition empty() {
@@ -133,10 +129,6 @@ public record RegionDefinition(
             return self();
         }
 
-        /**
-         * Configure settings using a builder.
-         * Example: .settings(s -> s.ring("WILDERNESS").template(TemplateType.RADIAL))
-         */
         public T settings(java.util.function.Consumer<StrategySettings.Builder> consumer) {
             StrategySettings.Builder builder = StrategySettings.builder();
             consumer.accept(builder);

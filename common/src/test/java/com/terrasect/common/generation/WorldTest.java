@@ -10,9 +10,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for dimension-aware region root registration via World class.
- */
 public class WorldTest {
 
     @BeforeEach
@@ -127,12 +124,6 @@ public class WorldTest {
         };
     }
 
-    /**
-     * Test that anchoring a region causes it to appear at origin.
-     * We create a simple hierarchy with distinct regions using HEX strategy,
-     * which tiles the world with hexagonal cells. Each run anchors a different
-     * region and verifies it appears at (0,0).
-     */
     @Test
     void anchoredRegion_RegionA_appearsAtOrigin() {
         testAnchoredRegionAppearsAtOrigin("REGION_A");
@@ -168,10 +159,6 @@ public class WorldTest {
                 anchoredName, atOrigin.name(), "Region at origin should be the anchored region '" + anchoredName + "'");
     }
 
-    /**
-     * Builds a hierarchy with 4 child regions using HEX strategy.
-     * HEX creates a hexagonal grid, ensuring regions are spatially distinct.
-     */
     private Region buildTestRegionsWithAnchor(String anchoredName) {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
@@ -196,10 +183,6 @@ public class WorldTest {
         return registry.build("ROOT");
     }
 
-    /**
-     * Edge case: Anchored region at depth 4 (deeply nested).
-     * Verifies that even small, deeply nested regions can be anchored to origin.
-     */
     @Test
     void deeplyNestedAnchoredRegion_SamplingOriginReturnsAnchoredRegion() {
         long seed = 54321L;
@@ -223,14 +206,6 @@ public class WorldTest {
                 "SPAWN_POINT", atOriginFull.name(), "Full depth sampling at origin should also return 'SPAWN_POINT'");
     }
 
-    /**
-     * Builds a 4-level deep hierarchy:
-     * ROOT (level 0)
-     * └── CONTINENT (level 1)
-     * └── KINGDOM (level 2)
-     * └── PROVINCE (level 3)
-     * └── SPAWN_POINT (level 4, anchored, small radius)
-     */
     private Region buildDeeplyNestedHierarchy() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
@@ -249,10 +224,6 @@ public class WorldTest {
         return registry.build("ROOT");
     }
 
-    /**
-     * Verifies that without anchoring, different regions appear at origin
-     * based on natural procedural generation.
-     */
     @Test
     void withoutAnchoring_originRegionIsProcedural() {
         long seed = 99999L;
@@ -280,10 +251,6 @@ public class WorldTest {
                 "Origin region should be one of the defined regions");
     }
 
-    /**
-     * Verifies that the same seed produces the same offset for the same anchored
-     * region.
-     */
     @Test
     void anchoredRegion_sameSeededProducesSameOffset() {
         long seed = 77777L;
@@ -311,10 +278,6 @@ public class WorldTest {
                 "Re-initialized world with same seed should produce same result at origin");
     }
 
-    /**
-     * Verifies that different anchored regions produce different offsets.
-     * This ensures the offset calculation is actually finding each specific region.
-     */
     @Test
     void differentAnchoredRegions_produceDifferentResults() {
         long seed = 88888L;

@@ -17,11 +17,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Attaches a per-chunk region noise lookup to {@link NoiseChunk}.
- *
- * <p>This mixin is intentionally thin. All logic lives in {@link NoiseChunkLookup}.
- */
 @Mixin(NoiseChunk.class)
 public class NoiseChunkNoiseMixin implements NoiseChunkNoiseAccess {
 

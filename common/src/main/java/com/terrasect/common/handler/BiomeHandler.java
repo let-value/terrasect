@@ -17,7 +17,6 @@ public final class BiomeHandler {
     public static Holder<Biome> selectBiome(
             MinecraftContext context, int quartX, int quartZ, Climate.TargetPoint targetPoint) {
 
-        // Convert quartile coordinates to block coordinates
         int blockX = quartX << 2;
         int blockZ = quartZ << 2;
 

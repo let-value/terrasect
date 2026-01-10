@@ -4,15 +4,6 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
-/**
- * Cache-free power diagram strategy with inline relaxation.
- *
- * Uses deterministic initial placement followed by configurable relaxation
- * iterations to achieve budget-weighted Voronoi cells. The relaxation is
- * fast because n is small (typically 2-8 children).
- *
- * All computations are O(n²·k) where n = children, k = relaxation iterations.
- */
 public final class VoronoiStrategy {
 
     private static final int DEFAULT_RELAXATION_ITERATIONS = 5;
@@ -22,10 +13,6 @@ public final class VoronoiStrategy {
 
     private VoronoiStrategy() {}
 
-    /**
-     * Query which child region contains the point, writing results to output buffer.
-     * Uses default relaxation iterations.
-     */
     public static void query(
             long seed,
             List<Region> children,
@@ -37,18 +24,6 @@ public final class VoronoiStrategy {
         query(seed, children, dx, dz, radius, childrenTotalBudget, DEFAULT_RELAXATION_ITERATIONS, out);
     }
 
-    /**
-     * Query which child region contains the point, writing results to output buffer.
-     *
-     * @param seed Parent region seed
-     * @param children List of child regions
-     * @param dx X offset from parent center
-     * @param dz Z offset from parent center
-     * @param radius Parent region radius
-     * @param childrenTotalBudget Pre-computed sum of children's area budgets
-     * @param relaxationIterations Number of relaxation iterations (0-20)
-     * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
-     */
     public static void query(
             long seed,
             List<Region> children,
@@ -75,26 +50,20 @@ public final class VoronoiStrategy {
             return;
         }
 
-        // Normalize query point
         float nx = dx / radius;
         float nz = dz / radius;
 
-        // Pre-compute inverse sqrt of total budget for radii calculation
         float invSqrtTotal = 1.0f / (float) Math.sqrt(childrenTotalBudget);
 
-        // Compute normalized radii using pre-baked child radius
         float[] radii = getRadiiBuffer(count);
         for (int i = 0; i < count; i++) {
-            // child.radius() = sqrt(areaBudget), so:
-            // sqrt(areaBudget / totalBudget) = radius * invSqrtTotal
+
             radii[i] = children.get(i).radius() * invSqrtTotal;
         }
 
-        // Compute relaxed site positions (2 floats per site: x, z)
         float[] sites = getSitesBuffer(count);
         computeRelaxedSites(seed, count, radii, relaxationIterations, sites);
 
-        // Find best cell using power diagram metric
         int bestIndex = 0;
         float bestMetric = Float.MAX_VALUE;
         float secondBestMetric = Float.MAX_VALUE;
@@ -122,9 +91,7 @@ public final class VoronoiStrategy {
         }
 
         out.childIndex = bestIndex;
-        // Voronoi cells have irregular shapes. To ensure children are properly
-        // subdivided within each cell, we transform to cell-local coordinates.
-        // Center at the site, radius based on distance to nearest neighbor.
+
         float minNeighborDist = Float.MAX_VALUE;
         for (int i = 0; i < count; i++) {
             if (i != bestIndex) {
@@ -138,30 +105,22 @@ public final class VoronoiStrategy {
                 }
             }
         }
-        // Cell "radius" is half distance to nearest neighbor (Voronoi edge is at midpoint)
-        // Use 0.45x for some safety margin
+
         float cellRadius = Math.max(minNeighborDist * 0.45f, 0.15f);
 
-        out.centerX = bestX; // Center at voronoi site
+        out.centerX = bestX;
         out.centerZ = bestZ;
-        out.radius = cellRadius; // Approximate cell radius
-        // Store site position for seed uniqueness
+        out.radius = cellRadius;
+
         out.siteX = bestX;
         out.siteZ = bestZ;
 
-        // Edge distance: difference between second-best and best metric
-        // Larger value = deeper inside cell. Normalize to approximate [0,1] range.
         float rawEdge = secondBestMetric - bestMetric;
         out.edgeDistance = Math.min(1.0f, rawEdge * 2.0f);
     }
 
-    /**
-     * Compute relaxed site positions deterministically.
-     * Uses initial ring placement + quick push-apart relaxation.
-     */
     private static void computeRelaxedSites(long seed, int count, float[] radii, int iterations, float[] sites) {
 
-        // Initial placement: ring distribution
         float baseAngle = hashToFloat(seed, 0) * (float) (Math.PI * 2);
         for (int i = 0; i < count; i++) {
             float angle = baseAngle + i * (float) (Math.PI * 2) / count;
@@ -170,7 +129,6 @@ public final class VoronoiStrategy {
             sites[i * 2 + 1] = dist * (float) Math.sin(angle);
         }
 
-        // Quick relaxation: push sites apart based on their radii
         for (int iter = 0; iter < iterations; iter++) {
             for (int i = 0; i < count; i++) {
                 float x1 = sites[i * 2];
@@ -187,7 +145,6 @@ public final class VoronoiStrategy {
                     float distSq = dx * dx + dz * dz;
                     float dist = (float) Math.sqrt(distSq);
 
-                    // Desired distance based on radii
                     float desiredDist = (r1 + r2) * 0.85f;
 
                     if (dist < desiredDist && dist > 0.0001f) {
@@ -205,7 +162,6 @@ public final class VoronoiStrategy {
                     }
                 }
 
-                // Boundary constraint and centering
                 float distFromCenter = (float) Math.sqrt(x1 * x1 + z1 * z1);
                 float maxDist = 0.85f - r1 * 0.3f;
                 if (distFromCenter > maxDist && distFromCenter > 0.0001f) {
@@ -214,13 +170,11 @@ public final class VoronoiStrategy {
                     sites[i * 2 + 1] -= (z1 / distFromCenter) * pull;
                 }
 
-                // Slight centering pull
                 sites[i * 2] *= 0.97f;
                 sites[i * 2 + 1] *= 0.97f;
             }
         }
 
-        // Center the sites
         float cx = 0, cz = 0;
         for (int i = 0; i < count; i++) {
             cx += sites[i * 2];
@@ -234,9 +188,6 @@ public final class VoronoiStrategy {
         }
     }
 
-    /**
-     * Compute child seed deterministically.
-     */
     public static long getSeed(long parentSeed, int childIndex, Region region) {
         return MathUtils.hash64(parentSeed, region.name().hashCode(), childIndex, 999);
     }

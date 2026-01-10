@@ -34,9 +34,9 @@ import org.junit.jupiter.api.Test;
 
 public class BiomeVisualizationTest {
 
-    private static final int WIDTH = 256; // Reduced from 512 for faster tests
+    private static final int WIDTH = 256;
     private static final int HEIGHT = 256;
-    private static final int SCALE = 8; // Increased from 4 - fewer samples
+    private static final int SCALE = 8;
 
     @BeforeAll
     public static void setup() {
@@ -46,15 +46,12 @@ public class BiomeVisualizationTest {
 
     @Test
     public void visualizeBiomeFiltering() throws IOException {
-        // Enable performance tracking
 
         long seed = 12345L;
 
-        // Build region hierarchy with biome filtering rules
         Region root = buildFilteredBiomeRegions();
         World.register(root, World.OVERWORLD);
 
-        // Setup Minecraft vanilla climate sampler
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
         HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
@@ -78,9 +75,6 @@ public class BiomeVisualizationTest {
                 overworldParameters.value().parameters();
 
         Context context = createStrategy(seed, sampler, biomeSource);
-
-        // Build BiomeMetadataLookup - pre-computes biome IDs and tags for O(1) lookups
-        // This is the production-ready pattern for fast biome filtering
 
         IdentityHashMap<Holder<Biome>, BiomeLookup.Entry> metadata = new IdentityHashMap<>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
@@ -109,34 +103,25 @@ public class BiomeVisualizationTest {
                 int quartX = blockX >> 2;
                 int quartZ = blockZ >> 2;
 
-                // Get vanilla biome
-
                 Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
 
                 Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
 
-                // Use BiomeMetadataLookup for O(1) lookup
-
                 BiomeLookup.Entry vanillaEntry = biomeLookup.get(vanillaBiome);
                 String vanillaBiomeId = vanillaEntry != null ? vanillaEntry.id() : getBiomeId(vanillaBiome);
                 Set<String> vanillaTags = vanillaEntry != null ? vanillaEntry.tags() : getBiomeTags(vanillaBiome);
-
-                // Get region and its biome rules
 
                 TraversalResult traversal = World.traverse(context, blockX, blockZ);
                 Region region = traversal != null ? traversal.region : null;
 
                 SelectionRules biomeRules = region != null ? region.definition().biomes() : null;
 
-                // Calculate edge for region map (edgeDistance is 1 at center, 0 at edge)
                 float edgeFactor = traversal != null ? 1.0f - traversal.edgeDistance : 0.5f;
-
-                // Check if vanilla biome is allowed
 
                 BiomeFilter.FilterResult filterResult = BiomeFilter.checkBiome(biomeRules, vanillaBiomeId, vanillaTags);
 
                 Holder<Biome> finalBiome = vanillaBiome;
-                int overlayColor = 0x444444; // Default gray
+                int overlayColor = 0x444444;
 
                 if (BiomeFilter.hasRules(biomeRules)) {
                     totalWithRules++;
@@ -144,19 +129,18 @@ public class BiomeVisualizationTest {
 
                 if (filterResult == BiomeFilter.FilterResult.BLOCKED) {
                     blockedCount++;
-                    // Find fallback biome using BiomeMetadataLookup
 
                     finalBiome = findAllowedBiomeFallback(biomeLookup, vanilla, biomeRules, parameterList);
 
                     if (finalBiome != null && !finalBiome.equals(vanillaBiome)) {
                         replacedCount++;
-                        overlayColor = 0xFF0000; // Red for replaced
+                        overlayColor = 0xFF0000;
                     } else {
-                        overlayColor = 0xFF8800; // Orange for blocked but no fallback
+                        overlayColor = 0xFF8800;
                         finalBiome = vanillaBiome;
                     }
                 } else if (BiomeFilter.hasRules(biomeRules)) {
-                    overlayColor = 0x00FF00; // Green for allowed by rules
+                    overlayColor = 0x00FF00;
                 }
 
                 vanillaBiomes.setRGB(px, py, biomeToColor(vanillaBiome));
@@ -166,14 +150,12 @@ public class BiomeVisualizationTest {
             }
         }
 
-        // Create combined view (2x2 grid)
         Graphics2D g = combinedView.createGraphics();
         g.drawImage(vanillaBiomes, 0, 0, null);
         g.drawImage(filteredBiomes, WIDTH, 0, null);
         g.drawImage(regionMap, 0, HEIGHT, null);
         g.drawImage(filterOverlay, WIDTH, HEIGHT, null);
 
-        // Add labels
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 14));
         g.drawString("Vanilla Biomes", 10, 20);
@@ -182,7 +164,6 @@ public class BiomeVisualizationTest {
         g.drawString("Filter Overlay (red=replaced, green=allowed)", WIDTH + 10, HEIGHT + 20);
         g.dispose();
 
-        // Save images
         File outDir = new File("build/biome-snapshots");
         outDir.mkdirs();
 
@@ -202,43 +183,27 @@ public class BiomeVisualizationTest {
         System.out.println("Biomes changed: " + replacedCount + " ("
                 + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
-
-        // Print performance summary
-
     }
 
-    /**
-     * Build a region hierarchy with biome filtering rules to test.
-     */
     private Region buildFilteredBiomeRegions() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("WORLD")
                 .strategy(GenerationStrategyType.VORONOI)
-                // Forest-only region - blocks everything except forests
                 .child("ETERNAL_FOREST", region -> region.radius(150).biomes(b -> b.allowTags("#minecraft:is_forest")))
-                // No-ocean region - blocks all ocean biomes
                 .child("LANDLOCKED", region -> region.radius(200)
                         .biomes(b -> b.blockTags("#minecraft:is_ocean", "#minecraft:is_river")))
-                // Vanilla-only region - only minecraft biomes allowed
                 .child("PURIST_LANDS", region -> region.radius(500).biomes(b -> b.allowMods("minecraft")))
-                // Specific biome allowlist
                 .child("CURATED_ZONE", region -> region.radius(300)
                         .biomes(b -> b.allowNames(
                                 "minecraft:plains",
                                 "minecraft:sunflower_plains",
                                 "minecraft:meadow",
                                 "minecraft:flower_forest")))
-                // No filtering - vanilla behavior
                 .child("WILDERNESS", region -> region.radius(400));
 
         return registry.build("WORLD");
     }
 
-    /**
-     * Find the best allowed fallback biome using BiomeMetadataLookup for fast
-     * filtering.
-     * Uses O(1) biome metadata retrieval.
-     */
     private Holder<Biome> findAllowedBiomeFallback(
             BiomeLookup biomeLookup,
             Climate.TargetPoint target,
@@ -252,11 +217,9 @@ public class BiomeVisualizationTest {
         Holder<Biome> bestFallback = null;
         long bestDistance = Long.MAX_VALUE;
 
-        // Iterate through parameter list entries to get climate params
         for (var entry : parameterList.values()) {
             Holder<Biome> candidate = entry.getSecond();
 
-            // Use BiomeMetadataLookup for O(1) allow check - no allocation!
             if (biomeLookup.isAllowed(candidate, rules)) {
                 long distance = calculateClimateDistance(target, entry.getFirst());
                 if (distance < bestDistance) {
@@ -284,61 +247,47 @@ public class BiomeVisualizationTest {
 
     private Set<String> getBiomeTags(Holder<Biome> biome) {
         Set<String> tags = new HashSet<>();
-        // In test environment, biome.tags() may throw because tags aren't bound
-        // So we use try-catch and fall back to inferring tags from biome name
+
         try {
             BiomeCompat.getTags(biome)
                     .forEach(tag -> tags.add("#" + tag.location().toString()));
         } catch (IllegalStateException e) {
-            // Tags not bound in this test environment - fall through to inference
+
         }
 
-        // Add inferred tags based on biome name for test purposes
         String biomeId = getBiomeId(biome);
         tags.addAll(inferTagsFromBiomeName(biomeId));
 
         return tags;
     }
 
-    /**
-     * Infer biome tags from the biome name for testing purposes.
-     * In a real Minecraft environment, these would come from the biome's actual tag
-     * bindings.
-     */
     private Set<String> inferTagsFromBiomeName(String biomeId) {
         Set<String> tags = new HashSet<>();
 
-        // Forest biomes
         if (biomeId.contains("forest") || biomeId.contains("grove") || biomeId.contains("taiga")) {
             tags.add("#minecraft:is_forest");
         }
 
-        // Ocean biomes
         if (biomeId.contains("ocean")) {
             tags.add("#minecraft:is_ocean");
         }
 
-        // River biomes
         if (biomeId.contains("river")) {
             tags.add("#minecraft:is_river");
         }
 
-        // Mountain biomes
         if (biomeId.contains("mountain") || biomeId.contains("peak") || biomeId.contains("slope")) {
             tags.add("#minecraft:is_mountain");
         }
 
-        // Beach biomes
         if (biomeId.contains("beach")) {
             tags.add("#minecraft:is_beach");
         }
 
-        // Badlands
         if (biomeId.contains("badlands")) {
             tags.add("#minecraft:is_badlands");
         }
 
-        // Jungle
         if (biomeId.contains("jungle")) {
             tags.add("#minecraft:is_jungle");
         }
@@ -358,7 +307,7 @@ public class BiomeVisualizationTest {
                 int qx = x >> 2;
                 int qz = z >> 2;
                 Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
-                // Use biome ID check instead of tags - tags aren't bound in test environment
+
                 String biomeId = BiomeCompat.getBiomeId(biome);
                 float river = biomeId.contains("river") ? 1.0f : 0.0f;
 
@@ -370,24 +319,20 @@ public class BiomeVisualizationTest {
         };
     }
 
-    /**
-     * Get color for a region based on its name and edge proximity.
-     */
     private int getRegionColor(Region region, float edgeFactor) {
         if (region == null) return 0x000000;
 
         int baseColor =
                 switch (region.name()) {
-                    case "ETERNAL_FOREST" -> 0x228B22; // Forest green
-                    case "LANDLOCKED" -> 0xDEB887; // Burlywood (land)
-                    case "PURIST_LANDS" -> 0x9370DB; // Medium purple
-                    case "CURATED_ZONE" -> 0xFFD700; // Gold
-                    case "WILDERNESS" -> 0x808080; // Gray
+                    case "ETERNAL_FOREST" -> 0x228B22;
+                    case "LANDLOCKED" -> 0xDEB887;
+                    case "PURIST_LANDS" -> 0x9370DB;
+                    case "CURATED_ZONE" -> 0xFFD700;
+                    case "WILDERNESS" -> 0x808080;
                     case "WORLD" -> 0x444444;
                     default -> 0x666666;
                 };
 
-        // Darken at edges to show boundaries
         if (edgeFactor > 0.5f) {
             float darken = (edgeFactor - 0.5f) * 2;
             int r = (int) (((baseColor >> 16) & 0xFF) * (1 - darken * 0.5));
@@ -399,19 +344,14 @@ public class BiomeVisualizationTest {
         return baseColor;
     }
 
-    /**
-     * Get a deterministic color for a biome based on its registry name.
-     */
     private int biomeToColor(Holder<Biome> biome) {
         String name = BiomeCompat.getBiomeId(biome);
 
-        // Create a hash-based color
         int hash = name.hashCode();
         int r = ((hash >> 16) & 0xFF);
         int g = ((hash >> 8) & 0xFF);
         int b = (hash & 0xFF);
 
-        // Ensure reasonable brightness
         int brightness = (r + g + b) / 3;
         if (brightness < 80) {
             r = Math.min(255, r + 80);

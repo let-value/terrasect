@@ -5,25 +5,15 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * Generic allow/block rules that can be applied to biomes, mobs, structures, or other identifiers.
- * Supports mixing mod namespaces, tags ("#namespace:tag"), and direct resource identifiers.
- *
- * Optimized for fast lookups:
- * - Tags are pre-normalized (stored with and without # prefix)
- * - Uses HashSet for O(1) contains() checks
- * - Pre-computes hasAllowRules/hasBlockRules flags
- */
 public record SelectionRules(
         Set<String> allowedMods,
-        Set<String> allowedTags, // Normalized: contains both "#tag" and "tag" forms
+        Set<String> allowedTags,
         Set<String> allowedNames,
         Set<String> blockedMods,
-        Set<String> blockedTags, // Normalized: contains both "#tag" and "tag" forms
+        Set<String> blockedTags,
         Set<String> blockedNames,
-        boolean hasAllowRules, // Pre-computed flag
-        boolean hasBlockRules // Pre-computed flag
-        ) {
+        boolean hasAllowRules,
+        boolean hasBlockRules) {
     public SelectionRules {
         if (allowedMods == null) allowedMods = Collections.emptySet();
         if (allowedTags == null) allowedTags = Collections.emptySet();
@@ -33,38 +23,22 @@ public record SelectionRules(
         if (blockedNames == null) blockedNames = Collections.emptySet();
     }
 
-    /**
-     * Check if a biome name is explicitly allowed.
-     */
     public boolean isNameAllowed(String biomeId) {
         return allowedNames.contains(biomeId);
     }
 
-    /**
-     * Check if a biome name is explicitly blocked.
-     */
     public boolean isNameBlocked(String biomeId) {
         return blockedNames.contains(biomeId);
     }
 
-    /**
-     * Check if a mod namespace is allowed.
-     */
     public boolean isModAllowed(String modNamespace) {
         return allowedMods.contains(modNamespace);
     }
 
-    /**
-     * Check if a mod namespace is blocked.
-     */
     public boolean isModBlocked(String modNamespace) {
         return blockedMods.contains(modNamespace);
     }
 
-    /**
-     * Check if any of the given tags are in the allowed set.
-     * Tags can be passed with or without # prefix - both will match.
-     */
     public boolean hasAllowedTag(Set<String> biomeTags) {
         if (biomeTags == null || biomeTags.isEmpty() || allowedTags.isEmpty()) return false;
         for (String tag : biomeTags) {
@@ -73,10 +47,6 @@ public record SelectionRules(
         return false;
     }
 
-    /**
-     * Check if any of the given tags are in the blocked set.
-     * Tags can be passed with or without # prefix - both will match.
-     */
     public boolean hasBlockedTag(Set<String> biomeTags) {
         if (biomeTags == null || biomeTags.isEmpty() || blockedTags.isEmpty()) return false;
         for (String tag : biomeTags) {
@@ -100,7 +70,6 @@ public record SelectionRules(
         Set<String> mergedBlockedTags = merge(parent.blockedTags, blockedTags);
         Set<String> mergedBlockedNames = merge(parent.blockedNames, blockedNames);
 
-        // Block lists override assumptions from the parent.
         mergedAllowedMods.removeAll(mergedBlockedMods);
         mergedAllowedTags.removeAll(mergedBlockedTags);
         mergedAllowedNames.removeAll(mergedBlockedNames);
@@ -146,7 +115,7 @@ public record SelectionRules(
 
         public Builder allowTags(String... tags) {
             for (String tag : tags) {
-                // Store both normalized forms for fast lookup without allocation
+
                 allowedTags.add(tag);
                 if (tag.startsWith("#")) {
                     allowedTags.add(tag.substring(1));
@@ -169,7 +138,7 @@ public record SelectionRules(
 
         public Builder blockTags(String... tags) {
             for (String tag : tags) {
-                // Store both normalized forms for fast lookup without allocation
+
                 blockedTags.add(tag);
                 if (tag.startsWith("#")) {
                     blockedTags.add(tag.substring(1));
@@ -203,10 +172,10 @@ public record SelectionRules(
         public Builder copyFrom(SelectionRules rules) {
             if (rules == null) return this;
             allowedMods.addAll(rules.allowedMods());
-            allowedTags.addAll(rules.allowedTags()); // Already normalized
+            allowedTags.addAll(rules.allowedTags());
             allowedNames.addAll(rules.allowedNames());
             blockedMods.addAll(rules.blockedMods());
-            blockedTags.addAll(rules.blockedTags()); // Already normalized
+            blockedTags.addAll(rules.blockedTags());
             blockedNames.addAll(rules.blockedNames());
             return this;
         }

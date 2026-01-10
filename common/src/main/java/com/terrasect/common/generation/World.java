@@ -58,41 +58,16 @@ public final class World {
         }
     }
 
-    /**
-     * Get the root region for a dimension.
-     *
-     * @param dimensionId The dimension ID
-     * @return The root region, or null if not registered
-     */
     public static @Nullable Region getRoot(String dimensionId) {
         DimensionState state = DIMENSIONS.get(dimensionId);
         return state != null ? state.root : null;
     }
 
-    /**
-     * Get the pre-compiled noise registry for a dimension.
-     *
-     * @param dimensionId The dimension ID
-     * @return The noise registry, or null if not registered
-     */
     public static @Nullable CompiledNoiseRegistry getNoiseRegistry(String dimensionId) {
         DimensionState state = DIMENSIONS.get(dimensionId);
         return state != null ? state.noiseRegistry : null;
     }
 
-    /**
-     * Traverse the region hierarchy and return full result (leaf depth).
-     *
-     * <p>
-     * Returns thread-local result - caller must use values before next call on same
-     * thread.
-     * Contains: region, seed, edgeDistance, and edgeInfluence.
-     *
-     * @param context The generation context
-     * @param x       Block X coordinate
-     * @param z       Block Z coordinate
-     * @return TraversalResult, or null if dimension not registered
-     */
     public static @Nullable TraversalResult traverse(Context context, int x, int z) {
         TraversalIterator iter = traverseIterator(context, x, z);
         if (iter == null) {
@@ -101,21 +76,6 @@ public final class World {
         return iter.toLeaf().current();
     }
 
-    /**
-     * Traverse the region hierarchy to a specific depth.
-     *
-     * <p>
-     * Returns thread-local result - caller must use values before next call on same
-     * thread.
-     * Contains: region, seed, edgeDistance, and edgeInfluence.
-     *
-     * @param context The generation context
-     * @param x       Block X coordinate
-     * @param z       Block Z coordinate
-     * @param depth   Maximum depth to traverse (1 = first children, 2 =
-     *                grandchildren, etc.)
-     * @return TraversalResult, or null if dimension not registered
-     */
     public static @Nullable TraversalResult traverse(Context context, int x, int z, int depth) {
         TraversalIterator iter = traverseIterator(context, x, z);
         if (iter == null) {
@@ -131,29 +91,6 @@ public final class World {
         return iter.current();
     }
 
-    /**
-     * Start an iterative traversal of the region hierarchy.
-     *
-     * <p>
-     * Returns thread-local iterator - caller must consume values before next call
-     * on same thread. Use to step through each depth level without redundant work.
-     *
-     * <p>Usage:
-     * <pre>{@code
-     * TraversalIterator iter = World.traverseIterator(context, x, z);
-     * if (iter != null) {
-     *     do {
-     *         TraversalResult step = iter.current();
-     *         // use step.region, step.seed, step.edgeDistance, step.edgeInfluence
-     *     } while (iter.hasNext() && iter.next() != null);
-     * }
-     * }</pre>
-     *
-     * @param context The generation context
-     * @param x       Block X coordinate
-     * @param z       Block Z coordinate
-     * @return TraversalIterator positioned at root, or null if dimension not registered
-     */
     public static @Nullable TraversalIterator traverseIterator(Context context, int x, int z) {
         DimensionState state = DIMENSIONS.get(context.getDimensionId());
         if (state == null) {
@@ -163,30 +100,18 @@ public final class World {
         return Layout.startTraversal(state.root, x, z, context, state.offsetX, state.offsetZ);
     }
 
-    /**
-     * Check if a dimension has a registered hierarchy.
-     */
     public static boolean hasRoot(String dimensionId) {
         return DIMENSIONS.containsKey(dimensionId);
     }
 
-    /**
-     * Get all registered dimension IDs.
-     */
     public static Set<String> getRegisteredDimensions() {
         return Collections.unmodifiableSet(DIMENSIONS.keySet());
     }
 
-    /**
-     * Clear all registrations. Primarily for testing.
-     */
     public static void clear() {
         DIMENSIONS.clear();
     }
 
-    /**
-     * Create an empty root region for dimensions that should use vanilla behavior.
-     */
     public static Region emptyRoot(String name) {
         return new Region(name, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
     }
@@ -242,11 +167,6 @@ public final class World {
         return -1;
     }
 
-    /**
-     * Calculate grid offset by sampling the world in expanding rings.
-     * The offset is applied BEFORE warping, so it's simply the negative of
-     * where we find the anchored region.
-     */
     private static float[] calculateAnchorOffset(Region root, Region anchored, long seed, Context context) {
 
         float baseRadius = root.radius();

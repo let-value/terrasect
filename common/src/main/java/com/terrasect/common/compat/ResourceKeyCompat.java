@@ -13,9 +13,6 @@ public final class ResourceKeyCompat {
         return key.identifier().toString();
     }
 
-    /**
-     * Parse a string as a ResourceKey for a given registry, or null if invalid.
-     */
     public static @Nullable <T> ResourceKey<T> tryParse(ResourceKey<? extends Registry<T>> registry, String id) {
         Identifier parsed = Identifier.tryParse(id);
         return parsed != null ? ResourceKey.create(registry, parsed) : null;

@@ -12,11 +12,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(MultiNoiseBiomeSource.class)
 public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceAccessor {
-    /**
-     * Access the parameters field.
-     * Left: Direct parameter list
-     * Right: Holder to a parameter list preset (e.g., OVERWORLD)
-     */
+
     @Accessor("parameters")
     @Override
     Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> terrasect$getParameters();

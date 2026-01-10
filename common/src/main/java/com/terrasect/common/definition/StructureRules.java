@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Structure-specific rules, including required placements for narrative beats.
- */
 public record StructureRules(SelectionRules selection, Set<String> requiredStructures) {
     public StructureRules {
         if (selection == null) selection = SelectionRules.empty();

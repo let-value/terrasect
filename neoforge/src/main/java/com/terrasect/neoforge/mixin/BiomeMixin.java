@@ -11,11 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/**
- * NeoForge mixin for MultiNoiseBiomeSource that applies region-based biome filtering.
- *
- * <p>This is a thin wrapper - all logic is in {@link BiomeHandler#selectBiome}.
- */
 @Mixin(MultiNoiseBiomeSource.class)
 public class BiomeMixin {
 

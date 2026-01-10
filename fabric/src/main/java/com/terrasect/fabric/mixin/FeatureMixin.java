@@ -31,11 +31,8 @@ public class FeatureMixin {
             return;
         }
 
-        // Get dimension ID from context (which provides it via getDimensionId())
         TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
-        @SuppressWarnings("unused") // Will be used when feature gating is implemented
+        @SuppressWarnings("unused")
         Region region = traversal != null ? traversal.region : null;
-
-        // TODO: Apply feature gating based on region properties
     }
 }

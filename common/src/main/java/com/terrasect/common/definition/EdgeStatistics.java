@@ -1,11 +1,5 @@
 package com.terrasect.common.definition;
 
-/**
- * Immutable container for the edge metrics collected by {@code MinecraftEdgeSampler}.
- * These values are hard-coded from the sampler test output so that world and region
- * math can incorporate vanilla-like transition behavior without running the sampler
- * at runtime.
- */
 public record EdgeStatistics(
         float fineTransitionDensity,
         float fineHorizontalJitter,

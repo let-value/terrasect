@@ -6,17 +6,11 @@ import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Precomputed region noise constraints for a chunk at quart (4-block) resolution.
- *
- * <p>Built once per {@code NoiseChunk} via {@link #build}, then attached to the chunk
- * for use during noise sampling.
- */
 public final class NoiseChunkLookup {
     private static final int CHUNK_SIZE = 16;
     private static final int QUART_SHIFT = 2;
-    private static final int QUART_SIZE = CHUNK_SIZE >> QUART_SHIFT; // 4
-    private static final int QUART_MASK = QUART_SIZE - 1; // 3
+    private static final int QUART_SIZE = CHUNK_SIZE >> QUART_SHIFT;
+    private static final int QUART_MASK = QUART_SIZE - 1;
 
     private final CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints;
     private final float[] strengths;
@@ -34,14 +28,6 @@ public final class NoiseChunkLookup {
         this.chunkMinZ = chunkMinZ;
     }
 
-    /**
-     * Build a lookup for the given chunk. May allocate; sampling must not.
-     *
-     * @param context The generation context
-     * @param chunkMinX Chunk minimum X coordinate (block units)
-     * @param chunkMinZ Chunk minimum Z coordinate (block units)
-     * @return the lookup, or {@code null} if no regions define noise constraints for this chunk
-     */
     public static @Nullable NoiseChunkLookup build(@Nullable Context context, int chunkMinX, int chunkMinZ) {
         if (context == null) {
             return null;
@@ -85,17 +71,11 @@ public final class NoiseChunkLookup {
         return hasAny ? new NoiseChunkLookup(constraints, strengths, chunkMinX, chunkMinZ) : null;
     }
 
-    /**
-     * Get the compiled noise constraints at the given block position, or {@code null} if none.
-     */
     public @Nullable CompiledNoiseRegistry.CompiledNoiseConstraints getConstraints(int blockX, int blockZ) {
         int index = index(blockX, blockZ);
         return index >= 0 ? constraints[index] : null;
     }
 
-    /**
-     * Get the blend strength at the given block position, or 0 if out of bounds.
-     */
     public float getStrength(int blockX, int blockZ) {
         int index = index(blockX, blockZ);
         return index >= 0 ? strengths[index] : 0.0f;

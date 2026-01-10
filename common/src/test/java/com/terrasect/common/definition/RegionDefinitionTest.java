@@ -31,16 +31,13 @@ public class RegionDefinitionTest {
         assertEquals(0.7f, resolved.climate().humidity().min());
         assertEquals(0.7f, resolved.climate().humidity().max());
 
-        // Inherited overworld tag was blocked, so only the custom biome remains.
         assertTrue(resolved.biomes().allowedTags().isEmpty());
         assertTrue(resolved.biomes().allowedNames().contains("custom:glowing_grove"));
 
-        // Required structure from parent is removed because of explicit block, and custom requirement remains.
         assertTrue(resolved.structures().requiredStructures().contains("custom:scripted_camp"));
         assertTrue(
                 resolved.structures().requiredStructures().stream().noneMatch(id -> id.contains("minecraft:village")));
 
-        // Hostile/punchy mobs can be blocked at the mod level while allowing specific story mobs.
         assertTrue(resolved.mobs().blockedMods().contains("minecraft"));
         assertTrue(resolved.mobs().allowedNames().contains("custom:wisp"));
     }

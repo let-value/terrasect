@@ -10,16 +10,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Mixin for Climate.Sampler that applies region-based climate modifications.
- *
- * <p>This is a thin wrapper - all logic is in {@link ClimateHandler#modifyTargetPoint}.
- * The only mixin-specific logic is the vanilla sampling bypass via ThreadLocal.
- */
 @Mixin(Climate.Sampler.class)
 public class ClimateMixin implements VanillaSamplerAccessor {
 
-    /** Thread-local flag to bypass modifications (prevents recursion). */
     @Unique private static final ThreadLocal<Boolean> terrasect$wantVanilla = ThreadLocal.withInitial(() -> false);
 
     @Override

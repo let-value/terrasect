@@ -8,22 +8,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 
-/**
- * Shared noise modification logic for platform mixins.
- *
- * <p>Hot paths must not allocate. Region lookups are built once per {@code NoiseChunk} and then
- * reused by redirects on vanilla density-function noise sampling.
- */
 public final class NoiseHandler {
 
     private NoiseHandler() {}
 
-    /**
-     * Sample a vanilla {@link DensityFunction.NoiseHolder} value and apply region constraints.
-     *
-     * <p>This must not allocate. The context must implement {@link NoiseChunkNoiseAccess} to provide
-     * the lookup; otherwise the original noise value is returned unchanged.
-     */
     public static double sampleNoise(
             DensityFunction.NoiseHolder noiseHolder,
             double x,

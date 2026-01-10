@@ -22,15 +22,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * NeoForge mixin for ServerLevel (MC 1.21.1 version).
- *
- * <p>This version includes the ChunkProgressListener parameter that was present
- * in MC 1.21.1 but removed in MC 1.21.11.
- *
- * <p>Registers the narrative generation context when a level is initialized.
- * All logic is in {@link LevelHandler}.
- */
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
@@ -50,7 +41,7 @@ public class LevelMixin {
             ServerLevelData serverLevelData,
             ResourceKey<Level> resourceKey,
             LevelStem levelStem,
-            ChunkProgressListener chunkProgressListener, // Present in 1.21.1, removed in 1.21.11
+            ChunkProgressListener chunkProgressListener,
             boolean bl,
             long seed,
             List<CustomSpawner> list,

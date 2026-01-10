@@ -5,21 +5,9 @@ import com.terrasect.common.definition.ClimateSettings.ClimateRange;
 import com.terrasect.common.mixin.ClimateTargetPointAccessor;
 import net.minecraft.world.level.biome.Climate;
 
-/**
- * Maps Minecraft climate parameters into region-defined {@link ClimateRange}s.
- *
- * <p>Prefer in-place mutation: when mixins are present, this modifies the sampler return value
- * without allocating.
- */
 public final class ClimateModifier {
     public static final long CLIMATE_SCALE = 10000L;
 
-    /**
-     * Apply region climate constraints to a {@link Climate.TargetPoint}.
-     *
-     * <p>If {@code point} is mixin-extended to implement {@link ClimateTargetPointAccessor}, it is mutated in place and
-     * returned. Otherwise, a new {@link Climate.TargetPoint} is allocated when modifications are needed.
-     */
     public static Climate.TargetPoint modify(ClimateSettings climate, Climate.TargetPoint point, float edgeFactor) {
         if (climate == null || point == null) {
             return point;

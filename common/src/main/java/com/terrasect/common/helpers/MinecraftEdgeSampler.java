@@ -11,13 +11,6 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 
-/**
- * Utility for collecting biome adjacency/run-length statistics from the vanilla noise sampler.
- * <p>
- * The gathered statistics mirror the metrics our own world partitioner uses: large-scale edge
- * jitter (from warping), transition density, and per-parameter climate deltas that describe how
- * aggressive vanilla noise blending is at biome borders.
- */
 public class MinecraftEdgeSampler {
 
     public record EdgeStatistics(

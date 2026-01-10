@@ -53,16 +53,10 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/**
- * Generates snapshot images of vanilla {@link NoiseRouter} density functions.
- *
- * <p>These snapshots are used for human inspection when designing noise constraints/mixins.
- * Output is written to {@code build/test-snapshots/noise-router/overworld/}.
- */
 class MinecraftNoiseRouterSnapshotTest {
     private static final int IMG_SIZE = 256;
     private static final int WORLD_SIZE = 4096;
-    private static final int STEP = WORLD_SIZE / IMG_SIZE; // 16 blocks per pixel
+    private static final int STEP = WORLD_SIZE / IMG_SIZE;
 
     @BeforeAll
     static void setupMinecraft() {

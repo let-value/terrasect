@@ -34,21 +34,15 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/**
- * Demonstrates "no ocean" and "only ocean" outcomes by constraining root noise inputs.
- *
- * <p>This does not rely on loader mixins; it exercises {@link NoiseHandler} directly using a
- * precomputed {@link NoiseChunkLookup} per chunk.
- */
 class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static final int IMG_SIZE = 256;
     private static final int WORLD_SIZE = 1024;
-    private static final int STEP = WORLD_SIZE / IMG_SIZE; // 4 blocks per pixel (quart resolution)
+    private static final int STEP = WORLD_SIZE / IMG_SIZE;
     private static final int CHUNK_SIZE = 16;
     private static final int QUART_SIZE = 4;
 
     private static final int SURFACE_IMG_SIZE = 128;
-    private static final int SURFACE_STEP = WORLD_SIZE / SURFACE_IMG_SIZE; // 8 blocks per pixel
+    private static final int SURFACE_STEP = WORLD_SIZE / SURFACE_IMG_SIZE;
     private static final int SURFACE_PIXELS_PER_CHUNK = CHUNK_SIZE / SURFACE_STEP;
 
     @BeforeAll
@@ -61,7 +55,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     void writesNoOceanAndOnlyOceanSnapshots() throws Exception {
         assertEquals(4, STEP, "test assumes quart-aligned pixels");
         assertEquals(8, SURFACE_STEP, "test assumes 8-block pixels for surface views");
-        assertTrue(SURFACE_STEP % 4 == 0, "surface pixels must align to quart grid");
         assertEquals(2, SURFACE_PIXELS_PER_CHUNK, "surface pixels must divide chunk size");
 
         long seed = 12345L;
@@ -128,7 +121,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
         index.append("</table>");
 
-        // ===== Two-region demo (in one run) =====
         Region regionsRoot = buildTwoRegionRoot(noOceanDef, onlyOceanDef);
         RenderRegionsResult regions = renderRegions(outDir, "two_regions", continentalness, seed, regionsRoot);
 
@@ -179,7 +171,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 regions.onlyOceanInteriorOceanPixels,
                 "ONLY_OCEAN interior should be all ocean pixels");
 
-        // ===== Terrain impact (preliminary surface level) =====
         index.append("<h2>Terrain impact</h2>")
                 .append("<p>Computed <code>NoiseRouter.preliminary_surface_level</code> under the same constraints. ")
                 .append("Below-sea mask uses <code>height &lt; seaLevel</code> (seaLevel=")
@@ -620,8 +611,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         double[] values = new double[IMG_SIZE * IMG_SIZE];
         long oceanPixels = 0;
 
-        int start = -WORLD_SIZE / 2; // divisible by chunk size (1024/2=512)
-        int chunks = WORLD_SIZE / CHUNK_SIZE; // 64
+        int start = -WORLD_SIZE / 2;
+        int chunks = WORLD_SIZE / CHUNK_SIZE;
 
         for (int cz = 0; cz < chunks; cz++) {
             int chunkMinZ = start + cz * CHUNK_SIZE;
@@ -957,7 +948,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static void writeSignedGreenBlue(File outDir, String fileName, double[] values) throws Exception {
         BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
-        // Fixed range for comparability; saturate outside [-1, 1].
         for (int y = 0; y < IMG_SIZE; y++) {
             for (int x = 0; x < IMG_SIZE; x++) {
                 double v = values[x + y * IMG_SIZE];
@@ -975,7 +965,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static void writeRegionMap(File outDir, String fileName, int[] regionIds) throws Exception {
         BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
-        // 0 = none (black), 1 = NO_OCEAN (red), 2 = ONLY_OCEAN (cyan)
         for (int y = 0; y < IMG_SIZE; y++) {
             for (int x = 0; x < IMG_SIZE; x++) {
                 int id = regionIds[x + y * IMG_SIZE];
@@ -998,7 +987,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         for (int y = 0; y < IMG_SIZE; y++) {
             for (int x = 0; x < IMG_SIZE; x++) {
                 double v = values[x + y * IMG_SIZE];
-                int rgb = v < 0.0 ? 0x0000FF : 0x00AA00; // blue = ocean, green = land
+                int rgb = v < 0.0 ? 0x0000FF : 0x00AA00;
                 img.setRGB(x, y, rgb);
             }
         }
@@ -1031,7 +1020,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
                 int height = heights[x + y * size];
-                int rgb = height < seaLevel ? 0x0000FF : 0x00AA00; // blue = below sea, green = above/equal
+                int rgb = height < seaLevel ? 0x0000FF : 0x00AA00;
                 img.setRGB(x, y, rgb);
             }
         }

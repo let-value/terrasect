@@ -8,9 +8,6 @@ import java.util.Collections;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for BiomeFilter which checks biomes against SelectionRules.
- */
 public class BiomeFilterTest {
 
     @Test
@@ -40,7 +37,6 @@ public class BiomeFilterTest {
         SelectionRules rules =
                 SelectionRules.builder().blockNames("minecraft:desert").build();
 
-        // Different biome should not be blocked (no allow rules = permissive)
         assertTrue(BiomeFilter.isAllowed(rules, "minecraft:plains", Collections.emptySet()));
     }
 
@@ -75,7 +71,6 @@ public class BiomeFilterTest {
         Set<String> tagsWithHash = Set.of("#minecraft:is_ocean");
         Set<String> tagsWithoutHash = Set.of("minecraft:is_ocean");
 
-        // All combinations should work
         assertTrue(!BiomeFilter.isAllowed(rulesWithHash, "minecraft:ocean", tagsWithHash));
         assertTrue(!BiomeFilter.isAllowed(rulesWithHash, "minecraft:ocean", tagsWithoutHash));
         assertTrue(!BiomeFilter.isAllowed(rulesWithoutHash, "minecraft:ocean", tagsWithHash));
@@ -118,11 +113,9 @@ public class BiomeFilterTest {
                 .blockNames("minecraft:desert")
                 .build();
 
-        // Desert is blocked even though minecraft mod is allowed
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:desert", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
 
-        // Other minecraft biomes are still allowed
         BiomeFilter.FilterResult forestResult =
                 BiomeFilter.checkBiome(rules, "minecraft:forest", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.ALLOWED, forestResult);
@@ -133,30 +126,25 @@ public class BiomeFilterTest {
         SelectionRules rules =
                 SelectionRules.builder().allowNames("minecraft:plains").build();
 
-        // Biome not in allow list should be blocked
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:desert", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
     }
 
     @Test
     public void complexRulesWorkCorrectly() {
-        // Allow all minecraft biomes, but block oceans, and specifically allow a modded ocean
+
         SelectionRules rules = SelectionRules.builder()
                 .allowMods("minecraft")
                 .blockTags("#minecraft:is_ocean")
                 .allowNames("terralith:crystal_ocean")
                 .build();
 
-        // Regular minecraft biome - allowed
         assertTrue(BiomeFilter.isAllowed(rules, "minecraft:forest", Set.of("#minecraft:is_forest")));
 
-        // Minecraft ocean - blocked
         assertFalse(BiomeFilter.isAllowed(rules, "minecraft:ocean", Set.of("#minecraft:is_ocean")));
 
-        // Specific modded ocean - allowed
         assertTrue(BiomeFilter.isAllowed(rules, "terralith:crystal_ocean", Set.of("#minecraft:is_ocean")));
 
-        // Other modded biome - blocked (not in allowed mods)
         assertFalse(BiomeFilter.isAllowed(rules, "terralith:volcanic_crater", Collections.emptySet()));
     }
 
@@ -186,7 +174,6 @@ public class BiomeFilterTest {
     public void defaultNamespaceIsMinecraft() {
         SelectionRules rules = SelectionRules.builder().allowMods("minecraft").build();
 
-        // Biome without namespace should default to minecraft
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "plains", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.ALLOWED, result);
     }

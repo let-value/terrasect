@@ -15,12 +15,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * NeoForge mixin for PlacedFeature that applies region-based feature gating.
- *
- * <p>This allows features to be conditionally enabled/disabled based on
- * region properties.
- */
 @Mixin(PlacedFeature.class)
 public class FeatureMixin {
 
@@ -37,11 +31,8 @@ public class FeatureMixin {
             return;
         }
 
-        // Get dimension ID from context (which provides it via getDimensionId())
         TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
-        @SuppressWarnings("unused") // Will be used when feature gating is implemented
+        @SuppressWarnings("unused")
         Region region = traversal != null ? traversal.region : null;
-
-        // TODO: Apply feature gating based on region properties
     }
 }

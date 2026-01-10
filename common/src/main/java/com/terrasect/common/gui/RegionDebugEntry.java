@@ -11,14 +11,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Debug screen entry that displays current region hierarchy and edge information.
- *
- * <p>Shows on the F3 debug screen:
- * <ul>
- *   <li>[Terrasect] Regions: Overworld (e:50%,i:25%) > SPAWN (e:80%,i:10%) > Forest (e:95%,i:2%)</li>
- * </ul>
- */
 public class RegionDebugEntry implements DebugScreenEntry {
 
     @Override
@@ -37,7 +29,6 @@ public class RegionDebugEntry implements DebugScreenEntry {
         var blockX = cameraEntity.getBlockX();
         var blockZ = cameraEntity.getBlockZ();
 
-        // Build region hierarchy with per-region edge/influence info
         var sb = new StringBuilder("Regions: ");
 
         TraversalIterator iter = World.traverseIterator(context, blockX, blockZ);

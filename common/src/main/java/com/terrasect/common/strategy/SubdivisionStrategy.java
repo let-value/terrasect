@@ -4,19 +4,8 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
-/**
- * Cache-free BSP subdivision using recursive traversal.
- *
- * Instead of pre-computing and caching the full BSP tree, we traverse it
- * on-the-fly for each query. Since BSP depth is O(log n) and n is typically
- * 2-8 children, this is just 1-3 recursive calls per query.
- *
- * The split decisions are fully deterministic from seed, so repeated queries
- * with the same inputs produce identical results without caching.
- */
 public final class SubdivisionStrategy {
 
-    // Constants for organic edge warping
     private static final float WARP_AMPLITUDE = 0.12f;
     private static final int WARP_OCTAVES = 2;
 
@@ -25,17 +14,6 @@ public final class SubdivisionStrategy {
 
     private SubdivisionStrategy() {}
 
-    /**
-     * Query which child region contains the point, writing results to output buffer.
-     *
-     * @param seed Parent seed for deterministic splits
-     * @param children Child regions with budget weights
-     * @param dx X offset from parent center
-     * @param dz Z offset from parent center
-     * @param radius Parent radius
-     * @param jitter Split jitter amount (0.0 = precise, 0.5 = very organic)
-     * @param out Output buffer with childIndex, centerX, centerZ, radius, siteX, siteZ
-     */
     public static void query(
             long seed, List<Region> children, float dx, float dz, float radius, float jitter, QueryResult out) {
         if (children.isEmpty()) {
@@ -55,11 +33,9 @@ public final class SubdivisionStrategy {
             return;
         }
 
-        // Normalize query point to [-1, 1]
         float nx = dx / radius;
         float nz = dz / radius;
 
-        // Pre-compute budgets
         float totalBudget = 0;
         for (int i = 0; i < count; i++) {
             totalBudget += children.get(i).areaBudget();
@@ -70,18 +46,12 @@ public final class SubdivisionStrategy {
             budgets[i] = children.get(i).areaBudget() / totalBudget;
         }
 
-        // Sort indices by budget descending (deterministic)
         int[] indices = getIndicesBuffer(count);
         sortByBudgetDescending(budgets, indices, count);
 
-        // Traverse BSP to find containing region
         traverseBSP(nx, nz, budgets, indices, 0, count, -1, -1, 1, 1, seed, 0, jitter, out);
     }
 
-    /**
-     * Recursively traverse BSP tree to find containing region.
-     * Returns immediately when leaf node is reached.
-     */
     private static void traverseBSP(
             float px,
             float pz,
@@ -100,38 +70,35 @@ public final class SubdivisionStrategy {
         int count = end - start;
 
         if (count == 1) {
-            // Leaf node - this is our region
+
             int originalIdx = indices[start];
             out.childIndex = originalIdx;
 
-            // Subdivision produces rectangles. Transform to cell-local coordinates.
             float centerX = (minX + maxX) / 2.0f;
             float centerZ = (minZ + maxZ) / 2.0f;
             float halfWidth = (maxX - minX) / 2.0f;
             float halfHeight = (maxZ - minZ) / 2.0f;
-            // Use the smaller dimension as the "radius" for circular child layout
+
             float cellRadius = Math.min(halfWidth, halfHeight);
-            cellRadius = Math.max(cellRadius, 0.1f); // Minimum size
+            cellRadius = Math.max(cellRadius, 0.1f);
 
             out.centerX = centerX;
             out.centerZ = centerZ;
             out.radius = cellRadius;
-            // Store cell center for seed uniqueness
+
             out.siteX = centerX;
             out.siteZ = centerZ;
 
-            // Edge distance: minimum distance to any cell boundary (normalized)
             float distToLeft = px - minX;
             float distToRight = maxX - px;
             float distToBottom = pz - minZ;
             float distToTop = maxZ - pz;
             float minDist = Math.min(Math.min(distToLeft, distToRight), Math.min(distToBottom, distToTop));
-            // Normalize by half the smaller dimension
+
             out.edgeDistance = Math.min(1.0f, minDist / cellRadius);
             return;
         }
 
-        // Find split point based on budgets
         float totalBudget = 0;
         for (int i = start; i < end; i++) {
             totalBudget += budgets[indices[i]];
@@ -152,23 +119,19 @@ public final class SubdivisionStrategy {
 
         int mid = bestMid;
 
-        // Calculate split ratio
         float leftBudget = 0;
         for (int i = start; i < mid; i++) {
             leftBudget += budgets[indices[i]];
         }
         float splitRatio = leftBudget / totalBudget;
 
-        // Apply jitter
         float jitterVal = hashToFloat(seed, depth, 0);
         splitRatio = clamp(splitRatio + (jitterVal - 0.5f) * jitterAmount, 0.15f, 0.85f);
 
-        // Choose split axis
         float width = maxX - minX;
         float height = maxZ - minZ;
         boolean splitVertical = (width > height) ^ (hashToFloat(seed, depth, 1) > 0.7f);
 
-        // Compute split position (no warp for debugging)
         if (splitVertical) {
             float splitX = minX + width * splitRatio;
 
@@ -250,9 +213,6 @@ public final class SubdivisionStrategy {
         }
     }
 
-    /**
-     * Sort indices by budget descending. Simple O(n²) fine for n < 10.
-     */
     private static void sortByBudgetDescending(float[] budgets, int[] indices, int count) {
         for (int i = 0; i < count; i++) {
             indices[i] = i;
@@ -269,11 +229,7 @@ public final class SubdivisionStrategy {
         }
     }
 
-    /**
-     * Compute edge warp using layered noise.
-     * Currently unused - reserved for organic edge warping feature.
-     */
-    @SuppressWarnings("unused") // Reserved for future organic edge warping
+    @SuppressWarnings("unused")
     private static float edgeWarp(float coord, long seed, int depth) {
         float warp = 0;
         float amplitude = WARP_AMPLITUDE;
@@ -290,9 +246,6 @@ public final class SubdivisionStrategy {
         return warp;
     }
 
-    /**
-     * Compute child seed deterministically.
-     */
     public static long getSeed(long parentSeed, int childIndex, Region region) {
         return MathUtils.hash64(parentSeed, region.name().hashCode(), childIndex, 777);
     }

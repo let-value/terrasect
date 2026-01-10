@@ -29,7 +29,7 @@ public class ShiftBNoiseMixin implements ShiftNoiseAccess {
     private void terrasect$computeShift(DensityFunction.FunctionContext context, CallbackInfoReturnable<Double> cir) {
         double z = context.blockZ();
         double x = context.blockX();
-        // ShiftB uses (z, x, 0) - see DensityFunctions.ShiftB.compute
+
         double result = NoiseHandler.sampleNoise(offsetNoise, z * 0.25, x * 0.25, 0.0, context) * 4.0;
         cir.setReturnValue(result);
     }

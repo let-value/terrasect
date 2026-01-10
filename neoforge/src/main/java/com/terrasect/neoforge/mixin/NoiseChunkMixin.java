@@ -21,37 +21,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Mixin that applies terrain height constraints without allocating wrapper objects.
- *
- * <p>Instead of wrapping density functions, this mixin intercepts at two key points:
- * <ul>
- *   <li>{@code getInterpolatedState} - returns fluid (water/air) for positions above height constraint
- *   <li>{@code computePreliminarySurfaceLevel} - clamps surface level to max height
- * </ul>
- */
 @Mixin(NoiseChunk.class)
 public class NoiseChunkMixin {
 
-    /** Pre-computed height lookup for this chunk */
     @Unique private TerrainHeightLookup terrasect$heightLookup;
 
-    /** Fluid picker for determining water/air above height constraints */
     @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
-    /**
-     * Build TerrainHeightLookup BEFORE Aquifer is constructed.
-     *
-     * <p>This injection targets the write to {@code preliminarySurfaceLevel} field,
-     * which happens right before Aquifer creation. We can't use HEAD because that's
-     * before super() and 'this' isn't available. We can't use TAIL because Aquifer
-     * is already built by then.
-     *
-     * <p>By building the lookup before Aquifer construction, our clamping of
-     * computePreliminarySurfaceLevel will be active when the Aquifer calculates
-     * skipSamplingAboveY, ensuring carvers correctly place water instead of air
-     * above our height constraints.
-     */
     @Inject(
             method = "<init>",
             at =
@@ -85,9 +61,6 @@ public class NoiseChunkMixin {
         });
     }
 
-    /**
-     * For positions above height constraint, return fluid directly.
-     */
     @Inject(method = "getInterpolatedState", at = @At("HEAD"), cancellable = true)
     private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
         if (terrasect$heightLookup == null) return;
@@ -105,9 +78,6 @@ public class NoiseChunkMixin {
         }
     }
 
-    /**
-     * Clamp preliminary surface level to max height constraint.
-     */
     @Inject(method = "computePreliminarySurfaceLevel", at = @At("RETURN"), cancellable = true)
     private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
         if (terrasect$heightLookup == null) return;

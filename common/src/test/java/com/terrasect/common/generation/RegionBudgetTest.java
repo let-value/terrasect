@@ -15,14 +15,6 @@ import org.junit.jupiter.api.Test;
 
 public class RegionBudgetTest {
 
-    /**
-     * Print detailed budget and area analysis for a region hierarchy.
-     * This helps debug why regions appear larger/smaller than expected in game.
-     *
-     * KEY INSIGHT: radius() values are RELATIVE weights, not absolute sizes.
-     * The system fills the available parent space proportionally based on budgets.
-     * Actual size = parentRadius * sqrt(childBudget / totalSiblingBudgets)
-     */
     @Test
     public void analyzeRegionBudgetsAndAreas() {
         Region root = TestRegions.buildTestWorld();
@@ -37,7 +29,6 @@ public class RegionBudgetTest {
         System.out.println("╚═══════════════════════════════════════════════════════════════╝");
         System.out.println();
 
-        // Root level
         int rootBudget = root.areaBudget();
         float rootRadius = (float) Math.sqrt(rootBudget);
         float rootDiameter = rootRadius * 2;
@@ -48,14 +39,12 @@ public class RegionBudgetTest {
         System.out.printf("  Implied Diameter: %.0f blocks (%.1f chunks)%n", rootDiameter, rootDiameter / 16);
         System.out.println();
 
-        // Analyze each level
         analyzeChildren(root, rootRadius, 1, "");
     }
 
     private void analyzeChildren(Region parent, float parentRadius, int depth, String indent) {
         if (!parent.hasChildren()) return;
 
-        // Calculate total budget of all children
         int totalChildBudget =
                 parent.children().stream().mapToInt(Region::areaBudget).sum();
 
@@ -68,13 +57,9 @@ public class RegionBudgetTest {
             int childBudget = child.areaBudget();
             float budgetRatio = (float) childBudget / totalChildBudget;
 
-            // The actual radius in world space depends on how strategies interpret budgets
-            // Most strategies use budget as proportional weight, not absolute size
-            // So child radius ≈ parentRadius * sqrt(budgetRatio)
             float proportionalRadius = parentRadius * (float) Math.sqrt(budgetRatio);
             float proportionalDiameter = proportionalRadius * 2;
 
-            // What the user specified
             float specifiedRadius = (float) Math.sqrt(childBudget);
 
             System.out.printf("%s  %s:%n", indent, child.name());
@@ -91,29 +76,19 @@ public class RegionBudgetTest {
                 float scaleFactor = proportionalRadius / specifiedRadius;
                 System.out.printf(
                         "%s    ⚠️  SIZE MISMATCH: Actual is %.1fx the specified value!%n", indent, scaleFactor);
-                // Calculate what they should specify to get the specified size
-                // If actual = parentRadius * sqrt(budget / totalBudget)
-                // And we want actual = specifiedRadius
-                // Then budget = (specifiedRadius / parentRadius)² * totalBudget
-                // But we can't control totalBudget easily...
-                // Simpler: show the correction factor
+
                 System.out.printf(
                         "%s    💡 To get %.0f block radius, multiply all sibling radii by %.1fx%n",
                         indent, specifiedRadius, scaleFactor);
             }
             System.out.println();
 
-            // Recurse into children
             if (child.hasChildren()) {
                 analyzeChildren(child, proportionalRadius, depth + 1, indent + "    ");
             }
         }
     }
 
-    /**
-     * Sample specific coordinates in TestRegions to verify actual region boundaries.
-     * This helps visualize where regions actually are in world space.
-     */
     @Test
     public void sampleTestRegionsAtCoordinates() {
         Region root = TestRegions.buildTestWorld();
@@ -129,19 +104,16 @@ public class RegionBudgetTest {
         System.out.println("╚═══════════════════════════════════════════════════════════════╝");
         System.out.println();
 
-        // First, let's find where SPAWN and SEASONS_HUB actually are
         System.out.println("=== Searching for SPAWN and SEASONS_HUB locations ===");
         findRegionLocations(context, "SEASONS_HUB", 2);
-        findRegionLocations(context, "SPAWN", 3); // SPAWN is child of SEASONS_HUB
+        findRegionLocations(context, "SPAWN", 3);
         System.out.println();
 
-        // Sample at origin (should be SPAWN since it's anchored)
         System.out.println("At ORIGIN (0, 0):");
         samplePoint(0, 0, context);
 
-        // Sample walking outward in each direction to find region transitions
         System.out.println("\nWalking EAST from origin (step=16 blocks):");
-        walkDirection(0, 0, 16, 0, 30, context); // 30 steps = 480 blocks
+        walkDirection(0, 0, 16, 0, 30, context);
 
         System.out.println("\nWalking NORTH from origin:");
         walkDirection(0, 0, 0, -16, 30, context);
@@ -152,7 +124,6 @@ public class RegionBudgetTest {
         System.out.println("\nWalking WEST from origin:");
         walkDirection(0, 0, -16, 0, 30, context);
 
-        // Sample at large distances to see hex tiling
         System.out.println("\n\nSampling at larger distances from origin:");
         int[] distances = {500, 1000, 2000, 5000, 10000};
         for (int dist : distances) {
@@ -206,7 +177,6 @@ public class RegionBudgetTest {
     private void findRegionLocations(Context context, String targetRegion, int depth) {
         System.out.printf("Searching for %s at depth %d...%n", targetRegion, depth);
 
-        // Search in a grid pattern
         int range = 2000;
         int step = 50;
 
@@ -242,27 +212,19 @@ public class RegionBudgetTest {
 
     @Test
     public void testRegionBudgetDistribution() {
-        // Using radius() - user defines radius in blocks, internally stored as radius^2
-        // Root has no explicit radius, so it's calculated from children's areas
-        // Using larger regions to avoid warp effects dominating (warp amplitude is ~200 blocks)
+
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-                .child("CIVILIZATION", civ -> civ
-                        // CITY: radius 1000 blocks
-                        .child("CITY", city -> city.radius(1000)
+                .child("CIVILIZATION", civ -> civ.child("CITY", city -> city.radius(1000)
                                 .adjacentTo("FARMLAND")
                                 .child("DOWNTOWN", d -> d.radius(700))
                                 .child("SUBURBS", s -> s.radius(700)))
-                        // FARMLAND: radius 1732 blocks (3x area of CITY)
                         .child("FARMLAND", farm -> farm.radius(1732).adjacentTo("CITY", "FOREST"))
-                        // FOREST: radius 1000 blocks
                         .child("FOREST", forest -> forest.radius(1000).adjacentTo("FARMLAND")))
-                // WILDERNESS: radius 1000 blocks
                 .child("WILDERNESS", wild -> wild.radius(1000));
 
         World.register(registry.build("ROOT"), World.OVERWORLD);
 
-        // Test across multiple seeds to ensure stability
         long[] seeds = {12345L, 98765L, 112233L, 55555L, 999999L, 101010L, 424242L, 777777L, 314159L, 271828L};
         List<String> failures = new java.util.ArrayList<>();
 
@@ -288,17 +250,15 @@ public class RegionBudgetTest {
 
     private void checkSeed(long seed) {
         Context context = new SnapshotTest.MockStrategy(seed);
-        // Use pre-baked radius from Region
+
         float hexSize = World.getRoot(World.OVERWORLD).radius();
 
-        // Center + 6 Neighbors
         int[][] hexes = {{0, 0}, {1, 0}, {1, -1}, {0, -1}, {-1, 0}, {-1, 1}, {0, 1}};
 
         for (int[] hex : hexes) {
             int q = hex[0];
             int r = hex[1];
 
-            // Calculate center of this hex
             float hx = hexSize * ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r);
             float hz = hexSize * (3.0f / 2.0f * r);
 
@@ -308,17 +268,14 @@ public class RegionBudgetTest {
     }
 
     private void checkRegion(Context context, int centerX, int centerZ) {
-        // 2. Identify the Target Root Region Instance
+
         TraversalResult target = World.traverse(context, centerX, centerZ, 1);
         long targetRootId = target.seed;
         Region targetRegion = target.region;
 
-        // 3. Scan and Sample
-        // Scale range based on root radius + warping buffer
-        // Using 2.0x ensures we capture the entire warped region.
         float rootRadius = World.getRoot(World.OVERWORLD).radius();
         int range = (int) (rootRadius * 2.0f);
-        int step = 100; // Reasonable step for km-scale regions
+        int step = 100;
 
         Map<String, Integer> counts = new HashMap<>();
         Map<String, Integer> cityCounts = new HashMap<>();
@@ -361,17 +318,13 @@ public class RegionBudgetTest {
 
         if (targetRegion.name().equals("CIVILIZATION")) {
             int expectedInstances = 3;
-            // Check that we don't have too many unique instances (which would imply fragmentation/duplication)
-            // We expect exactly 3 unique IDs (one for each child type)
-            // If we have more, it means the same region type is being generated with different seeds/IDs in the same
-            // hex
+
             assertTrue(
                     uniqueRegionInstances.size() <= expectedInstances,
                     "Found too many unique region instances: " + uniqueRegionInstances.size() + ". Expected max "
                             + expectedInstances);
 
-            // Allow some tolerance because of noise and warping
-            float tolerance = 0.20f; // Increased tolerance for organic layout jitter
+            float tolerance = 0.20f;
 
             assertDistribution(counts, totalSamplesInTarget, "CITY", 0.20f, tolerance);
             assertDistribution(counts, totalSamplesInTarget, "FARMLAND", 0.60f, tolerance);
@@ -379,21 +332,17 @@ public class RegionBudgetTest {
 
             if (citySamples > 0) {
                 System.out.println("    Checking CITY internals (Depth 3)");
-                // Nested regions at depth 3 have higher variance due to smaller sample area.
-                // CITY is only ~25% of hex, so its children have ~4x less samples.
-                // Use a 25% tolerance to account for this statistical variance.
+
                 float nestedTolerance = 0.25f;
                 assertDistribution(cityCounts, citySamples, "DOWNTOWN", 0.50f, nestedTolerance);
                 assertDistribution(cityCounts, citySamples, "SUBURBS", 0.50f, nestedTolerance);
             }
 
-            // Check Connectivity (Enclaves/Exclaves)
             for (Long regionId : uniqueRegionInstances) {
                 checkConnectivity(regionId, regionPixels.get(regionId), step, 0.90f);
             }
         } else {
-            // WILDERNESS
-            // Should be 100% WILDERNESS
+
             assertDistribution(counts, totalSamplesInTarget, "WILDERNESS", 1.00f, 0.01f);
         }
     }
@@ -439,7 +388,6 @@ public class RegionBudgetTest {
                         "Region ID %d is too fragmented! Found %d components. Largest component only has %.2f%% of pixels (Threshold: %.2f%%)",
                         regionId, componentCount, ratio * 100, thresholdRatio * 100));
 
-        // Stricter check: We should ideally have 1 component, maybe 2 small islands allowed
         assertTrue(
                 componentCount <= 3,
                 String.format("Region ID %d has too many disconnected components: %d", regionId, componentCount));

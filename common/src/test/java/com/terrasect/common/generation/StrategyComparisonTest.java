@@ -10,9 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/**
- * Compares budget distribution accuracy across different generation strategies.
- */
 public class StrategyComparisonTest {
 
     @Test
@@ -22,15 +19,12 @@ public class StrategyComparisonTest {
 
         System.out.println("=== Strategy Comparison Test ===\n");
 
-        // Test VORONOI (legacy)
         System.out.println("--- VORONOI Strategy ---");
         testWithStrategy(GenerationStrategyType.VORONOI, context);
 
-        // Test SUBDIVISION
         System.out.println("\n--- SUBDIVISION Strategy ---");
         testWithStrategy(GenerationStrategyType.SUBDIVISION, context);
 
-        // Test TEMPLATE
         System.out.println("\n--- TEMPLATE Strategy ---");
         testWithStrategy(GenerationStrategyType.TEMPLATE, context);
     }
@@ -49,10 +43,8 @@ public class StrategyComparisonTest {
 
         World.register(registry.build("ROOT"), World.OVERWORLD);
 
-        // Use pre-baked radius from Region
         float hexSize = World.getRoot(World.OVERWORLD).radius();
 
-        // Sample the center hex
         int range = (int) (hexSize * 1.5f);
         int step = 100;
 
@@ -61,7 +53,7 @@ public class StrategyComparisonTest {
 
         for (int z = -range; z <= range; z += step) {
             for (int x = -range; x <= range; x += step) {
-                // Only sample within the center hex
+
                 long rootSeed = World.traverse(context, x, z, 1).seed;
                 long centerSeed = World.traverse(context, 0, 0, 1).seed;
 
@@ -73,7 +65,6 @@ public class StrategyComparisonTest {
             }
         }
 
-        // Print results
         System.out.println("  Samples: " + totalSamples);
         System.out.println("  Expected: CITY=20%, FARMLAND=60%, FOREST=20%");
 
@@ -83,7 +74,6 @@ public class StrategyComparisonTest {
                 System.out.printf("  %s: %.1f%% (%d samples)%n", entry.getKey(), pct, entry.getValue());
             }
 
-            // Calculate error from expected
             float cityError = Math.abs(getPercent(depth2Counts, "CITY", totalSamples) - 20.0f);
             float farmError = Math.abs(getPercent(depth2Counts, "FARMLAND", totalSamples) - 60.0f);
             float forestError = Math.abs(getPercent(depth2Counts, "FOREST", totalSamples) - 20.0f);
@@ -99,7 +89,7 @@ public class StrategyComparisonTest {
 
     @Test
     public void testSubdivisionBudgetAccuracy() {
-        // Test that SUBDIVISION strategy produces accurate budget distributions
+
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
                 .child("CIVILIZATION", civ -> civ.strategy(GenerationStrategyType.SUBDIVISION)
@@ -119,7 +109,7 @@ public class StrategyComparisonTest {
 
         for (long seed : seeds) {
             Context context = new SnapshotTest.MockStrategy(seed);
-            // Use pre-baked radius from Region
+
             float hexSize = World.getRoot(World.OVERWORLD).radius();
             int range = (int) (hexSize * 1.2f);
             int step = 100;
@@ -158,7 +148,6 @@ public class StrategyComparisonTest {
         float avgError = totalError / testCount;
         System.out.printf("Average error: %.1f%%%n", avgError);
 
-        // Subdivision should have lower error than Voronoi (which was ~30-40%)
         assertTrue(avgError < 25, "SUBDIVISION strategy should have less than 25% total error, got " + avgError);
     }
 }

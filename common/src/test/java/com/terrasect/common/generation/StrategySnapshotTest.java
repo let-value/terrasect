@@ -22,15 +22,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/**
- * Comprehensive snapshot tests for all generation strategies.
- *
- * Each test:
- * 1. Builds a region hierarchy with specific strategy configuration
- * 2. Samples the world to generate debug images
- * 3. Computes a digest for regression testing
- * 4. Saves images to build/test-snapshots/{testName}/
- */
 public class StrategySnapshotTest {
 
     private static final long SEED = 42424242L;

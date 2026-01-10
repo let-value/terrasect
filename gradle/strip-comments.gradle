@@ -1,0 +1,171 @@
+boolean isEscaped(String input, int index) {
+    int backslashes = 0
+    int i = index - 1
+    while (i >= 0 && input.charAt(i) == '\\') {
+        backslashes++
+        i--
+    }
+    return (backslashes % 2) == 1
+}
+
+String stripJavaComments(String input) {
+    final int NORMAL = 0
+    final int STRING = 1
+    final int CHAR = 2
+    final int LINE_COMMENT = 3
+    final int TEXT_BLOCK = 4
+
+    int mode = NORMAL
+    int i = 0
+    int len = input.length()
+    StringBuilder out = new StringBuilder(len)
+
+    while (i < len) {
+        char c = input.charAt(i)
+        char next = (i + 1 < len) ? input.charAt(i + 1) : (char) 0
+
+        if (mode == NORMAL) {
+            if (c == '"' && next == '"' && i + 2 < len && input.charAt(i + 2) == '"') {
+                out.append('"').append('"').append('"')
+                i += 3
+                mode = TEXT_BLOCK
+                continue
+            }
+            if (c == '"') {
+                out.append(c)
+                i++
+                mode = STRING
+                continue
+            }
+            if (c == '\'') {
+                out.append(c)
+                i++
+                mode = CHAR
+                continue
+            }
+            if (c == '/' && next == '/') {
+                i += 2
+                mode = LINE_COMMENT
+                continue
+            }
+            if (c == '/' && next == '*') {
+                int start = i
+                int end = input.indexOf("*/", i + 2)
+                boolean closed = end >= 0
+                if (closed) {
+                    end += 2
+                } else {
+                    end = len
+                }
+                String commentBody = closed
+                        ? input.substring(i + 2, end - 2)
+                        : input.substring(i + 2)
+                boolean hasKeep = commentBody.contains("@keep")
+                boolean multiline = commentBody.indexOf('\n') >= 0 || commentBody.indexOf('\r') >= 0
+                if (hasKeep && multiline) {
+                    out.append(input, start, end)
+                } else {
+                    if (multiline) {
+                        for (int j = 0; j < commentBody.length(); j++) {
+                            char cc = commentBody.charAt(j)
+                            if (cc == '\n' || cc == '\r') {
+                                out.append(cc)
+                            }
+                        }
+                    } else {
+                        out.append(' ')
+                    }
+                }
+                i = end
+                continue
+            }
+
+            out.append(c)
+            i++
+            continue
+        }
+
+        if (mode == STRING) {
+            out.append(c)
+            if (c == '\\' && i + 1 < len) {
+                out.append(input.charAt(i + 1))
+                i += 2
+                continue
+            }
+            if (c == '"') {
+                mode = NORMAL
+            }
+            i++
+            continue
+        }
+
+        if (mode == CHAR) {
+            out.append(c)
+            if (c == '\\' && i + 1 < len) {
+                out.append(input.charAt(i + 1))
+                i += 2
+                continue
+            }
+            if (c == '\'') {
+                mode = NORMAL
+            }
+            i++
+            continue
+        }
+
+        if (mode == LINE_COMMENT) {
+            if (c == '\n') {
+                out.append(c)
+                i++
+                mode = NORMAL
+                continue
+            }
+            if (c == '\r') {
+                out.append(c)
+                i++
+                if (i < len && input.charAt(i) == '\n') {
+                    out.append('\n')
+                    i++
+                }
+                mode = NORMAL
+                continue
+            }
+            i++
+            continue
+        }
+
+        if (mode == TEXT_BLOCK) {
+            if (c == '"' && next == '"' && i + 2 < len && input.charAt(i + 2) == '"' && !isEscaped(input, i)) {
+                out.append('"').append('"').append('"')
+                i += 3
+                mode = NORMAL
+                continue
+            }
+            out.append(c)
+            i++
+        }
+    }
+
+    return out.toString()
+}
+
+tasks.register('stripComments') {
+    group = 'formatting'
+    description = 'Removes all comments unless they are multiline block comments containing @keep.'
+    doLast {
+        def files = fileTree(rootDir) {
+            include '**/src/**/java/**/*.java'
+            exclude '**/build/**', '**/.gradle/**', 'minecraft/**', 'mods/**', '**/run/**', '**/.idea/**', '**/.vscode/**'
+        }
+        int updated = 0
+        files.each { file ->
+            String original = file.getText('UTF-8')
+            String stripped = stripJavaComments(original)
+            if (stripped != original) {
+                file.write(stripped, 'UTF-8')
+                updated++
+            }
+        }
+        println "stripComments: updated ${updated} file(s)"
+    }
+}

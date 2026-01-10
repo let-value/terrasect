@@ -48,3 +48,5 @@ subprojects {
         }
     }
 }
+
+apply from: rootProject.file('gradle/strip-comments.gradle')

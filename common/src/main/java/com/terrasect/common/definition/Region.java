@@ -26,9 +26,6 @@ public record Region(
         sortedAdjacentTo = Collections.unmodifiableList(sortedAdjacency);
     }
 
-    /**
-     * Convenience constructor that computes radius and childrenTotalBudget.
-     */
     public Region(
             String name,
             int areaBudget,

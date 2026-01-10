@@ -6,23 +6,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/**
- * Optional region constraints for vanilla {@code minecraft:noise} entries and registered
- * {@code minecraft:density_function} keys.
- *
- * <p>These are intended to drive a future "noise mixin" (similar to biome/climate mixins) that can
- * conditionally apply transforms inside a region.
- *
- * <p>Example usage (prevent oceans by biasing/clamping continentalness):
- * <pre>{@code
- * RegionDefinition.builder()
- *     .noise(n -> n
- *         .noise("minecraft:continentalness", t -> t.clamp(0.1, 2.0))
- *         .densityFunction("minecraft:overworld/continents", t -> t.clamp(0.0, 1.0))
- *     )
- *     .build();
- * }</pre>
- */
 public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, NoiseTransform> densityFunctions) {
     private static final String CLEAR_PARENT_MARKER = "\u0000terrasect:clear_parent\u0000";
     private static final NoiseTransform MARKER_VALUE = NoiseTransform.empty();
@@ -54,12 +37,6 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
         return false;
     }
 
-    /**
-     * Resolve this region's constraints against the already-resolved parent constraints.
-     *
-     * <p>Inheritance is applied when region definitions are built. After resolution,
-     * this instance contains only actual constraints (or is empty).
-     */
     public NoiseConstraints resolveWithParent(NoiseConstraints parent) {
         boolean clearParent = clearsParent();
 
@@ -128,7 +105,6 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
         public Builder noise(String noiseKey, Consumer<NoiseTransform.Builder> consumer) {
             Objects.requireNonNull(noiseKey, "noiseKey");
             Objects.requireNonNull(consumer, "consumer");
-            // Keep clearParent flag as-is; key additions apply even when parent is cleared.
 
             NoiseTransform.Builder builder = NoiseTransform.builder().copyFrom(noises.get(noiseKey));
             consumer.accept(builder);
@@ -144,7 +120,6 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
         public Builder densityFunction(String densityFunctionKey, Consumer<NoiseTransform.Builder> consumer) {
             Objects.requireNonNull(densityFunctionKey, "densityFunctionKey");
             Objects.requireNonNull(consumer, "consumer");
-            // Keep clearParent flag as-is; key additions apply even when parent is cleared.
 
             NoiseTransform.Builder builder =
                     NoiseTransform.builder().copyFrom(densityFunctions.get(densityFunctionKey));

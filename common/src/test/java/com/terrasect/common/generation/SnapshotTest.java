@@ -28,7 +28,6 @@ public class SnapshotTest {
         long seed = 987654321L;
         Context context = new MockStrategy(seed);
 
-        // Sample a large area
         int width = 100000;
         int height = 100000;
         int step = 100;
@@ -68,11 +67,10 @@ public class SnapshotTest {
         var seed = 987654321L;
         Context context = new MockStrategy(seed);
 
-        // CRITICAL: Initialize to calculate anchor offset so SPAWN appears at origin
         World.initialize(context);
         int width = 512;
         int height = 512;
-        int step = 4; // Sample every 4 blocks to cover 2048x2048 area
+        int step = 4;
 
         BufferedImage imgVoronoi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         BufferedImage imgEdge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -80,15 +78,13 @@ public class SnapshotTest {
         BufferedImage imgRidge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         BufferedImage imgCombined = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-        // Dynamic depth images for nested regions
         List<BufferedImage> depthImages = new ArrayList<>();
 
-        // We will combine all data into one digest for regression testing
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                // Center the sampling around origin so anchored region appears in center
+
                 int wx = (x - width / 2) * step;
                 int wz = (y - height / 2) * step;
 
@@ -96,16 +92,8 @@ public class SnapshotTest {
                 float river = Packer.unpackPairFirst(influence);
                 float ridge = Packer.unpackPairSecond(influence);
 
-                // Get full hierarchy
                 List<Region> regions = new ArrayList<>();
                 List<Long> seeds = new ArrayList<>();
-
-                // We want to capture regions at each depth
-                // Depth 0 (User): Root (Infinite Tiling) -> returns Root
-                // Depth 1 (User): Children (Local Partitioning) -> returns Civ/Wild/High
-                // Depth 2 (User): Grandchildren -> returns Ruins/Harbor etc.
-
-                // We skip the actual root (Universe) which is just a container
 
                 TraversalResult traversal = World.traverse(context, wx, wz, 1);
                 regions.add(traversal.region);
@@ -119,19 +107,16 @@ public class SnapshotTest {
                 regions.add(traversal.region);
                 seeds.add(traversal.seed);
 
-                // Ensure we have enough images for the depth
                 while (depthImages.size() < regions.size()) {
                     depthImages.add(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB));
                 }
 
                 Region leafRegion = regions.get(regions.size() - 1);
 
-                // Get edge distance from the traversal result (1 = center, 0 = edge)
                 TraversalResult leafTraversal = World.traverse(context, wx, wz);
                 float edgeDistance = leafTraversal != null ? leafTraversal.edgeDistance : 1.0f;
                 boolean isEdge = false;
 
-                // Check leaf edge
                 Region right = World.traverse(context, wx + step, wz).region;
                 Region down = World.traverse(context, wx, wz + step).region;
                 if (!leafRegion.name().equals(right.name())
@@ -139,8 +124,6 @@ public class SnapshotTest {
                     isEdge = true;
                 }
 
-                // Update digest with values to be independent of rendering colors
-                // Use leaf region hash instead of old RegionField ID
                 int leafRegionHash = leafRegion.name().hashCode();
                 updateDigest(digest, leafRegionHash);
                 updateDigest(digest, isEdge ? 1.0f : 0.0f);
@@ -148,21 +131,16 @@ public class SnapshotTest {
                 updateDigest(digest, ridge);
                 updateDigest(digest, leafRegionHash);
 
-                // Visualization (keep this for debug output)
-                // Region visualization (random color from hash)
                 int r = (int) (MathUtils.hash64(leafRegionHash, 1, 0, 0) & 0xFF);
                 int g = (int) (MathUtils.hash64(leafRegionHash, 2, 0, 0) & 0xFF);
                 int b = (int) (MathUtils.hash64(leafRegionHash, 3, 0, 0) & 0xFF);
                 imgVoronoi.setRGB(x, y, (r << 16) | (g << 8) | b);
 
-                // Depth layers
                 for (int i = 0; i < regions.size(); i++) {
                     Region region = regions.get(i);
                     long regionSeed = seeds.get(i);
                     int color = getGenericRegionColor(region);
 
-                    // Check neighbors for edge of current layer
-                    // We check both region name AND seed to detect edges between identical regions (e.g. Root tiles)
                     TraversalResult rightTraversal = World.traverse(context, wx + step, wz, i + 1);
                     Region layerRight = rightTraversal.region;
                     long seedRight = rightTraversal.seed;
@@ -175,14 +153,13 @@ public class SnapshotTest {
                             || regionSeed != seedRight
                             || !region.name().equals(layerDown.name())
                             || regionSeed != seedDown) {
-                        // Darken color for edge
+
                         int cr = (color >> 16) & 0xFF;
                         int cg = (color >> 8) & 0xFF;
                         int cb = color & 0xFF;
                         color = ((cr / 2) << 16) | ((cg / 2) << 8) | (cb / 2);
                     }
 
-                    // Overlay parent edges on child layers
                     if (i > 0) {
                         Region parent = regions.get(i - 1);
                         long parentSeed = seeds.get(i - 1);
@@ -199,28 +176,24 @@ public class SnapshotTest {
                                 || parentSeed != parentSeedRight
                                 || !parent.name().equals(parentDown.name())
                                 || parentSeed != parentSeedDown) {
-                            color = 0xFFFFFF; // White edge for parent
+                            color = 0xFFFFFF;
                         }
                     }
 
                     depthImages.get(i).setRGB(x, y, color);
                 }
 
-                // Edge grayscale (edgeDistance: 1 = center = white, 0 = edge = black)
                 int edgeVal = (int) (edgeDistance * 255);
                 imgEdge.setRGB(x, y, (edgeVal << 16) | (edgeVal << 8) | edgeVal);
 
-                // River grayscale
                 int riverVal = (int) (river * 255);
                 imgRiver.setRGB(x, y, (riverVal << 16) | (riverVal << 8) | riverVal);
 
-                // Ridge grayscale
                 int ridgeVal = (int) (ridge * 255);
                 imgRidge.setRGB(x, y, (ridgeVal << 16) | (ridgeVal << 8) | ridgeVal);
 
-                // Combined visualization (Leaf Region color + Edge darkening)
                 int archColor = getGenericRegionColor(leafRegion);
-                // Make edges darker (edgeDistance is 0 at edge, 1 at center)
+
                 int cr = (archColor >> 16) & 0xFF;
                 int cg = (archColor >> 8) & 0xFF;
                 int cb = archColor & 0xFF;
@@ -271,7 +244,6 @@ public class SnapshotTest {
         int color = getTestRegionColor(region);
         if (color != 0) return color;
 
-        // Hash fallback with high saturation
         int h = region.name().hashCode();
         int r = 64 + (Math.abs(h) % 192);
         int g = 64 + (Math.abs(h >> 8) % 192);
@@ -281,11 +253,9 @@ public class SnapshotTest {
 
     private int getTestRegionColor(Region region) {
         switch (region.name()) {
-            // World level
             case "WORLD":
                 return 0x333333;
 
-            // Main areas
             case "SEASONS_HUB":
                 return 0x88FF88;
             case "TEMPERATURE_LAB":
@@ -297,31 +267,28 @@ public class SnapshotTest {
             case "BORDER":
                 return 0x000044;
 
-            // Seasons hub children
             case "SPAWN":
-                return 0xFFFFFF; // White - easy to spot
+                return 0xFFFFFF;
             case "SPRING":
-                return 0x00FF00; // Bright green
+                return 0x00FF00;
             case "SUMMER":
-                return 0xFFFF00; // Yellow
+                return 0xFFFF00;
             case "AUTUMN":
-                return 0xFF8800; // Orange
+                return 0xFF8800;
             case "WINTER":
-                return 0x00FFFF; // Cyan
+                return 0x00FFFF;
 
-            // Temperature lab zones
             case "FREEZING":
-                return 0x0000FF; // Blue
+                return 0x0000FF;
             case "COLD":
-                return 0x4488FF; // Light blue
+                return 0x4488FF;
             case "MILD":
-                return 0x44FF44; // Green
+                return 0x44FF44;
             case "WARM":
-                return 0xFFAA00; // Orange
+                return 0xFFAA00;
             case "HOT":
-                return 0xFF0000; // Red
+                return 0xFF0000;
 
-            // Biome lab zones
             case "OCEANS_ONLY":
                 return 0x0044AA;
             case "FORESTS_ONLY":

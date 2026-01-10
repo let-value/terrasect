@@ -11,17 +11,6 @@ public final class LayoutStrategies {
 
     private LayoutStrategies() {}
 
-    /**
-     * Query a generation strategy for the cell containing the point (dx, dz).
-     * Returns the thread-local QueryResult with all fields populated.
-     *
-     * @param parent Parent region (provides strategy type and settings)
-     * @param seed Parent region seed
-     * @param dx X offset from parent center (in world units)
-     * @param dz Z offset from parent center (in world units)
-     * @param radius Parent radius
-     * @return QueryResult with childIndex, centerX, centerZ, radius, and seed fields
-     */
     public static QueryResult query(Region parent, long seed, float dx, float dz, float radius) {
         QueryResult result = RESULT.get();
         result.isRing = false;
@@ -34,28 +23,22 @@ public final class LayoutStrategies {
             case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, result);
             case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, result);
             case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, result);
-            default -> queryVoronoi(seed, parent, dx, dz, radius, settings, result); // VORONOI
+            default -> queryVoronoi(seed, parent, dx, dz, radius, settings, result);
         }
 
-        // Compute child seed and store in result
         result.childSeed = computeSeed(type, seed, result);
 
         return result;
     }
 
-    /**
-     * Compute seed for the child region based on strategy type and query result.
-     */
     private static long computeSeed(GenerationStrategyType type, long parentSeed, QueryResult result) {
         if (type == GenerationStrategyType.HEX) {
-            // HEX uses q,r coords stored in result during query
+
             int q = (int) result.siteX;
             int r = (int) result.siteZ;
             return HexStrategy.getSeed(parentSeed, q, r);
         }
 
-        // For voronoi/subdivision/template, use site position from result
-        // to make each cell's children unique
         int siteX = Float.floatToIntBits(result.siteX);
         int siteZ = Float.floatToIntBits(result.siteZ);
 
@@ -63,16 +46,14 @@ public final class LayoutStrategies {
                 switch (type) {
                     case SUBDIVISION -> 777;
                     case TEMPLATE -> 888;
-                    default -> 999; // VORONOI
+                    default -> 999;
                 };
         return MathUtils.hash64(parentSeed, siteX ^ siteZ, result.childIndex, salt);
     }
 
-    // ========== Strategy-specific query implementations ==========
-
     private static void queryVoronoi(
             long seed, Region parent, float dx, float dz, float radius, StrategySettings settings, QueryResult out) {
-        int relaxationIterations = 5; // Default relaxation
+        int relaxationIterations = 5;
         if (settings != null && settings.voronoi() != null) {
             relaxationIterations = settings.voronoi().relaxationIterations();
         }
@@ -88,7 +69,7 @@ public final class LayoutStrategies {
             float radius,
             StrategySettings settings,
             QueryResult out) {
-        float jitter = 0.05f; // Default jitter
+        float jitter = 0.05f;
         if (settings != null && settings.subdivision() != null) {
             jitter = settings.subdivision().jitter();
         }
