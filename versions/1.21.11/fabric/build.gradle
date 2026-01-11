@@ -30,7 +30,7 @@ def copyMain = createFilteredSourceTask('copyBaseMain', baseProject.sourceSets.m
 def copyClient = createFilteredSourceTask('copyBaseClient', baseProject.sourceSets.client.java.srcDirs, filteredClient, clientExclusions)
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
 }
 

@@ -20,7 +20,7 @@ def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
 def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
 }
 
