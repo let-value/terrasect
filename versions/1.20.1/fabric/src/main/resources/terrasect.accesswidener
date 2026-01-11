@@ -1,4 +1,0 @@
-accessWidener v2 named
-
-# Allow access to NoiseChunk.getInterpolatedState for terrain height constraints
-accessible method net/minecraft/world/level/levelgen/NoiseChunk getInterpolatedState ()Lnet/minecraft/world/level/block/state/BlockState;

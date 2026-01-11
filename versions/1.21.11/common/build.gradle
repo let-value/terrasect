@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+apply from: rootProject.file('gradle/versioned.gradle')
+
+def javaVersion = property('java_version')
+def baseProjectPath = property('base_project')
+
+evaluationDependsOn(baseProjectPath)
+def baseProject = project(baseProjectPath)
+
+// API incompatibilities (no local override)
+def excludedFiles = []
+def allExclusions = excludedFiles + collectLocalFiles('src/main/java')
+
+// Filtered base sources
+def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
+def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.neoforged.net/releases' }
+}
+
+neoForge {
+    neoFormVersion = property('neoform_version')
+}
+
+configureInheritedSourceSet(sourceSets.main, 'src/main/java', filteredDir, baseProject.sourceSets.main.resources.srcDirs)
+configureCompileTask(tasks.compileJava, copyTask, javaVersion)
+
+dependencies {
+    compileOnly 'org.slf4j:slf4j-api'
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+}
+
+configureSourcesJar([copyTask]) {
+    from(baseProject.sourceSets.main.allSource) { exclude allExclusions }
+}

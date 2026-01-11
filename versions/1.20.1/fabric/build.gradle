@@ -42,9 +42,14 @@ repositories {
     }
 }
 
+def localAccessWidener = file('src/main/resources/terrasect.accesswidener')
+def accessWidenerFile = localAccessWidener.exists()
+    ? localAccessWidener
+    : baseProject.file('src/main/resources/terrasect.accesswidener')
+
 loom {
     splitEnvironmentSourceSets()
-    accessWidenerPath = file('src/main/resources/terrasect.accesswidener')
+    accessWidenerPath = accessWidenerFile
     mods {
         create('terrasect') {
             sourceSet sourceSets.main

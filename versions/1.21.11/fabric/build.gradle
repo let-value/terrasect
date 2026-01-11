@@ -19,10 +19,7 @@ def baseProject = project(baseProjectPath)
 def commonProject = project(commonProjectPath)
 
 // API incompatibilities (no local override)
-def excludedFiles = [
-    'com/terrasect/fabric/client/ClientGameTestIntegration.java',
-    'com/terrasect/fabric/client/TerrasectFabricClient.java',
-]
+def excludedFiles = []
 def mainExclusions = excludedFiles + collectLocalFiles('src/main/java')
 def clientExclusions = excludedFiles + collectLocalFiles('src/client/java')
 
