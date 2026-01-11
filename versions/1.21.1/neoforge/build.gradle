@@ -68,7 +68,9 @@ jar {
 }
 
 processResources {
-    def props = [mod_version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, java_version: javaVersion, neoforge_version: neoforgeVersion, neoforge_version_major: neoforgeVersion.split('\\.').take(2).join('.')]
+    def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
+    def nfVersionRange = findProperty('neoforge_version_range') ?: neoforgeVersion
+    def props = [mod_version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, minecraft_version_range: mcVersionRange, java_version: javaVersion, neoforge_version: neoforgeVersion, neoforge_version_range: nfVersionRange, neoforge_version_major: neoforgeVersion.split('\\.').take(2).join('.')]
     inputs.properties(props)
     filesMatching('META-INF/neoforge.mods.toml') { expand(props) }
 }

@@ -81,7 +81,8 @@ configureCompileTask(tasks.compileClientJava, copyClient, javaVersion)
 
 processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    def props = [version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, java_version: javaVersion, fabric_loader_version: fabricLoaderVersion]
+    def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
+    def props = [version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, minecraft_version_range: mcVersionRange, java_version: javaVersion, fabric_loader_version: fabricLoaderVersion]
     inputs.properties(props)
     filesMatching('fabric.mod.json') { expand(props) }
 }

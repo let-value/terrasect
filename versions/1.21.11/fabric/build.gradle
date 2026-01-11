@@ -19,7 +19,7 @@ def baseProject = project(baseProjectPath)
 def commonProject = project(commonProjectPath)
 
 // API incompatibilities (no local override)
-def excludedFiles = []
+def excludedFiles = ['com/terrasect/fabric/client/ClientGameTestIntegration.java']
 def mainExclusions = excludedFiles + collectLocalFiles('src/main/java')
 def clientExclusions = excludedFiles + collectLocalFiles('src/client/java')
 
@@ -67,7 +67,7 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
-    implementation(commonProject.sourceSets.main.output)
+    implementation project(commonProjectPath)
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
@@ -78,7 +78,8 @@ configureCompileTask(tasks.compileClientJava, copyClient, javaVersion)
 
 processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    def props = [version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, java_version: javaVersion, fabric_loader_version: fabricLoaderVersion]
+    def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
+    def props = [version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, minecraft_version_range: mcVersionRange, java_version: javaVersion, fabric_loader_version: fabricLoaderVersion]
     inputs.properties(props)
     filesMatching('fabric.mod.json') { expand(props) }
 }

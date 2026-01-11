@@ -60,11 +60,16 @@ sourcesJar {
 }
 
 processResources {
+    def mcVersion = rootProject.property('minecraft_version')
+    def mcVersionRange = findProperty('minecraft_version_range') ?: rootProject.findProperty('minecraft_version_range') ?: mcVersion
+    def nfVersionRange = findProperty('neoforge_version_range') ?: neoforgeVersion
     def expandProps = [
         mod_version          : rootProject.property('mod_version'),
-        minecraft_version    : rootProject.property('minecraft_version'),
+        minecraft_version    : mcVersion,
+        minecraft_version_range: mcVersionRange,
         java_version         : rootProject.property('java_version'),
         neoforge_version     : neoforgeVersion,
+        neoforge_version_range: nfVersionRange,
         neoforge_version_major: neoforgeVersionMajor
     ]
     inputs.properties(expandProps)

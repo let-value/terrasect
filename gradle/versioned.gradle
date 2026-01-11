@@ -10,6 +10,25 @@
  *   configureSourceInheritance(baseProjectPath, excludedFiles)
  */
 
+def versionRootPropsFile = file("${project.projectDir.parentFile}/gradle.properties")
+if (versionRootPropsFile.exists()) {
+    def versionProps = new Properties()
+    versionRootPropsFile.withInputStream { versionProps.load(it) }
+
+    def localProps = new Properties()
+    def localPropsFile = project.file('gradle.properties')
+    if (localPropsFile.exists()) {
+        localPropsFile.withInputStream { localProps.load(it) }
+    }
+
+    versionProps.each { key, value ->
+        def keyString = key.toString()
+        if (!localProps.containsKey(keyString)) {
+            project.ext.set(keyString, value.toString())
+        }
+    }
+}
+
 ext {
     /**
      * Collect relative paths of all Java files in a directory.

@@ -23,10 +23,9 @@ def excludedDirs = [
         'versions'
 ]
 
-rootDir.listFiles()
-        .findAll { it.isDirectory() && !excludedDirs.contains(it.name) && file("${it.name}/build.gradle").isFile() }
-        .sort { it.name }
-        .each { include(it.name) }
+include 'common'
+include 'fabric'
+include 'neoforge'
 
 file('versions').listFiles()
         ?.findAll { it.isDirectory() && !it.name.startsWith('.') }

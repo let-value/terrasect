@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'fabric-loom' version "${fabric_loom_version}"
+    id 'net.fabricmc.fabric-loom' version "${fabric_loom_version}"
 }
 
 apply from: rootProject.file('gradle/loaders/fabric.gradle')
@@ -20,14 +20,10 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.property('minecraft_version')}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
+    implementation "net.fabricmc:fabric-loader:${property('fabric_loader_version')}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${property('fabric_api_version')}"
 
-    implementation(project(':common').sourceSets.main.output)
-
-    modLocalRuntime 'maven.modrinth:fabric-permissions-api:0.6.1'
-    modLocalRuntime 'maven.modrinth:spark:1.10.156-fabric'
+    implementation project(':common')
 
     compileOnly 'org.jetbrains:annotations:24.1.0'
 
@@ -65,9 +61,12 @@ fabricApi {
 }
 
 processResources {
+    def mcVersion = rootProject.property('minecraft_version')
+    def mcVersionRange = rootProject.findProperty('minecraft_version_range') ?: mcVersion
     def expandProps = [
         version              : rootProject.property('mod_version'),
-        minecraft_version    : rootProject.property('minecraft_version'),
+        minecraft_version    : mcVersion,
+        minecraft_version_range: mcVersionRange,
         java_version         : rootProject.property('java_version'),
         fabric_loader_version: project.property('fabric_loader_version')
     ]

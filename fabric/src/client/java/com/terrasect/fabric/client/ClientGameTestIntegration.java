@@ -31,7 +31,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 .create()) {
 
             System.out.println("World created, waiting for chunks to render...");
-            singleplayer.getClientWorld().waitForChunksRender();
+            singleplayer.getClientLevel().waitForChunksRender();
 
             System.out.println("\n=== Teleporting to test location ===");
             singleplayer.getServer().runOnServer(server -> {
@@ -41,7 +41,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
             });
 
             context.waitTicks(60);
-            singleplayer.getClientWorld().waitForChunksRender();
+            singleplayer.getClientLevel().waitForChunksRender();
 
             context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
             context.waitTicks(5);
