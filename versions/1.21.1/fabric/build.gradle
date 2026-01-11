@@ -31,6 +31,16 @@ def filteredClient = layout.buildDirectory.dir('filtered-base-sources/client')
 def copyMain = createFilteredSourceTask('copyBaseMain', baseProject.sourceSets.main.java.srcDirs, filteredMain, mainExclusions)
 def copyClient = createFilteredSourceTask('copyBaseClient', baseProject.sourceSets.client.java.srcDirs, filteredClient, clientExclusions)
 
+// If we inherit from another *versioned* project, ensure its filtered sources exist first.
+def baseCopyMain = baseProject.tasks.findByName('copyBaseMain')
+if (baseCopyMain != null) {
+    copyMain.configure { dependsOn baseCopyMain }
+}
+def baseCopyClient = baseProject.tasks.findByName('copyBaseClient')
+if (baseCopyClient != null) {
+    copyClient.configure { dependsOn baseCopyClient }
+}
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
@@ -69,7 +79,7 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
-    implementation(commonProject.sourceSets.main.output)
+    implementation project(commonProjectPath)
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 

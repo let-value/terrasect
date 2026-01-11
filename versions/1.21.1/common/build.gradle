@@ -21,6 +21,12 @@ def allExclusions = excludedFiles + collectLocalFiles('src/main/java')
 def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
 def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
 
+// If we inherit from another *versioned* project, ensure its filtered sources exist first.
+def baseCopyTask = baseProject.tasks.findByName('copyBaseSources')
+if (baseCopyTask != null) {
+    copyTask.configure { dependsOn baseCopyTask }
+}
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
