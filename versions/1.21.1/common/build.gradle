@@ -15,17 +15,11 @@ def baseProject = project(baseProjectPath)
 def excludedFiles = [
     'com/terrasect/common/gui/RegionDebugEntry.java',
 ]
-def allExclusions = excludedFiles + collectLocalFiles('src/main/java')
-
-// Filtered base sources
-def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
-def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
-
-// If we inherit from another *versioned* project, ensure its filtered sources exist first.
-def baseCopyTask = baseProject.tasks.findByName('copyBaseSources')
-if (baseCopyTask != null) {
-    copyTask.configure { dependsOn baseCopyTask }
-}
+inheritFromBaseWithSourcesJar(
+    baseProject: baseProject,
+    javaVersion: javaVersion,
+    excludedFiles: excludedFiles
+)
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -41,14 +35,9 @@ neoForge {
     neoFormVersion = property('neoform_version')
 }
 
-configureInheritedSourceSet(sourceSets.main, 'src/main/java', filteredDir, baseProject.sourceSets.main.resources.srcDirs)
-configureCompileTask(tasks.compileJava, copyTask, javaVersion)
-
 dependencies {
     compileOnly 'org.slf4j:slf4j-api'
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
-configureSourcesJar([copyTask]) {
-    from(baseProject.sourceSets.main.allSource) { exclude allExclusions }
-}
+

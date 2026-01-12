@@ -19,27 +19,7 @@ def baseProject = project(baseProjectPath)
 def commonProject = project(commonProjectPath)
 
 // API incompatibilities (no local override)
-def excludedFiles = [
-    'com/terrasect/fabric/client/TerrasectFabricClient.java',
-]
-def mainExclusions = excludedFiles + collectLocalFiles('src/main/java')
-def clientExclusions = excludedFiles + collectLocalFiles('src/client/java')
-
-// Filtered base sources
-def filteredMain = layout.buildDirectory.dir('filtered-base-sources/main')
-def filteredClient = layout.buildDirectory.dir('filtered-base-sources/client')
-def copyMain = createFilteredSourceTask('copyBaseMain', baseProject.sourceSets.main.java.srcDirs, filteredMain, mainExclusions)
-def copyClient = createFilteredSourceTask('copyBaseClient', baseProject.sourceSets.client.java.srcDirs, filteredClient, clientExclusions)
-
-// If we inherit from another *versioned* project, ensure its filtered sources exist first.
-def baseCopyMain = baseProject.tasks.findByName('copyBaseMain')
-if (baseCopyMain != null) {
-    copyMain.configure { dependsOn baseCopyMain }
-}
-def baseCopyClient = baseProject.tasks.findByName('copyBaseClient')
-if (baseCopyClient != null) {
-    copyClient.configure { dependsOn baseCopyClient }
-}
+def excludedFiles = []
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -74,6 +54,13 @@ loom {
     }
 }
 
+inheritFromBaseWithSourcesJar(
+    baseProject: baseProject,
+    commonProject: commonProject,
+    javaVersion: javaVersion,
+    excludedFiles: excludedFiles
+)
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraftVersion}"
     mappings loom.officialMojangMappings()
@@ -83,11 +70,6 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
-configureInheritedSourceSet(sourceSets.main, 'src/main/java', filteredMain, baseProject.sourceSets.main.resources.srcDirs)
-configureInheritedSourceSet(sourceSets.client, 'src/client/java', filteredClient, baseProject.sourceSets.client.resources.srcDirs)
-configureCompileTask(tasks.compileJava, copyMain, javaVersion)
-configureCompileTask(tasks.compileClientJava, copyClient, javaVersion)
-
 processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
@@ -96,9 +78,5 @@ processResources {
     filesMatching('fabric.mod.json') { expand(props) }
 }
 
-configureSourcesJar([copyMain, copyClient]) {
-    from(baseProject.sourceSets.main.allSource) { exclude mainExclusions }
-    from(baseProject.sourceSets.client.allSource) { exclude clientExclusions }
-}
 
 createUnpackMinecraftTask(minecraftVersion)

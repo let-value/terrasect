@@ -3,11 +3,6 @@
  *
  * Usage in versioned build.gradle:
  *   apply from: rootProject.file('gradle/versioned.gradle')
- *
- *   ext.excludedFiles = ['path/to/File.java']
- *   ext.baseProjectPath = property('base_project')
- *
- *   configureSourceInheritance(baseProjectPath, excludedFiles)
  */
 
 def versionRootPropsFile = file("${project.projectDir.parentFile}/gradle.properties")
@@ -29,62 +24,279 @@ if (versionRootPropsFile.exists()) {
     }
 }
 
+def collectLocalJavaRelPaths(String srcDir) {
+    def dir = file(srcDir)
+    if (!dir.exists()) return []
+    def dirPath = dir.toPath().normalize()
+    fileTree(dir).files.collect { File f ->
+        dirPath.relativize(f.toPath().normalize()).toString().replace('\\', '/')
+    }
+}
+
 ext {
-    /**
-     * Collect relative paths of all Java files in a directory.
-     */
-    collectLocalFiles = { String srcDir ->
-        def dir = file(srcDir)
-        if (!dir.exists()) return []
-        fileTree(dir).files.collect {
-            it.path.replace(dir.path, '').replace('\\', '/').substring(1)
-        }
-    }
-
-    /**
-     * Create a Copy task that filters base sources, excluding local overrides and incompatible files.
-     */
-    createFilteredSourceTask = { String taskName, baseSourceDirs, Provider<Directory> outputDir, List<String> exclusions ->
-        tasks.register(taskName, Copy) {
-            from(baseSourceDirs)
-            into(outputDir)
-            exclude(exclusions)
-        }
-    }
-
-    /**
-     * Configure a source set to include local sources and filtered base sources.
-     */
-    configureInheritedSourceSet = { sourceSet, String localDir, Provider<Directory> filteredDir, baseResources ->
-        sourceSet.java {
-            srcDir localDir
-            srcDir filteredDir
-        }
-        if (baseResources) {
-            sourceSet.resources.srcDirs += baseResources
-        }
-    }
-
-    /**
-     * Configure compile task with standard options and copy task dependency.
-     */
-    configureCompileTask = { compileTask, copyTask, String javaVersion ->
-        compileTask.configure {
-            dependsOn copyTask
-            options.encoding = 'UTF-8'
-            options.release = Integer.parseInt(javaVersion)
-        }
-    }
-
     /**
      * Configure sourcesJar with proper dependencies and duplicate handling.
      */
     configureSourcesJar = { List<TaskProvider> copyTasks, Closure fromConfig ->
-        tasks.named('sourcesJar') {
+        tasks.matching { it.name == 'sourcesJar' }.configureEach {
             copyTasks.each { dependsOn it }
             duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             fromConfig.delegate = delegate
             fromConfig()
         }
+    }
+
+    /**
+     * High-level helper to inherit a Java source set from a base project.
+     *
+     * This encapsulates the repeated pattern used in versioned modules:
+     * - Compute exclusions from explicit incompatibilities + local overrides
+     * - Copy filtered base sources (optionally chained to the base project's copy task)
+     * - Wire sourceSet + compile task (encoding + --release)
+     *
+     * Required keys:
+     * - baseProject (Project)
+     * - javaVersion (String)
+     * - sourceSet (SourceSet)
+     * - compileTask (TaskProvider or Task)
+     * - localJavaDir (String)
+     * - baseSourceDirs (FileCollection / Iterable)
+     * - filteredDir (Provider<Directory>)
+     * - taskName (String)
+     * Optional keys:
+     * - excludedFiles (List<String>)
+     * - baseResources (Iterable)
+     * - baseTaskName (String)
+     */
+    inheritJavaFromBase = { Map cfg ->
+        def excludedFiles = (cfg.excludedFiles ?: []) as List<String>
+        def localJavaDir = cfg.localJavaDir as String
+        def javaVersion = cfg.javaVersion as String
+        def exclusions = excludedFiles + collectLocalJavaRelPaths(localJavaDir)
+
+        def taskName = cfg.taskName as String
+        def baseTaskName = (cfg.baseTaskName ?: taskName) as String
+        def baseProject = cfg.baseProject as Project
+        def filteredDir = cfg.filteredDir as Provider<Directory>
+
+        def copyTask = tasks.register(taskName, Copy) {
+            doFirst {
+                // Avoid stale files lingering in the filtered dir when exclusions change.
+                delete(filteredDir.get().asFile)
+            }
+            from(cfg.baseSourceDirs)
+            into(filteredDir)
+            exclude(exclusions)
+        }
+
+        if (baseProject != null) {
+            def baseTask = baseProject.tasks.findByName(baseTaskName)
+            if (baseTask != null) {
+                copyTask.configure { dependsOn baseTask }
+            }
+        }
+
+        cfg.sourceSet.java.srcDir(localJavaDir)
+        cfg.sourceSet.java.srcDir(filteredDir)
+        if (cfg.baseResources) {
+            cfg.sourceSet.resources.srcDirs += cfg.baseResources
+        }
+
+        cfg.compileTask.configure {
+            dependsOn copyTask
+            options.encoding = 'UTF-8'
+            options.release = Integer.parseInt(javaVersion)
+        }
+
+        return [copyTask: copyTask, exclusions: exclusions, filteredDir: filteredDir]
+    }
+
+    /**
+     * Unified inheritance entrypoint used by both Fabric and NeoForge versioned modules.
+     *
+     * - Always inherits main from baseProject.
+     * - Optionally inherits client if the project has a 'client' source set (Loom split env).
+     * - Optionally includes a commonProject in sourcesJar (NeoForge and/or Fabric, if desired).
+     *
+     * Expected cfg keys:
+     * - baseProject (Project)
+     * - javaVersion (String)
+     * Optional:
+     * - excludedFiles (List<String>)
+     * - commonProject (Project)
+     * - includeClient (boolean) default: sourceSets has 'client'
+     * - includeCommonInSourcesJar (boolean) default: commonProject != null
+     * - filteredRoot (String) default: 'filtered-base-sources'
+     */
+    inheritFromBaseWithSourcesJar = { Map cfg ->
+        def baseProject = cfg.baseProject as Project
+        def javaVersion = cfg.javaVersion as String
+        def excludedFiles = (cfg.excludedFiles ?: []) as List<String>
+        def commonProject = cfg.commonProject as Project
+        def filteredRoot = (cfg.filteredRoot ?: 'filtered-base-sources') as String
+
+        def includeClient = cfg.containsKey('includeClient')
+            ? (cfg.includeClient as boolean)
+            : (sourceSets.findByName('client') != null)
+
+        // Guard: only inherit client if both this project and the base have a client source set.
+        if (includeClient) {
+            includeClient = (sourceSets.findByName('client') != null) && (baseProject.sourceSets.findByName('client') != null)
+        }
+
+        def includeCommonInSourcesJar = cfg.containsKey('includeCommonInSourcesJar')
+            ? (cfg.includeCommonInSourcesJar as boolean)
+            : (commonProject != null)
+
+        def mainTaskName = includeClient ? 'copyBaseMain' : 'copyBaseSources'
+        def mainFiltered = includeClient ? "${filteredRoot}/main" : filteredRoot
+        def inheritedMain = inheritJavaFromBase(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            sourceSet: sourceSets.main,
+            compileTask: tasks.named('compileJava'),
+            localJavaDir: 'src/main/java',
+            baseSourceDirs: baseProject.sourceSets.main.java.srcDirs,
+            baseResources: baseProject.sourceSets.main.resources.srcDirs,
+            filteredDir: layout.buildDirectory.dir(mainFiltered),
+            taskName: mainTaskName
+        )
+
+        def copyTasks = [inheritedMain.copyTask]
+
+        def inheritedClient = null
+        if (includeClient) {
+            inheritedClient = inheritJavaFromBase(
+                baseProject: baseProject,
+                javaVersion: javaVersion,
+                excludedFiles: excludedFiles,
+                sourceSet: sourceSets.client,
+                compileTask: tasks.named('compileClientJava'),
+                localJavaDir: 'src/client/java',
+                baseSourceDirs: baseProject.sourceSets.client.java.srcDirs,
+                baseResources: baseProject.sourceSets.client.resources.srcDirs,
+                filteredDir: layout.buildDirectory.dir("${filteredRoot}/client"),
+                taskName: 'copyBaseClient'
+            )
+            copyTasks.add(inheritedClient.copyTask)
+        }
+
+        configureSourcesJar(copyTasks) {
+            from(baseProject.sourceSets.main.allSource) { exclude inheritedMain.exclusions }
+            if (includeClient) {
+                from(baseProject.sourceSets.client.allSource) { exclude inheritedClient.exclusions }
+            }
+            if (includeCommonInSourcesJar && commonProject != null) {
+                // Use main exclusions so local main overrides win.
+                from(commonProject.sourceSets.main.allSource) { exclude inheritedMain.exclusions }
+                dependsOn "${commonProject.path}:copyBaseSources"
+            }
+        }
+    }
+
+    /**
+     * Convenience wrapper for the common case: inherit only the main source set.
+     *
+     * Call site stays small and consistent across common/neoforge projects.
+     */
+    inheritMainFromBase = { Project baseProject, String javaVersion, List<String> excludedFiles = [], Map opts = [:] ->
+        def taskName = (opts.taskName ?: 'copyBaseSources') as String
+        def filteredPath = (opts.filteredPath ?: 'filtered-base-sources') as String
+        return inheritJavaFromBase(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            sourceSet: sourceSets.main,
+            compileTask: tasks.named('compileJava'),
+            localJavaDir: 'src/main/java',
+            baseSourceDirs: baseProject.sourceSets.main.java.srcDirs,
+            baseResources: baseProject.sourceSets.main.resources.srcDirs,
+            filteredDir: layout.buildDirectory.dir(filteredPath),
+            taskName: taskName
+        )
+    }
+
+    /**
+     * Same as inheritMainFromBase, but also wires sourcesJar to publish the inherited sources.
+     * This removes the need for call sites to depend on the return value just to get copyTask/exclusions.
+     */
+    inheritMainFromBaseWithSourcesJar = { Project baseProject, String javaVersion, List<String> excludedFiles = [], Map opts = [:] ->
+        inheritFromBaseWithSourcesJar(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            includeClient: false,
+            includeCommonInSourcesJar: false,
+            filteredRoot: (opts.filteredPath ?: 'filtered-base-sources')
+        )
+    }
+
+    /**
+     * Convenience wrapper for Fabric projects using Loom splitEnvironmentSourceSets().
+     *
+     * NOTE: Must be called after Loom creates sourceSets.client (i.e. after loom { splitEnvironmentSourceSets() }).
+     */
+    inheritFabricSplitFromBase = { Project baseProject, String javaVersion, List<String> excludedFiles = [], Map opts = [:] ->
+        def filteredRoot = (opts.filteredRoot ?: 'filtered-base-sources') as String
+
+        def inheritedMain = inheritJavaFromBase(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            sourceSet: sourceSets.main,
+            compileTask: tasks.named('compileJava'),
+            localJavaDir: 'src/main/java',
+            baseSourceDirs: baseProject.sourceSets.main.java.srcDirs,
+            baseResources: baseProject.sourceSets.main.resources.srcDirs,
+            filteredDir: layout.buildDirectory.dir("${filteredRoot}/main"),
+            taskName: 'copyBaseMain'
+        )
+
+        def inheritedClient = inheritJavaFromBase(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            sourceSet: sourceSets.client,
+            compileTask: tasks.named('compileClientJava'),
+            localJavaDir: 'src/client/java',
+            baseSourceDirs: baseProject.sourceSets.client.java.srcDirs,
+            baseResources: baseProject.sourceSets.client.resources.srcDirs,
+            filteredDir: layout.buildDirectory.dir("${filteredRoot}/client"),
+            taskName: 'copyBaseClient'
+        )
+
+        return [main: inheritedMain, client: inheritedClient]
+    }
+
+    /**
+     * Same as inheritFabricSplitFromBase, but also wires sourcesJar.
+     * NOTE: Must be called after Loom creates sourceSets.client.
+     */
+    inheritFabricSplitFromBaseWithSourcesJar = { Project baseProject, String javaVersion, List<String> excludedFiles = [], Map opts = [:] ->
+        inheritFromBaseWithSourcesJar(
+            baseProject: baseProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            includeClient: true,
+            includeCommonInSourcesJar: false,
+            filteredRoot: (opts.filteredRoot ?: 'filtered-base-sources')
+        )
+    }
+
+    /**
+     * NeoForge versioned modules usually publish sources from both baseProject and commonProject.
+     * This helper sets up main inheritance AND configures sourcesJar accordingly.
+     */
+    inheritNeoforgeMainFromBaseAndCommonWithSourcesJar = { Project baseProject, Project commonProject, String javaVersion, List<String> excludedFiles = [], Map opts = [:] ->
+        inheritFromBaseWithSourcesJar(
+            baseProject: baseProject,
+            commonProject: commonProject,
+            javaVersion: javaVersion,
+            excludedFiles: excludedFiles,
+            includeClient: false,
+            includeCommonInSourcesJar: true,
+            filteredRoot: (opts.filteredPath ?: 'filtered-base-sources')
+        )
     }
 }

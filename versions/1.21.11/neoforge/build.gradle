@@ -18,20 +18,15 @@ def commonProject = project(commonProjectPath)
 
 // API incompatibilities (no local override)
 def excludedFiles = []
-def allExclusions = excludedFiles + collectLocalFiles('src/main/java')
-
-// Filtered base sources
-def filteredDir = layout.buildDirectory.dir('filtered-base-sources')
-def copyTask = createFilteredSourceTask('copyBaseSources', baseProject.sourceSets.main.java.srcDirs, filteredDir, allExclusions)
-
-// If we inherit from another *versioned* project, ensure its filtered sources exist first.
-def baseCopyTask = baseProject.tasks.findByName('copyBaseSources')
-if (baseCopyTask != null) {
-    copyTask.configure { dependsOn baseCopyTask }
-}
+inheritFromBaseWithSourcesJar(
+    baseProject: baseProject,
+    commonProject: commonProject,
+    javaVersion: javaVersion,
+    excludedFiles: excludedFiles
+)
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
     withSourcesJar()
 }
 
@@ -58,9 +53,6 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
-configureInheritedSourceSet(sourceSets.main, 'src/main/java', filteredDir, baseProject.sourceSets.main.resources.srcDirs)
-configureCompileTask(tasks.compileJava, copyTask, javaVersion)
-
 jar {
     manifest.attributes([
         'Specification-Title'   : 'terrasect',
@@ -80,9 +72,4 @@ processResources {
     filesMatching('META-INF/neoforge.mods.toml') { expand(props) }
 }
 
-tasks.named('sourcesJar') {
-    dependsOn copyTask, "${commonProjectPath}:copyBaseSources"
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(baseProject.sourceSets.main.allSource) { exclude allExclusions }
-    from(commonProject.sourceSets.main.allSource) { exclude allExclusions }
-}
+
