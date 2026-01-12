@@ -8,7 +8,21 @@ public record ClimateSettings(
         ClimateRange depth,
         ClimateRange weirdness,
         String precipitation,
-        String climatePreset) {
+        String climatePreset,
+        boolean hasRanges) {
+
+    public ClimateSettings {
+        hasRanges = temperature != null
+                || humidity != null
+                || continentalness != null
+                || erosion != null
+                || depth != null
+                || weirdness != null;
+    }
+
+    public boolean hasRanges() {
+        return hasRanges;
+    }
 
     public record ClimateRange(float min, float max) {
 
@@ -55,7 +69,8 @@ public record ClimateSettings(
                 mergedDepth,
                 mergedWeirdness,
                 mergedPrecipitation,
-                mergedPreset);
+                mergedPreset,
+                false);
     }
 
     public static Builder builder() {
@@ -144,7 +159,15 @@ public record ClimateSettings(
 
         public ClimateSettings build() {
             return new ClimateSettings(
-                    temperature, humidity, continentalness, erosion, depth, weirdness, precipitation, climatePreset);
+                    temperature,
+                    humidity,
+                    continentalness,
+                    erosion,
+                    depth,
+                    weirdness,
+                    precipitation,
+                    climatePreset,
+                    false);
         }
 
         public Builder copyFrom(ClimateSettings settings) {

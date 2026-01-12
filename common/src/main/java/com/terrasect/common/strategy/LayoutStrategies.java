@@ -34,14 +34,14 @@ public final class LayoutStrategies {
 
     private static long computeSeed(GenerationStrategy strategy, long parentSeed, QueryResult result) {
         return switch (strategy) {
-            case GenerationStrategy.Hex ignored -> {
+            case GenerationStrategy.Hex _ -> {
                 int q = (int) result.siteX;
                 int r = (int) result.siteZ;
                 yield HexStrategy.getSeed(parentSeed, q, r);
             }
-            case GenerationStrategy.Subdivision ignored -> hashChildSeed(parentSeed, result, 777);
-            case GenerationStrategy.Template ignored -> hashChildSeed(parentSeed, result, 888);
-            case GenerationStrategy.Voronoi ignored -> hashChildSeed(parentSeed, result, 999);
+            case GenerationStrategy.Subdivision _ -> hashChildSeed(parentSeed, result, 777);
+            case GenerationStrategy.Template _ -> hashChildSeed(parentSeed, result, 888);
+            case GenerationStrategy.Voronoi _ -> hashChildSeed(parentSeed, result, 999);
         };
     }
 

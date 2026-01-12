@@ -49,7 +49,7 @@ public class LevelMixin {
             @Nullable RandomSequences randomSequences,
             CallbackInfo ci) {
 
-        ServerLevel level = (ServerLevel) (Object) this;
+        var level = (ServerLevel) (Object) this;
         var generator = level.getChunkSource().getGenerator();
         var biomeSource = generator.getBiomeSource();
 

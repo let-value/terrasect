@@ -1,8 +1,6 @@
 package com.terrasect.common.handler;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.definition.ClimateSettings;
-import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.ClimateModifier;
 import net.minecraft.world.level.biome.Climate;
@@ -20,22 +18,13 @@ public final class ClimateHandler {
         int blockX = x << 2;
         int blockZ = z << 2;
 
-        TraversalResult traversal = World.traverse(context, blockX, blockZ);
+        var traversal = World.traverse(context, blockX, blockZ);
         if (traversal == null || traversal.region == null) {
             return original;
         }
 
-        ClimateSettings climate = traversal.region.definition().climate();
-        if (climate == null) {
-            return original;
-        }
-
-        if (climate.temperature() == null
-                && climate.humidity() == null
-                && climate.continentalness() == null
-                && climate.erosion() == null
-                && climate.depth() == null
-                && climate.weirdness() == null) {
+        var climate = traversal.region.definition().climate();
+        if (climate == null || !climate.hasRanges()) {
             return original;
         }
 

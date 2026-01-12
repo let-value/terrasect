@@ -29,13 +29,10 @@ public class ClimateMixin implements VanillaSamplerAccessor {
     private void terrasect$modifyClimate(int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
         if (terrasect$wantVanilla.get()) return;
 
-        Climate.Sampler self = (Climate.Sampler) (Object) this;
-        MinecraftContext context = MinecraftContext.get(self);
-        if (context == null) return;
+        var self = (Climate.Sampler) (Object) this;
+        var context = MinecraftContext.get(self);
+        assert context != null : "MinecraftContext not found in Climate.Sampler";
 
-        Climate.TargetPoint modified = ClimateHandler.modifyTargetPoint(context, x, y, z, cir.getReturnValue());
-        if (modified != cir.getReturnValue()) {
-            cir.setReturnValue(modified);
-        }
+        ClimateHandler.modifyTargetPoint(context, x, y, z, cir.getReturnValue());
     }
 }
