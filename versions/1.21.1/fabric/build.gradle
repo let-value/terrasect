@@ -6,23 +6,10 @@ plugins {
 apply from: rootProject.file('gradle/versioned.gradle')
 apply from: rootProject.file('gradle/loaders/fabric.gradle')
 
-def javaVersion = property('java_version')
-def baseProjectPath = property('base_project')
-def commonProjectPath = property('common_project')
-def minecraftVersion = property('minecraft_version')
-def fabricLoaderVersion = property('fabric_loader_version')
-def fabricApiVersion = property('fabric_api_version')
-
-evaluationDependsOn(baseProjectPath)
-evaluationDependsOn(commonProjectPath)
-def baseProject = project(baseProjectPath)
-def commonProject = project(commonProjectPath)
-
-// API incompatibilities (no local override)
-def excludedFiles = []
+def cfg = versionedConfig()
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    toolchain.languageVersion = JavaLanguageVersion.of(cfg.toolchainVersion)
     withSourcesJar()
 }
 
@@ -37,7 +24,7 @@ repositories {
 def localAccessWidener = file('src/main/resources/terrasect.accesswidener')
 def accessWidenerFile = localAccessWidener.exists()
     ? localAccessWidener
-    : baseProject.file('src/main/resources/terrasect.accesswidener')
+    : cfg.baseProject.file('src/main/resources/terrasect.accesswidener')
 
 loom {
     splitEnvironmentSourceSets()
@@ -55,28 +42,28 @@ loom {
 }
 
 inheritFromBaseWithSourcesJar(
-    baseProject: baseProject,
-    commonProject: commonProject,
-    javaVersion: javaVersion,
-    excludedFiles: excludedFiles
+    baseProject: cfg.baseProject,
+    commonProject: cfg.commonProject,
+    javaVersion: cfg.javaVersion,
+    excludedFiles: []
 )
 
 dependencies {
-    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    minecraft "com.mojang:minecraft:${cfg.minecraftVersion}"
     mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
-    implementation project(commonProjectPath)
+    modImplementation "net.fabricmc:fabric-loader:${cfg.fabricLoaderVersion}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${cfg.fabricApiVersion}"
+    implementation cfg.commonProject
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
 processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
-    def props = [version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, minecraft_version_range: mcVersionRange, java_version: javaVersion, fabric_loader_version: fabricLoaderVersion]
+    def mcVersionRange = findProperty('minecraft_version_range') ?: cfg.minecraftVersion
+    def props = [version: rootProject.property('mod_version'), minecraft_version: cfg.minecraftVersion, minecraft_version_range: mcVersionRange, java_version: cfg.javaVersion, fabric_loader_version: cfg.fabricLoaderVersion]
     inputs.properties(props)
     filesMatching('fabric.mod.json') { expand(props) }
 }
 
 
-createUnpackMinecraftTask(minecraftVersion)
+createUnpackMinecraftTask(cfg.minecraftVersion)

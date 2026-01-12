@@ -5,26 +5,20 @@ plugins {
 
 apply from: rootProject.file('gradle/versioned.gradle')
 
-def javaVersion = property('java_version')
-def baseProjectPath = property('base_project')
-def minecraftVersion = property('minecraft_version')
-def fabricLoaderVersion = property('fabric_loader_version')
-
-evaluationDependsOn(baseProjectPath)
-def baseProject = project(baseProjectPath)
+def cfg = versionedConfig()
 
 // API incompatibilities (no local override)
 def excludedFiles = [
     'com/terrasect/common/gui/RegionDebugEntry.java',
 ]
 inheritFromBaseWithSourcesJar(
-    baseProject: baseProject,
-    javaVersion: javaVersion,
+    baseProject: cfg.baseProject,
+    javaVersion: cfg.javaVersion,
     excludedFiles: excludedFiles
 )
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    toolchain.languageVersion = JavaLanguageVersion.of(cfg.toolchainVersion)
     withSourcesJar()
 }
 
@@ -33,10 +27,9 @@ repositories {
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    minecraft "com.mojang:minecraft:${cfg.minecraftVersion}"
     mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
+    modImplementation "net.fabricmc:fabric-loader:${cfg.fabricLoaderVersion}"
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
-
 

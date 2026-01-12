@@ -5,28 +5,18 @@ plugins {
 
 apply from: rootProject.file('gradle/versioned.gradle')
 
-def javaVersion = property('java_version')
-def baseProjectPath = property('base_project')
-def commonProjectPath = property('common_project')
-def minecraftVersion = property('minecraft_version')
-def neoforgeVersion = property('neoforge_version')
-
-evaluationDependsOn(baseProjectPath)
-evaluationDependsOn(commonProjectPath)
-def baseProject = project(baseProjectPath)
-def commonProject = project(commonProjectPath)
+def cfg = versionedConfig()
 
 // API incompatibilities (no local override)
-def excludedFiles = []
 inheritFromBaseWithSourcesJar(
-    baseProject: baseProject,
-    commonProject: commonProject,
-    javaVersion: javaVersion,
-    excludedFiles: excludedFiles
+    baseProject: cfg.baseProject,
+    commonProject: cfg.commonProject,
+    javaVersion: cfg.javaVersion,
+    excludedFiles: []
 )
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
+    toolchain.languageVersion = JavaLanguageVersion.of(cfg.toolchainVersion)
     withSourcesJar()
 }
 
@@ -35,11 +25,11 @@ repositories {
 }
 
 neoForge {
-    version = neoforgeVersion
+    version = cfg.neoforgeVersion
     mods {
         terrasect {
             sourceSet sourceSets.main
-            sourceSet commonProject.sourceSets.main
+            sourceSet cfg.commonProject.sourceSets.main
         }
     }
     runs {
@@ -49,7 +39,7 @@ neoForge {
 }
 
 dependencies {
-    implementation project(commonProjectPath)
+    implementation cfg.commonProject
     compileOnly 'org.jetbrains:annotations:24.1.0'
 }
 
@@ -65,9 +55,9 @@ jar {
 }
 
 processResources {
-    def mcVersionRange = findProperty('minecraft_version_range') ?: minecraftVersion
-    def nfVersionRange = findProperty('neoforge_version_range') ?: neoforgeVersion
-    def props = [mod_version: rootProject.property('mod_version'), minecraft_version: minecraftVersion, minecraft_version_range: mcVersionRange, java_version: javaVersion, neoforge_version: neoforgeVersion, neoforge_version_range: nfVersionRange, neoforge_version_major: neoforgeVersion.split('\\.').take(2).join('.')]
+    def mcVersionRange = findProperty('minecraft_version_range') ?: cfg.minecraftVersion
+    def nfVersionRange = findProperty('neoforge_version_range') ?: cfg.neoforgeVersion
+    def props = [mod_version: rootProject.property('mod_version'), minecraft_version: cfg.minecraftVersion, minecraft_version_range: mcVersionRange, java_version: cfg.javaVersion, neoforge_version: cfg.neoforgeVersion, neoforge_version_range: nfVersionRange, neoforge_version_major: cfg.neoforgeVersion.split('\\.').take(2).join('.')]
     inputs.properties(props)
     filesMatching('META-INF/neoforge.mods.toml') { expand(props) }
 }

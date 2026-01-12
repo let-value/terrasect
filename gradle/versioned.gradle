@@ -33,7 +33,45 @@ def collectLocalJavaRelPaths(String srcDir) {
     }
 }
 
+def requiredVersionProp = { String name -> property(name).toString() }
+def optionalVersionProp = { String name -> findProperty(name)?.toString() }
+def resolveVersionedProject = { String path ->
+    evaluationDependsOn(path)
+    project(path)
+}
+
 ext {
+    /**
+     * Small helper that gathers the common versioned project inputs (projects, versions).
+     */
+    versionedConfig = { Map overrides = [:] ->
+        def javaVersion = (overrides.javaVersion ?: requiredVersionProp('java_version')).toString()
+        def toolchainVersion = (overrides.toolchainVersion
+            ?: optionalVersionProp('java_toolchain_version')
+            ?: rootProject.property('java_version')).toString()
+
+        def baseProjectPath = (overrides.baseProjectPath ?: requiredVersionProp('base_project')).toString()
+        def commonProjectPath = overrides.containsKey('commonProjectPath')
+            ? overrides.commonProjectPath
+            : optionalVersionProp('common_project')
+
+        def cfg = [
+            javaVersion      : javaVersion,
+            toolchainVersion : toolchainVersion,
+            baseProjectPath  : baseProjectPath,
+            baseProject      : resolveVersionedProject(baseProjectPath),
+            commonProjectPath: commonProjectPath,
+            commonProject    : commonProjectPath ? resolveVersionedProject(commonProjectPath.toString()) : null
+        ]
+
+        cfg.minecraftVersion = (overrides.minecraftVersion ?: optionalVersionProp('minecraft_version'))?.toString()
+        cfg.neoforgeVersion = (overrides.neoforgeVersion ?: optionalVersionProp('neoforge_version'))?.toString()
+        cfg.neoformVersion = (overrides.neoformVersion ?: optionalVersionProp('neoform_version'))?.toString()
+        cfg.fabricLoaderVersion = (overrides.fabricLoaderVersion ?: optionalVersionProp('fabric_loader_version'))?.toString()
+        cfg.fabricApiVersion = (overrides.fabricApiVersion ?: optionalVersionProp('fabric_api_version'))?.toString()
+        return cfg
+    }
+
     /**
      * Configure sourcesJar with proper dependencies and duplicate handling.
      */
