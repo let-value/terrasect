@@ -1,24 +1,24 @@
 {
-  "required": true,
-  "package": "com.terrasect.fabric.mixin",
-  "compatibilityLevel": "JAVA_17",
-  "mixins": [
-    "LevelMixin",
-    "BiomeMixin",
-    "ClimateMixin",
-    "ClimateTargetPointMixin",
-    "FeatureMixin",
-    "MultiNoiseBiomeSourceMixin",
-    "TerrainMixin",
-    "NoiseChunkNoiseMixin",
-    "NoiseMixin",
-    "ShiftedNoiseMixin",
-    "WeirdScaledSamplerMixin",
-    "ShiftNoiseMixin",
-    "ShiftANoiseMixin",
-    "ShiftBNoiseMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+    "required": true,
+    "package": "com.terrasect.fabric.mixin",
+    "compatibilityLevel": "JAVA_17",
+    "mixins": [
+        "LevelMixin",
+        "BiomeMixin",
+        "ClimateMixin",
+        "ClimateTargetPointMixin",
+        "FeatureMixin",
+        "MultiNoiseBiomeSourceMixin",
+        "TerrainMixin",
+        "NoiseChunkNoiseMixin",
+        "NoiseMixin",
+        "ShiftedNoiseMixin",
+        "WeirdScaledSamplerMixin",
+        "ShiftNoiseMixin",
+        "ShiftANoiseMixin",
+        "ShiftBNoiseMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
 }
