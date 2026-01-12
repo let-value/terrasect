@@ -9,13 +9,14 @@ import net.minecraft.world.level.biome.Climate;
 
 public final class BiomeHandler {
 
-    private BiomeHandler() {}
+    private BiomeHandler() {
+    }
 
     public static Holder<Biome> selectBiome(
             MinecraftContext context, int quartX, int quartZ, Climate.TargetPoint targetPoint) {
 
-        int blockX = quartX << 2;
-        int blockZ = quartZ << 2;
+        var blockX = quartX << 2;
+        var blockZ = quartZ << 2;
 
         var traversal = World.traverse(context, blockX, blockZ);
         var region = traversal != null ? traversal.region : null;

@@ -11,7 +11,8 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 public final class LevelHandler {
 
-    private LevelHandler() {}
+    private LevelHandler() {
+    }
 
     public static MinecraftContext registerContext(
             ResourceKey<Level> dimension,

@@ -8,7 +8,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 
 public final class NoiseHandler {
 
-    private NoiseHandler() {}
+    private NoiseHandler() {
+    }
 
     public static double sampleNoise(
             DensityFunction.NoiseHolder noiseHolder,
@@ -17,7 +18,7 @@ public final class NoiseHandler {
             double z,
             DensityFunction.FunctionContext context) {
 
-        double original = noiseHolder.getValue(x, y, z);
+        var original = noiseHolder.getValue(x, y, z);
 
         if (!(context instanceof NoiseChunkAccessor access)) {
             return original;
@@ -27,8 +28,8 @@ public final class NoiseHandler {
             return original;
         }
 
-        int blockX = context.blockX();
-        int blockZ = context.blockZ();
+        var blockX = context.blockX();
+        var blockZ = context.blockZ();
 
         var constraints = lookup.getConstraints(blockX, blockZ);
         if (constraints == null) {
@@ -46,12 +47,12 @@ public final class NoiseHandler {
             return original;
         }
 
-        float strength = lookup.getStrength(blockX, blockZ);
+        var strength = lookup.getStrength(blockX, blockZ);
         if (strength <= 0.0f) {
             return original;
         }
 
-        double transformed = transform.apply(original);
+        var transformed = transform.apply(original);
         if (strength >= 1.0f) {
             return transformed;
         }

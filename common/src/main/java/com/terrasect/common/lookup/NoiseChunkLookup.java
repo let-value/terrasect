@@ -41,13 +41,13 @@ public final class NoiseChunkLookup {
         CompiledNoiseRegistry.CompiledNoiseConstraints[] constraints =
                 new CompiledNoiseRegistry.CompiledNoiseConstraints[QUART_SIZE * QUART_SIZE];
         float[] strengths = new float[QUART_SIZE * QUART_SIZE];
-        boolean hasAny = false;
+        var hasAny = false;
 
-        for (int qz = 0; qz < QUART_SIZE; qz++) {
-            int blockZ = chunkMinZ + (qz << QUART_SHIFT);
-            for (int qx = 0; qx < QUART_SIZE; qx++) {
-                int blockX = chunkMinX + (qx << QUART_SHIFT);
-                int index = qx + (qz << QUART_SHIFT);
+        for (var qz = 0; qz < QUART_SIZE; qz++) {
+            var blockZ = chunkMinZ + (qz << QUART_SHIFT);
+            for (var qx = 0; qx < QUART_SIZE; qx++) {
+                var blockX = chunkMinX + (qx << QUART_SHIFT);
+                var index = qx + (qz << QUART_SHIFT);
 
                 TraversalResult traversal = World.traverse(context, blockX, blockZ);
                 if (traversal == null || traversal.region == null) {
@@ -55,8 +55,8 @@ public final class NoiseChunkLookup {
                     continue;
                 }
 
-                RegionDefinition definition = traversal.region.definition();
-                CompiledNoiseRegistry.CompiledNoiseConstraints compiled = registry.get(definition);
+                var definition = traversal.region.definition();
+                var compiled = registry.get(definition);
                 if (compiled == null || compiled.isEmpty()) {
                     strengths[index] = 0.0f;
                     continue;
@@ -72,18 +72,18 @@ public final class NoiseChunkLookup {
     }
 
     public @Nullable CompiledNoiseRegistry.CompiledNoiseConstraints getConstraints(int blockX, int blockZ) {
-        int index = index(blockX, blockZ);
+        var index = index(blockX, blockZ);
         return index >= 0 ? constraints[index] : null;
     }
 
     public float getStrength(int blockX, int blockZ) {
-        int index = index(blockX, blockZ);
+        var index = index(blockX, blockZ);
         return index >= 0 ? strengths[index] : 0.0f;
     }
 
     int index(int blockX, int blockZ) {
-        int localX = (blockX - chunkMinX) >> QUART_SHIFT;
-        int localZ = (blockZ - chunkMinZ) >> QUART_SHIFT;
+        var localX = (blockX - chunkMinX) >> QUART_SHIFT;
+        var localZ = (blockZ - chunkMinZ) >> QUART_SHIFT;
         if ((localX & ~QUART_MASK) != 0 || (localZ & ~QUART_MASK) != 0) {
             return -1;
         }

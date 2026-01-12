@@ -42,22 +42,20 @@ public class BiomeVisualizationTest {
     private static final int HEIGHT = 256;
     private static final int SCALE = 8;
 
-    @BeforeAll
-    public static void setup() {
+    @BeforeAll public static void setup() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
-    @Test
-    public void visualizeBiomeFiltering(Snapshot snapshot) throws IOException {
+    @Test public void visualizeBiomeFiltering(Snapshot snapshot) throws IOException {
 
-        long seed = 12345L;
+        var seed = 12345L;
 
-        Region root = buildFilteredBiomeRegions();
+        var root = buildFilteredBiomeRegions();
         World.register(root, World.OVERWORLD);
 
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
+        var noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
         NoiseGeneratorSettings settings;
         try {
@@ -69,7 +67,7 @@ public class BiomeVisualizationTest {
         }
 
         RandomState randomState = RandomState.create(settings, noiseParams, seed);
-        Climate.Sampler sampler = randomState.sampler();
+        var sampler = randomState.sampler();
 
         var parameterListLookup = lookup.lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST);
         var overworldParameters = parameterListLookup.getOrThrow(
@@ -78,9 +76,9 @@ public class BiomeVisualizationTest {
         Climate.ParameterList<Holder<Biome>> parameterList =
                 overworldParameters.value().parameters();
 
-        Context context = createStrategy(seed, sampler, biomeSource);
+        var context = createStrategy(seed, sampler, biomeSource);
 
-        IdentityHashMap<Holder<Biome>, BiomeLookup.Entry> metadata = new IdentityHashMap<>();
+        var metadata = new IdentityHashMap<Holder<Biome>, BiomeLookup.Entry>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (metadata.containsKey(biome)) {
@@ -90,28 +88,28 @@ public class BiomeVisualizationTest {
         }
         BiomeLookup biomeLookup = BiomeLookup.metadataOnly(metadata);
 
-        BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage filteredBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage filterOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage regionMap = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage combinedView = new BufferedImage(WIDTH * 2, HEIGHT * 2, BufferedImage.TYPE_INT_RGB);
+        var vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var filteredBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var filterOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var regionMap = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var combinedView = new BufferedImage(WIDTH * 2, HEIGHT * 2, BufferedImage.TYPE_INT_RGB);
 
-        int blockedCount = 0;
-        int replacedCount = 0;
-        int totalWithRules = 0;
+        var blockedCount = 0;
+        var replacedCount = 0;
+        var totalWithRules = 0;
 
-        for (int py = 0; py < HEIGHT; py++) {
-            for (int px = 0; px < WIDTH; px++) {
-                int blockX = px * SCALE;
-                int blockZ = py * SCALE;
-                int quartX = blockX >> 2;
-                int quartZ = blockZ >> 2;
+        for (var py = 0; py < HEIGHT; py++) {
+            for (var px = 0; px < WIDTH; px++) {
+                var blockX = px * SCALE;
+                var blockZ = py * SCALE;
+                var quartX = blockX >> 2;
+                var quartZ = blockZ >> 2;
 
-                Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
+                var vanilla = sampler.sample(quartX, 16, quartZ);
 
-                Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
+                var vanillaBiome = parameterList.findValue(vanilla);
 
-                BiomeLookup.Entry vanillaEntry = biomeLookup.get(vanillaBiome);
+                var vanillaEntry = biomeLookup.get(vanillaBiome);
                 String vanillaBiomeId = vanillaEntry != null ? vanillaEntry.id() : getBiomeId(vanillaBiome);
                 Set<String> vanillaTags = vanillaEntry != null ? vanillaEntry.tags() : getBiomeTags(vanillaBiome);
 
@@ -125,7 +123,7 @@ public class BiomeVisualizationTest {
                 BiomeFilter.FilterResult filterResult = BiomeFilter.checkBiome(biomeRules, vanillaBiomeId, vanillaTags);
 
                 Holder<Biome> finalBiome = vanillaBiome;
-                int overlayColor = 0x444444;
+                var overlayColor = 0x444444;
 
                 if (BiomeFilter.hasRules(biomeRules)) {
                     totalWithRules++;
@@ -154,7 +152,7 @@ public class BiomeVisualizationTest {
             }
         }
 
-        Graphics2D g = combinedView.createGraphics();
+        var g = combinedView.createGraphics();
         g.drawImage(vanillaBiomes, 0, 0, null);
         g.drawImage(filteredBiomes, WIDTH, 0, null);
         g.drawImage(regionMap, 0, HEIGHT, null);
@@ -168,7 +166,7 @@ public class BiomeVisualizationTest {
         g.drawString("Filter Overlay (red=replaced, green=allowed)", WIDTH + 10, HEIGHT + 20);
         g.dispose();
 
-        File outDir = new File("build/biome-snapshots");
+        var outDir = new File("build/biome-snapshots");
         outDir.mkdirs();
 
         ImageIO.write(vanillaBiomes, "png", new File(outDir, "vanilla_biomes.png"));
@@ -187,7 +185,7 @@ public class BiomeVisualizationTest {
         System.out.println("Biomes changed: " + replacedCount + " ("
                 + String.format("%.1f%%", 100.0 * replacedCount / (WIDTH * HEIGHT)) + " of total)");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
-        StringBuilder snapshotText = new StringBuilder(256);
+        var snapshotText = new StringBuilder(256);
         snapshotText.append("blockedCount=").append(blockedCount).append('\n');
         snapshotText.append("replacedCount=").append(replacedCount).append('\n');
         snapshotText.append("totalWithRules=").append(totalWithRules).append('\n');
@@ -200,9 +198,9 @@ public class BiomeVisualizationTest {
     }
 
     private Region buildFilteredBiomeRegions() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(GenerationStrategy.voronoi())
+                .strategy(GenerationStrategy.voronoi())
                 .child("ETERNAL_FOREST", region -> region.radius(150).biomes(b -> b.allowTags("#minecraft:is_forest")))
                 .child("LANDLOCKED", region -> region.radius(200)
                         .biomes(b -> b.blockTags("#minecraft:is_ocean", "#minecraft:is_river")))
@@ -229,13 +227,13 @@ public class BiomeVisualizationTest {
         }
 
         Holder<Biome> bestFallback = null;
-        long bestDistance = Long.MAX_VALUE;
+        var bestDistance = Long.MAX_VALUE;
 
         for (var entry : parameterList.values()) {
             Holder<Biome> candidate = entry.getSecond();
 
             if (biomeLookup.isAllowed(candidate, rules)) {
-                long distance = calculateClimateDistance(target, entry.getFirst());
+                var distance = calculateClimateDistance(target, entry.getFirst());
                 if (distance < bestDistance) {
                     bestDistance = distance;
                     bestFallback = candidate;
@@ -247,11 +245,11 @@ public class BiomeVisualizationTest {
     }
 
     private long calculateClimateDistance(Climate.TargetPoint target, Climate.ParameterPoint params) {
-        long tempDist = Math.abs(target.temperature() - params.temperature().min());
-        long humidDist = Math.abs(target.humidity() - params.humidity().min());
-        long contDist =
+        var tempDist = Math.abs(target.temperature() - params.temperature().min());
+        var humidDist = Math.abs(target.humidity() - params.humidity().min());
+        var contDist =
                 Math.abs(target.continentalness() - params.continentalness().min());
-        long erosionDist = Math.abs(target.erosion() - params.erosion().min());
+        var erosionDist = Math.abs(target.erosion() - params.erosion().min());
         return tempDist + humidDist + contDist + erosionDist;
     }
 
@@ -260,7 +258,7 @@ public class BiomeVisualizationTest {
     }
 
     private Set<String> getBiomeTags(Holder<Biome> biome) {
-        Set<String> tags = new HashSet<>();
+        var tags = new HashSet<String>();
 
         try {
             BiomeCompat.getTags(biome)
@@ -269,14 +267,14 @@ public class BiomeVisualizationTest {
 
         }
 
-        String biomeId = getBiomeId(biome);
+        var biomeId = getBiomeId(biome);
         tags.addAll(inferTagsFromBiomeName(biomeId));
 
         return tags;
     }
 
     private Set<String> inferTagsFromBiomeName(String biomeId) {
-        Set<String> tags = new HashSet<>();
+        var tags = new HashSet<String>();
 
         if (biomeId.contains("forest") || biomeId.contains("grove") || biomeId.contains("taiga")) {
             tags.add("#minecraft:is_forest");
@@ -311,22 +309,20 @@ public class BiomeVisualizationTest {
 
     private Context createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
         return new Context() {
-            @Override
-            public long getSeed() {
+            @Override public long getSeed() {
                 return seed;
             }
 
-            @Override
-            public long getInfluence(int x, int z) {
-                int qx = x >> 2;
-                int qz = z >> 2;
-                Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
+            @Override public long getInfluence(int x, int z) {
+                var qx = x >> 2;
+                var qz = z >> 2;
+                var biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
 
                 String biomeId = BiomeCompat.getBiomeId(biome);
                 float river = biomeId.contains("river") ? 1.0f : 0.0f;
 
-                Climate.TargetPoint target = sampler.sample(x >> 2, 0, z >> 2);
-                float ridge = (float) ((target.weirdness() + 10000) / 20000.0);
+                var target = sampler.sample(x >> 2, 0, z >> 2);
+                var ridge = (float) ((target.weirdness() + 10000) / 20000.0);
 
                 return Packer.packPair(river, ridge);
             }
@@ -336,7 +332,7 @@ public class BiomeVisualizationTest {
     private int getRegionColor(Region region, float edgeFactor) {
         if (region == null) return 0x000000;
 
-        int baseColor =
+        var baseColor =
                 switch (region.name()) {
                     case "ETERNAL_FOREST" -> 0x228B22;
                     case "LANDLOCKED" -> 0xDEB887;
@@ -348,10 +344,10 @@ public class BiomeVisualizationTest {
                 };
 
         if (edgeFactor > 0.5f) {
-            float darken = (edgeFactor - 0.5f) * 2;
-            int r = (int) (((baseColor >> 16) & 0xFF) * (1 - darken * 0.5));
-            int g = (int) (((baseColor >> 8) & 0xFF) * (1 - darken * 0.5));
-            int b = (int) ((baseColor & 0xFF) * (1 - darken * 0.5));
+            var darken = (edgeFactor - 0.5f) * 2;
+            var r = (int) (((baseColor >> 16) & 0xFF) * (1 - darken * 0.5));
+            var g = (int) (((baseColor >> 8) & 0xFF) * (1 - darken * 0.5));
+            var b = (int) ((baseColor & 0xFF) * (1 - darken * 0.5));
             return (r << 16) | (g << 8) | b;
         }
 
@@ -361,12 +357,12 @@ public class BiomeVisualizationTest {
     private int biomeToColor(Holder<Biome> biome) {
         String name = BiomeCompat.getBiomeId(biome);
 
-        int hash = name.hashCode();
-        int r = ((hash >> 16) & 0xFF);
-        int g = ((hash >> 8) & 0xFF);
-        int b = (hash & 0xFF);
+        var hash = name.hashCode();
+        var r = ((hash >> 16) & 0xFF);
+        var g = ((hash >> 8) & 0xFF);
+        var b = (hash & 0xFF);
 
-        int brightness = (r + g + b) / 3;
+        var brightness = (r + g + b) / 3;
         if (brightness < 80) {
             r = Math.min(255, r + 80);
             g = Math.min(255, g + 80);

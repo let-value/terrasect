@@ -60,12 +60,13 @@ public final class BiomeFilter {
 
     private static String extractNamespace(String resourceId) {
         if (resourceId == null || resourceId.isEmpty()) return "minecraft";
-        int colonIndex = resourceId.indexOf(':');
+        var colonIndex = resourceId.indexOf(':');
         if (colonIndex > 0) {
             return resourceId.substring(0, colonIndex);
         }
         return "minecraft";
     }
 
-    private BiomeFilter() {}
+    private BiomeFilter() {
+    }
 }

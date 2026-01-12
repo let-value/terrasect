@@ -18,7 +18,8 @@ import net.minecraft.world.level.biome.Climate;
 
 public final class BiomeLookup {
 
-    public record Entry(String id, Set<String> tags) {}
+    public record Entry(String id, Set<String> tags) {
+    }
 
     public static BiomeLookup metadataOnly(IdentityHashMap<Holder<Biome>, Entry> metadata) {
         return new BiomeLookup(metadata, new IdentityHashMap<>());
@@ -39,7 +40,7 @@ public final class BiomeLookup {
     }
 
     public boolean isAllowed(Holder<Biome> key, SelectionRules rules) {
-        Entry entry = metadata.get(key);
+        var entry = metadata.get(key);
         if (entry == null) {
             return true;
         }
@@ -47,7 +48,7 @@ public final class BiomeLookup {
     }
 
     public BiomeFilter.FilterResult checkBiome(Holder<Biome> key, SelectionRules rules) {
-        Entry entry = metadata.get(key);
+        var entry = metadata.get(key);
         if (entry == null) {
             return BiomeFilter.FilterResult.NO_RULES;
         }
@@ -69,7 +70,7 @@ public final class BiomeLookup {
             return new BiomeLookup(new IdentityHashMap<>(), new IdentityHashMap<>());
         }
 
-        IdentityHashMap<Holder<Biome>, Entry> metadata = new IdentityHashMap<>();
+        var metadata = new IdentityHashMap<Holder<Biome>, Entry>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
             if (metadata.containsKey(biome)) {
@@ -80,7 +81,7 @@ public final class BiomeLookup {
             metadata.put(biome, new Entry(id, buildTags(biome)));
         }
 
-        IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredParameterLists =
+        var filteredParameterLists =
                 buildFilteredLists(dimensionId, metadata, parameterList);
 
         return new BiomeLookup(metadata, filteredParameterLists);
@@ -93,7 +94,7 @@ public final class BiomeLookup {
     }
 
     private static void collectRulesRecursive(Region region, Set<SelectionRules> rules) {
-        SelectionRules biomeRules = region.definition().biomes();
+        var biomeRules = region.definition().biomes();
         if (biomeRules != null && (biomeRules.hasAllowRules() || biomeRules.hasBlockRules())) {
             rules.add(biomeRules);
         }
@@ -104,7 +105,7 @@ public final class BiomeLookup {
     }
 
     private static Set<String> buildTags(Holder<Biome> biome) {
-        Set<String> tags = new HashSet<>();
+        var tags = new HashSet<String>();
         BiomeCompat.getTags(biome).forEach(tag -> tags.add("#" + tag.location().toString()));
         return tags;
     }
@@ -119,25 +120,25 @@ public final class BiomeLookup {
             return new IdentityHashMap<>();
         }
 
-        Set<SelectionRules> rulesToPreBake = collectAllRules(root);
+        var rulesToPreBake = collectAllRules(root);
         if (rulesToPreBake.isEmpty()) {
             return new IdentityHashMap<>();
         }
 
         List<Pair<Climate.ParameterPoint, Holder<Biome>>> originalValues = original.values();
-        IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredLists = new IdentityHashMap<>();
+        var filteredLists = new IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>>();
 
         for (SelectionRules rules : rulesToPreBake) {
             if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
                 continue;
             }
 
-            List<Pair<Climate.ParameterPoint, Holder<Biome>>> filtered = new ArrayList<>(originalValues.size());
+            var filtered = new ArrayList<Pair<Climate.ParameterPoint, Holder<Biome>>>(originalValues.size());
             for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : originalValues) {
                 Holder<Biome> biome = entry.getSecond();
-                Entry meta = metadata.get(biome);
+                var meta = metadata.get(biome);
 
-                boolean allowed = meta == null
+                var allowed = meta == null
                         || BiomeFilter.checkBiome(rules, meta.id(), meta.tags()) != BiomeFilter.FilterResult.BLOCKED;
 
                 if (allowed) {

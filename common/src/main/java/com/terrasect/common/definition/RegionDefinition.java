@@ -41,8 +41,7 @@ public record RegionDefinition(
     }
 
     public static class Builder extends AbstractBuilder<Builder> {
-        @Override
-        protected Builder self() {
+        @Override protected Builder self() {
             return this;
         }
     }

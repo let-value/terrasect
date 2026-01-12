@@ -17,8 +17,8 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
     public StructureRules resolveWithParent(StructureRules parent) {
         if (parent == null) return this;
 
-        SelectionRules mergedSelection = selection.resolveWithParent(parent.selection);
-        Set<String> mergedRequired = new LinkedHashSet<>(parent.requiredStructures);
+        var mergedSelection = selection.resolveWithParent(parent.selection);
+        var mergedRequired = new LinkedHashSet<String>(parent.requiredStructures);
         mergedRequired.addAll(requiredStructures);
         mergedRequired.removeAll(mergedSelection.blockedNames());
 
@@ -44,42 +44,42 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
         }
 
         public Builder allowMods(String... mods) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.allowMods(mods);
             selection = builder.build();
             return this;
         }
 
         public Builder allowTags(String... tags) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.allowTags(tags);
             selection = builder.build();
             return this;
         }
 
         public Builder allowNames(String... names) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.allowNames(names);
             selection = builder.build();
             return this;
         }
 
         public Builder blockMods(String... mods) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.blockMods(mods);
             selection = builder.build();
             return this;
         }
 
         public Builder blockTags(String... tags) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.blockTags(tags);
             selection = builder.build();
             return this;
         }
 
         public Builder blockNames(String... names) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(selection);
+            var builder = SelectionRules.builder().copyFrom(selection);
             builder.blockNames(names);
             selection = builder.build();
             return this;

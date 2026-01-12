@@ -2,7 +2,8 @@ package com.terrasect.common.util;
 
 public final class Packer {
 
-    private Packer() {}
+    private Packer() {
+    }
 
     public static long packPair(float first, float second) {
         return ((long) Float.floatToRawIntBits(second) << 32) | (Float.floatToRawIntBits(first) & 0xFFFFFFFFL);

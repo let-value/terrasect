@@ -13,7 +13,8 @@ public final class SubdivisionStrategy {
     private static final ThreadLocal<float[]> BUDGETS_BUFFER = ThreadLocal.withInitial(() -> new float[8]);
     private static final ThreadLocal<int[]> INDICES_BUFFER = ThreadLocal.withInitial(() -> new int[8]);
 
-    private SubdivisionStrategy() {}
+    private SubdivisionStrategy() {
+    }
 
     public static void query(
             long seed,
@@ -31,7 +32,7 @@ public final class SubdivisionStrategy {
             return;
         }
 
-        int count = children.size();
+        var count = children.size();
         if (count == 1) {
             out.childIndex = 0;
             out.centerX = 0;
@@ -40,18 +41,18 @@ public final class SubdivisionStrategy {
             return;
         }
 
-        float jitter = strategy.jitter();
+        var jitter = strategy.jitter();
 
-        float nx = dx / radius;
-        float nz = dz / radius;
+        var nx = dx / radius;
+        var nz = dz / radius;
 
-        float totalBudget = 0;
-        for (int i = 0; i < count; i++) {
+        var totalBudget = 0F;
+        for (var i = 0; i < count; i++) {
             totalBudget += children.get(i).areaBudget();
         }
 
         float[] budgets = getBudgetsBuffer(count);
-        for (int i = 0; i < count; i++) {
+        for (var i = 0; i < count; i++) {
             budgets[i] = children.get(i).areaBudget() / totalBudget;
         }
 
@@ -76,19 +77,19 @@ public final class SubdivisionStrategy {
             int depth,
             float jitterAmount,
             QueryResult out) {
-        int count = end - start;
+        var count = end - start;
 
         if (count == 1) {
 
-            int originalIdx = indices[start];
+            var originalIdx = indices[start];
             out.childIndex = originalIdx;
 
-            float centerX = (minX + maxX) / 2.0f;
-            float centerZ = (minZ + maxZ) / 2.0f;
-            float halfWidth = (maxX - minX) / 2.0f;
-            float halfHeight = (maxZ - minZ) / 2.0f;
+            var centerX = (minX + maxX) / 2.0f;
+            var centerZ = (minZ + maxZ) / 2.0f;
+            var halfWidth = (maxX - minX) / 2.0f;
+            var halfHeight = (maxZ - minZ) / 2.0f;
 
-            float cellRadius = Math.min(halfWidth, halfHeight);
+            var cellRadius = Math.min(halfWidth, halfHeight);
             cellRadius = Math.max(cellRadius, 0.1f);
 
             out.centerX = centerX;
@@ -98,54 +99,54 @@ public final class SubdivisionStrategy {
             out.siteX = centerX;
             out.siteZ = centerZ;
 
-            float distToLeft = px - minX;
-            float distToRight = maxX - px;
-            float distToBottom = pz - minZ;
-            float distToTop = maxZ - pz;
-            float minDist = Math.min(Math.min(distToLeft, distToRight), Math.min(distToBottom, distToTop));
+            var distToLeft = px - minX;
+            var distToRight = maxX - px;
+            var distToBottom = pz - minZ;
+            var distToTop = maxZ - pz;
+            var minDist = Math.min(Math.min(distToLeft, distToRight), Math.min(distToBottom, distToTop));
 
             out.edgeDistance = Math.min(1.0f, minDist / cellRadius);
             return;
         }
 
-        float totalBudget = 0;
-        for (int i = start; i < end; i++) {
+        var totalBudget = 0F;
+        for (var i = start; i < end; i++) {
             totalBudget += budgets[indices[i]];
         }
 
-        float accumulated = 0;
-        int bestMid = start + 1;
-        float bestDiff = Float.MAX_VALUE;
+        var accumulated = 0F;
+        var bestMid = start + 1;
+        var bestDiff = Float.MAX_VALUE;
 
-        for (int i = start; i < end - 1; i++) {
+        for (var i = start; i < end - 1; i++) {
             accumulated += budgets[indices[i]];
-            float diff = Math.abs(accumulated - totalBudget / 2);
+            var diff = Math.abs(accumulated - totalBudget / 2);
             if (diff < bestDiff) {
                 bestDiff = diff;
                 bestMid = i + 1;
             }
         }
 
-        int mid = bestMid;
+        var mid = bestMid;
 
-        float leftBudget = 0;
-        for (int i = start; i < mid; i++) {
+        var leftBudget = 0F;
+        for (var i = start; i < mid; i++) {
             leftBudget += budgets[indices[i]];
         }
-        float splitRatio = leftBudget / totalBudget;
+        var splitRatio = leftBudget / totalBudget;
 
-        float jitterVal = hashToFloat(seed, depth, 0);
+        var jitterVal = hashToFloat(seed, depth, 0);
         splitRatio = clamp(splitRatio + (jitterVal - 0.5f) * jitterAmount, 0.15f, 0.85f);
 
-        float width = maxX - minX;
-        float height = maxZ - minZ;
-        boolean splitVertical = (width > height) ^ (hashToFloat(seed, depth, 1) > 0.7f);
+        var width = maxX - minX;
+        var height = maxZ - minZ;
+        var splitVertical = (width > height) ^ (hashToFloat(seed, depth, 1) > 0.7f);
 
         if (splitVertical) {
-            float splitX = minX + width * splitRatio;
+            var splitX = minX + width * splitRatio;
 
-            long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
-            long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
+            var leftSeed = MathUtils.hash64(seed, depth, 0, 1);
+            var rightSeed = MathUtils.hash64(seed, depth, 1, 1);
 
             if (px < splitX) {
                 traverseBSP(
@@ -181,10 +182,10 @@ public final class SubdivisionStrategy {
                         out);
             }
         } else {
-            float splitZ = minZ + height * splitRatio;
+            var splitZ = minZ + height * splitRatio;
 
-            long leftSeed = MathUtils.hash64(seed, depth, 0, 1);
-            long rightSeed = MathUtils.hash64(seed, depth, 1, 1);
+            var leftSeed = MathUtils.hash64(seed, depth, 0, 1);
+            var rightSeed = MathUtils.hash64(seed, depth, 1, 1);
 
             if (pz < splitZ) {
                 traverseBSP(
@@ -223,14 +224,14 @@ public final class SubdivisionStrategy {
     }
 
     private static void sortByBudgetDescending(float[] budgets, int[] indices, int count) {
-        for (int i = 0; i < count; i++) {
+        for (var i = 0; i < count; i++) {
             indices[i] = i;
         }
 
-        for (int i = 0; i < count - 1; i++) {
-            for (int j = i + 1; j < count; j++) {
+        for (var i = 0; i < count - 1; i++) {
+            for (var j = i + 1; j < count; j++) {
                 if (budgets[indices[j]] > budgets[indices[i]]) {
-                    int tmp = indices[i];
+                    var tmp = indices[i];
                     indices[i] = indices[j];
                     indices[j] = tmp;
                 }
@@ -238,15 +239,14 @@ public final class SubdivisionStrategy {
         }
     }
 
-    @SuppressWarnings("unused")
-    private static float edgeWarp(float coord, long seed, int depth) {
-        float warp = 0;
-        float amplitude = WARP_AMPLITUDE;
-        float frequency = 4.0f;
+    @SuppressWarnings("unused") private static float edgeWarp(float coord, long seed, int depth) {
+        var warp = 0F;
+        var amplitude = WARP_AMPLITUDE;
+        var frequency = 4.0f;
 
-        for (int octave = 0; octave < WARP_OCTAVES; octave++) {
-            int coordInt = (int) (coord * frequency * 1000);
-            float noise = hashToFloat(seed, coordInt, depth + octave * 100);
+        for (var octave = 0; octave < WARP_OCTAVES; octave++) {
+            var coordInt = (int) (coord * frequency * 1000);
+            var noise = hashToFloat(seed, coordInt, depth + octave * 100);
             warp += (noise - 0.5f) * amplitude;
             amplitude *= 0.5f;
             frequency *= 2.0f;
@@ -260,7 +260,7 @@ public final class SubdivisionStrategy {
     }
 
     private static float hashToFloat(long seed, int a, int b) {
-        long h = MathUtils.hash64(seed, a, b, 0);
+        var h = MathUtils.hash64(seed, a, b, 0);
         return (h & 0xFFFF) / 65536.0f;
     }
 
@@ -269,7 +269,7 @@ public final class SubdivisionStrategy {
     }
 
     private static float[] getBudgetsBuffer(int count) {
-        float[] buffer = BUDGETS_BUFFER.get();
+        var buffer = BUDGETS_BUFFER.get();
         if (buffer.length < count) {
             buffer = new float[count];
             BUDGETS_BUFFER.set(buffer);
@@ -278,7 +278,7 @@ public final class SubdivisionStrategy {
     }
 
     private static int[] getIndicesBuffer(int count) {
-        int[] buffer = INDICES_BUFFER.get();
+        var buffer = INDICES_BUFFER.get();
         if (buffer.length < count) {
             buffer = new int[count];
             INDICES_BUFFER.set(buffer);

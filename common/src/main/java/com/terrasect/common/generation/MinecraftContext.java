@@ -48,11 +48,11 @@ public class MinecraftContext implements Context {
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
 
         String dimensionId = getKeyId(dimension);
-        Climate.ParameterList<Holder<Biome>> parameterList = parameters.map(list -> list, holder -> holder.value().parameters());
+        var parameterList = parameters.map(list -> list, holder -> holder.value().parameters());
 
         BiomeLookup lookup = BiomeLookup.build(parameterList, dimensionId);
 
-        MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, parameterList, lookup);
+        var context = new MinecraftContext(seed, dimensionId, sampler, parameterList, lookup);
 
         BY_DIMENSION.put(dimension, context);
         if (sampler != null) {
@@ -69,7 +69,7 @@ public class MinecraftContext implements Context {
     }
 
     public static MinecraftContext get(Climate.Sampler sampler) {
-        MinecraftContext ctx = BY_SAMPLER.get(sampler);
+        var ctx = BY_SAMPLER.get(sampler);
         if (ctx != null) return ctx;
 
         ctx = BY_DIMENSION.get(Level.OVERWORLD);
@@ -83,8 +83,7 @@ public class MinecraftContext implements Context {
         BY_SAMPLER.clear();
     }
 
-    @Override
-    public long getSeed() {
+    @Override public long getSeed() {
         return seed;
     }
 
@@ -92,24 +91,22 @@ public class MinecraftContext implements Context {
         return parameterList;
     }
 
-    @Override
-    public String getDimensionId() {
+    @Override public String getDimensionId() {
         return dimensionId;
     }
 
-    @Override
-    public long getInfluence(int x, int z) {
+    @Override public long getInfluence(int x, int z) {
         if (sampler == null || parameterList == null) return 0L;
 
-        Climate.TargetPoint target =
+        var target =
                 ((VanillaSamplerAccessor) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
 
-        Holder<Biome> biome = parameterList.findValue(target);
+        var biome = parameterList.findValue(target);
         float river = biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
 
-        long weirdness = target.weirdness();
-        float normalized = (weirdness + 10000.0f) / 20000.0f;
-        float ridge = Math.max(0.0f, Math.min(1.0f, normalized));
+        var weirdness = target.weirdness();
+        var normalized = (weirdness + 10000.0f) / 20000.0f;
+        var ridge = Math.max(0.0f, Math.min(1.0f, normalized));
 
         return Packer.packPair(river, ridge);
     }

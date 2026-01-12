@@ -16,6 +16,9 @@ repositories {
 neoForge {
     // Vanilla-mode: provide a Minecraft compile classpath without any loader.
     neoFormVersion = property('neoform_version')
+
+    // Expose Minecraft classes to the test source set
+    addModdingDependenciesTo sourceSets.test
 }
 
 dependencies {

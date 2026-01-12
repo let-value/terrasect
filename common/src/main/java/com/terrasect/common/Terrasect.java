@@ -12,7 +12,8 @@ public final class Terrasect {
 
     private static boolean useTestRegions = true;
 
-    private Terrasect() {}
+    private Terrasect() {
+    }
 
     public static void init() {
         LOGGER.info("Terrasect mod initialization started");
@@ -25,9 +26,9 @@ public final class Terrasect {
                     World.getRegisteredDimensions().size());
         } else {
 
-            RegionRegistry registry = new RegionRegistry();
+            var registry = new RegionRegistry();
             registry.region("ROOT");
-            Region root = registry.build("ROOT");
+            var root = registry.build("ROOT");
 
             World.register(root, World.OVERWORLD);
 

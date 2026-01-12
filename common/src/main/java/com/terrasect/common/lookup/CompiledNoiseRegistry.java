@@ -23,16 +23,16 @@ public final class CompiledNoiseRegistry {
     }
 
     public static CompiledNoiseRegistry build(Region root) {
-        IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> map = new IdentityHashMap<>();
+        var map = new IdentityHashMap<RegionDefinition, CompiledNoiseConstraints>();
         compileRecursively(root, map);
         return new CompiledNoiseRegistry(map);
     }
 
     private static void compileRecursively(
             Region region, IdentityHashMap<RegionDefinition, CompiledNoiseConstraints> map) {
-        RegionDefinition definition = region.definition();
+        var definition = region.definition();
         if (!map.containsKey(definition)) {
-            NoiseConstraints noise = definition.noise();
+            var noise = definition.noise();
             if (noise != null && noise.hasAnyConstraints()) {
                 CompiledNoiseConstraints compiled = compileNoiseConstraints(noise);
                 if (!compiled.isEmpty()) {
@@ -64,9 +64,9 @@ public final class CompiledNoiseRegistry {
             return CompiledNoiseConstraints.EMPTY;
         }
 
-        int count = 0;
+        var count = 0;
         for (var entry : noises.entrySet()) {
-            NoiseTransform transform = entry.getValue();
+            var transform = entry.getValue();
             if (transform == null || transform.isEmpty()) continue;
             if (ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey()) == null) continue;
             count++;
@@ -76,17 +76,16 @@ public final class CompiledNoiseRegistry {
             return CompiledNoiseConstraints.EMPTY;
         }
 
-        @SuppressWarnings("unchecked")
-        ResourceKey<NormalNoise.NoiseParameters>[] keys =
+        @SuppressWarnings("unchecked") var keys =
                 (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[count];
         CompiledTransform[] transforms = new CompiledTransform[count];
 
-        int i = 0;
+        var i = 0;
         for (var entry : noises.entrySet()) {
-            NoiseTransform transform = entry.getValue();
+            var transform = entry.getValue();
             if (transform == null || transform.isEmpty()) continue;
 
-            ResourceKey<NormalNoise.NoiseParameters> key = ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey());
+            var key = ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey());
             if (key == null) {
                 Terrasect.LOGGER.warn("Invalid noise key '{}' in NoiseConstraints; skipping", entry.getKey());
                 continue;
@@ -102,8 +101,7 @@ public final class CompiledNoiseRegistry {
         }
 
         if (i != count) {
-            @SuppressWarnings("unchecked")
-            ResourceKey<NormalNoise.NoiseParameters>[] trimmedKeys =
+            @SuppressWarnings("unchecked") var trimmedKeys =
                     (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[i];
             CompiledTransform[] trimmedTransforms = new CompiledTransform[i];
             System.arraycopy(keys, 0, trimmedKeys, 0, i);
@@ -122,8 +120,7 @@ public final class CompiledNoiseRegistry {
         private final CompiledTransform[] noiseTransforms;
 
         CompiledNoiseConstraints(ResourceKey<?>[] noiseKeys, CompiledTransform[] noiseTransforms) {
-            @SuppressWarnings("unchecked")
-            ResourceKey<NormalNoise.NoiseParameters>[] typed = (ResourceKey<NormalNoise.NoiseParameters>[]) noiseKeys;
+            @SuppressWarnings("unchecked") var typed = (ResourceKey<NormalNoise.NoiseParameters>[]) noiseKeys;
             this.noiseKeys = typed;
             this.noiseTransforms = noiseTransforms;
         }
@@ -133,7 +130,7 @@ public final class CompiledNoiseRegistry {
         }
 
         public @Nullable CompiledTransform findNoiseTransform(ResourceKey<NormalNoise.NoiseParameters> key) {
-            for (int i = 0; i < noiseKeys.length; i++) {
+            for (var i = 0; i < noiseKeys.length; i++) {
                 if (noiseKeys[i] == key) {
                     return noiseTransforms[i];
                 }
@@ -158,16 +155,16 @@ public final class CompiledNoiseRegistry {
 
             List<NoiseTransform.Operation> ops = transform.operations();
             NoiseTransform.Operation[] out = new NoiseTransform.Operation[ops.size()];
-            for (int i = 0; i < ops.size(); i++) {
+            for (var i = 0; i < ops.size(); i++) {
                 out[i] = ops.get(i);
             }
             return new CompiledTransform(out);
         }
 
         public double apply(double value) {
-            double out = value;
-            for (int i = 0; i < operations.length; i++) {
-                NoiseTransform.Operation op = operations[i];
+            var out = value;
+            for (var i = 0; i < operations.length; i++) {
+                var op = operations[i];
                 if (op instanceof NoiseTransform.Clamp clamp) {
                     out = Mth.clamp(out, clamp.min(), clamp.max());
                 } else if (op instanceof NoiseTransform.Add add) {
@@ -190,7 +187,7 @@ public final class CompiledNoiseRegistry {
                 case QUARTER_NEGATIVE -> value > 0.0 ? value : value * 0.25;
                 case INVERT -> 1.0 / value;
                 case SQUEEZE -> {
-                    double clamped = Mth.clamp(value, -1.0, 1.0);
+                    var clamped = Mth.clamp(value, -1.0, 1.0);
                     yield clamped / 2.0 - clamped * clamped * clamped / 24.0;
                 }
             };

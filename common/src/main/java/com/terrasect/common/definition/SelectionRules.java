@@ -62,21 +62,21 @@ public record SelectionRules(
     public SelectionRules resolveWithParent(SelectionRules parent) {
         if (parent == null) return this;
 
-        Set<String> mergedAllowedMods = merge(parent.allowedMods, allowedMods);
-        Set<String> mergedAllowedTags = merge(parent.allowedTags, allowedTags);
-        Set<String> mergedAllowedNames = merge(parent.allowedNames, allowedNames);
+        var mergedAllowedMods = merge(parent.allowedMods, allowedMods);
+        var mergedAllowedTags = merge(parent.allowedTags, allowedTags);
+        var mergedAllowedNames = merge(parent.allowedNames, allowedNames);
 
-        Set<String> mergedBlockedMods = merge(parent.blockedMods, blockedMods);
-        Set<String> mergedBlockedTags = merge(parent.blockedTags, blockedTags);
-        Set<String> mergedBlockedNames = merge(parent.blockedNames, blockedNames);
+        var mergedBlockedMods = merge(parent.blockedMods, blockedMods);
+        var mergedBlockedTags = merge(parent.blockedTags, blockedTags);
+        var mergedBlockedNames = merge(parent.blockedNames, blockedNames);
 
         mergedAllowedMods.removeAll(mergedBlockedMods);
         mergedAllowedTags.removeAll(mergedBlockedTags);
         mergedAllowedNames.removeAll(mergedBlockedNames);
 
-        boolean hasAllow =
+        var hasAllow =
                 !mergedAllowedMods.isEmpty() || !mergedAllowedTags.isEmpty() || !mergedAllowedNames.isEmpty();
-        boolean hasBlock =
+        var hasBlock =
                 !mergedBlockedMods.isEmpty() || !mergedBlockedTags.isEmpty() || !mergedBlockedNames.isEmpty();
 
         return new SelectionRules(
@@ -91,7 +91,7 @@ public record SelectionRules(
     }
 
     private Set<String> merge(Set<String> parent, Set<String> child) {
-        Set<String> merged = new HashSet<>(Objects.requireNonNullElse(parent, Collections.emptySet()));
+        var merged = new HashSet<String>(Objects.requireNonNullElse(parent, Collections.emptySet()));
         merged.addAll(Objects.requireNonNullElse(child, Collections.emptySet()));
         return merged;
     }
@@ -155,8 +155,8 @@ public record SelectionRules(
         }
 
         public SelectionRules build() {
-            boolean hasAllow = !allowedMods.isEmpty() || !allowedTags.isEmpty() || !allowedNames.isEmpty();
-            boolean hasBlock = !blockedMods.isEmpty() || !blockedTags.isEmpty() || !blockedNames.isEmpty();
+            var hasAllow = !allowedMods.isEmpty() || !allowedTags.isEmpty() || !allowedNames.isEmpty();
+            var hasBlock = !blockedMods.isEmpty() || !blockedTags.isEmpty() || !blockedNames.isEmpty();
 
             return new SelectionRules(
                     Collections.unmodifiableSet(new HashSet<>(allowedMods)),

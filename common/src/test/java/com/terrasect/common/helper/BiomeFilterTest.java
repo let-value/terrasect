@@ -10,66 +10,59 @@ import org.junit.jupiter.api.Test;
 
 public class BiomeFilterTest {
 
-    @Test
-    public void nullRulesReturnsNoRules() {
+    @Test public void nullRulesReturnsNoRules() {
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(null, "minecraft:plains", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.NO_RULES, result);
     }
 
-    @Test
-    public void emptyRulesReturnsNoRules() {
+    @Test public void emptyRulesReturnsNoRules() {
         SelectionRules rules = SelectionRules.empty();
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:plains", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.NO_RULES, result);
     }
 
-    @Test
-    public void blockedByNameReturnsBlocked() {
-        SelectionRules rules =
+    @Test public void blockedByNameReturnsBlocked() {
+        var rules =
                 SelectionRules.builder().blockNames("minecraft:desert").build();
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:desert", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
     }
 
-    @Test
-    public void notBlockedByNameWithOtherBiome() {
-        SelectionRules rules =
+    @Test public void notBlockedByNameWithOtherBiome() {
+        var rules =
                 SelectionRules.builder().blockNames("minecraft:desert").build();
 
         assertTrue(BiomeFilter.isAllowed(rules, "minecraft:plains", Collections.emptySet()));
     }
 
-    @Test
-    public void blockedByModReturnsBlocked() {
-        SelectionRules rules = SelectionRules.builder().blockMods("terralith").build();
+    @Test public void blockedByModReturnsBlocked() {
+        var rules = SelectionRules.builder().blockMods("terralith").build();
 
         BiomeFilter.FilterResult result =
                 BiomeFilter.checkBiome(rules, "terralith:volcanic_crater", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
     }
 
-    @Test
-    public void blockedByTagReturnsBlocked() {
-        SelectionRules rules =
+    @Test public void blockedByTagReturnsBlocked() {
+        var rules =
                 SelectionRules.builder().blockTags("#minecraft:is_ocean").build();
 
-        Set<String> tags = Set.of("#minecraft:is_ocean", "#minecraft:is_overworld");
+        var tags = Set.of("#minecraft:is_ocean", "#minecraft:is_overworld");
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:ocean", tags);
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
     }
 
-    @Test
-    public void tagMatchingWorksWithAndWithoutHashPrefix() {
-        SelectionRules rulesWithHash =
+    @Test public void tagMatchingWorksWithAndWithoutHashPrefix() {
+        var rulesWithHash =
                 SelectionRules.builder().blockTags("#minecraft:is_ocean").build();
 
-        SelectionRules rulesWithoutHash =
+        var rulesWithoutHash =
                 SelectionRules.builder().blockTags("minecraft:is_ocean").build();
 
-        Set<String> tagsWithHash = Set.of("#minecraft:is_ocean");
-        Set<String> tagsWithoutHash = Set.of("minecraft:is_ocean");
+        var tagsWithHash = Set.of("#minecraft:is_ocean");
+        var tagsWithoutHash = Set.of("minecraft:is_ocean");
 
         assertTrue(!BiomeFilter.isAllowed(rulesWithHash, "minecraft:ocean", tagsWithHash));
         assertTrue(!BiomeFilter.isAllowed(rulesWithHash, "minecraft:ocean", tagsWithoutHash));
@@ -77,9 +70,8 @@ public class BiomeFilterTest {
         assertTrue(!BiomeFilter.isAllowed(rulesWithoutHash, "minecraft:ocean", tagsWithoutHash));
     }
 
-    @Test
-    public void allowedByNameReturnsAllowed() {
-        SelectionRules rules = SelectionRules.builder()
+    @Test public void allowedByNameReturnsAllowed() {
+        var rules = SelectionRules.builder()
                 .allowNames("minecraft:plains", "minecraft:forest")
                 .build();
 
@@ -87,28 +79,25 @@ public class BiomeFilterTest {
         assertEquals(BiomeFilter.FilterResult.ALLOWED, result);
     }
 
-    @Test
-    public void allowedByModReturnsAllowed() {
-        SelectionRules rules = SelectionRules.builder().allowMods("minecraft").build();
+    @Test public void allowedByModReturnsAllowed() {
+        var rules = SelectionRules.builder().allowMods("minecraft").build();
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:swamp", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.ALLOWED, result);
     }
 
-    @Test
-    public void allowedByTagReturnsAllowed() {
-        SelectionRules rules =
+    @Test public void allowedByTagReturnsAllowed() {
+        var rules =
                 SelectionRules.builder().allowTags("#minecraft:is_forest").build();
 
-        Set<String> tags = Set.of("#minecraft:is_forest", "#minecraft:is_overworld");
+        var tags = Set.of("#minecraft:is_forest", "#minecraft:is_overworld");
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:forest", tags);
         assertEquals(BiomeFilter.FilterResult.ALLOWED, result);
     }
 
-    @Test
-    public void blockingTakesPriorityOverAllowing() {
-        SelectionRules rules = SelectionRules.builder()
+    @Test public void blockingTakesPriorityOverAllowing() {
+        var rules = SelectionRules.builder()
                 .allowMods("minecraft")
                 .blockNames("minecraft:desert")
                 .build();
@@ -121,19 +110,17 @@ public class BiomeFilterTest {
         assertEquals(BiomeFilter.FilterResult.ALLOWED, forestResult);
     }
 
-    @Test
-    public void allowRulesBlockUnmatchedBiomes() {
-        SelectionRules rules =
+    @Test public void allowRulesBlockUnmatchedBiomes() {
+        var rules =
                 SelectionRules.builder().allowNames("minecraft:plains").build();
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "minecraft:desert", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.BLOCKED, result);
     }
 
-    @Test
-    public void complexRulesWorkCorrectly() {
+    @Test public void complexRulesWorkCorrectly() {
 
-        SelectionRules rules = SelectionRules.builder()
+        var rules = SelectionRules.builder()
                 .allowMods("minecraft")
                 .blockTags("#minecraft:is_ocean")
                 .allowNames("terralith:crystal_ocean")
@@ -148,14 +135,12 @@ public class BiomeFilterTest {
         assertFalse(BiomeFilter.isAllowed(rules, "terralith:volcanic_crater", Collections.emptySet()));
     }
 
-    @Test
-    public void hasRulesReturnsFalseForEmpty() {
+    @Test public void hasRulesReturnsFalseForEmpty() {
         assertFalse(BiomeFilter.hasRules(null));
         assertFalse(BiomeFilter.hasRules(SelectionRules.empty()));
     }
 
-    @Test
-    public void hasRulesReturnsTrueWithAnyRule() {
+    @Test public void hasRulesReturnsTrueWithAnyRule() {
         assertTrue(BiomeFilter.hasRules(
                 SelectionRules.builder().allowMods("minecraft").build()));
         assertTrue(
@@ -170,17 +155,15 @@ public class BiomeFilterTest {
                 SelectionRules.builder().blockNames("test:test").build()));
     }
 
-    @Test
-    public void defaultNamespaceIsMinecraft() {
-        SelectionRules rules = SelectionRules.builder().allowMods("minecraft").build();
+    @Test public void defaultNamespaceIsMinecraft() {
+        var rules = SelectionRules.builder().allowMods("minecraft").build();
 
         BiomeFilter.FilterResult result = BiomeFilter.checkBiome(rules, "plains", Collections.emptySet());
         assertEquals(BiomeFilter.FilterResult.ALLOWED, result);
     }
 
-    @Test
-    public void isAllowedConvenienceMethod() {
-        SelectionRules rules =
+    @Test public void isAllowedConvenienceMethod() {
+        var rules =
                 SelectionRules.builder().blockNames("minecraft:desert").build();
 
         assertFalse(BiomeFilter.isAllowed(rules, "minecraft:desert", Collections.emptySet()));

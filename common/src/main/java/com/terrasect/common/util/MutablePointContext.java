@@ -13,18 +13,15 @@ public final class MutablePointContext implements DensityFunction.FunctionContex
         this.z = z;
     }
 
-    @Override
-    public int blockX() {
+    @Override public int blockX() {
         return x;
     }
 
-    @Override
-    public int blockY() {
+    @Override public int blockY() {
         return y;
     }
 
-    @Override
-    public int blockZ() {
+    @Override public int blockZ() {
         return z;
     }
 }

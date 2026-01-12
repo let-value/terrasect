@@ -12,10 +12,9 @@ import org.junit.jupiter.api.Test;
 
 public class StrategyComparisonTest {
 
-    @Test
-    public void compareStrategies() {
-        long seed = 987654321L;
-        Context context = new SnapshotTest.MockStrategy(seed);
+    @Test public void compareStrategies() {
+        var seed = 987654321L;
+        var context = new SnapshotTest.MockStrategy(seed);
 
         System.out.println("=== Strategy Comparison Test ===\n");
 
@@ -30,7 +29,7 @@ public class StrategyComparisonTest {
     }
 
     private void testWithStrategy(GenerationStrategy strategy, Context context) {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
                 .child("CIVILIZATION", civ -> civ.strategy(strategy)
                         .child("CITY", city -> city.radius(1000)
@@ -43,22 +42,22 @@ public class StrategyComparisonTest {
 
         World.register(registry.build("ROOT"), World.OVERWORLD);
 
-        float hexSize = World.getRoot(World.OVERWORLD).radius();
+        var hexSize = World.getRoot(World.OVERWORLD).radius();
 
-        int range = (int) (hexSize * 1.5f);
-        int step = 100;
+        var range = (int) (hexSize * 1.5f);
+        var step = 100;
 
-        Map<String, Integer> depth2Counts = new HashMap<>();
-        long totalSamples = 0;
+        var depth2Counts = new HashMap<String, Integer>();
+        var totalSamples = 0L;
 
-        for (int z = -range; z <= range; z += step) {
-            for (int x = -range; x <= range; x += step) {
+        for (var z = -range; z <= range; z += step) {
+            for (var x = -range; x <= range; x += step) {
 
-                long rootSeed = World.traverse(context, x, z, 1).seed;
-                long centerSeed = World.traverse(context, 0, 0, 1).seed;
+                var rootSeed = World.traverse(context, x, z, 1).seed;
+                var centerSeed = World.traverse(context, 0, 0, 1).seed;
 
                 if (rootSeed == centerSeed) {
-                    Region child = World.traverse(context, x, z, 2).region;
+                    var child = World.traverse(context, x, z, 2).region;
                     depth2Counts.merge(child.name(), 1, Integer::sum);
                     totalSamples++;
                 }
@@ -70,14 +69,14 @@ public class StrategyComparisonTest {
 
         if (totalSamples > 0) {
             for (var entry : depth2Counts.entrySet()) {
-                float pct = 100.0f * entry.getValue() / totalSamples;
+                var pct = 100.0f * entry.getValue() / totalSamples;
                 System.out.printf("  %s: %.1f%% (%d samples)%n", entry.getKey(), pct, entry.getValue());
             }
 
-            float cityError = Math.abs(getPercent(depth2Counts, "CITY", totalSamples) - 20.0f);
-            float farmError = Math.abs(getPercent(depth2Counts, "FARMLAND", totalSamples) - 60.0f);
-            float forestError = Math.abs(getPercent(depth2Counts, "FOREST", totalSamples) - 20.0f);
-            float totalError = cityError + farmError + forestError;
+            var cityError = Math.abs(getPercent(depth2Counts, "CITY", totalSamples) - 20.0f);
+            var farmError = Math.abs(getPercent(depth2Counts, "FARMLAND", totalSamples) - 60.0f);
+            var forestError = Math.abs(getPercent(depth2Counts, "FOREST", totalSamples) - 20.0f);
+            var totalError = cityError + farmError + forestError;
 
             System.out.printf("  Total error from expected: %.1f%%%n", totalError);
         }
@@ -87,14 +86,13 @@ public class StrategyComparisonTest {
         return 100.0f * counts.getOrDefault(name, 0) / total;
     }
 
-    @Test
-    public void testSubdivisionBudgetAccuracy() {
+    @Test public void testSubdivisionBudgetAccuracy() {
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
-            .child("CIVILIZATION", civ -> civ.strategy(GenerationStrategy.subdivision())
+                .child("CIVILIZATION", civ -> civ.strategy(GenerationStrategy.subdivision())
                         .child("CITY", city -> city.radius(1000)
-                    .strategy(GenerationStrategy.subdivision())
+                                .strategy(GenerationStrategy.subdivision())
                                 .child("DOWNTOWN", d -> d.radius(700))
                                 .child("SUBURBS", s -> s.radius(700)))
                         .child("FARMLAND", farm -> farm.radius(1732))
@@ -104,26 +102,26 @@ public class StrategyComparisonTest {
         World.register(registry.build("ROOT"), World.OVERWORLD);
 
         long[] seeds = {12345L, 98765L, 112233L};
-        float totalError = 0;
-        int testCount = 0;
+        var totalError = 0F;
+        var testCount = 0;
 
         for (long seed : seeds) {
-            Context context = new SnapshotTest.MockStrategy(seed);
+            var context = new SnapshotTest.MockStrategy(seed);
 
-            float hexSize = World.getRoot(World.OVERWORLD).radius();
-            int range = (int) (hexSize * 1.2f);
-            int step = 100;
+            var hexSize = World.getRoot(World.OVERWORLD).radius();
+            var range = (int) (hexSize * 1.2f);
+            var step = 100;
 
-            Map<String, Integer> counts = new HashMap<>();
-            long samples = 0;
+            var counts = new HashMap<String, Integer>();
+            var samples = 0L;
 
-            for (int z = -range; z <= range; z += step) {
-                for (int x = -range; x <= range; x += step) {
-                    long rootSeed = World.traverse(context, x, z, 1).seed;
-                    long centerSeed = World.traverse(context, 0, 0, 1).seed;
+            for (var z = -range; z <= range; z += step) {
+                for (var x = -range; x <= range; x += step) {
+                    var rootSeed = World.traverse(context, x, z, 1).seed;
+                    var centerSeed = World.traverse(context, 0, 0, 1).seed;
 
                     if (rootSeed == centerSeed) {
-                        Region child = World.traverse(context, x, z, 2).region;
+                        var child = World.traverse(context, x, z, 2).region;
                         counts.merge(child.name(), 1, Integer::sum);
                         samples++;
                     }
@@ -131,11 +129,11 @@ public class StrategyComparisonTest {
             }
 
             if (samples > 0) {
-                float cityPct = getPercent(counts, "CITY", samples);
-                float farmPct = getPercent(counts, "FARMLAND", samples);
-                float forestPct = getPercent(counts, "FOREST", samples);
+                var cityPct = getPercent(counts, "CITY", samples);
+                var farmPct = getPercent(counts, "FARMLAND", samples);
+                var forestPct = getPercent(counts, "FOREST", samples);
 
-                float error = Math.abs(cityPct - 20) + Math.abs(farmPct - 60) + Math.abs(forestPct - 20);
+                var error = Math.abs(cityPct - 20) + Math.abs(farmPct - 60) + Math.abs(forestPct - 20);
                 totalError += error;
                 testCount++;
 
@@ -145,7 +143,7 @@ public class StrategyComparisonTest {
             }
         }
 
-        float avgError = totalError / testCount;
+        var avgError = totalError / testCount;
         System.out.printf("Average error: %.1f%%%n", avgError);
 
         assertTrue(avgError < 25, "SUBDIVISION strategy should have less than 25% total error, got " + avgError);

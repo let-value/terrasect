@@ -13,12 +13,12 @@ public final class ClimateModifier {
             return point;
         }
 
-        ClimateRange temperature = climate.temperature();
-        ClimateRange humidity = climate.humidity();
-        ClimateRange continentalness = climate.continentalness();
-        ClimateRange erosion = climate.erosion();
-        ClimateRange depth = climate.depth();
-        ClimateRange weirdness = climate.weirdness();
+        var temperature = climate.temperature();
+        var humidity = climate.humidity();
+        var continentalness = climate.continentalness();
+        var erosion = climate.erosion();
+        var depth = climate.depth();
+        var weirdness = climate.weirdness();
 
         if (temperature == null
                 && humidity == null
@@ -29,19 +29,19 @@ public final class ClimateModifier {
             return point;
         }
 
-        long originalTemp = point.temperature();
-        long originalHumidity = point.humidity();
-        long originalContinentalness = point.continentalness();
-        long originalErosion = point.erosion();
-        long originalDepth = point.depth();
-        long originalWeirdness = point.weirdness();
+        var originalTemp = point.temperature();
+        var originalHumidity = point.humidity();
+        var originalContinentalness = point.continentalness();
+        var originalErosion = point.erosion();
+        var originalDepth = point.depth();
+        var originalWeirdness = point.weirdness();
 
-        long newTemp = mapToRange(temperature, originalTemp);
-        long newHumidity = mapToRange(humidity, originalHumidity);
-        long newContinentalness = mapToRange(continentalness, originalContinentalness);
-        long newErosion = mapToRange(erosion, originalErosion);
-        long newDepth = mapToRange(depth, originalDepth);
-        long newWeirdness = mapToRange(weirdness, originalWeirdness);
+        var newTemp = mapToRange(temperature, originalTemp);
+        var newHumidity = mapToRange(humidity, originalHumidity);
+        var newContinentalness = mapToRange(continentalness, originalContinentalness);
+        var newErosion = mapToRange(erosion, originalErosion);
+        var newDepth = mapToRange(depth, originalDepth);
+        var newWeirdness = mapToRange(weirdness, originalWeirdness);
 
         if (newTemp == originalTemp
                 && newHumidity == originalHumidity
@@ -66,25 +66,25 @@ public final class ClimateModifier {
     }
 
     private static long mapToRange(ClimateRange range, long originalValue) {
-        long clampedOriginal = clamp(originalValue);
+        var clampedOriginal = clamp(originalValue);
         if (range == null) {
             return clampedOriginal;
         }
 
-        float min = range.min();
-        float max = range.max();
+        var min = range.min();
+        var max = range.max();
         if (min <= -1.0f && max >= 1.0f) {
             return clampedOriginal;
         }
 
-        float normalized = (clampedOriginal + CLIMATE_SCALE) / (2.0f * CLIMATE_SCALE);
+        var normalized = (clampedOriginal + CLIMATE_SCALE) / (2.0f * CLIMATE_SCALE);
         if (normalized < 0.0f) {
             normalized = 0.0f;
         } else if (normalized > 1.0f) {
             normalized = 1.0f;
         }
 
-        float mapped = min + normalized * (max - min);
+        var mapped = min + normalized * (max - min);
         if (mapped < -1.0f) {
             mapped = -1.0f;
         } else if (mapped > 1.0f) {
@@ -100,5 +100,6 @@ public final class ClimateModifier {
         return value;
     }
 
-    private ClimateModifier() {}
+    private ClimateModifier() {
+    }
 }

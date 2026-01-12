@@ -21,8 +21,8 @@ public class MinecraftEdgeSampler {
             ClimateEdgeDeltas climateEdgeDeltas,
             int sampleStep) {
         public double averageRunLength() {
-            long totalCells = 0;
-            long weighted = 0;
+            var totalCells = 0L;
+            var weighted = 0L;
             for (Map.Entry<Integer, Integer> entry : runLengthHistogram.entrySet()) {
                 weighted += (long) entry.getKey() * entry.getValue();
                 totalCells += entry.getValue();
@@ -45,7 +45,8 @@ public class MinecraftEdgeSampler {
         }
     }
 
-    public record EdgeRoughness(double meanHorizontalJitter, double meanVerticalJitter, double transitionDensity) {}
+    public record EdgeRoughness(double meanHorizontalJitter, double meanVerticalJitter, double transitionDensity) {
+    }
 
     public record ClimateEdgeDeltas(
             long samples,
@@ -66,7 +67,8 @@ public class MinecraftEdgeSampler {
             double continentalness,
             double erosion,
             double weirdness,
-            double depth) {}
+            double depth) {
+    }
 
     private final MultiNoiseBiomeSource biomeSource;
     private final Climate.Sampler climateSampler;
@@ -77,38 +79,38 @@ public class MinecraftEdgeSampler {
     }
 
     public EdgeStatistics sampleArea(int startX, int startZ, int size, int step) {
-        int samples = size / step;
+        var samples = size / step;
         String[][] biomeGrid = new String[samples][samples];
         ClimateSample[][] climateGrid = new ClimateSample[samples][samples];
 
-        for (int dz = 0; dz < samples; dz++) {
-            for (int dx = 0; dx < samples; dx++) {
-                int wx = startX + dx * step;
-                int wz = startZ + dz * step;
+        for (var dz = 0; dz < samples; dz++) {
+            for (var dx = 0; dx < samples; dx++) {
+                var wx = startX + dx * step;
+                var wz = startZ + dz * step;
                 biomeGrid[dz][dx] = biomeKeyAt(wx, wz);
                 climateGrid[dz][dx] = climateAt(wx, wz);
             }
         }
 
-        Map<String, Integer> biomeCounts = new HashMap<>();
-        Map<String, Integer> transitionCounts = new HashMap<>();
-        Map<Integer, Integer> runLengthHistogram = new HashMap<>();
+        var biomeCounts = new HashMap<String, Integer>();
+        var transitionCounts = new HashMap<String, Integer>();
+        var runLengthHistogram = new HashMap<Integer, Integer>();
 
-        List<List<Integer>> rowTransitions = new ArrayList<>(samples);
-        List<List<Integer>> columnTransitions = new ArrayList<>(samples);
-        for (int i = 0; i < samples; i++) {
+        var rowTransitions = new ArrayList<List<Integer>>(samples);
+        var columnTransitions = new ArrayList<List<Integer>>(samples);
+        for (var i = 0; i < samples; i++) {
             rowTransitions.add(new ArrayList<>());
             columnTransitions.add(new ArrayList<>());
         }
 
-        ClimateDeltaAccumulator climateAccumulator = new ClimateDeltaAccumulator();
-        long totalAdjacencies = 0;
+        var climateAccumulator = new ClimateDeltaAccumulator();
+        var totalAdjacencies = 0L;
 
-        for (int z = 0; z < samples; z++) {
+        for (var z = 0; z < samples; z++) {
             String runBiome = null;
-            int runLength = 0;
-            for (int x = 0; x < samples; x++) {
-                String biome = biomeGrid[z][x];
+            var runLength = 0;
+            for (var x = 0; x < samples; x++) {
+                var biome = biomeGrid[z][x];
                 biomeCounts.merge(biome, 1, Integer::sum);
 
                 if (!Objects.equals(runBiome, biome)) {
@@ -143,27 +145,27 @@ public class MinecraftEdgeSampler {
             }
         }
 
-        EdgeRoughness roughness = new EdgeRoughness(
+        var roughness = new EdgeRoughness(
                 meanJitter(rowTransitions),
                 meanJitter(columnTransitions),
                 transitionCounts.isEmpty() || totalAdjacencies == 0
                         ? 0.0
                         : transitionCounts.values().stream()
-                                        .mapToLong(Integer::longValue)
-                                        .sum()
-                                / (double) totalAdjacencies);
+                        .mapToLong(Integer::longValue)
+                        .sum()
+                        / (double) totalAdjacencies);
 
         return new EdgeStatistics(
                 biomeCounts, transitionCounts, runLengthHistogram, roughness, climateAccumulator.finish(), step);
     }
 
     private String biomeKeyAt(int x, int z) {
-        Holder<Biome> biome = biomeSource.getNoiseBiome(x >> 2, 0, z >> 2, climateSampler);
+        var biome = biomeSource.getNoiseBiome(x >> 2, 0, z >> 2, climateSampler);
         return BiomeCompat.getBiomeId(biome);
     }
 
     private ClimateSample climateAt(int x, int z) {
-        Climate.TargetPoint point = climateSampler.sample(x, 0, z);
+        var point = climateSampler.sample(x, 0, z);
         return new ClimateSample(
                 point.temperature(),
                 point.humidity(),
@@ -179,14 +181,14 @@ public class MinecraftEdgeSampler {
     }
 
     private double meanJitter(List<List<Integer>> transitionLines) {
-        double totalJitter = 0.0;
-        int jitterSamples = 0;
+        var totalJitter = 0.0;
+        var jitterSamples = 0;
 
-        for (int i = 1; i < transitionLines.size(); i++) {
-            List<Integer> previous = transitionLines.get(i - 1);
-            List<Integer> current = transitionLines.get(i);
+        for (var i = 1; i < transitionLines.size(); i++) {
+            var previous = transitionLines.get(i - 1);
+            var current = transitionLines.get(i);
             for (int pos : current) {
-                int nearest = nearestTransition(previous, pos);
+                var nearest = nearestTransition(previous, pos);
                 totalJitter += Math.abs(pos - nearest);
                 jitterSamples++;
             }
@@ -196,10 +198,10 @@ public class MinecraftEdgeSampler {
     }
 
     private int nearestTransition(List<Integer> transitions, int pos) {
-        int best = pos;
-        int bestDistance = Integer.MAX_VALUE;
+        var best = pos;
+        var bestDistance = Integer.MAX_VALUE;
         for (int candidate : transitions) {
-            int distance = Math.abs(candidate - pos);
+            var distance = Math.abs(candidate - pos);
             if (distance < bestDistance) {
                 bestDistance = distance;
                 best = candidate;

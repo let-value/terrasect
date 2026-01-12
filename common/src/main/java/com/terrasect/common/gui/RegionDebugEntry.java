@@ -13,8 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 public class RegionDebugEntry implements DebugScreenEntry {
 
-    @Override
-    public void display(
+    @Override public void display(
             DebugScreenDisplayer lines,
             @Nullable Level level,
             @Nullable LevelChunk clientChunk,
@@ -34,7 +33,7 @@ public class RegionDebugEntry implements DebugScreenEntry {
         TraversalIterator iter = World.traverseIterator(context, blockX, blockZ);
         if (iter == null) return;
 
-        int depth = 0;
+        var depth = 0;
         do {
             var step = iter.current();
             var region = step.region;
@@ -54,13 +53,11 @@ public class RegionDebugEntry implements DebugScreenEntry {
         }
     }
 
-    @Override
-    public boolean isAllowed(boolean reducedDebugInfo) {
+    @Override public boolean isAllowed(boolean reducedDebugInfo) {
         return true;
     }
 
-    @Override
-    public DebugEntryCategory category() {
+    @Override public DebugEntryCategory category() {
         return DebugEntryCategory.SCREEN_TEXT;
     }
 }

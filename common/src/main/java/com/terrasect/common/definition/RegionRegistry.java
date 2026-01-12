@@ -40,8 +40,8 @@ public class RegionRegistry {
 
     public List<Region> buildAllRoots() {
         var childIndex = indexChildren();
-        List<Region> roots = new ArrayList<>();
-        Set<String> visiting = new HashSet<>();
+        var roots = new ArrayList<Region>();
+        var visiting = new HashSet<String>();
         drafts.values().stream()
                 .filter(draft -> draft.parent == null || draft.parent.isBlank())
                 .forEach(draft -> {
@@ -52,10 +52,10 @@ public class RegionRegistry {
     }
 
     private Map<String, List<String>> indexChildren() {
-        Map<String, List<String>> childIndex = new LinkedHashMap<>();
+        var childIndex = new LinkedHashMap<String, List<String>>();
         drafts.values().forEach(draft -> {
             if (draft.parent != null && !draft.parent.isBlank()) {
-                DraftRegion parentDraft = drafts.get(draft.parent);
+                var parentDraft = drafts.get(draft.parent);
                 if (parentDraft == null) {
                     Terrasect.LOGGER.error(
                             "Region '{}' references unknown parent '{}'; treating it as a root",
@@ -74,7 +74,7 @@ public class RegionRegistry {
 
     private Region buildResolved(
             String name, RegionDefinition inherited, Map<String, List<String>> childIndex, Set<String> visiting) {
-        DraftRegion draft = drafts.get(name);
+        var draft = drafts.get(name);
         if (draft == null) {
             Terrasect.LOGGER.error("Missing draft for region '{}'; creating empty placeholder", name);
             return new Region(name, 10000, inherited, Collections.emptySet(), List.of(), List.of(), false);
@@ -85,7 +85,7 @@ public class RegionRegistry {
             return null;
         }
 
-        RegionDefinition resolvedDefinition = draft.build().resolveInherited(inherited);
+        var resolvedDefinition = draft.build().resolveInherited(inherited);
 
         List<Region> children = childIndex.getOrDefault(name, Collections.emptyList()).stream()
                 .map(childName -> buildResolved(childName, resolvedDefinition, childIndex, visiting))
@@ -120,8 +120,7 @@ public class RegionRegistry {
             this.name = name;
         }
 
-        @Override
-        protected DraftRegion self() {
+        @Override protected DraftRegion self() {
             return this;
         }
 
@@ -155,7 +154,7 @@ public class RegionRegistry {
         }
 
         public DraftRegion child(String childName, Consumer<DraftRegion> consumer) {
-            DraftRegion child = registry.region(childName);
+            var child = registry.region(childName);
             child.parent(this.name);
             consumer.accept(child);
             return this;

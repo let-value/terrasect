@@ -7,24 +7,23 @@ import org.junit.jupiter.api.Test;
 
 public class RegionDefinitionTest {
 
-    @Test
-    public void inheritsAndBlocksParentDefinitions() {
-        RegionRegistry registry = new RegionRegistry();
+    @Test public void inheritsAndBlocksParentDefinitions() {
+        var registry = new RegionRegistry();
         registry.region("ROOT")
                 .climate(climate -> climate.temperature(0.9f).humidity(0.7f))
                 .biomes(biomes -> biomes.allowMods("minecraft").allowTags("#overworld"))
                 .structures(structures -> structures.allowMods("minecraft").requireStructures("minecraft:village"))
                 .mobs(mobs -> mobs.allowTags("#passive"))
                 .child("CHILD", child -> child.biomes(
-                                biomes -> biomes.blockTags("#overworld").allowNames("custom:glowing_grove"))
+                        biomes -> biomes.blockTags("#overworld").allowNames("custom:glowing_grove"))
                         .structures(structures ->
                                 structures.blockNames("minecraft:village").requireStructures("custom:scripted_camp"))
                         .mobs(mobs -> mobs.blockMods("minecraft").allowNames("custom:wisp")));
 
-        Region root = registry.build("ROOT");
+        var root = registry.build("ROOT");
 
-        Region child = root.children().getFirst();
-        RegionDefinition resolved = child.definition();
+        var child = root.children().getFirst();
+        var resolved = child.definition();
 
         assertEquals(0.9f, resolved.climate().temperature().min());
         assertEquals(0.9f, resolved.climate().temperature().max());

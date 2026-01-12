@@ -18,17 +18,15 @@ import org.junit.jupiter.api.Test;
 
 class MinecraftEdgeSamplerTest {
 
-    @BeforeAll
-    static void setupMinecraft() {
+    @BeforeAll static void setupMinecraft() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
-    @Test
-    void collectsMultiScaleEdgeStatisticsFromOverworldSlice() {
-        long seed = 12345L;
+    @Test void collectsMultiScaleEdgeStatisticsFromOverworldSlice() {
+        var seed = 12345L;
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
+        var noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
         NoiseGeneratorSettings settings;
         try {
@@ -45,9 +43,9 @@ class MinecraftEdgeSamplerTest {
                 net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists.OVERWORLD);
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(overworldParameters);
 
-        MinecraftEdgeSampler sampler = new MinecraftEdgeSampler(biomeSource, randomState.sampler());
-        MinecraftEdgeSampler.EdgeStatistics fineStatistics = sampler.sampleArea(0, 0, 512, 4);
-        MinecraftEdgeSampler.EdgeStatistics coarseStatistics = sampler.sampleArea(0, 0, 2048, 32);
+        var sampler = new MinecraftEdgeSampler(biomeSource, randomState.sampler());
+        var fineStatistics = sampler.sampleArea(0, 0, 512, 4);
+        var coarseStatistics = sampler.sampleArea(0, 0, 2048, 32);
 
         System.out.printf(
                 "Fine: density=%.4f jitter=(h=%.2f,v=%.2f) climate dT=%.4f dW=%.4f%n",
@@ -94,7 +92,7 @@ class MinecraftEdgeSamplerTest {
                 fineStatistics.climateEdgeDeltas().averageWeirdnessDelta() > 0.01,
                 "weirdness should contribute to vanilla edge shaping");
 
-        String riverKey = "minecraft:river";
+        var riverKey = "minecraft:river";
         if (fineStatistics.biomeCounts().containsKey(riverKey)) {
             assertTrue(
                     fineStatistics.transitionCounts().keySet().stream().anyMatch(key -> key.contains(riverKey)),

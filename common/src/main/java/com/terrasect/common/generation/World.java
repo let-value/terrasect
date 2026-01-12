@@ -20,7 +20,8 @@ public final class World {
 
     private static final Map<String, DimensionState> DIMENSIONS = new ConcurrentHashMap<>();
 
-    private World() {}
+    private World() {
+    }
 
     public static void register(Region root, String... dimensionIds) {
         Objects.requireNonNull(root, "root region cannot be null");
@@ -34,7 +35,7 @@ public final class World {
         var dimensionId = context.getDimensionId();
         var seed = context.getSeed();
 
-        DimensionState state = DIMENSIONS.get(dimensionId);
+        var state = DIMENSIONS.get(dimensionId);
         if (state == null) {
             Terrasect.LOGGER.debug("No region hierarchy registered for dimension '{}'", dimensionId);
             return;
@@ -59,12 +60,12 @@ public final class World {
     }
 
     public static @Nullable Region getRoot(String dimensionId) {
-        DimensionState state = DIMENSIONS.get(dimensionId);
+        var state = DIMENSIONS.get(dimensionId);
         return state != null ? state.root : null;
     }
 
     public static @Nullable CompiledNoiseRegistry getNoiseRegistry(String dimensionId) {
-        DimensionState state = DIMENSIONS.get(dimensionId);
+        var state = DIMENSIONS.get(dimensionId);
         return state != null ? state.noiseRegistry : null;
     }
 
@@ -82,7 +83,7 @@ public final class World {
             return null;
         }
 
-        int currentDepth = 0;
+        var currentDepth = 0;
         while (iter.hasNext() && currentDepth < depth) {
             iter.next();
             currentDepth++;
@@ -92,7 +93,7 @@ public final class World {
     }
 
     public static @Nullable TraversalIterator traverseIterator(Context context, int x, int z) {
-        DimensionState state = DIMENSIONS.get(context.getDimensionId());
+        var state = DIMENSIONS.get(context.getDimensionId());
         if (state == null) {
             return null;
         }
@@ -159,7 +160,7 @@ public final class World {
             if (child.name().equals(anchored.name())) {
                 return depth;
             }
-            int found = findAnchoredDepthRecursive(child, anchored, depth + 1);
+            var found = findAnchoredDepthRecursive(child, anchored, depth + 1);
             if (found >= 0) {
                 return found;
             }
@@ -169,52 +170,52 @@ public final class World {
 
     private static float[] calculateAnchorOffset(Region root, Region anchored, long seed, Context context) {
 
-        float baseRadius = root.radius();
-        int stepSize = Math.max(100, (int) (baseRadius * 0.5f));
+        var baseRadius = root.radius();
+        var stepSize = Math.max(100, (int) (baseRadius * 0.5f));
 
-        int targetDepth = findAnchoredDepth(root, anchored);
+        var targetDepth = findAnchoredDepth(root, anchored);
         if (targetDepth < 0) {
             Terrasect.LOGGER.warn("Could not determine depth of anchored region '{}'", anchored.name());
-            return new float[] {0, 0};
+            return new float[]{0, 0};
         }
 
-        String targetName = anchored.name();
+        var targetName = anchored.name();
 
         TraversalIterator iter = Layout.startTraversal(root, 0, 0, context, 0, 0);
-        for (int d = 0; d < targetDepth && iter.hasNext(); d++) {
+        for (var d = 0; d < targetDepth && iter.hasNext(); d++) {
             iter.next();
         }
-        TraversalResult atOrigin = iter.current();
+        var atOrigin = iter.current();
         if (atOrigin.region != null && atOrigin.region.name().equals(targetName)) {
             Terrasect.LOGGER.info("Anchored region '{}' already at origin", targetName);
-            return new float[] {0, 0};
+            return new float[]{0, 0};
         }
 
-        int maxRings = 20;
-        for (int ring = 1; ring <= maxRings; ring++) {
-            int ringRadius = ring * stepSize;
-            int pointsPerRing = Math.max(8, ring * 4);
+        var maxRings = 20;
+        for (var ring = 1; ring <= maxRings; ring++) {
+            var ringRadius = ring * stepSize;
+            var pointsPerRing = Math.max(8, ring * 4);
 
-            for (int i = 0; i < pointsPerRing; i++) {
-                double angle = (2.0 * Math.PI * i) / pointsPerRing;
-                int sampleX = (int) (Math.cos(angle) * ringRadius);
-                int sampleZ = (int) (Math.sin(angle) * ringRadius);
+            for (var i = 0; i < pointsPerRing; i++) {
+                var angle = (2.0 * Math.PI * i) / pointsPerRing;
+                var sampleX = (int) (Math.cos(angle) * ringRadius);
+                var sampleZ = (int) (Math.sin(angle) * ringRadius);
 
                 iter = Layout.startTraversal(root, sampleX, sampleZ, context, 0, 0);
-                for (int d = 0; d < targetDepth && iter.hasNext(); d++) {
+                for (var d = 0; d < targetDepth && iter.hasNext(); d++) {
                     iter.next();
                 }
-                TraversalResult sampled = iter.current();
+                var sampled = iter.current();
                 if (sampled.region != null && sampled.region.name().equals(targetName)) {
 
                     Terrasect.LOGGER.info("Found anchored region '{}' at ({}, {})", targetName, sampleX, sampleZ);
-                    return new float[] {sampleX, sampleZ};
+                    return new float[]{sampleX, sampleZ};
                 }
             }
         }
 
         Terrasect.LOGGER.warn("Could not find anchored region '{}' within {} rings", targetName, maxRings);
-        return new float[] {0, 0};
+        return new float[]{0, 0};
     }
 
     private static class DimensionState {

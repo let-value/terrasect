@@ -15,8 +15,7 @@ import org.junit.jupiter.api.Test;
 
 public class RegionBudgetTest {
 
-    @Test
-    public void analyzeRegionBudgetsAndAreas() {
+    @Test public void analyzeRegionBudgetsAndAreas() {
         Region root = TestRegions.buildTestWorld();
         World.register(root, World.OVERWORLD);
 
@@ -29,9 +28,9 @@ public class RegionBudgetTest {
         System.out.println("╚═══════════════════════════════════════════════════════════════╝");
         System.out.println();
 
-        int rootBudget = root.areaBudget();
-        float rootRadius = (float) Math.sqrt(rootBudget);
-        float rootDiameter = rootRadius * 2;
+        var rootBudget = root.areaBudget();
+        var rootRadius = (float) Math.sqrt(rootBudget);
+        var rootDiameter = rootRadius * 2;
 
         System.out.printf("ROOT: %s%n", root.name());
         System.out.printf("  Total Budget: %,d (sum of children)%n", rootBudget);
@@ -45,7 +44,7 @@ public class RegionBudgetTest {
     private void analyzeChildren(Region parent, float parentRadius, int depth, String indent) {
         if (!parent.hasChildren()) return;
 
-        int totalChildBudget =
+        var totalChildBudget =
                 parent.children().stream().mapToInt(Region::areaBudget).sum();
 
         System.out.printf("%sChildren of %s (depth %d):%n", indent, parent.name(), depth);
@@ -54,13 +53,13 @@ public class RegionBudgetTest {
         System.out.println();
 
         for (Region child : parent.children()) {
-            int childBudget = child.areaBudget();
-            float budgetRatio = (float) childBudget / totalChildBudget;
+            var childBudget = child.areaBudget();
+            var budgetRatio = (float) childBudget / totalChildBudget;
 
-            float proportionalRadius = parentRadius * (float) Math.sqrt(budgetRatio);
-            float proportionalDiameter = proportionalRadius * 2;
+            var proportionalRadius = parentRadius * (float) Math.sqrt(budgetRatio);
+            var proportionalDiameter = proportionalRadius * 2;
 
-            float specifiedRadius = (float) Math.sqrt(childBudget);
+            var specifiedRadius = (float) Math.sqrt(childBudget);
 
             System.out.printf("%s  %s:%n", indent, child.name());
             System.out.printf("%s    Specified radius(): %d blocks%n", indent, (int) specifiedRadius);
@@ -73,7 +72,7 @@ public class RegionBudgetTest {
                     indent, proportionalDiameter, proportionalDiameter / 16);
 
             if (Math.abs(specifiedRadius - proportionalRadius) > specifiedRadius * 0.1f) {
-                float scaleFactor = proportionalRadius / specifiedRadius;
+                var scaleFactor = proportionalRadius / specifiedRadius;
                 System.out.printf(
                         "%s    ⚠️  SIZE MISMATCH: Actual is %.1fx the specified value!%n", indent, scaleFactor);
 
@@ -89,13 +88,12 @@ public class RegionBudgetTest {
         }
     }
 
-    @Test
-    public void sampleTestRegionsAtCoordinates() {
+    @Test public void sampleTestRegionsAtCoordinates() {
         Region root = TestRegions.buildTestWorld();
         World.register(root, World.OVERWORLD);
 
-        long seed = 12345L;
-        Context context = new SnapshotTest.MockStrategy(seed);
+        var seed = 12345L;
+        var context = new SnapshotTest.MockStrategy(seed);
 
         World.initialize(context);
 
@@ -133,10 +131,10 @@ public class RegionBudgetTest {
     }
 
     private void samplePoint(int x, int z, Context context) {
-        Region d1 = World.traverse(context, x, z, 1).region;
-        Region d2 = World.traverse(context, x, z, 2).region;
-        Region d3 = World.traverse(context, x, z, 3).region;
-        Region d4 = World.traverse(context, x, z, 4).region;
+        var d1 = World.traverse(context, x, z, 1).region;
+        var d2 = World.traverse(context, x, z, 2).region;
+        var d3 = World.traverse(context, x, z, 3).region;
+        var d4 = World.traverse(context, x, z, 4).region;
 
         System.out.printf("  Depth 1: %s%n", d1.name());
         System.out.printf("  Depth 2: %s%n", d2.name());
@@ -145,20 +143,20 @@ public class RegionBudgetTest {
     }
 
     private void walkDirection(int startX, int startZ, int stepX, int stepZ, int steps, Context context) {
-        String lastRegion = "";
-        int lastTransitionAt = 0;
+        var lastRegion = "";
+        var lastTransitionAt = 0;
 
-        for (int i = 0; i <= steps; i++) {
-            int x = startX + i * stepX;
-            int z = startZ + i * stepZ;
+        for (var i = 0; i <= steps; i++) {
+            var x = startX + i * stepX;
+            var z = startZ + i * stepZ;
 
-            Region d3 = World.traverse(context, x, z, 3).region;
-            String regionName = d3.name();
+            var d3 = World.traverse(context, x, z, 3).region;
+            var regionName = d3.name();
 
             if (!regionName.equals(lastRegion)) {
                 if (i > 0) {
-                    int blocksDist = (int) Math.sqrt((x - startX) * (x - startX) + (z - startZ) * (z - startZ));
-                    int transitionDist = blocksDist - lastTransitionAt;
+                    var blocksDist = (int) Math.sqrt((x - startX) * (x - startX) + (z - startZ) * (z - startZ));
+                    var transitionDist = blocksDist - lastTransitionAt;
                     System.out.printf(
                             "  [%d blocks] %s → %s (span: %d blocks = %.1f chunks)%n",
                             blocksDist, lastRegion, regionName, transitionDist, transitionDist / 16.0f);
@@ -170,21 +168,21 @@ public class RegionBudgetTest {
             }
         }
 
-        int totalDist = (int) Math.sqrt((steps * stepX) * (steps * stepX) + (steps * stepZ) * (steps * stepZ));
+        var totalDist = (int) Math.sqrt((steps * stepX) * (steps * stepX) + (steps * stepZ) * (steps * stepZ));
         System.out.printf("  [%d blocks] Still in: %s%n", totalDist, lastRegion);
     }
 
     private void findRegionLocations(Context context, String targetRegion, int depth) {
         System.out.printf("Searching for %s at depth %d...%n", targetRegion, depth);
 
-        int range = 2000;
-        int step = 50;
+        var range = 2000;
+        var step = 50;
 
-        int foundCount = 0;
+        var foundCount = 0;
         int firstX = 0, firstZ = 0;
 
-        for (int z = -range; z <= range && foundCount < 5; z += step) {
-            for (int x = -range; x <= range && foundCount < 5; x += step) {
+        for (var z = -range; z <= range && foundCount < 5; z += step) {
+            for (var x = -range; x <= range && foundCount < 5; x += step) {
                 TraversalResult traversal = World.traverse(context, x, z, depth);
                 Region region = traversal != null ? traversal.region : null;
                 if (region != null && region.name().equals(targetRegion)) {
@@ -210,15 +208,14 @@ public class RegionBudgetTest {
         }
     }
 
-    @Test
-    public void testRegionBudgetDistribution() {
+    @Test public void testRegionBudgetDistribution() {
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
                 .child("CIVILIZATION", civ -> civ.child("CITY", city -> city.radius(1000)
-                                .adjacentTo("FARMLAND")
-                                .child("DOWNTOWN", d -> d.radius(700))
-                                .child("SUBURBS", s -> s.radius(700)))
+                        .adjacentTo("FARMLAND")
+                        .child("DOWNTOWN", d -> d.radius(700))
+                        .child("SUBURBS", s -> s.radius(700)))
                         .child("FARMLAND", farm -> farm.radius(1732).adjacentTo("CITY", "FOREST"))
                         .child("FOREST", forest -> forest.radius(1000).adjacentTo("FARMLAND")))
                 .child("WILDERNESS", wild -> wild.radius(1000));
@@ -226,7 +223,7 @@ public class RegionBudgetTest {
         World.register(registry.build("ROOT"), World.OVERWORLD);
 
         long[] seeds = {12345L, 98765L, 112233L, 55555L, 999999L, 101010L, 424242L, 777777L, 314159L, 271828L};
-        List<String> failures = new java.util.ArrayList<>();
+        var failures = new java.util.ArrayList<String>();
 
         for (long seed : seeds) {
             try {
@@ -249,18 +246,18 @@ public class RegionBudgetTest {
     }
 
     private void checkSeed(long seed) {
-        Context context = new SnapshotTest.MockStrategy(seed);
+        var context = new SnapshotTest.MockStrategy(seed);
 
-        float hexSize = World.getRoot(World.OVERWORLD).radius();
+        var hexSize = World.getRoot(World.OVERWORLD).radius();
 
         int[][] hexes = {{0, 0}, {1, 0}, {1, -1}, {0, -1}, {-1, 0}, {-1, 1}, {0, 1}};
 
         for (int[] hex : hexes) {
-            int q = hex[0];
-            int r = hex[1];
+            var q = hex[0];
+            var r = hex[1];
 
-            float hx = hexSize * ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r);
-            float hz = hexSize * (3.0f / 2.0f * r);
+            var hx = hexSize * ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r);
+            var hz = hexSize * (3.0f / 2.0f * r);
 
             System.out.printf("  Checking Hex (%d, %d) at (%.1f, %.1f)%n", q, r, hx, hz);
             checkRegion(context, (int) hx, (int) hz);
@@ -270,28 +267,28 @@ public class RegionBudgetTest {
     private void checkRegion(Context context, int centerX, int centerZ) {
 
         TraversalResult target = World.traverse(context, centerX, centerZ, 1);
-        long targetRootId = target.seed;
-        Region targetRegion = target.region;
+        var targetRootId = target.seed;
+        var targetRegion = target.region;
 
-        float rootRadius = World.getRoot(World.OVERWORLD).radius();
-        int range = (int) (rootRadius * 2.0f);
-        int step = 100;
+        var rootRadius = World.getRoot(World.OVERWORLD).radius();
+        var range = (int) (rootRadius * 2.0f);
+        var step = 100;
 
-        Map<String, Integer> counts = new HashMap<>();
-        Map<String, Integer> cityCounts = new HashMap<>();
-        Set<Long> uniqueRegionInstances = new HashSet<>();
-        Map<Long, Set<Point>> regionPixels = new HashMap<>();
-        long totalSamplesInTarget = 0;
-        long citySamples = 0;
+        var counts = new HashMap<String, Integer>();
+        var cityCounts = new HashMap<String, Integer>();
+        var uniqueRegionInstances = new HashSet<Long>();
+        var regionPixels = new HashMap<Long, Set<Point>>();
+        var totalSamplesInTarget = 0L;
+        var citySamples = 0L;
 
-        for (int z = centerZ - range; z <= centerZ + range; z += step) {
-            for (int x = centerX - range; x <= centerX + range; x += step) {
-                long rootId = World.traverse(context, x, z, 1).seed;
+        for (var z = centerZ - range; z <= centerZ + range; z += step) {
+            for (var x = centerX - range; x <= centerX + range; x += step) {
+                var rootId = World.traverse(context, x, z, 1).seed;
 
                 if (rootId == targetRootId) {
                     TraversalResult childTraversal = World.traverse(context, x, z, 2);
-                    Region child = childTraversal.region;
-                    long childId = childTraversal.seed;
+                    var child = childTraversal.region;
+                    var childId = childTraversal.seed;
 
                     counts.put(child.name(), counts.getOrDefault(child.name(), 0) + 1);
                     uniqueRegionInstances.add(childId);
@@ -299,7 +296,7 @@ public class RegionBudgetTest {
                     totalSamplesInTarget++;
 
                     if (child.name().equals("CITY")) {
-                        Region grandChild = World.traverse(context, x, z, 3).region;
+                        var grandChild = World.traverse(context, x, z, 3).region;
                         cityCounts.put(grandChild.name(), cityCounts.getOrDefault(grandChild.name(), 0) + 1);
                         citySamples++;
                     }
@@ -317,14 +314,14 @@ public class RegionBudgetTest {
         }
 
         if (targetRegion.name().equals("CIVILIZATION")) {
-            int expectedInstances = 3;
+            var expectedInstances = 3;
 
             assertTrue(
                     uniqueRegionInstances.size() <= expectedInstances,
                     "Found too many unique region instances: " + uniqueRegionInstances.size() + ". Expected max "
                             + expectedInstances);
 
-            float tolerance = 0.20f;
+            var tolerance = 0.20f;
 
             assertDistribution(counts, totalSamplesInTarget, "CITY", 0.20f, tolerance);
             assertDistribution(counts, totalSamplesInTarget, "FARMLAND", 0.60f, tolerance);
@@ -333,7 +330,7 @@ public class RegionBudgetTest {
             if (citySamples > 0) {
                 System.out.println("    Checking CITY internals (Depth 3)");
 
-                float nestedTolerance = 0.25f;
+                var nestedTolerance = 0.25f;
                 assertDistribution(cityCounts, citySamples, "DOWNTOWN", 0.50f, nestedTolerance);
                 assertDistribution(cityCounts, citySamples, "SUBURBS", 0.50f, nestedTolerance);
             }
@@ -349,8 +346,8 @@ public class RegionBudgetTest {
 
     private void assertDistribution(
             Map<String, Integer> counts, long total, String name, float expectedPct, float tolerance) {
-        int count = counts.getOrDefault(name, 0);
-        float actualPct = (float) count / total;
+        var count = counts.getOrDefault(name, 0);
+        var actualPct = (float) count / total;
 
         System.out.printf("Region %s: Expected %.2f, Actual %.2f%n", name, expectedPct, actualPct);
 
@@ -363,21 +360,21 @@ public class RegionBudgetTest {
     private void checkConnectivity(long regionId, Set<Point> pixels, int step, float thresholdRatio) {
         if (pixels == null || pixels.isEmpty()) return;
 
-        int maxComponentSize = 0;
-        int componentCount = 0;
-        Set<Point> visited = new HashSet<>();
+        var maxComponentSize = 0;
+        var componentCount = 0;
+        var visited = new HashSet<Point>();
 
         for (Point p : pixels) {
             if (!visited.contains(p)) {
                 componentCount++;
-                int componentSize = floodFill(p, pixels, visited, step);
+                var componentSize = floodFill(p, pixels, visited, step);
                 if (componentSize > maxComponentSize) {
                     maxComponentSize = componentSize;
                 }
             }
         }
 
-        float ratio = (float) maxComponentSize / pixels.size();
+        var ratio = (float) maxComponentSize / pixels.size();
         System.out.printf(
                 "  Region ID %d Connectivity: %d Components. Largest = %d / %d (%.2f%%)%n",
                 regionId, componentCount, maxComponentSize, pixels.size(), ratio * 100);
@@ -394,8 +391,8 @@ public class RegionBudgetTest {
     }
 
     private int floodFill(Point start, Set<Point> allPixels, Set<Point> visited, int step) {
-        int size = 0;
-        java.util.Queue<Point> queue = new java.util.LinkedList<>();
+        var size = 0;
+        var queue = new java.util.LinkedList<Point>();
         queue.add(start);
         visited.add(start);
 
@@ -403,11 +400,11 @@ public class RegionBudgetTest {
         int[] dz = {0, 0, step, -step};
 
         while (!queue.isEmpty()) {
-            Point current = queue.poll();
+            var current = queue.poll();
             size++;
 
-            for (int i = 0; i < 4; i++) {
-                Point neighbor = new Point(current.x + dx[i], current.z + dz[i]);
+            for (var i = 0; i < 4; i++) {
+                var neighbor = new Point(current.x + dx[i], current.z + dz[i]);
                 if (allPixels.contains(neighbor) && !visited.contains(neighbor)) {
                     visited.add(neighbor);
                     queue.add(neighbor);
@@ -417,5 +414,6 @@ public class RegionBudgetTest {
         return size;
     }
 
-    private record Point(int x, int z) {}
+    private record Point(int x, int z) {
+    }
 }

@@ -11,15 +11,15 @@ public class RegionSampler {
 
     public static Map<String, Integer> sample(
             int x, int z, int width, int height, int step, int depth, Context context) {
-        Map<String, Integer> counts = new HashMap<>();
+        var counts = new HashMap<String, Integer>();
 
-        for (int iz = 0; iz < height; iz += step) {
-            for (int ix = 0; ix < width; ix += step) {
-                int wx = x + ix;
-                int wz = z + iz;
+        for (var iz = 0; iz < height; iz += step) {
+            for (var ix = 0; ix < width; ix += step) {
+                var wx = x + ix;
+                var wz = z + iz;
 
                 Region region = getRegionAtDepth(context, wx, wz, depth);
-                String name = region.name();
+                var name = region.name();
                 counts.put(name, counts.getOrDefault(name, 0) + 1);
             }
         }

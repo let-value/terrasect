@@ -8,22 +8,23 @@ import java.util.List;
 public final class LayoutStrategies {
     private static final ThreadLocal<QueryResult> RESULT = ThreadLocal.withInitial(QueryResult::new);
 
-    private LayoutStrategies() {}
+    private LayoutStrategies() {
+    }
 
     public static QueryResult query(Region parent, long seed, float dx, float dz, float radius) {
-        QueryResult result = RESULT.get();
+        var result = RESULT.get();
 
-        GenerationStrategy strategy = parent.definition().generationStrategy();
+        var strategy = parent.definition().generationStrategy();
         List<Region> children = parent.children();
 
         switch (strategy) {
-                case GenerationStrategy.Hex hex -> HexStrategy.query(seed, children, dx, dz, radius, hex, result);
-                case GenerationStrategy.Subdivision subdivision ->
-                    SubdivisionStrategy.query(seed, children, dx, dz, radius, subdivision, result);
+            case GenerationStrategy.Hex hex -> HexStrategy.query(seed, children, dx, dz, radius, hex, result);
+            case GenerationStrategy.Subdivision subdivision ->
+                SubdivisionStrategy.query(seed, children, dx, dz, radius, subdivision, result);
             case GenerationStrategy.Template template ->
-                    TemplateStrategy.query(seed, children, dx, dz, radius, template, result);
+                TemplateStrategy.query(seed, children, dx, dz, radius, template, result);
             case GenerationStrategy.Voronoi voronoi ->
-                    queryVoronoi(seed, parent, dx, dz, radius, voronoi, result);
+                queryVoronoi(seed, parent, dx, dz, radius, voronoi, result);
         }
 
         result.childSeed = computeSeed(strategy, seed, result);
@@ -34,8 +35,8 @@ public final class LayoutStrategies {
     private static long computeSeed(GenerationStrategy strategy, long parentSeed, QueryResult result) {
         return switch (strategy) {
             case GenerationStrategy.Hex _ -> {
-                int q = (int) result.siteX;
-                int r = (int) result.siteZ;
+                var q = (int) result.siteX;
+                var r = (int) result.siteZ;
                 yield HexStrategy.getSeed(parentSeed, q, r);
             }
             case GenerationStrategy.Subdivision _ -> hashChildSeed(parentSeed, result, 777);
@@ -45,8 +46,8 @@ public final class LayoutStrategies {
     }
 
     private static long hashChildSeed(long parentSeed, QueryResult result, int salt) {
-        int siteX = Float.floatToIntBits(result.siteX);
-        int siteZ = Float.floatToIntBits(result.siteZ);
+        var siteX = Float.floatToIntBits(result.siteX);
+        var siteZ = Float.floatToIntBits(result.siteZ);
         return MathUtils.hash64(parentSeed, siteX ^ siteZ, result.childIndex, salt);
     }
 
@@ -58,7 +59,7 @@ public final class LayoutStrategies {
             float radius,
             GenerationStrategy.Voronoi voronoi,
             QueryResult out) {
-        int relaxationIterations = voronoi.relaxationIterations();
+        var relaxationIterations = voronoi.relaxationIterations();
         VoronoiStrategy.query(
                 seed, parent.children(), dx, dz, radius, parent.childrenTotalBudget(), relaxationIterations, out);
     }

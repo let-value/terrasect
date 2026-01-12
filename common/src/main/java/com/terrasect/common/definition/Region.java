@@ -21,7 +21,7 @@ public record Region(
         if (adjacentTo == null) adjacentTo = Collections.emptySet();
         if (children == null) children = Collections.emptyList();
 
-        List<String> sortedAdjacency = new ArrayList<>(adjacentTo);
+        var sortedAdjacency = new ArrayList<String>(adjacentTo);
         Collections.sort(sortedAdjacency);
         sortedAdjacentTo = Collections.unmodifiableList(sortedAdjacency);
     }

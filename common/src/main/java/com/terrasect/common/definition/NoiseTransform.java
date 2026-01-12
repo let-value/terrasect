@@ -24,21 +24,24 @@ public record NoiseTransform(List<NoiseTransform.Operation> operations) {
         return new Builder();
     }
 
-    public sealed interface Operation permits Clamp, Add, Multiply, Map {}
+    public sealed interface Operation permits Clamp, Add, Multiply, Map {
+    }
 
     public record Clamp(double min, double max) implements Operation {
         public Clamp {
             if (min > max) {
-                double tmp = min;
+                var tmp = min;
                 min = max;
                 max = tmp;
             }
         }
     }
 
-    public record Add(double value) implements Operation {}
+    public record Add(double value) implements Operation {
+    }
 
-    public record Multiply(double value) implements Operation {}
+    public record Multiply(double value) implements Operation {
+    }
 
     public record Map(MapType type) implements Operation {
         public Map {

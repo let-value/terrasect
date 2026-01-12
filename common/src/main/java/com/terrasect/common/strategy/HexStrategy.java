@@ -7,7 +7,8 @@ import java.util.List;
 
 public final class HexStrategy {
 
-    private HexStrategy() {}
+    private HexStrategy() {
+    }
 
     public static void query(
             long seed,
@@ -17,35 +18,35 @@ public final class HexStrategy {
             float radius,
             GenerationStrategy.Hex strategy,
             QueryResult out) {
-        float ringWidth = 0;
-        int ringIndex = -1;
+        var ringWidth = 0F;
+        var ringIndex = -1;
 
-        String ringRegionName = strategy.ringRegionName();
+        var ringRegionName = strategy.ringRegionName();
         if (ringRegionName != null) {
             ringIndex = findChildByName(children, ringRegionName);
             if (ringIndex >= 0) {
 
-                float ringBudget = children.get(ringIndex).areaBudget();
+                var ringBudget = children.get(ringIndex).areaBudget();
                 ringWidth = ringBudget / 100.0f;
                 ringWidth = Math.max(0.05f, Math.min(0.5f, ringWidth));
             }
         }
 
-        float gridRadius = radius * (1.0f + ringWidth);
+        var gridRadius = radius * (1.0f + ringWidth);
 
-        long packedHex = MathUtils.getHexCell(dx, dz, gridRadius);
-        int q = (int) (packedHex >> 32);
-        int r = (int) packedHex;
+        var packedHex = MathUtils.getHexCell(dx, dz, gridRadius);
+        var q = (int) (packedHex >> 32);
+        var r = (int) packedHex;
 
         out.siteX = q;
         out.siteZ = r;
 
-        float hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
-        float hexCenterWorldZ = (3.0f / 2.0f * r) * gridRadius;
+        var hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
+        var hexCenterWorldZ = (3.0f / 2.0f * r) * gridRadius;
 
-        float offsetX = dx - hexCenterWorldX;
-        float offsetZ = dz - hexCenterWorldZ;
-        float distFromCenter = (float) Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
+        var offsetX = dx - hexCenterWorldX;
+        var offsetZ = dz - hexCenterWorldZ;
+        var distFromCenter = (float) Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
 
         if (ringIndex >= 0 && distFromCenter > radius) {
 
@@ -54,12 +55,12 @@ public final class HexStrategy {
             out.centerX = hexCenterWorldX / radius;
             out.centerZ = hexCenterWorldZ / radius;
             out.radius = ringWidth;
-            float ringDist = distFromCenter - radius;
+            var ringDist = distFromCenter - radius;
             out.edgeDistance = 1.0f - Math.min(1.0f, ringDist / (ringWidth * radius));
             return;
         }
 
-        int hexDist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
+        var hexDist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
 
         int childIndex;
         if (hexDist == 0) {
@@ -83,7 +84,7 @@ public final class HexStrategy {
     }
 
     private static int findChildByName(List<Region> children, String name) {
-        for (int i = 0; i < children.size(); i++) {
+        for (var i = 0; i < children.size(); i++) {
             if (children.get(i).name().equals(name)) {
                 return i;
             }
@@ -92,16 +93,16 @@ public final class HexStrategy {
     }
 
     private static int pickChildWeighted(List<Region> children, String excludeName, long seed) {
-        float randomVal = (MathUtils.hash64(seed, 0, 0, 0) & 0xFFFF) / 65536.0f;
-        float totalWeight = 0;
+        var randomVal = (MathUtils.hash64(seed, 0, 0, 0) & 0xFFFF) / 65536.0f;
+        var totalWeight = 0F;
         for (Region region : children) {
             if (excludeName != null && region.name().equals(excludeName)) continue;
             totalWeight += region.areaBudget();
         }
-        float target = randomVal * totalWeight;
-        float currentW = 0;
-        for (int i = 0; i < children.size(); i++) {
-            Region region = children.get(i);
+        var target = randomVal * totalWeight;
+        var currentW = 0F;
+        for (var i = 0; i < children.size(); i++) {
+            var region = children.get(i);
             if (excludeName != null && region.name().equals(excludeName)) continue;
             currentW += region.areaBudget();
             if (currentW >= target) return i;

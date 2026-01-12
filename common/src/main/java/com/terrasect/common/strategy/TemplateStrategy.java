@@ -7,7 +7,8 @@ import java.util.List;
 
 public final class TemplateStrategy {
 
-    private TemplateStrategy() {}
+    private TemplateStrategy() {
+    }
 
     public static void query(
             long seed,
@@ -25,7 +26,7 @@ public final class TemplateStrategy {
             return;
         }
 
-        int count = children.size();
+        var count = children.size();
         if (count == 1) {
             out.childIndex = 0;
             out.centerX = 0;
@@ -34,11 +35,11 @@ public final class TemplateStrategy {
             return;
         }
 
-        float nx = dx / radius;
-        float nz = dz / radius;
+        var nx = dx / radius;
+        var nz = dz / radius;
 
-        float totalBudget = 0;
-        for (int i = 0; i < count; i++) {
+        var totalBudget = 0F;
+        for (var i = 0; i < count; i++) {
             totalBudget += children.get(i).areaBudget();
         }
 
@@ -48,22 +49,22 @@ public final class TemplateStrategy {
         TemplateType type = selectTemplate(templateType, children, totalBudget, count);
 
         int centerIndex =
-            (type == TemplateType.CENTER_SURROUND) ? findCenterIndex(children, centerRegionName, totalBudget) : 0;
+                (type == TemplateType.CENTER_SURROUND) ? findCenterIndex(children, centerRegionName, totalBudget) : 0;
 
-        int bestIndex = 0;
-        float bestMetric = Float.MAX_VALUE;
-        float secondBestMetric = Float.MAX_VALUE;
+        var bestIndex = 0;
+        var bestMetric = Float.MAX_VALUE;
+        var secondBestMetric = Float.MAX_VALUE;
         float bestX = 0, bestZ = 0, bestR = 0;
 
-        for (int i = 0; i < count; i++) {
-            float budgetRatio = children.get(i).areaBudget() / totalBudget;
-            float rNorm = (float) Math.sqrt(budgetRatio);
+        for (var i = 0; i < count; i++) {
+            var budgetRatio = children.get(i).areaBudget() / totalBudget;
+            var rNorm = (float) Math.sqrt(budgetRatio);
 
             float sx, sz;
             switch (type) {
                 case BINARY -> {
-                    float angle = hashToFloat(seed, 0, 0) * (float) Math.PI;
-                    float offset = 0.35f;
+                    var angle = hashToFloat(seed, 0, 0) * (float) Math.PI;
+                    var offset = 0.35f;
                     if (i == 0) {
                         sx = (float) Math.cos(angle) * offset;
                         sz = (float) Math.sin(angle) * offset;
@@ -73,9 +74,9 @@ public final class TemplateStrategy {
                     }
                 }
                 case TRIANGLE -> {
-                    float baseAngle = hashToFloat(seed, 0, 1) * (float) Math.PI * 2;
-                    float angle = baseAngle + i * (float) Math.PI * 2 / 3;
-                    float dist = 0.4f + hashToFloat(seed, i, 2) * 0.1f;
+                    var baseAngle = hashToFloat(seed, 0, 1) * (float) Math.PI * 2;
+                    var angle = baseAngle + i * (float) Math.PI * 2 / 3;
+                    var dist = 0.4f + hashToFloat(seed, i, 2) * 0.1f;
                     sx = (float) Math.cos(angle) * dist;
                     sz = (float) Math.sin(angle) * dist;
                 }
@@ -84,21 +85,21 @@ public final class TemplateStrategy {
                         sx = 0;
                         sz = 0;
                     } else {
-                        float baseAngle = hashToFloat(seed, 0, 3) * (float) Math.PI * 2;
-                        int surroundCount = count - 1;
+                        var baseAngle = hashToFloat(seed, 0, 3) * (float) Math.PI * 2;
+                        var surroundCount = count - 1;
                         int surroundIdx = (i < centerIndex) ? i : i - 1;
-                        float angle = baseAngle + surroundIdx * (float) Math.PI * 2 / surroundCount;
+                        var angle = baseAngle + surroundIdx * (float) Math.PI * 2 / surroundCount;
                         angle += (hashToFloat(seed, i, 4) - 0.5f) * 0.3f;
-                        float dist = 0.45f + (hashToFloat(seed, i, 5) - 0.5f) * 0.1f;
+                        var dist = 0.45f + (hashToFloat(seed, i, 5) - 0.5f) * 0.1f;
                         sx = (float) Math.cos(angle) * dist;
                         sz = (float) Math.sin(angle) * dist;
                     }
                 }
                 case RADIAL -> {
-                    float baseAngle = hashToFloat(seed, 0, 6) * (float) Math.PI * 2;
-                    float angle = baseAngle + i * (float) Math.PI * 2 / count;
+                    var baseAngle = hashToFloat(seed, 0, 6) * (float) Math.PI * 2;
+                    var angle = baseAngle + i * (float) Math.PI * 2 / count;
                     angle += (hashToFloat(seed, i, 7) - 0.5f) * 0.4f;
-                    float dist = 0.4f + (i % 2) * 0.15f + (hashToFloat(seed, i, 8) - 0.5f) * 0.1f;
+                    var dist = 0.4f + (i % 2) * 0.15f + (hashToFloat(seed, i, 8) - 0.5f) * 0.1f;
                     sx = (float) Math.cos(angle) * dist;
                     sz = (float) Math.sin(angle) * dist;
                 }
@@ -108,10 +109,10 @@ public final class TemplateStrategy {
                 }
             }
 
-            float ddx = nx - sx;
-            float ddz = nz - sz;
-            float distSq = ddx * ddx + ddz * ddz;
-            float metric = distSq - rNorm * rNorm;
+            var ddx = nx - sx;
+            var ddz = nz - sz;
+            var distSq = ddx * ddx + ddz * ddz;
+            var metric = distSq - rNorm * rNorm;
 
             if (metric < bestMetric) {
                 secondBestMetric = bestMetric;
@@ -134,7 +135,7 @@ public final class TemplateStrategy {
         out.siteX = bestX;
         out.siteZ = bestZ;
 
-        float rawEdge = secondBestMetric - bestMetric;
+        var rawEdge = secondBestMetric - bestMetric;
         out.edgeDistance = Math.min(1.0f, rawEdge * 2.0f);
     }
 
@@ -158,7 +159,7 @@ public final class TemplateStrategy {
 
         if (count == 2) return TemplateType.BINARY;
 
-        float maxBudget = 0;
+        var maxBudget = 0F;
         for (Region child : children) {
             maxBudget = Math.max(maxBudget, child.areaBudget());
         }
@@ -172,17 +173,17 @@ public final class TemplateStrategy {
     private static int findCenterIndex(List<Region> children, String centerRegionName, float totalBudget) {
 
         if (centerRegionName != null) {
-            for (int i = 0; i < children.size(); i++) {
+            for (var i = 0; i < children.size(); i++) {
                 if (children.get(i).name().equals(centerRegionName)) {
                     return i;
                 }
             }
         }
 
-        int dominant = 0;
-        float maxBudget = 0;
-        for (int i = 0; i < children.size(); i++) {
-            float budget = children.get(i).areaBudget();
+        var dominant = 0;
+        var maxBudget = 0F;
+        for (var i = 0; i < children.size(); i++) {
+            var budget = children.get(i).areaBudget();
             if (budget > maxBudget) {
                 maxBudget = budget;
                 dominant = i;
@@ -196,7 +197,7 @@ public final class TemplateStrategy {
     }
 
     private static float hashToFloat(long seed, int a, int b) {
-        long h = MathUtils.hash64(seed, a, b, 0);
+        var h = MathUtils.hash64(seed, a, b, 0);
         return (h & 0xFFFF) / 65536.0f;
     }
 }

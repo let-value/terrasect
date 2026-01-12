@@ -23,19 +23,18 @@ import org.junit.jupiter.api.Test;
 @SnapshotTests
 public class SnapshotTest {
 
-    @Test
-    public void testRegionDistribution() {
+    @Test public void testRegionDistribution() {
         World.register(TestRegions.buildTestWorld(), World.OVERWORLD);
 
-        long seed = 987654321L;
-        Context context = new MockStrategy(seed);
+        var seed = 987654321L;
+        var context = new MockStrategy(seed);
 
-        int width = 100000;
-        int height = 100000;
-        int step = 100;
+        var width = 100000;
+        var height = 100000;
+        var step = 100;
 
         System.out.println("Sampling Depth 1 (Children of ROOT):");
-        java.util.Map<String, Integer> counts = RegionSampler.sample(0, 0, width, height, step, 1, context);
+        var counts = RegionSampler.sample(0, 0, width, height, step, 1, context);
         counts.forEach((name, count) -> System.out.println(name + ": " + count));
 
         System.out.println("\nSampling Depth 2 (Grandchildren of ROOT):");
@@ -50,52 +49,49 @@ public class SnapshotTest {
             this.seed = seed;
         }
 
-        @Override
-        public long getSeed() {
+        @Override public long getSeed() {
             return seed;
         }
 
-        @Override
-        public long getInfluence(int x, int z) {
-            float river = NoiseUtils.riverMask(x, z, seed);
-            float ridge = NoiseUtils.ridgeMask(x, z, seed);
+        @Override public long getInfluence(int x, int z) {
+            var river = NoiseUtils.riverMask(x, z, seed);
+            var ridge = NoiseUtils.ridgeMask(x, z, seed);
             return Packer.packPair(river, ridge);
         }
     }
 
-    @Test
-    public void generateSnapshots(Snapshot snapshot) throws IOException, NoSuchAlgorithmException {
+    @Test public void generateSnapshots(Snapshot snapshot) throws IOException, NoSuchAlgorithmException {
         World.register(TestRegions.buildTestWorld(), World.OVERWORLD);
         var seed = 987654321L;
-        Context context = new MockStrategy(seed);
+        var context = new MockStrategy(seed);
 
         World.initialize(context);
-        int width = 512;
-        int height = 512;
-        int step = 4;
+        var width = 512;
+        var height = 512;
+        var step = 4;
 
-        BufferedImage imgVoronoi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        BufferedImage imgEdge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        BufferedImage imgRiver = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        BufferedImage imgRidge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        BufferedImage imgCombined = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var imgVoronoi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var imgEdge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var imgRiver = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var imgRidge = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var imgCombined = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-        List<BufferedImage> depthImages = new ArrayList<>();
+        var depthImages = new ArrayList<BufferedImage>();
 
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
 
-                int wx = (x - width / 2) * step;
-                int wz = (y - height / 2) * step;
+                var wx = (x - width / 2) * step;
+                var wz = (y - height / 2) * step;
 
-                long influence = context.getInfluence(wx, wz);
-                float river = Packer.unpackPairFirst(influence);
-                float ridge = Packer.unpackPairSecond(influence);
+                var influence = context.getInfluence(wx, wz);
+                var river = Packer.unpackPairFirst(influence);
+                var ridge = Packer.unpackPairSecond(influence);
 
-                List<Region> regions = new ArrayList<>();
-                List<Long> seeds = new ArrayList<>();
+                var regions = new ArrayList<Region>();
+                var seeds = new ArrayList<Long>();
 
                 TraversalResult traversal = World.traverse(context, wx, wz, 1);
                 regions.add(traversal.region);
@@ -113,66 +109,66 @@ public class SnapshotTest {
                     depthImages.add(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB));
                 }
 
-                Region leafRegion = regions.get(regions.size() - 1);
+                var leafRegion = regions.get(regions.size() - 1);
 
                 TraversalResult leafTraversal = World.traverse(context, wx, wz);
                 float edgeDistance = leafTraversal != null ? leafTraversal.edgeDistance : 1.0f;
-                boolean isEdge = false;
+                var isEdge = false;
 
-                Region right = World.traverse(context, wx + step, wz).region;
-                Region down = World.traverse(context, wx, wz + step).region;
+                var right = World.traverse(context, wx + step, wz).region;
+                var down = World.traverse(context, wx, wz + step).region;
                 if (!leafRegion.name().equals(right.name())
                         || !leafRegion.name().equals(down.name())) {
                     isEdge = true;
                 }
 
-                int leafRegionHash = leafRegion.name().hashCode();
+                var leafRegionHash = leafRegion.name().hashCode();
                 updateDigest(digest, leafRegionHash);
                 updateDigest(digest, isEdge ? 1.0f : 0.0f);
                 updateDigest(digest, river);
                 updateDigest(digest, ridge);
                 updateDigest(digest, leafRegionHash);
 
-                int r = (int) (MathUtils.hash64(leafRegionHash, 1, 0, 0) & 0xFF);
-                int g = (int) (MathUtils.hash64(leafRegionHash, 2, 0, 0) & 0xFF);
-                int b = (int) (MathUtils.hash64(leafRegionHash, 3, 0, 0) & 0xFF);
+                var r = (int) (MathUtils.hash64(leafRegionHash, 1, 0, 0) & 0xFF);
+                var g = (int) (MathUtils.hash64(leafRegionHash, 2, 0, 0) & 0xFF);
+                var b = (int) (MathUtils.hash64(leafRegionHash, 3, 0, 0) & 0xFF);
                 imgVoronoi.setRGB(x, y, (r << 16) | (g << 8) | b);
 
-                for (int i = 0; i < regions.size(); i++) {
-                    Region region = regions.get(i);
-                    long regionSeed = seeds.get(i);
-                    int color = getGenericRegionColor(region);
+                for (var i = 0; i < regions.size(); i++) {
+                    var region = regions.get(i);
+                    var regionSeed = seeds.get(i);
+                    var color = getGenericRegionColor(region);
 
                     TraversalResult rightTraversal = World.traverse(context, wx + step, wz, i + 1);
-                    Region layerRight = rightTraversal.region;
-                    long seedRight = rightTraversal.seed;
+                    var layerRight = rightTraversal.region;
+                    var seedRight = rightTraversal.seed;
 
                     TraversalResult downTraversal = World.traverse(context, wx, wz + step, i + 1);
-                    Region layerDown = downTraversal.region;
-                    long seedDown = downTraversal.seed;
+                    var layerDown = downTraversal.region;
+                    var seedDown = downTraversal.seed;
 
                     if (!region.name().equals(layerRight.name())
                             || regionSeed != seedRight
                             || !region.name().equals(layerDown.name())
                             || regionSeed != seedDown) {
 
-                        int cr = (color >> 16) & 0xFF;
-                        int cg = (color >> 8) & 0xFF;
-                        int cb = color & 0xFF;
+                        var cr = (color >> 16) & 0xFF;
+                        var cg = (color >> 8) & 0xFF;
+                        var cb = color & 0xFF;
                         color = ((cr / 2) << 16) | ((cg / 2) << 8) | (cb / 2);
                     }
 
                     if (i > 0) {
-                        Region parent = regions.get(i - 1);
-                        long parentSeed = seeds.get(i - 1);
+                        var parent = regions.get(i - 1);
+                        var parentSeed = seeds.get(i - 1);
 
                         TraversalResult parentRightTraversal = World.traverse(context, wx + step, wz, i);
-                        Region parentRight = parentRightTraversal.region;
-                        long parentSeedRight = parentRightTraversal.seed;
+                        var parentRight = parentRightTraversal.region;
+                        var parentSeedRight = parentRightTraversal.seed;
 
                         TraversalResult parentDownTraversal = World.traverse(context, wx, wz + step, i);
-                        Region parentDown = parentDownTraversal.region;
-                        long parentSeedDown = parentDownTraversal.seed;
+                        var parentDown = parentDownTraversal.region;
+                        var parentSeedDown = parentDownTraversal.seed;
 
                         if (!parent.name().equals(parentRight.name())
                                 || parentSeed != parentSeedRight
@@ -185,20 +181,20 @@ public class SnapshotTest {
                     depthImages.get(i).setRGB(x, y, color);
                 }
 
-                int edgeVal = (int) (edgeDistance * 255);
+                var edgeVal = (int) (edgeDistance * 255);
                 imgEdge.setRGB(x, y, (edgeVal << 16) | (edgeVal << 8) | edgeVal);
 
-                int riverVal = (int) (river * 255);
+                var riverVal = (int) (river * 255);
                 imgRiver.setRGB(x, y, (riverVal << 16) | (riverVal << 8) | riverVal);
 
-                int ridgeVal = (int) (ridge * 255);
+                var ridgeVal = (int) (ridge * 255);
                 imgRidge.setRGB(x, y, (ridgeVal << 16) | (ridgeVal << 8) | ridgeVal);
 
-                int archColor = getGenericRegionColor(leafRegion);
+                var archColor = getGenericRegionColor(leafRegion);
 
-                int cr = (archColor >> 16) & 0xFF;
-                int cg = (archColor >> 8) & 0xFF;
-                int cb = archColor & 0xFF;
+                var cr = (archColor >> 16) & 0xFF;
+                var cg = (archColor >> 8) & 0xFF;
+                var cb = archColor & 0xFF;
 
                 cr = (int) (cr * edgeDistance);
                 cg = (int) (cg * edgeDistance);
@@ -208,9 +204,9 @@ public class SnapshotTest {
             }
         }
 
-        String actualDigest = HexFormat.of().formatHex(digest.digest());
+        var actualDigest = HexFormat.of().formatHex(digest.digest());
 
-        File outDir = new File("build/test-snapshots");
+        var outDir = new File("build/test-snapshots");
         outDir.mkdirs();
         ImageIO.write(imgVoronoi, "png", new File(outDir, "voronoi.png"));
         ImageIO.write(imgEdge, "png", new File(outDir, "edge.png"));
@@ -218,7 +214,7 @@ public class SnapshotTest {
         ImageIO.write(imgRidge, "png", new File(outDir, "ridge.png"));
         ImageIO.write(imgCombined, "png", new File(outDir, "combined.png"));
 
-        for (int i = 0; i < depthImages.size(); i++) {
+        for (var i = 0; i < depthImages.size(); i++) {
             ImageIO.write(depthImages.get(i), "png", new File(outDir, "depth_" + i + ".png"));
         }
 
@@ -239,13 +235,13 @@ public class SnapshotTest {
     }
 
     private int getGenericRegionColor(Region region) {
-        int color = getTestRegionColor(region);
+        var color = getTestRegionColor(region);
         if (color != 0) return color;
 
-        int h = region.name().hashCode();
-        int r = 64 + (Math.abs(h) % 192);
-        int g = 64 + (Math.abs(h >> 8) % 192);
-        int b = 64 + (Math.abs(h >> 16) % 192);
+        var h = region.name().hashCode();
+        var r = 64 + (Math.abs(h) % 192);
+        var g = 64 + (Math.abs(h >> 8) % 192);
+        var b = 64 + (Math.abs(h >> 16) % 192);
         return (r << 16) | (g << 8) | b;
     }
 

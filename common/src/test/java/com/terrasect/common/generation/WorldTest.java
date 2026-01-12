@@ -12,19 +12,16 @@ import org.junit.jupiter.api.Test;
 
 public class WorldTest {
 
-    @BeforeEach
-    void setUp() {
+    @BeforeEach void setUp() {
         World.clear();
     }
 
-    @AfterEach
-    void tearDown() {
+    @AfterEach void tearDown() {
         World.clear();
     }
 
-    @Test
-    void registersRootForDimension() {
-        Region overworldRoot = buildSimpleRoot("OVERWORLD");
+    @Test void registersRootForDimension() {
+        var overworldRoot = buildSimpleRoot("OVERWORLD");
 
         World.register(overworldRoot, World.OVERWORLD);
 
@@ -32,10 +29,9 @@ public class WorldTest {
         assertTrue(World.hasRoot(World.OVERWORLD));
     }
 
-    @Test
-    void supportsDifferentRootsPerDimension() {
-        Region overworldRoot = buildSimpleRoot("OVERWORLD");
-        Region endRoot = buildSimpleRoot("END");
+    @Test void supportsDifferentRootsPerDimension() {
+        var overworldRoot = buildSimpleRoot("OVERWORLD");
+        var endRoot = buildSimpleRoot("END");
 
         World.register(overworldRoot, World.OVERWORLD);
         World.register(endRoot, World.THE_END);
@@ -46,9 +42,8 @@ public class WorldTest {
         assertEquals(2, World.getRegisteredDimensions().size());
     }
 
-    @Test
-    void returnsNullForUnregisteredDimension() {
-        Region overworldRoot = buildSimpleRoot("OVERWORLD");
+    @Test void returnsNullForUnregisteredDimension() {
+        var overworldRoot = buildSimpleRoot("OVERWORLD");
         World.register(overworldRoot, World.OVERWORLD);
 
         Region result = World.getRoot("mymod:custom_dimension");
@@ -57,15 +52,13 @@ public class WorldTest {
         assertEquals("OVERWORLD", World.getRoot(World.OVERWORLD).name());
     }
 
-    @Test
-    void returnsNullWhenNoDimensionsRegistered() {
+    @Test void returnsNullWhenNoDimensionsRegistered() {
         assertNull(World.getRoot("mymod:custom_dimension"));
         assertNull(World.getRoot(World.OVERWORLD));
     }
 
-    @Test
-    void allowsSameRootForMultipleDimensions() {
-        Region sharedRoot = buildSimpleRoot("SHARED");
+    @Test void allowsSameRootForMultipleDimensions() {
+        var sharedRoot = buildSimpleRoot("SHARED");
 
         World.register(sharedRoot, World.OVERWORLD, "mymod:overworld_copy", "mymod:alternate_world");
 
@@ -76,17 +69,15 @@ public class WorldTest {
         assertSame(World.getRoot(World.OVERWORLD), World.getRoot("mymod:overworld_copy"));
     }
 
-    @Test
-    void getRootReturnsNullForUnregistered() {
-        Region overworldRoot = buildSimpleRoot("OVERWORLD");
+    @Test void getRootReturnsNullForUnregistered() {
+        var overworldRoot = buildSimpleRoot("OVERWORLD");
         World.register(overworldRoot, World.OVERWORLD);
 
         assertNotNull(World.getRoot(World.OVERWORLD));
         assertNull(World.getRoot(World.THE_END));
     }
 
-    @Test
-    void clearRemovesAllRegistrations() {
+    @Test void clearRemovesAllRegistrations() {
         World.register(buildSimpleRoot("OVERWORLD"), World.OVERWORLD);
         World.register(buildSimpleRoot("END"), World.THE_END);
 
@@ -95,8 +86,7 @@ public class WorldTest {
         assertTrue(World.getRegisteredDimensions().isEmpty());
     }
 
-    @Test
-    void emptyRootCreatesValidEmptyRegion() {
+    @Test void emptyRootCreatesValidEmptyRegion() {
         Region empty = World.emptyRoot("EMPTY_DIM");
 
         assertEquals("EMPTY_DIM", empty.name());
@@ -105,64 +95,58 @@ public class WorldTest {
     }
 
     private Region buildSimpleRoot(String name) {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region(name).strategy(GenerationStrategy.hex()).radius(1000);
         return registry.build(name);
     }
 
     private Context createTestContext(long seed) {
         return new com.terrasect.common.Context() {
-            @Override
-            public long getSeed() {
+            @Override public long getSeed() {
                 return seed;
             }
 
-            @Override
-            public long getInfluence(int x, int z) {
+            @Override public long getInfluence(int x, int z) {
                 return 0L;
             }
         };
     }
 
-    @Test
-    void anchoredRegion_RegionA_appearsAtOrigin() {
+    @Test void anchoredRegion_RegionA_appearsAtOrigin() {
         testAnchoredRegionAppearsAtOrigin("REGION_A");
     }
 
-    @Test
-    void anchoredRegion_RegionB_appearsAtOrigin() {
+    @Test void anchoredRegion_RegionB_appearsAtOrigin() {
         testAnchoredRegionAppearsAtOrigin("REGION_B");
     }
 
-    @Test
-    void anchoredRegion_RegionC_appearsAtOrigin() {
+    @Test void anchoredRegion_RegionC_appearsAtOrigin() {
         testAnchoredRegionAppearsAtOrigin("REGION_C");
     }
 
-    @Test
-    void anchoredRegion_RegionD_appearsAtOrigin() {
+    @Test void anchoredRegion_RegionD_appearsAtOrigin() {
         testAnchoredRegionAppearsAtOrigin("REGION_D");
     }
 
     private void testAnchoredRegionAppearsAtOrigin(String anchoredName) {
-        long seed = 12345L;
-        Context context = createTestContext(seed);
+        var seed = 12345L;
+        var context = createTestContext(seed);
 
-        Region root = buildTestRegionsWithAnchor(anchoredName);
+        var root = buildTestRegionsWithAnchor(anchoredName);
         World.register(root, World.OVERWORLD);
 
         World.initialize(context);
 
-        Region atOrigin = World.traverse(context, 0, 0).region;
+        var atOrigin = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin, "Should find a region at origin after anchoring");
         assertEquals(
                 anchoredName, atOrigin.name(), "Region at origin should be the anchored region '" + anchoredName + "'");
     }
 
     private Region buildTestRegionsWithAnchor(String anchoredName) {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
-            .strategy(GenerationStrategy.hex())
+                .strategy(GenerationStrategy.hex())
                 .radius(5000)
                 .child("REGION_A", r -> {
                     r.radius(1000);
@@ -183,40 +167,39 @@ public class WorldTest {
         return registry.build("ROOT");
     }
 
-    @Test
-    void deeplyNestedAnchoredRegion_SamplingOriginReturnsAnchoredRegion() {
-        long seed = 54321L;
-        Context context = createTestContext(seed);
+    @Test void deeplyNestedAnchoredRegion_SamplingOriginReturnsAnchoredRegion() {
+        var seed = 54321L;
+        var context = createTestContext(seed);
 
-        Region root = buildDeeplyNestedHierarchy();
+        var root = buildDeeplyNestedHierarchy();
         World.register(root, World.OVERWORLD);
 
         World.initialize(context);
 
-        Region atOriginDepth4 = World.traverse(context, 0, 0, 4).region;
+        var atOriginDepth4 = World.traverse(context, 0, 0, 4).region;
         assertNotNull(atOriginDepth4, "Should find a region at origin depth 4");
         assertEquals(
                 "SPAWN_POINT",
                 atOriginDepth4.name(),
                 "Region at origin should be the deeply nested anchored region 'SPAWN_POINT'");
 
-        Region atOriginFull = World.traverse(context, 0, 0).region;
+        var atOriginFull = World.traverse(context, 0, 0).region;
         assertNotNull(atOriginFull, "Should find a region at origin (full depth)");
         assertEquals(
                 "SPAWN_POINT", atOriginFull.name(), "Full depth sampling at origin should also return 'SPAWN_POINT'");
     }
 
     private Region buildDeeplyNestedHierarchy() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
-            .strategy(GenerationStrategy.hex())
+                .strategy(GenerationStrategy.hex())
                 .radius(50000)
                 .child("CONTINENT", continent -> continent
-                .strategy(GenerationStrategy.subdivision())
+                        .strategy(GenerationStrategy.subdivision())
                         .radius(10000)
-                .child("KINGDOM", kingdom -> kingdom.strategy(GenerationStrategy.voronoi())
+                        .child("KINGDOM", kingdom -> kingdom.strategy(GenerationStrategy.voronoi())
                                 .radius(3000)
-                    .child("PROVINCE", province -> province.strategy(GenerationStrategy.subdivision())
+                                .child("PROVINCE", province -> province.strategy(GenerationStrategy.subdivision())
                                         .radius(1000)
                                         .child("SPAWN_POINT", spawn -> spawn.radius(200)
                                                 .anchoredToOrigin())
@@ -224,24 +207,23 @@ public class WorldTest {
         return registry.build("ROOT");
     }
 
-    @Test
-    void withoutAnchoring_originRegionIsProcedural() {
-        long seed = 99999L;
-        Context context = createTestContext(seed);
+    @Test void withoutAnchoring_originRegionIsProcedural() {
+        var seed = 99999L;
+        var context = createTestContext(seed);
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("ROOT")
-            .strategy(GenerationStrategy.hex())
+                .strategy(GenerationStrategy.hex())
                 .radius(5000)
                 .child("REGION_A", r -> r.radius(1000))
                 .child("REGION_B", r -> r.radius(1000))
                 .child("REGION_C", r -> r.radius(1000));
-        Region root = registry.build("ROOT");
+        var root = registry.build("ROOT");
 
         World.register(root, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin = World.traverse(context, 0, 0).region;
+        var atOrigin = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin, "Should find some region at origin");
 
         assertTrue(
@@ -251,26 +233,25 @@ public class WorldTest {
                 "Origin region should be one of the defined regions");
     }
 
-    @Test
-    void anchoredRegion_sameSeededProducesSameOffset() {
-        long seed = 77777L;
+    @Test void anchoredRegion_sameSeededProducesSameOffset() {
+        var seed = 77777L;
         var context = createTestContext(seed);
 
-        Region root1 = buildTestRegionsWithAnchor("REGION_B");
+        var root1 = buildTestRegionsWithAnchor("REGION_B");
         World.register(root1, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin1 = World.traverse(context, 0, 0).region;
+        var atOrigin1 = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin1);
         assertEquals("REGION_B", atOrigin1.name());
 
         World.clear();
 
-        Region root2 = buildTestRegionsWithAnchor("REGION_B");
+        var root2 = buildTestRegionsWithAnchor("REGION_B");
         World.register(root2, World.OVERWORLD);
         World.initialize(context);
 
-        Region atOrigin2 = World.traverse(context, 0, 0).region;
+        var atOrigin2 = World.traverse(context, 0, 0).region;
         assertNotNull(atOrigin2);
         assertEquals(
                 "REGION_B",
@@ -278,23 +259,22 @@ public class WorldTest {
                 "Re-initialized world with same seed should produce same result at origin");
     }
 
-    @Test
-    void differentAnchoredRegions_produceDifferentResults() {
-        long seed = 88888L;
+    @Test void differentAnchoredRegions_produceDifferentResults() {
+        var seed = 88888L;
         var context = createTestContext(seed);
 
-        Region root1 = buildTestRegionsWithAnchor("REGION_A");
+        var root1 = buildTestRegionsWithAnchor("REGION_A");
         World.register(root1, World.OVERWORLD);
         World.initialize(context);
-        Region atOrigin1 = World.traverse(context, 0, 0).region;
+        var atOrigin1 = World.traverse(context, 0, 0).region;
         assertEquals("REGION_A", atOrigin1.name());
 
         World.clear();
 
-        Region root2 = buildTestRegionsWithAnchor("REGION_C");
+        var root2 = buildTestRegionsWithAnchor("REGION_C");
         World.register(root2, World.OVERWORLD);
         World.initialize(context);
-        Region atOrigin2 = World.traverse(context, 0, 0).region;
+        var atOrigin2 = World.traverse(context, 0, 0).region;
         assertEquals("REGION_C", atOrigin2.name());
 
         assertNotEquals(

@@ -3,7 +3,7 @@ package com.terrasect.common.util;
 public class MathUtils {
 
     public static int floorDiv(int a, int b) {
-        int r = a / b;
+        var r = a / b;
 
         if ((a ^ b) < 0 && (r * b != a)) {
             r--;
@@ -12,7 +12,7 @@ public class MathUtils {
     }
 
     public static int mod(int a, int b) {
-        int r = a % b;
+        var r = a % b;
         if (r < 0) {
             r += b;
         }
@@ -20,7 +20,7 @@ public class MathUtils {
     }
 
     public static long hash64(long seed, int x, int z, long salt) {
-        long h = seed + x * 31337L + z * 0x5F3759DFL + salt;
+        var h = seed + x * 31337L + z * 0x5F3759DFL + salt;
         h = (h ^ (h >>> 30)) * 0xBF58476D1CE4E5B9L;
         h = (h ^ (h >>> 27)) * 0x94D049BB133111EBL;
         h = h ^ (h >>> 31);
@@ -32,7 +32,7 @@ public class MathUtils {
     }
 
     public static float randomFloat(long seed, int x, int z, int salt) {
-        long h = hash64(seed, x, z, salt);
+        var h = hash64(seed, x, z, salt);
 
         return (h >>> 40) * 5.9604645E-8F;
     }
@@ -47,20 +47,20 @@ public class MathUtils {
 
     public static long getHexCell(float x, float z, float size) {
 
-        float q = (float) (Math.sqrt(3) / 3 * x - 1.0 / 3 * z) / size;
-        float r = (float) (2.0 / 3 * z) / size;
+        var q = (float) (Math.sqrt(3) / 3 * x - 1.0 / 3 * z) / size;
+        var r = (float) (2.0 / 3 * z) / size;
         return hexRound(q, r);
     }
 
     private static long hexRound(float q, float r) {
-        float s = -q - r;
-        int rq = Math.round(q);
-        int rr = Math.round(r);
-        int rs = Math.round(s);
+        var s = -q - r;
+        var rq = Math.round(q);
+        var rr = Math.round(r);
+        var rs = Math.round(s);
 
-        float q_diff = Math.abs(rq - q);
-        float r_diff = Math.abs(rr - r);
-        float s_diff = Math.abs(rs - s);
+        var q_diff = Math.abs(rq - q);
+        var r_diff = Math.abs(rr - r);
+        var s_diff = Math.abs(rs - s);
 
         if (q_diff > r_diff && q_diff > s_diff) {
             rq = -rr - rs;

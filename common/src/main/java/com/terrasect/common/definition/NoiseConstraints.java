@@ -38,9 +38,9 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
     }
 
     public NoiseConstraints resolveWithParent(NoiseConstraints parent) {
-        boolean clearParent = clearsParent();
+        var clearParent = clearsParent();
 
-        boolean hasLocal = hasAnyConstraints();
+        var hasLocal = hasAnyConstraints();
         if (!hasLocal) {
             if (clearParent) {
                 return NoiseConstraints.empty();
@@ -106,9 +106,9 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
             Objects.requireNonNull(noiseKey, "noiseKey");
             Objects.requireNonNull(consumer, "consumer");
 
-            NoiseTransform.Builder builder = NoiseTransform.builder().copyFrom(noises.get(noiseKey));
+            var builder = NoiseTransform.builder().copyFrom(noises.get(noiseKey));
             consumer.accept(builder);
-            NoiseTransform transform = builder.build();
+            var transform = builder.build();
             if (transform.isEmpty()) {
                 noises.remove(noiseKey);
             } else {
@@ -121,10 +121,10 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
             Objects.requireNonNull(densityFunctionKey, "densityFunctionKey");
             Objects.requireNonNull(consumer, "consumer");
 
-            NoiseTransform.Builder builder =
+            var builder =
                     NoiseTransform.builder().copyFrom(densityFunctions.get(densityFunctionKey));
             consumer.accept(builder);
-            NoiseTransform transform = builder.build();
+            var transform = builder.build();
             if (transform.isEmpty()) {
                 densityFunctions.remove(densityFunctionKey);
             } else {
@@ -150,8 +150,8 @@ public record NoiseConstraints(Map<String, NoiseTransform> noises, Map<String, N
                 return NoiseConstraints.empty();
             }
 
-            Map<String, NoiseTransform> builtNoises = new LinkedHashMap<>(noises);
-            Map<String, NoiseTransform> builtDensity = new LinkedHashMap<>(densityFunctions);
+            var builtNoises = new LinkedHashMap<String, NoiseTransform>(noises);
+            var builtDensity = new LinkedHashMap<String, NoiseTransform>(densityFunctions);
             if (clearParent) {
                 builtNoises.put(CLEAR_PARENT_MARKER, MARKER_VALUE);
             }

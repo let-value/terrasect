@@ -9,8 +9,8 @@ public record HeightConstraints(int minY, int maxY) {
             new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
 
     public HeightConstraints {
-        boolean inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;
-        boolean unconstrained = minY == UNCONSTRAINED_SENTINEL || maxY == UNCONSTRAINED_SENTINEL;
+        var inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;
+        var unconstrained = minY == UNCONSTRAINED_SENTINEL || maxY == UNCONSTRAINED_SENTINEL;
 
         if (inherit && unconstrained) {
             throw new IllegalArgumentException("HeightConstraints cannot be both inherit and unconstrained");
@@ -25,7 +25,7 @@ public record HeightConstraints(int minY, int maxY) {
                 throw new IllegalArgumentException("HeightConstraints unconstrained must set both minY and maxY");
             }
         } else if (minY > maxY) {
-            int tmp = minY;
+            var tmp = minY;
             minY = maxY;
             maxY = tmp;
         }

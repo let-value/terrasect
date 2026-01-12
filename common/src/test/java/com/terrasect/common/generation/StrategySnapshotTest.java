@@ -27,220 +27,200 @@ public class StrategySnapshotTest {
     private File outDir;
     private Context context;
 
-    @BeforeEach
-    void setup() {
+    @BeforeEach void setup() {
         context = new SnapshotTest.MockStrategy(SEED);
     }
 
-    @Test
-    void voronoi_default(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.voronoi());
+    @Test void voronoi_default(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.voronoi());
         runSnapshotTest(snapshot, "voronoi_default", root, 2);
     }
 
-    @Test
-    void voronoi_low_relaxation(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.voronoi(2));
+    @Test void voronoi_low_relaxation(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.voronoi(2));
         runSnapshotTest(snapshot, "voronoi_low_relaxation", root, 2);
     }
 
-    @Test
-    void voronoi_high_relaxation(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.voronoi(20));
+    @Test void voronoi_high_relaxation(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.voronoi(20));
         runSnapshotTest(snapshot, "voronoi_high_relaxation", root, 2);
     }
 
-    @Test
-    void subdivision_default(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.subdivision());
+    @Test void subdivision_default(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.subdivision());
         runSnapshotTest(snapshot, "subdivision_default", root, 2);
     }
 
-    @Test
-    void subdivision_low_jitter(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.subdivision(0.0f));
+    @Test void subdivision_low_jitter(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.subdivision(0.0f));
         runSnapshotTest(snapshot, "subdivision_low_jitter", root, 2);
     }
 
-    @Test
-    void subdivision_high_jitter(Snapshot snapshot) throws Exception {
-        Region root = buildSimpleHierarchy(GenerationStrategy.subdivision(0.5f));
+    @Test void subdivision_high_jitter(Snapshot snapshot) throws Exception {
+        var root = buildSimpleHierarchy(GenerationStrategy.subdivision(0.5f));
         runSnapshotTest(snapshot, "subdivision_high_jitter", root, 2);
     }
 
-    @Test
-    void template_binary(Snapshot snapshot) throws Exception {
-        Region root = buildBinaryHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.BINARY));
+    @Test void template_binary(Snapshot snapshot) throws Exception {
+        var root = buildBinaryHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.BINARY));
         runSnapshotTest(snapshot, "template_binary", root, 2);
     }
 
-    @Test
-    void template_triangle(Snapshot snapshot) throws Exception {
-        Region root = buildTriangleHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.TRIANGLE));
+    @Test void template_triangle(Snapshot snapshot) throws Exception {
+        var root = buildTriangleHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.TRIANGLE));
         runSnapshotTest(snapshot, "template_triangle", root, 2);
     }
 
-    @Test
-    void template_center_surround(Snapshot snapshot) throws Exception {
-        Region root = buildCenterSurroundHierarchy(
+    @Test void template_center_surround(Snapshot snapshot) throws Exception {
+        var root = buildCenterSurroundHierarchy(
                 GenerationStrategy.template(GenerationStrategy.TemplateType.CENTER_SURROUND), null);
         runSnapshotTest(snapshot, "template_center_surround", root, 2);
     }
 
-    @Test
-    void template_center_surround_named(Snapshot snapshot) throws Exception {
+    @Test void template_center_surround_named(Snapshot snapshot) throws Exception {
 
-        Region root = buildCenterSurroundHierarchy(GenerationStrategy.centerSurround("SMALL_CENTER"), "SMALL_CENTER");
+        var root = buildCenterSurroundHierarchy(GenerationStrategy.centerSurround("SMALL_CENTER"), "SMALL_CENTER");
         runSnapshotTest(snapshot, "template_center_surround_named", root, 2);
     }
 
-    @Test
-    void template_radial(Snapshot snapshot) throws Exception {
-        Region root = buildRadialHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL));
+    @Test void template_radial(Snapshot snapshot) throws Exception {
+        var root = buildRadialHierarchy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL));
         runSnapshotTest(snapshot, "template_radial", root, 2);
     }
 
-    @Test
-    void hex_default(Snapshot snapshot) throws Exception {
-        Region root = buildHexHierarchy(GenerationStrategy.hex());
+    @Test void hex_default(Snapshot snapshot) throws Exception {
+        var root = buildHexHierarchy(GenerationStrategy.hex());
         runSnapshotTest(snapshot, "hex_default", root, 2);
     }
 
-    @Test
-    void hex_with_ring(Snapshot snapshot) throws Exception {
-        Region root = buildHexHierarchy(GenerationStrategy.hex("BORDER"));
+    @Test void hex_with_ring(Snapshot snapshot) throws Exception {
+        var root = buildHexHierarchy(GenerationStrategy.hex("BORDER"));
         runSnapshotTest(snapshot, "hex_with_ring", root, 2);
     }
 
-    @Test
-    void nested_hex_voronoi(Snapshot snapshot) throws Exception {
+    @Test void nested_hex_voronoi(Snapshot snapshot) throws Exception {
 
-        Region root = buildNestedHexVoronoi();
+        var root = buildNestedHexVoronoi();
         runSnapshotTest(snapshot, "nested_hex_voronoi", root, 2);
     }
 
-    @Test
-    void nested_hex_subdivision(Snapshot snapshot) throws Exception {
+    @Test void nested_hex_subdivision(Snapshot snapshot) throws Exception {
 
-        Region root = buildNestedHexSubdivision();
+        var root = buildNestedHexSubdivision();
         runSnapshotTest(snapshot, "nested_hex_subdivision", root, 2);
     }
 
-    @Test
-    void nested_voronoi_template(Snapshot snapshot) throws Exception {
+    @Test void nested_voronoi_template(Snapshot snapshot) throws Exception {
 
-        Region root = buildNestedVoronoiTemplate();
+        var root = buildNestedVoronoiTemplate();
         runSnapshotTest(snapshot, "nested_voronoi_template", root, 3);
     }
 
-    @Test
-    void nested_subdivision_template(Snapshot snapshot) throws Exception {
+    @Test void nested_subdivision_template(Snapshot snapshot) throws Exception {
 
-        Region root = buildNestedSubdivisionTemplate();
+        var root = buildNestedSubdivisionTemplate();
         runSnapshotTest(snapshot, "nested_subdivision_template", root, 3);
     }
 
-    @Test
-    void deeply_nested(Snapshot snapshot) throws Exception {
+    @Test void deeply_nested(Snapshot snapshot) throws Exception {
 
-        Region root = buildDeeplyNested();
+        var root = buildDeeplyNested();
         runSnapshotTest(snapshot, "deeply_nested", root, 4);
     }
 
-    @Test
-    void kitchen_sink(Snapshot snapshot) throws Exception {
-        Region root = buildKitchenSink();
+    @Test void kitchen_sink(Snapshot snapshot) throws Exception {
+        var root = buildKitchenSink();
         runSnapshotTest(snapshot, "kitchen_sink", root, 4);
     }
 
     private void runSnapshotTest(Snapshot snapshot, String testName, Region root, int maxDepth) throws Exception {
-        String digest = runSnapshot(testName, root, maxDepth);
+        var digest = runSnapshot(testName, root, maxDepth);
         snapshot.assertThat(digest).asText().matchesSnapshotText();
     }
 
-        private Region buildSimpleHierarchy(GenerationStrategy strategy) {
-        RegionRegistry registry = new RegionRegistry();
+    private Region buildSimpleHierarchy(GenerationStrategy strategy) {
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(strategy)
-            .child("ZONE_A", a -> a.radius(100))
-            .child("ZONE_B", b -> b.radius(200))
-            .child("ZONE_C", c -> c.radius(150))
-            .child("ZONE_D", d -> d.radius(50)));
+                .child("ZONE_A", a -> a.radius(100))
+                .child("ZONE_B", b -> b.radius(200))
+                .child("ZONE_C", c -> c.radius(150))
+                .child("ZONE_D", d -> d.radius(50)));
         return registry.build("WORLD");
-        }
+    }
 
-        private Region buildBinaryHierarchy(GenerationStrategy templateStrategy) {
-        RegionRegistry registry = new RegionRegistry();
+    private Region buildBinaryHierarchy(GenerationStrategy templateStrategy) {
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(templateStrategy)
-            .child("LEFT", a -> a.radius(100))
-            .child("RIGHT", b -> b.radius(100)));
+                .child("LEFT", a -> a.radius(100))
+                .child("RIGHT", b -> b.radius(100)));
         return registry.build("WORLD");
-        }
+    }
 
-        private Region buildTriangleHierarchy(GenerationStrategy templateStrategy) {
-        RegionRegistry registry = new RegionRegistry();
+    private Region buildTriangleHierarchy(GenerationStrategy templateStrategy) {
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(templateStrategy)
-            .child("NORTH", a -> a.radius(100))
-            .child("SOUTHWEST", b -> b.radius(100))
-            .child("SOUTHEAST", c -> c.radius(100)));
+                .child("NORTH", a -> a.radius(100))
+                .child("SOUTHWEST", b -> b.radius(100))
+                .child("SOUTHEAST", c -> c.radius(100)));
         return registry.build("WORLD");
-        }
+    }
 
-        private Region buildCenterSurroundHierarchy(GenerationStrategy templateStrategy, String centerName) {
-        RegionRegistry registry = new RegionRegistry();
+    private Region buildCenterSurroundHierarchy(GenerationStrategy templateStrategy, String centerName) {
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(templateStrategy)
-            .child("CAPITAL", c -> c.radius(centerName == null ? 300 : 50))
-            .child("VILLAGE_N", a -> a.radius(100))
-            .child("VILLAGE_E", b -> b.radius(100))
-            .child("VILLAGE_S", c2 -> c2.radius(100))
-            .child("VILLAGE_W", d -> d.radius(100))
-            .child("SMALL_CENTER", sc -> sc.radius(centerName != null ? 300 : 50)));
+                .child("CAPITAL", c -> c.radius(centerName == null ? 300 : 50))
+                .child("VILLAGE_N", a -> a.radius(100))
+                .child("VILLAGE_E", b -> b.radius(100))
+                .child("VILLAGE_S", c2 -> c2.radius(100))
+                .child("VILLAGE_W", d -> d.radius(100))
+                .child("SMALL_CENTER", sc -> sc.radius(centerName != null ? 300 : 50)));
         return registry.build("WORLD");
-        }
+    }
 
-        private Region buildRadialHierarchy(GenerationStrategy templateStrategy) {
-        RegionRegistry registry = new RegionRegistry();
+    private Region buildRadialHierarchy(GenerationStrategy templateStrategy) {
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(templateStrategy)
-            .child("SECTOR_1", a -> a.radius(80))
-            .child("SECTOR_2", b -> b.radius(80))
-            .child("SECTOR_3", c -> c.radius(80))
-            .child("SECTOR_4", d -> d.radius(80))
-            .child("SECTOR_5", e -> e.radius(80))
-            .child("SECTOR_6", f -> f.radius(80)));
+                .child("SECTOR_1", a -> a.radius(80))
+                .child("SECTOR_2", b -> b.radius(80))
+                .child("SECTOR_3", c -> c.radius(80))
+                .child("SECTOR_4", d -> d.radius(80))
+                .child("SECTOR_5", e -> e.radius(80))
+                .child("SECTOR_6", f -> f.radius(80)));
         return registry.build("WORLD");
-        }
+    }
 
-        private Region buildHexHierarchy(GenerationStrategy hexStrategy) {
+    private Region buildHexHierarchy(GenerationStrategy hexStrategy) {
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(hexStrategy)
-            .child("PLAINS_HEX", plains -> plains.strategy(GenerationStrategy.voronoi())
-                .child("FARMLAND", f -> f.radius(60))
-                .child("VILLAGE_N", v -> v.radius(20))
-                .child("GRASSLAND", g -> g.radius(40)))
-            .child("FOREST_HEX", forest -> forest.radius(80))
-            .child("MOUNTAIN_HEX", mountain -> mountain.radius(50))
-            .child("BORDER", border -> border.radius(30));
+                .strategy(hexStrategy)
+                .child("PLAINS_HEX", plains -> plains.strategy(GenerationStrategy.voronoi())
+                        .child("FARMLAND", f -> f.radius(60))
+                        .child("VILLAGE_N", v -> v.radius(20))
+                        .child("GRASSLAND", g -> g.radius(40)))
+                .child("FOREST_HEX", forest -> forest.radius(80))
+                .child("MOUNTAIN_HEX", mountain -> mountain.radius(50))
+                .child("BORDER", border -> border.radius(30));
         return registry.build("WORLD");
-        }
+    }
 
     private Region buildNestedHexVoronoi() {
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(GenerationStrategy.hex())
+                .strategy(GenerationStrategy.hex())
                 .child("PLAINS_REALM", plains -> plains.radius(100)
-                .strategy(GenerationStrategy.voronoi())
+                        .strategy(GenerationStrategy.voronoi())
                         .child("FARMLAND", f -> f.radius(60))
                         .child("VILLAGE_N", v -> v.radius(20))
                         .child("GRASSLAND", g -> g.radius(40)))
                 .child("FOREST_REALM", forest -> forest.radius(80)
-                .strategy(GenerationStrategy.voronoi())
+                        .strategy(GenerationStrategy.voronoi())
                         .child("DENSE_FOREST", d -> d.radius(50))
                         .child("GROVE", g -> g.radius(30))
                         .child("CLEARING", c -> c.radius(20)))
                 .child("MOUNTAIN_REALM", mountain -> mountain.radius(50)
-                .strategy(GenerationStrategy.voronoi())
+                        .strategy(GenerationStrategy.voronoi())
                         .child("PEAK_1", p -> p.radius(40))
                         .child("VALLEY", v -> v.radius(30))
                         .child("MOUNTAIN_PASS", m -> m.radius(20)));
@@ -249,30 +229,30 @@ public class StrategySnapshotTest {
 
     private Region buildNestedHexSubdivision() {
 
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(GenerationStrategy.hex())
+                .strategy(GenerationStrategy.hex())
                 .child("PLAINS_REALM", plains -> plains.radius(100)
-                .strategy(GenerationStrategy.subdivision(0.1f))
+                        .strategy(GenerationStrategy.subdivision(0.1f))
                         .child("NORTH_LANDS", n -> n.radius(200))
                         .child("SOUTH_LANDS", s -> s.radius(200)))
                 .child("FOREST_REALM", forest -> forest.radius(80)
-                .strategy(GenerationStrategy.subdivision(0.1f))
+                        .strategy(GenerationStrategy.subdivision(0.1f))
                         .child("EAST_LANDS", e -> e.radius(150))
                         .child("WEST_LANDS", w -> w.radius(150)))
                 .child("MOUNTAIN_REALM", mountain -> mountain.radius(50)
-                .strategy(GenerationStrategy.subdivision(0.1f))
+                        .strategy(GenerationStrategy.subdivision(0.1f))
                         .child("PEAK_1", p -> p.radius(100))
                         .child("VALLEY", v -> v.radius(100)));
         return registry.build("WORLD");
     }
 
     private Region buildNestedVoronoiTemplate() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(
                 GenerationStrategy.voronoi())
                 .child("CAPITAL_REGION", cap -> cap.radius(300)
-                .strategy(GenerationStrategy.centerSurround("PALACE"))
+                        .strategy(GenerationStrategy.centerSurround("PALACE"))
                         .child("PALACE", p -> p.radius(100))
                         .child("GARDENS", g -> g.radius(100))
                         .child("MARKET", m -> m.radius(100)))
@@ -282,11 +262,11 @@ public class StrategySnapshotTest {
     }
 
     private Region buildNestedSubdivisionTemplate() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REALM", realm -> realm.strategy(
                 GenerationStrategy.subdivision())
                 .child("CITY", city -> city.radius(250)
-                .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
+                        .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
                         .child("DISTRICT_1", d1 -> d1.radius(50))
                         .child("DISTRICT_2", d2 -> d2.radius(50))
                         .child("DISTRICT_3", d3 -> d3.radius(50))
@@ -297,13 +277,13 @@ public class StrategySnapshotTest {
     }
 
     private Region buildDeeplyNested() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("COSMOS").strategy(GenerationStrategy.hex()).child("GALAXY", galaxy -> galaxy.strategy(
                 GenerationStrategy.voronoi())
                 .child("STAR_SYSTEM", system -> system.radius(400)
-                .strategy(GenerationStrategy.subdivision())
+                        .strategy(GenerationStrategy.subdivision())
                         .child("INNER_PLANETS", inner -> inner.radius(200)
-                    .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
+                                .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
                                 .child("MERCURY", m -> m.radius(30))
                                 .child("VENUS", v -> v.radius(50))
                                 .child("EARTH", e -> e.radius(60))
@@ -315,14 +295,14 @@ public class StrategySnapshotTest {
     }
 
     private Region buildKitchenSink() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD")
-            .strategy(GenerationStrategy.hex("OCEAN"))
-            .child("LANDMASS", land -> land.strategy(GenerationStrategy.voronoi())
+                .strategy(GenerationStrategy.hex("OCEAN"))
+                .child("LANDMASS", land -> land.strategy(GenerationStrategy.voronoi())
                         .child("KINGDOM", kingdom -> kingdom.radius(400)
-                    .strategy(GenerationStrategy.centerSurround("CASTLE"))
+                                .strategy(GenerationStrategy.centerSurround("CASTLE"))
                                 .child("CASTLE", castle -> castle.radius(100)
-                        .strategy(GenerationStrategy.subdivision(0.1f))
+                                        .strategy(GenerationStrategy.subdivision(0.1f))
                                         .child("KEEP", k -> k.radius(50))
                                         .child("COURTYARD", cy -> cy.radius(30))
                                         .child("BARRACKS", b -> b.radius(20)))
@@ -330,22 +310,22 @@ public class StrategySnapshotTest {
                                 .child("VILLAGE_SOUTH", vs -> vs.radius(75))
                                 .child("FARMLAND", farm -> farm.radius(150)))
                         .child("WILDERNESS", wild -> wild.radius(350)
-                    .strategy(GenerationStrategy.subdivision(0.3f))
+                                .strategy(GenerationStrategy.subdivision(0.3f))
                                 .child("DENSE_FOREST", df -> df.radius(150)
-                        .strategy(GenerationStrategy.voronoi())
+                                        .strategy(GenerationStrategy.voronoi())
                                         .child("GROVE", g -> g.radius(50))
                                         .child("THICKET", t -> t.radius(50))
                                         .child("CLEARING", c -> c.radius(50)))
                                 .child("SWAMP", swamp -> swamp.radius(100))
                                 .child("HILLS", hills -> hills.radius(100)))
                         .child("MOUNTAINS", mtns -> mtns.radius(250)
-                    .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
+                                .strategy(GenerationStrategy.template(GenerationStrategy.TemplateType.RADIAL))
                                 .child("PEAK_1", p1 -> p1.radius(60))
                                 .child("PEAK_2", p2 -> p2.radius(60))
                                 .child("PEAK_3", p3 -> p3.radius(60))
                                 .child("VALLEY", val -> val.radius(70))))
-            .child("OCEAN", ocean -> ocean.radius(1000)
-                .strategy(GenerationStrategy.voronoi())
+                .child("OCEAN", ocean -> ocean.radius(1000)
+                        .strategy(GenerationStrategy.voronoi())
                         .child("DEEP_SEA", deep -> deep.radius(500))
                         .child("SHALLOWS", shallow -> shallow.radius(300))
                         .child("REEF", reef -> reef.radius(200)));
@@ -357,48 +337,48 @@ public class StrategySnapshotTest {
         World.register(root, World.OVERWORLD);
         outDir = new File("build/test-snapshots/" + testName);
         outDir.mkdirs();
-        int step = WORLD_SIZE / IMG_SIZE;
+        var step = WORLD_SIZE / IMG_SIZE;
 
-        List<BufferedImage> depthImages = new ArrayList<>();
-        for (int d = 0; d <= maxDepth; d++) {
+        var depthImages = new ArrayList<BufferedImage>();
+        for (var d = 0; d <= maxDepth; d++) {
             depthImages.add(new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB));
         }
 
-        BufferedImage imgCombined = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var imgCombined = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
-        Map<Integer, Map<String, Integer>> depthCounts = new HashMap<>();
-        for (int d = 0; d <= maxDepth; d++) {
+        var depthCounts = new HashMap<Integer, Map<String, Integer>>();
+        for (var d = 0; d <= maxDepth; d++) {
             depthCounts.put(d, new HashMap<>());
         }
 
-        for (int y = 0; y < IMG_SIZE; y++) {
-            for (int x = 0; x < IMG_SIZE; x++) {
+        for (var y = 0; y < IMG_SIZE; y++) {
+            for (var x = 0; x < IMG_SIZE; x++) {
 
-                int wx = (x - IMG_SIZE / 2) * step;
-                int wz = (y - IMG_SIZE / 2) * step;
+                var wx = (x - IMG_SIZE / 2) * step;
+                var wz = (y - IMG_SIZE / 2) * step;
 
-                for (int d = 1; d <= maxDepth; d++) {
+                for (var d = 1; d <= maxDepth; d++) {
                     TraversalResult traversal = World.traverse(context, wx, wz, d);
-                    Region region = traversal.region;
-                    long regionSeed = traversal.seed;
+                    var region = traversal.region;
+                    var regionSeed = traversal.seed;
 
                     depthCounts.get(d).merge(region.name(), 1, Integer::sum);
 
                     updateDigest(digest, region.name().hashCode());
                     updateDigest(digest, (int) regionSeed);
 
-                    int color = getRegionColor(region);
+                    var color = getRegionColor(region);
 
                     TraversalResult rightTraversal = World.traverse(context, wx + step, wz, d);
-                    Region right = rightTraversal.region;
-                    long rightSeed = rightTraversal.seed;
+                    var right = rightTraversal.region;
+                    var rightSeed = rightTraversal.seed;
                     TraversalResult downTraversal = World.traverse(context, wx, wz + step, d);
-                    Region down = downTraversal.region;
-                    long downSeed = downTraversal.seed;
+                    var down = downTraversal.region;
+                    var downSeed = downTraversal.seed;
 
-                    boolean isEdge = !region.name().equals(right.name())
+                    var isEdge = !region.name().equals(right.name())
                             || regionSeed != rightSeed
                             || !region.name().equals(down.name())
                             || regionSeed != downSeed;
@@ -410,27 +390,27 @@ public class StrategySnapshotTest {
                     depthImages.get(d).setRGB(x, y, color);
                 }
 
-                Region leafRegion = World.traverse(context, wx, wz, maxDepth).region;
-                int color = getRegionColor(leafRegion);
+                var leafRegion = World.traverse(context, wx, wz, maxDepth).region;
+                var color = getRegionColor(leafRegion);
 
-                for (int d = 1; d <= maxDepth; d++) {
+                for (var d = 1; d <= maxDepth; d++) {
                     TraversalResult traversal = World.traverse(context, wx, wz, d);
-                    Region region = traversal.region;
-                    long regionSeed = traversal.seed;
+                    var region = traversal.region;
+                    var regionSeed = traversal.seed;
 
                     TraversalResult rightTraversal = World.traverse(context, wx + step, wz, d);
-                    Region right = rightTraversal.region;
-                    long rightSeed = rightTraversal.seed;
+                    var right = rightTraversal.region;
+                    var rightSeed = rightTraversal.seed;
                     TraversalResult downTraversal = World.traverse(context, wx, wz + step, d);
-                    Region down = downTraversal.region;
-                    long downSeed = downTraversal.seed;
+                    var down = downTraversal.region;
+                    var downSeed = downTraversal.seed;
 
                     if (!region.name().equals(right.name())
                             || regionSeed != rightSeed
                             || !region.name().equals(down.name())
                             || regionSeed != downSeed) {
 
-                        float edgeBrightness = 0.3f + 0.2f * (maxDepth - d);
+                        var edgeBrightness = 0.3f + 0.2f * (maxDepth - d);
                         color = darken(color, edgeBrightness);
                     }
                 }
@@ -439,17 +419,17 @@ public class StrategySnapshotTest {
             }
         }
 
-        for (int d = 1; d <= maxDepth; d++) {
+        for (var d = 1; d <= maxDepth; d++) {
             ImageIO.write(depthImages.get(d), "png", new File(outDir, "depth_" + d + ".png"));
         }
         ImageIO.write(imgCombined, "png", new File(outDir, "combined.png"));
 
         generateLegend(testName, depthCounts, maxDepth);
 
-        String actualDigest = java.util.HexFormat.of().formatHex(digest.digest());
+        var actualDigest = java.util.HexFormat.of().formatHex(digest.digest());
         System.out.println("[" + testName + "] Digest: " + actualDigest);
 
-        for (int d = 1; d <= maxDepth; d++) {
+        for (var d = 1; d <= maxDepth; d++) {
             System.out.println("  Depth " + d + ": " + depthCounts.get(d));
         }
 
@@ -459,26 +439,26 @@ public class StrategySnapshotTest {
     private void generateLegend(String testName, Map<Integer, Map<String, Integer>> depthCounts, int maxDepth)
             throws IOException {
 
-        Set<String> allRegions = new TreeSet<>();
-        for (int d = 1; d <= maxDepth; d++) {
+        var allRegions = new TreeSet<String>();
+        for (var d = 1; d <= maxDepth; d++) {
             allRegions.addAll(depthCounts.get(d).keySet());
         }
 
-        int legendWidth = 200;
-        int rowHeight = 20;
-        int legendHeight = allRegions.size() * rowHeight + 30;
+        var legendWidth = 200;
+        var rowHeight = 20;
+        var legendHeight = allRegions.size() * rowHeight + 30;
 
-        BufferedImage legend = new BufferedImage(legendWidth, legendHeight, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = legend.createGraphics();
+        var legend = new BufferedImage(legendWidth, legendHeight, BufferedImage.TYPE_INT_RGB);
+        var g = legend.createGraphics();
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, legendWidth, legendHeight);
 
         g.setColor(Color.BLACK);
         g.drawString(testName, 5, 15);
 
-        int y = 30;
+        var y = 30;
         for (String regionName : allRegions) {
-            int color = getRegionColor(regionName);
+            var color = getRegionColor(regionName);
             g.setColor(new Color(color));
             g.fillRect(5, y - 12, 15, 15);
             g.setColor(Color.BLACK);
@@ -499,9 +479,9 @@ public class StrategySnapshotTest {
     }
 
     private int darken(int color, float factor) {
-        int r = (int) (((color >> 16) & 0xFF) * factor);
-        int g = (int) (((color >> 8) & 0xFF) * factor);
-        int b = (int) ((color & 0xFF) * factor);
+        var r = (int) (((color >> 16) & 0xFF) * factor);
+        var g = (int) (((color >> 8) & 0xFF) * factor);
+        var b = (int) ((color & 0xFF) * factor);
         return (r << 16) | (g << 8) | b;
     }
 
@@ -511,7 +491,7 @@ public class StrategySnapshotTest {
 
     private int getRegionColor(String name) {
 
-        int hash = name.hashCode();
+        var hash = name.hashCode();
 
         return switch (name) {
             case "OCEAN", "DEEP_SEA" -> 0x1E90FF;
@@ -574,9 +554,9 @@ public class StrategySnapshotTest {
             case "SMALL_CENTER" -> 0xFF1493;
 
             default -> {
-                int r = ((hash >> 16) & 0x7F) + 0x40;
-                int g = ((hash >> 8) & 0x7F) + 0x40;
-                int b = (hash & 0x7F) + 0x40;
+                var r = ((hash >> 16) & 0x7F) + 0x40;
+                var g = ((hash >> 8) & 0x7F) + 0x40;
+                var b = (hash & 0x7F) + 0x40;
                 yield (r << 16) | (g << 8) | b;
             }
         };

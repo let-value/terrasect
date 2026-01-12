@@ -39,21 +39,19 @@ public class ClimateVisualizationTest {
     private static final int HEIGHT = 256;
     private static final int SCALE = 8;
 
-    @BeforeAll
-    public static void setup() {
+    @BeforeAll public static void setup() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
-    @Test
-    public void visualizeClimateInfluence(Snapshot snapshot) throws IOException {
-        long seed = 12345L;
+    @Test public void visualizeClimateInfluence(Snapshot snapshot) throws IOException {
+        var seed = 12345L;
 
-        Region root = buildClimateRegions();
+        var root = buildClimateRegions();
         World.register(root, World.OVERWORLD);
 
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
+        var noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
         NoiseGeneratorSettings settings;
         try {
@@ -65,7 +63,7 @@ public class ClimateVisualizationTest {
         }
 
         RandomState randomState = RandomState.create(settings, noiseParams, seed);
-        Climate.Sampler sampler = randomState.sampler();
+        var sampler = randomState.sampler();
 
         var parameterListLookup = lookup.lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST);
         var overworldParameters = parameterListLookup.getOrThrow(
@@ -74,63 +72,63 @@ public class ClimateVisualizationTest {
         Climate.ParameterList<Holder<Biome>> parameterList =
                 overworldParameters.value().parameters();
 
-        Context context = createStrategy(seed, sampler, biomeSource);
+        var context = createStrategy(seed, sampler, biomeSource);
 
-        BufferedImage vanillaTemp = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage vanillaHumidity = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage modifiedTemp = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage modifiedHumidity = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage regionOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage tempDiff = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage regionBoundaries = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage modifiedBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        BufferedImage combinedView = new BufferedImage(WIDTH * 3, HEIGHT * 3, BufferedImage.TYPE_INT_RGB);
+        var vanillaTemp = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var vanillaHumidity = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var modifiedTemp = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var modifiedHumidity = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var regionOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var tempDiff = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var regionBoundaries = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var modifiedBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        var combinedView = new BufferedImage(WIDTH * 3, HEIGHT * 3, BufferedImage.TYPE_INT_RGB);
 
-        long totalModified = 0;
-        double totalTempDelta = 0;
-        double totalHumidityDelta = 0;
-        int biomesChanged = 0;
+        var totalModified = 0L;
+        var totalTempDelta = 0D;
+        var totalHumidityDelta = 0D;
+        var biomesChanged = 0;
 
-        for (int py = 0; py < HEIGHT; py++) {
-            for (int px = 0; px < WIDTH; px++) {
-                int blockX = px * SCALE;
-                int blockZ = py * SCALE;
-                int quartX = blockX >> 2;
-                int quartZ = blockZ >> 2;
+        for (var py = 0; py < HEIGHT; py++) {
+            for (var px = 0; px < WIDTH; px++) {
+                var blockX = px * SCALE;
+                var blockZ = py * SCALE;
+                var quartX = blockX >> 2;
+                var quartZ = blockZ >> 2;
 
-                Climate.TargetPoint vanilla = sampler.sample(quartX, 16, quartZ);
+                var vanilla = sampler.sample(quartX, 16, quartZ);
 
-                Region region = World.traverse(context, blockX, blockZ).region;
+                var region = World.traverse(context, blockX, blockZ).region;
 
-                Region rightRegion = World.traverse(context, blockX + SCALE, blockZ).region;
-                Region downRegion = World.traverse(context, blockX, blockZ + SCALE).region;
+                var rightRegion = World.traverse(context, blockX + SCALE, blockZ).region;
+                var downRegion = World.traverse(context, blockX, blockZ + SCALE).region;
 
-                boolean isRightBoundary =
+                var isRightBoundary =
                         region != null && rightRegion != null && !region.name().equals(rightRegion.name());
-                boolean isDownBoundary =
+                var isDownBoundary =
                         region != null && downRegion != null && !region.name().equals(downRegion.name());
-                boolean isBoundary = isRightBoundary || isDownBoundary;
+                var isBoundary = isRightBoundary || isDownBoundary;
 
-                long vanillaTempValue = vanilla.temperature();
-                long vanillaHumidityValue = vanilla.humidity();
-                long vanillaContinentalnessValue = vanilla.continentalness();
-                long vanillaErosionValue = vanilla.erosion();
-                long vanillaDepthValue = vanilla.depth();
-                long vanillaWeirdnessValue = vanilla.weirdness();
+                var vanillaTempValue = vanilla.temperature();
+                var vanillaHumidityValue = vanilla.humidity();
+                var vanillaContinentalnessValue = vanilla.continentalness();
+                var vanillaErosionValue = vanilla.erosion();
+                var vanillaDepthValue = vanilla.depth();
+                var vanillaWeirdnessValue = vanilla.weirdness();
 
-                Holder<Biome> vanillaBiome = parameterList.findValue(vanilla);
+                var vanillaBiome = parameterList.findValue(vanilla);
 
                 Climate.TargetPoint modifiedPoint =
                         ClimateHandler.modifyTargetPoint(context, quartX, 16, quartZ, vanilla);
-                long modTemp = modifiedPoint.temperature();
-                long modHumid = modifiedPoint.humidity();
-                long modCont = modifiedPoint.continentalness();
-                long modErosion = modifiedPoint.erosion();
-                long modDepth = modifiedPoint.depth();
-                long modWeirdness = modifiedPoint.weirdness();
+                var modTemp = modifiedPoint.temperature();
+                var modHumid = modifiedPoint.humidity();
+                var modCont = modifiedPoint.continentalness();
+                var modErosion = modifiedPoint.erosion();
+                var modDepth = modifiedPoint.depth();
+                var modWeirdness = modifiedPoint.weirdness();
 
-                boolean modified = modTemp != vanillaTempValue
+                var modified = modTemp != vanillaTempValue
                         || modHumid != vanillaHumidityValue
                         || modCont != vanillaContinentalnessValue
                         || modErosion != vanillaErosionValue
@@ -144,7 +142,7 @@ public class ClimateVisualizationTest {
                 totalTempDelta += Math.abs(modTemp - vanillaTempValue);
                 totalHumidityDelta += Math.abs(modHumid - vanillaHumidityValue);
 
-                Holder<Biome> modifiedBiome = parameterList.findValue(modifiedPoint);
+                var modifiedBiome = parameterList.findValue(modifiedPoint);
 
                 if (!vanillaBiome.equals(modifiedBiome)) {
                     biomesChanged++;
@@ -155,7 +153,7 @@ public class ClimateVisualizationTest {
                 modifiedTemp.setRGB(px, py, climateToColor(modTemp, true));
                 modifiedHumidity.setRGB(px, py, climateToColor(modHumid, false));
 
-                int regionColor = getRegionColor(region);
+                var regionColor = getRegionColor(region);
                 regionOverlay.setRGB(px, py, regionColor);
 
                 int boundaryColor = isBoundary ? darkenColor(regionColor, 0.4f) : regionColor;
@@ -164,12 +162,12 @@ public class ClimateVisualizationTest {
                 vanillaBiomes.setRGB(px, py, biomeToColor(vanillaBiome));
                 modifiedBiomes.setRGB(px, py, biomeToColor(modifiedBiome));
 
-                long tempDelta = modTemp - vanillaTempValue;
+                var tempDelta = modTemp - vanillaTempValue;
                 tempDiff.setRGB(px, py, deltaToColor(tempDelta));
             }
         }
 
-        Graphics2D g = combinedView.createGraphics();
+        var g = combinedView.createGraphics();
         g.setColor(Color.BLACK);
         g.fillRect(0, 0, WIDTH * 3, HEIGHT * 3);
 
@@ -198,7 +196,7 @@ public class ClimateVisualizationTest {
         g.drawString("Region Colors", WIDTH * 2 + 10, HEIGHT * 2 + 20);
         g.dispose();
 
-        File outDir = new File("build/climate-snapshots");
+        var outDir = new File("build/climate-snapshots");
         outDir.mkdirs();
 
         ImageIO.write(vanillaTemp, "png", new File(outDir, "vanilla_temperature.png"));
@@ -222,13 +220,13 @@ public class ClimateVisualizationTest {
             System.out.println("Average humidity delta: " + String.format("%.1f", totalHumidityDelta / totalModified));
         }
         System.out.println("Biomes changed by climate: " + biomesChanged + " ("
-            + String.format("%.1f%%", 100.0 * biomesChanged / (WIDTH * HEIGHT)) + ")");
+                + String.format("%.1f%%", 100.0 * biomesChanged / (WIDTH * HEIGHT)) + ")");
         System.out.println("\nImages saved to: " + outDir.getAbsolutePath());
-        StringBuilder snapshotText = new StringBuilder(256);
+        var snapshotText = new StringBuilder(256);
         snapshotText.append("totalModified=").append(totalModified).append('\n');
         snapshotText.append("totalTempDelta=").append(String.format(Locale.ROOT, "%.4f", totalTempDelta)).append('\n');
         snapshotText.append("totalHumidityDelta=").append(String.format(Locale.ROOT, "%.4f", totalHumidityDelta))
-            .append('\n');
+                .append('\n');
         snapshotText.append("biomesChanged=").append(biomesChanged).append('\n');
         appendImageHash(snapshotText, "vanilla_temperature", vanillaTemp);
         appendImageHash(snapshotText, "modified_temperature", modifiedTemp);
@@ -244,7 +242,7 @@ public class ClimateVisualizationTest {
     }
 
     private Region buildClimateRegions() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
         registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REGIONS", regions -> regions.strategy(
                 GenerationStrategy.voronoi())
                 .child("BURNING_WASTES", region -> region.radius(500)
@@ -262,22 +260,20 @@ public class ClimateVisualizationTest {
 
     private Context createStrategy(long seed, Climate.Sampler sampler, MultiNoiseBiomeSource biomeSource) {
         return new Context() {
-            @Override
-            public long getSeed() {
+            @Override public long getSeed() {
                 return seed;
             }
 
-            @Override
-            public long getInfluence(int x, int z) {
-                int qx = x >> 2;
-                int qz = z >> 2;
-                Holder<Biome> biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
+            @Override public long getInfluence(int x, int z) {
+                var qx = x >> 2;
+                var qz = z >> 2;
+                var biome = biomeSource.getNoiseBiome(qx, 16, qz, sampler);
 
                 String biomeId = BiomeCompat.getBiomeId(biome);
                 float river = biomeId.contains("river") ? 1.0f : 0.0f;
 
-                Climate.TargetPoint target = sampler.sample(x >> 2, 0, z >> 2);
-                float ridge = (float) ((target.weirdness() + 10000) / 20000.0);
+                var target = sampler.sample(x >> 2, 0, z >> 2);
+                var ridge = (float) ((target.weirdness() + 10000) / 20000.0);
 
                 return Packer.packPair(river, ridge);
             }
@@ -286,37 +282,37 @@ public class ClimateVisualizationTest {
 
     private int climateToColor(long value, boolean isTemperature) {
 
-        float normalized = (float) ((value + 10000.0) / 20000.0);
+        var normalized = (float) ((value + 10000.0) / 20000.0);
         normalized = Math.max(0, Math.min(1, normalized));
 
         if (isTemperature) {
 
             if (normalized < 0.5f) {
-                float t = normalized * 2;
-                int r = (int) (t * 255);
-                int g = (int) (t * 255);
-                int b = 255;
+                var t = normalized * 2;
+                var r = (int) (t * 255);
+                var g = (int) (t * 255);
+                var b = 255;
                 return (r << 16) | (g << 8) | b;
             } else {
-                float t = (normalized - 0.5f) * 2;
-                int r = 255;
-                int g = (int) ((1 - t) * 255);
-                int b = (int) ((1 - t) * 255);
+                var t = (normalized - 0.5f) * 2;
+                var r = 255;
+                var g = (int) ((1 - t) * 255);
+                var b = (int) ((1 - t) * 255);
                 return (r << 16) | (g << 8) | b;
             }
         } else {
 
             if (normalized < 0.5f) {
-                float t = normalized * 2;
-                int r = 200;
-                int g = (int) (150 + t * 105);
-                int b = (int) (50 + t * 150);
+                var t = normalized * 2;
+                var r = 200;
+                var g = (int) (150 + t * 105);
+                var b = (int) (50 + t * 150);
                 return (r << 16) | (g << 8) | b;
             } else {
-                float t = (normalized - 0.5f) * 2;
-                int r = (int) (200 * (1 - t));
-                int g = (int) (255 * (1 - t * 0.3));
-                int b = (int) (200 + t * 55);
+                var t = (normalized - 0.5f) * 2;
+                var r = (int) (200 * (1 - t));
+                var g = (int) (255 * (1 - t * 0.3));
+                var b = (int) (200 + t * 55);
                 return (r << 16) | (g << 8) | b;
             }
         }
@@ -325,24 +321,24 @@ public class ClimateVisualizationTest {
     private int deltaToColor(long delta) {
         if (delta == 0) return 0x808080;
 
-        float normalized = (float) delta / 10000f;
+        var normalized = (float) delta / 10000f;
         normalized = Math.max(-1, Math.min(1, normalized));
 
         if (normalized < 0) {
 
-            int intensity = (int) (Math.abs(normalized) * 255);
+            var intensity = (int) (Math.abs(normalized) * 255);
             return (128 - intensity / 2) << 16 | (128 - intensity / 2) << 8 | (128 + intensity);
         } else {
 
-            int intensity = (int) (normalized * 255);
+            var intensity = (int) (normalized * 255);
             return (128 + intensity) << 16 | (128 - intensity / 2) << 8 | (128 - intensity / 2);
         }
     }
 
     private int darkenColor(int color, float factor) {
-        int r = (int) (((color >> 16) & 0xFF) * factor);
-        int g = (int) (((color >> 8) & 0xFF) * factor);
-        int b = (int) ((color & 0xFF) * factor);
+        var r = (int) (((color >> 16) & 0xFF) * factor);
+        var g = (int) (((color >> 8) & 0xFF) * factor);
+        var b = (int) ((color & 0xFF) * factor);
         return (r << 16) | (g << 8) | b;
     }
 
@@ -360,10 +356,10 @@ public class ClimateVisualizationTest {
             case "UNTOUCHED_LANDS" -> 0x888888;
             case "WORLD", "ROOT" -> 0x444444;
             default -> {
-                int hash = name.hashCode();
-                int r = ((hash >> 16) & 0x7F) + 0x40;
-                int g = ((hash >> 8) & 0x7F) + 0x40;
-                int b = (hash & 0x7F) + 0x40;
+                var hash = name.hashCode();
+                var r = ((hash >> 16) & 0x7F) + 0x40;
+                var g = ((hash >> 8) & 0x7F) + 0x40;
+                var b = (hash & 0x7F) + 0x40;
                 yield (r << 16) | (g << 8) | b;
             }
         };
@@ -372,12 +368,12 @@ public class ClimateVisualizationTest {
     private int biomeToColor(Holder<Biome> biome) {
         String name = BiomeCompat.getBiomeId(biome);
 
-        int hash = name.hashCode();
-        int r = ((hash >> 16) & 0xFF);
-        int g = ((hash >> 8) & 0xFF);
-        int b = (hash & 0xFF);
+        var hash = name.hashCode();
+        var r = ((hash >> 16) & 0xFF);
+        var g = ((hash >> 8) & 0xFF);
+        var b = (hash & 0xFF);
 
-        int brightness = (r + g + b) / 3;
+        var brightness = (r + g + b) / 3;
         if (brightness < 80) {
             r = Math.min(255, r + 80);
             g = Math.min(255, g + 80);

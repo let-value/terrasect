@@ -12,7 +12,8 @@ public final class TestRegions {
     private static final int LAB_SIZE = CHUNK * 8;
     private static final int LAB_ZONE_SIZE = CHUNK * 2;
 
-    private TestRegions() {}
+    private TestRegions() {
+    }
 
     public static void register() {
         Terrasect.LOGGER.info("Registering utilitarian test regions for development");
@@ -30,7 +31,7 @@ public final class TestRegions {
     }
 
     public static Region buildTestWorld() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
 
         registry.region("WORLD")
                 .strategy(GenerationStrategy.hex("BORDER"))
@@ -80,7 +81,7 @@ public final class TestRegions {
                                 .child("HOT", zone -> zone.radius(LAB_ZONE_SIZE)
                                         .climate(c -> c.temperature(1.0f).humidity(0.5f))))
                         .child("BIOME_LAB", lab -> lab.radius(LAB_SIZE)
-                                        .strategy(GenerationStrategy.subdivision())
+                                .strategy(GenerationStrategy.subdivision())
                                 .child("OCEANS_ONLY", zone -> zone.radius(LAB_ZONE_SIZE)
                                         .climate(c -> c.continentalness(-1.0f, -0.7f))
                                         .biomes(b -> b.allowTags("#minecraft:is_ocean")))
@@ -103,7 +104,7 @@ public final class TestRegions {
     }
 
     public static Region buildEndWorld() {
-        RegionRegistry registry = new RegionRegistry();
+        var registry = new RegionRegistry();
 
         registry.region("END_ROOT")
                 .strategy(GenerationStrategy.voronoi())
@@ -122,8 +123,7 @@ public final class TestRegions {
         return registry.build("END_ROOT");
     }
 
-    @Deprecated
-    public static void registerForDimensions() {
+    @Deprecated public static void registerForDimensions() {
         register();
     }
 }

@@ -8,7 +8,8 @@ public final class TraversalIterator {
 
     Region currentRegion;
 
-    TraversalIterator() {}
+    TraversalIterator() {
+    }
 
     public TraversalResult current() {
         return result;

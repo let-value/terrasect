@@ -47,7 +47,6 @@ import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.world.level.levelgen.NoiseRouterData;
-import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.Noises;
 import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.RandomState;
@@ -62,17 +61,15 @@ class MinecraftNoiseRouterSnapshotTest {
     private static final int WORLD_SIZE = 4096;
     private static final int STEP = WORLD_SIZE / IMG_SIZE;
 
-    @BeforeAll
-    static void setupMinecraft() {
+    @BeforeAll static void setupMinecraft() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
-    @Test
-    void writesOverworldNoiseRouterSnapshots(Snapshot snapshot) throws Exception {
-        long seed = 12345L;
+    @Test void writesOverworldNoiseRouterSnapshots(Snapshot snapshot) throws Exception {
+        var seed = 12345L;
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
+        var noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
         NoiseGeneratorSettings settings;
         try {
@@ -84,21 +81,21 @@ class MinecraftNoiseRouterSnapshotTest {
         }
 
         RandomState randomState = RandomState.create(settings, noiseParams, seed);
-        NoiseRouter router = randomState.router();
+        var router = randomState.router();
 
-        HolderGetter<DensityFunction> densityFunctions = lookup.lookupOrThrow(Registries.DENSITY_FUNCTION);
-        NoiseSettings noiseSettings = settings.noiseSettings();
-        int minY = noiseSettings.minY();
-        int maxY = minY + noiseSettings.height() - 1;
-        int seaLevel = settings.seaLevel();
+        var densityFunctions = lookup.lookupOrThrow(Registries.DENSITY_FUNCTION);
+        var noiseSettings = settings.noiseSettings();
+        var minY = noiseSettings.minY();
+        var maxY = minY + noiseSettings.height() - 1;
+        var seaLevel = settings.seaLevel();
 
-        File outDir = new File("build/test-snapshots/noise-router/overworld");
+        var outDir = new File("build/test-snapshots/noise-router/overworld");
         Files.createDirectories(outDir.toPath());
 
-        Map<String, DensityFunction> functions = collectDensityFunctions(router);
+        var functions = collectDensityFunctions(router);
         assertTrue(!functions.isEmpty(), "expected NoiseRouter density functions");
 
-        Map<String, DensityFunction> sources = new LinkedHashMap<>();
+        var sources = new LinkedHashMap<String, DensityFunction>();
         sources.put(
                 "source_overworld_offset",
                 wireForRandomState(
@@ -108,9 +105,9 @@ class MinecraftNoiseRouterSnapshotTest {
                 wireForRandomState(
                         densityFunctions.getOrThrow(NoiseRouterData.FACTOR).value(), randomState, settings, seed));
 
-        MutablePointContext point = new MutablePointContext();
+        var point = new MutablePointContext();
 
-        StringBuilder index = new StringBuilder(32 * 1024);
+        var index = new StringBuilder(32 * 1024);
         index.append("<!doctype html>\n<html><head><meta charset=\"utf-8\">")
                 .append("<title>Vanilla NoiseRouter Snapshots</title>")
                 .append("<style>")
@@ -140,7 +137,7 @@ class MinecraftNoiseRouterSnapshotTest {
         index.append(
                 "<p><b>NoiseRouterData density functions</b> = the registered building blocks (splines, caches, noise sources) used to construct generator settings.</p>\n");
         index.append(
-                        "<p><b>Note:</b> Overworld <code>depth</code> is derived from <code>overworld/offset</code> (plus a Y-gradient). ")
+                "<p><b>Note:</b> Overworld <code>depth</code> is derived from <code>overworld/offset</code> (plus a Y-gradient). ")
                 .append(
                         "<code>preliminary_surface_level</code> uses <code>overworld/offset</code> and <code>overworld/factor</code>, ")
                 .append("so similarity between them is expected.</p>\n");
@@ -150,14 +147,14 @@ class MinecraftNoiseRouterSnapshotTest {
                 .append(seaLevel)
                 .append("</th><th>YZ @ x=0</th><th>Stats</th></tr>\n");
 
-        int writtenImages = 0;
-        int varyingImages = 0;
+        var writtenImages = 0;
+        var varyingImages = 0;
         for (var entry : functions.entrySet()) {
-            String name = entry.getKey();
-            DensityFunction function = entry.getValue();
+            var name = entry.getKey();
+            var function = entry.getValue();
 
-            String xzFile = name + "_xz_y" + seaLevel + ".png";
-            String yzFile = name + "_yz_x0.png";
+            var xzFile = name + "_xz_y" + seaLevel + ".png";
+            var yzFile = name + "_yz_x0.png";
 
             RenderStats xz = renderXZ(outDir, xzFile, function, point, seaLevel);
             RenderStats yz = renderYZ(outDir, yzFile, function, point, minY, maxY);
@@ -208,11 +205,11 @@ class MinecraftNoiseRouterSnapshotTest {
 
         index.append("<tr><th colspan=\"4\">Sources (density function registry)</th></tr>\n");
         for (var entry : sources.entrySet()) {
-            String name = entry.getKey();
-            DensityFunction function = entry.getValue();
+            var name = entry.getKey();
+            var function = entry.getValue();
 
-            String xzFile = name + "_xz_y" + seaLevel + ".png";
-            String yzFile = name + "_yz_x0.png";
+            var xzFile = name + "_xz_y" + seaLevel + ".png";
+            var yzFile = name + "_yz_x0.png";
 
             RenderStats xz = renderXZ(outDir, xzFile, function, point, seaLevel);
             RenderStats yz = renderYZ(outDir, yzFile, function, point, minY, maxY);
@@ -266,13 +263,13 @@ class MinecraftNoiseRouterSnapshotTest {
         assertEquals((functions.size() + sources.size()) * 2, writtenImages, "expected 2 images per NoiseRouter entry");
         assertTrue(varyingImages > 0, "expected at least one varying noise slice");
 
-        File densityOutDir = new File(outDir, "density-functions");
-        int densityImages =
+        var densityOutDir = new File(outDir, "density-functions");
+        var densityImages =
                 appendNoiseRouterDataDensityFunctionSnapshots(index, densityOutDir, lookup, noiseParams, seed);
         assertTrue(densityImages > 0, "expected at least one density function snapshot image");
 
         index.append("</body></html>\n");
-        String indexHtml = index.toString();
+        var indexHtml = index.toString();
         String indexDigest = SnapshotHashes.sha256Hex(indexHtml);
         snapshot.assertThat(indexDigest).asText().matchesSnapshotText();
         Files.writeString(outDir.toPath().resolve("index.html"), indexHtml, StandardCharsets.UTF_8);
@@ -280,11 +277,11 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static Map<String, DensityFunction> collectDensityFunctions(NoiseRouter router) {
-        Map<String, DensityFunction> out = new LinkedHashMap<>();
+        var out = new LinkedHashMap<String, DensityFunction>();
         for (RecordComponent component : NoiseRouter.class.getRecordComponents()) {
             if (component.getType() != DensityFunction.class) continue;
             try {
-                DensityFunction function =
+                var function =
                         (DensityFunction) component.getAccessor().invoke(router);
                 out.put(component.getName(), function);
             } catch (ReflectiveOperationException e) {
@@ -305,7 +302,7 @@ class MinecraftNoiseRouterSnapshotTest {
         Files.createDirectories(outDir.toPath());
         Files.deleteIfExists(outDir.toPath().resolve("index.html"));
 
-        HolderGetter<DensityFunction> densityFunctions = lookup.lookupOrThrow(Registries.DENSITY_FUNCTION);
+        var densityFunctions = lookup.lookupOrThrow(Registries.DENSITY_FUNCTION);
 
         NoiseGeneratorSettings overworldSettings = resolveSettings(lookup, NoiseGeneratorSettings.OVERWORLD);
         NoiseGeneratorSettings netherSettings = resolveSettings(lookup, NoiseGeneratorSettings.NETHER);
@@ -315,7 +312,7 @@ class MinecraftNoiseRouterSnapshotTest {
         Preset nether = Preset.from("nether", netherSettings, noiseParams, seed);
         Preset end = Preset.from("end", endSettings, noiseParams, seed);
 
-        Map<String, Preset> presets = Map.of(
+        var presets = Map.of(
                 overworld.name, overworld,
                 nether.name, nether,
                 end.name, end);
@@ -323,17 +320,17 @@ class MinecraftNoiseRouterSnapshotTest {
         List<DensityKeyEntry> keys = collectNoiseRouterDataKeys();
         assertTrue(!keys.isEmpty(), "expected NoiseRouterData density function keys");
 
-        Map<String, DensityKeyMeta> metas = new LinkedHashMap<>();
+        var metas = new LinkedHashMap<String, DensityKeyMeta>();
         for (DensityKeyEntry entry : keys) {
-            String id = entry.key.identifier().toString();
-            DensityFunction raw = densityFunctions.getOrThrow(entry.key).value();
+            var id = entry.key.identifier().toString();
+            var raw = densityFunctions.getOrThrow(entry.key).value();
             DirectDeps deps = analyzeDirectDependencies(raw);
             String presetName = presetFor(entry.key.identifier());
             metas.put(id, new DensityKeyMeta(entry, presetName, deps));
         }
 
-        Set<String> allNoiseKeys = new TreeSet<>();
-        Map<String, Set<String>> noiseToPresets = new LinkedHashMap<>();
+        var allNoiseKeys = new TreeSet<String>();
+        var noiseToPresets = new LinkedHashMap<String, Set<String>>();
         for (DensityKeyMeta meta : metas.values()) {
             allNoiseKeys.addAll(meta.deps.noiseKeys);
             for (String noiseKey : meta.deps.noiseKeys) {
@@ -344,24 +341,24 @@ class MinecraftNoiseRouterSnapshotTest {
         }
 
         File rootDir = outDir.getParentFile() != null ? outDir.getParentFile() : outDir;
-        File noiseOutDir = new File(rootDir, "noise");
-        int noiseImages = appendNoiseParameterSnapshots(
+        var noiseOutDir = new File(rootDir, "noise");
+        var noiseImages = appendNoiseParameterSnapshots(
                 index, noiseOutDir, allNoiseKeys, noiseToPresets, presets, noiseParams, seed);
         if (!allNoiseKeys.isEmpty()) {
-            int expectedNoiseImages = 0;
+            var expectedNoiseImages = 0;
             for (String noiseKey : allNoiseKeys) {
                 expectedNoiseImages += 2
                         * noiseToPresets
-                                .getOrDefault(noiseKey, Set.of("overworld"))
-                                .size();
+                        .getOrDefault(noiseKey, Set.of("overworld"))
+                        .size();
             }
             assertEquals(expectedNoiseImages, noiseImages, "expected 2 images per (noise key, preset)");
         }
 
-        List<String> orderedIds = topologicalSort(metas);
-        Map<String, Integer> levels = computeLevels(orderedIds, metas);
+        var orderedIds = topologicalSort(metas);
+        var levels = computeLevels(orderedIds, metas);
 
-        MutablePointContext point = new MutablePointContext();
+        var point = new MutablePointContext();
 
         index.append("<h2>NoiseRouterData Density Functions</h2>\n");
         index.append("<p>Rows are ordered by direct dependency depth (best-effort topo sort) so roots appear first. ")
@@ -376,27 +373,27 @@ class MinecraftNoiseRouterSnapshotTest {
                 .append("<th>Deps</th>")
                 .append("</tr>\n");
 
-        int writtenImages = 0;
+        var writtenImages = 0;
         for (String id : orderedIds) {
-            DensityKeyMeta meta = metas.get(id);
+            var meta = metas.get(id);
             if (meta == null) continue;
 
-            Preset preset = presets.getOrDefault(meta.presetName, overworld);
-            DensityFunction raw = densityFunctions.getOrThrow(meta.entry.key).value();
+            var preset = presets.getOrDefault(meta.presetName, overworld);
+            var raw = densityFunctions.getOrThrow(meta.entry.key).value();
             DensityFunction wired = wireForRandomState(raw, preset.randomState, preset.settings, seed);
 
             String anchor = densityFunctionAnchorId(meta.entry.key.identifier());
-            String base = meta.entry.key.identifier().toDebugFileName();
-            String xzFile = base + "_xz_y" + preset.xzY + ".png";
-            String yzFile = base + "_yz_x0.png";
-            String relXzFile = "density-functions/" + xzFile;
-            String relYzFile = "density-functions/" + yzFile;
+            var base = meta.entry.key.identifier().toDebugFileName();
+            var xzFile = base + "_xz_y" + preset.xzY + ".png";
+            var yzFile = base + "_yz_x0.png";
+            var relXzFile = "density-functions/" + xzFile;
+            var relYzFile = "density-functions/" + yzFile;
 
             RenderStats xz = renderXZ(outDir, xzFile, wired, point, preset.xzY);
             RenderStats yz = renderYZ(outDir, yzFile, wired, point, preset.minY, preset.maxY);
             writtenImages += 2;
 
-            int level = levels.getOrDefault(id, 0);
+            var level = levels.getOrDefault(id, 0);
             index.append("<tr id=\"")
                     .append(escapeHtml(anchor))
                     .append("\">")
@@ -474,7 +471,7 @@ class MinecraftNoiseRouterSnapshotTest {
 
         index.append("<h2>Noise Parameters</h2>\n");
         index.append(
-                        "<p>Rows are the underlying <code>minecraft:noise</code> entries referenced by density functions. ")
+                "<p>Rows are the underlying <code>minecraft:noise</code> entries referenced by density functions. ")
                 .append("Images are written under <code>noise/</code>.</p>\n");
 
         index.append("<table><tr>")
@@ -485,22 +482,22 @@ class MinecraftNoiseRouterSnapshotTest {
                 .append("<th>Stats</th>")
                 .append("</tr>\n");
 
-        int writtenImages = 0;
-        MutablePointContext point = new MutablePointContext();
+        var writtenImages = 0;
+        var point = new MutablePointContext();
 
-        List<String> presetOrder = List.of("overworld", "nether", "end");
+        var presetOrder = List.of("overworld", "nether", "end");
         for (String noiseKey : noiseKeys) {
             Identifier identifier = Identifier.parse(noiseKey);
             String anchor = noiseAnchorId(identifier);
 
-            ResourceKey<NormalNoise.NoiseParameters> key = ResourceKey.create(Registries.NOISE, identifier);
-            Holder<NormalNoise.NoiseParameters> holder = noiseParams.getOrThrow(key);
+            var key = ResourceKey.create(Registries.NOISE, identifier);
+            var holder = noiseParams.getOrThrow(key);
             DensityFunction base = DensityFunctions.noise(holder);
 
-            Set<String> usedPresets = noiseToPresets.getOrDefault(noiseKey, Set.of("overworld"));
+            var usedPresets = noiseToPresets.getOrDefault(noiseKey, Set.of("overworld"));
 
-            StringBuilder usedIn = new StringBuilder(64);
-            boolean first = true;
+            var usedIn = new StringBuilder(64);
+            var first = true;
             for (String presetName : presetOrder) {
                 if (!usedPresets.contains(presetName)) continue;
                 if (!first) usedIn.append("<br>");
@@ -508,22 +505,22 @@ class MinecraftNoiseRouterSnapshotTest {
                 first = false;
             }
 
-            StringBuilder xzCell = new StringBuilder(256);
-            StringBuilder yzCell = new StringBuilder(256);
-            StringBuilder statsCell = new StringBuilder(256);
+            var xzCell = new StringBuilder(256);
+            var yzCell = new StringBuilder(256);
+            var statsCell = new StringBuilder(256);
 
             for (String presetName : presetOrder) {
                 if (!usedPresets.contains(presetName)) continue;
-                Preset preset = presets.getOrDefault(presetName, presets.get("overworld"));
+                var preset = presets.getOrDefault(presetName, presets.get("overworld"));
                 if (preset == null) continue;
 
                 DensityFunction wired = wireForRandomState(base, preset.randomState, preset.settings, seed);
 
-                String baseName = identifier.toDebugFileName();
-                String xzFile = baseName + "_" + preset.name + "_xz_y" + preset.xzY + ".png";
-                String yzFile = baseName + "_" + preset.name + "_yz_x0.png";
-                String relXzFile = "noise/" + xzFile;
-                String relYzFile = "noise/" + yzFile;
+                var baseName = identifier.toDebugFileName();
+                var xzFile = baseName + "_" + preset.name + "_xz_y" + preset.xzY + ".png";
+                var yzFile = baseName + "_" + preset.name + "_yz_x0.png";
+                var relXzFile = "noise/" + xzFile;
+                var relYzFile = "noise/" + yzFile;
 
                 RenderStats xz = renderXZ(outDir, xzFile, wired, point, preset.xzY);
                 RenderStats yz = renderYZ(outDir, yzFile, wired, point, preset.minY, preset.maxY);
@@ -617,27 +614,26 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static String presetFor(Identifier identifier) {
-        String path = identifier.getPath();
+        var path = identifier.getPath();
         if (path.startsWith("nether/")) return "nether";
         if (path.startsWith("end/")) return "end";
         return "overworld";
     }
 
     private static List<DensityKeyEntry> collectNoiseRouterDataKeys() {
-        Map<String, DensityKeyEntry> deduped = new LinkedHashMap<>();
+        var deduped = new LinkedHashMap<String, DensityKeyEntry>();
         for (Field field : NoiseRouterData.class.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())) continue;
             if (!ResourceKey.class.isAssignableFrom(field.getType())) continue;
-            String genericType = field.getGenericType().getTypeName();
+            var genericType = field.getGenericType().getTypeName();
             if (!genericType.contains("DensityFunction")) continue;
 
             try {
                 field.setAccessible(true);
-                Object value = field.get(null);
+                var value = field.get(null);
                 if (!(value instanceof ResourceKey<?> rawKey)) continue;
                 if (!rawKey.isFor(Registries.DENSITY_FUNCTION)) continue;
-                @SuppressWarnings("unchecked")
-                ResourceKey<DensityFunction> key = (ResourceKey<DensityFunction>) rawKey;
+                @SuppressWarnings("unchecked") ResourceKey<DensityFunction> key = (ResourceKey<DensityFunction>) rawKey;
                 deduped.put(key.identifier().toString(), new DensityKeyEntry(field.getName(), key));
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException("Failed to read NoiseRouterData field: " + field.getName(), e);
@@ -647,9 +643,9 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static DirectDeps analyzeDirectDependencies(DensityFunction function) {
-        Set<String> densityKeys = new TreeSet<>();
-        Set<String> noiseKeys = new TreeSet<>();
-        IdentityHashMap<Object, Boolean> visited = new IdentityHashMap<>();
+        var densityKeys = new TreeSet<String>();
+        var noiseKeys = new TreeSet<String>();
+        var visited = new IdentityHashMap<Object, Boolean>();
         walkDependencies(function, densityKeys, noiseKeys, visited);
         return new DirectDeps(densityKeys, noiseKeys);
     }
@@ -684,7 +680,7 @@ class MinecraftNoiseRouterSnapshotTest {
         Class<?> cls = obj.getClass();
         if (cls.isArray()) {
             if (cls.getComponentType().isPrimitive()) return;
-            Object[] values = (Object[]) obj;
+            var values = (Object[]) obj;
             for (Object value : values) {
                 walkDependencies(value, densityKeys, noiseKeys, visited);
             }
@@ -705,7 +701,7 @@ class MinecraftNoiseRouterSnapshotTest {
                     if (!accessor.canAccess(obj)) {
                         accessor.trySetAccessible();
                     }
-                    Object value = accessor.invoke(obj);
+                    var value = accessor.invoke(obj);
                     walkDependencies(value, densityKeys, noiseKeys, visited);
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException("Failed to inspect record: " + cls.getName(), e);
@@ -715,13 +711,13 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static List<String> topologicalSort(Map<String, DensityKeyMeta> metas) {
-        Map<String, Integer> indegree = new LinkedHashMap<>();
-        Map<String, List<String>> dependents = new LinkedHashMap<>();
+        var indegree = new LinkedHashMap<String, Integer>();
+        var dependents = new LinkedHashMap<String, List<String>>();
 
         Set<String> nodes = metas.keySet();
         for (String id : nodes) {
-            DensityKeyMeta meta = metas.get(id);
-            Set<String> deps = new LinkedHashSet<>();
+            var meta = metas.get(id);
+            var deps = new LinkedHashSet<String>();
             for (String dep : meta.deps.densityFunctionKeys) {
                 if (!Objects.equals(dep, id) && nodes.contains(dep)) {
                     deps.add(dep);
@@ -733,19 +729,19 @@ class MinecraftNoiseRouterSnapshotTest {
             }
         }
 
-        PriorityQueue<String> ready = new PriorityQueue<>();
+        var ready = new PriorityQueue<String>();
         for (var entry : indegree.entrySet()) {
             if (entry.getValue() == 0) {
                 ready.add(entry.getKey());
             }
         }
 
-        List<String> order = new ArrayList<>(nodes.size());
+        var order = new ArrayList<String>(nodes.size());
         while (!ready.isEmpty()) {
-            String id = ready.poll();
+            var id = ready.poll();
             order.add(id);
             for (String child : dependents.getOrDefault(id, List.of())) {
-                int next = indegree.computeIfPresent(child, (k, v) -> v - 1);
+                var next = indegree.computeIfPresent(child, (k, v) -> v - 1);
                 if (next == 0) {
                     ready.add(child);
                 }
@@ -753,7 +749,7 @@ class MinecraftNoiseRouterSnapshotTest {
         }
 
         if (order.size() != nodes.size()) {
-            PriorityQueue<String> remaining = new PriorityQueue<>();
+            var remaining = new PriorityQueue<String>();
             for (String id : nodes) {
                 if (!order.contains(id)) remaining.add(id);
             }
@@ -765,13 +761,13 @@ class MinecraftNoiseRouterSnapshotTest {
     }
 
     private static Map<String, Integer> computeLevels(List<String> orderedIds, Map<String, DensityKeyMeta> metas) {
-        Map<String, Integer> levels = new LinkedHashMap<>();
+        var levels = new LinkedHashMap<String, Integer>();
         for (String id : orderedIds) {
-            DensityKeyMeta meta = metas.get(id);
+            var meta = metas.get(id);
             if (meta == null) continue;
-            int level = 0;
+            var level = 0;
             for (String dep : meta.deps.densityFunctionKeys) {
-                Integer depLevel = levels.get(dep);
+                var depLevel = levels.get(dep);
                 if (depLevel != null) {
                     level = Math.max(level, depLevel + 1);
                 }
@@ -794,7 +790,7 @@ class MinecraftNoiseRouterSnapshotTest {
             return "<div><code>" + escapeHtml(label) + "(0)</code></div>";
         }
 
-        StringBuilder sb = new StringBuilder(256);
+        var sb = new StringBuilder(256);
         sb.append("<div><code>")
                 .append(escapeHtml(label))
                 .append("(")
@@ -802,8 +798,8 @@ class MinecraftNoiseRouterSnapshotTest {
                 .append(")</code></div>");
         sb.append("<ul class=\"deps\">");
         for (String item : items) {
-            String id = Identifier.parse(item).toDebugFileName();
-            String anchor = anchorPrefix + id;
+            var id = Identifier.parse(item).toDebugFileName();
+            var anchor = anchorPrefix + id;
             if (linkable != null && linkable.contains(item)) {
                 sb.append("<li><a href=\"#")
                         .append(escapeHtml(anchor))
@@ -834,15 +830,15 @@ class MinecraftNoiseRouterSnapshotTest {
         int[] zs = axisCoordinates(-WORLD_SIZE / 2, STEP, IMG_SIZE);
 
         double[] values = new double[IMG_SIZE * IMG_SIZE];
-        double min = Double.POSITIVE_INFINITY;
-        double max = Double.NEGATIVE_INFINITY;
+        var min = Double.POSITIVE_INFINITY;
+        var max = Double.NEGATIVE_INFINITY;
 
-        for (int iz = 0; iz < IMG_SIZE; iz++) {
-            int z = zs[iz];
-            for (int ix = 0; ix < IMG_SIZE; ix++) {
-                int x = xs[ix];
+        for (var iz = 0; iz < IMG_SIZE; iz++) {
+            var z = zs[iz];
+            for (var ix = 0; ix < IMG_SIZE; ix++) {
+                var x = xs[ix];
                 point.set(x, y, z);
-                double v = function.compute(point);
+                var v = function.compute(point);
                 if (!Double.isFinite(v)) v = 0.0;
                 values[ix + iz * IMG_SIZE] = v;
                 if (v < min) min = v;
@@ -854,7 +850,7 @@ class MinecraftNoiseRouterSnapshotTest {
             max = 0.0;
         }
 
-        BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
         MessageDigest digest = sha256();
         writeNormalizedGrayscale(img, values, min, max, digest);
 
@@ -865,11 +861,10 @@ class MinecraftNoiseRouterSnapshotTest {
     private static DensityFunction wireForRandomState(
             DensityFunction function, RandomState randomState, NoiseGeneratorSettings settings, long seed) {
         PositionalRandomFactory randomFactory = getRootRandomFactory(randomState);
-        boolean legacy = settings.useLegacyRandomSource();
+        var legacy = settings.useLegacyRandomSource();
 
         return function.mapAll(new DensityFunction.Visitor() {
-            @Override
-            public DensityFunction apply(DensityFunction densityFunction) {
+            @Override public DensityFunction apply(DensityFunction densityFunction) {
                 if (densityFunction instanceof BlendedNoise blendedNoise) {
                     RandomSource randomSource;
                     if (legacy) {
@@ -887,8 +882,7 @@ class MinecraftNoiseRouterSnapshotTest {
                 return densityFunction;
             }
 
-            @Override
-            public DensityFunction.NoiseHolder visitNoise(DensityFunction.NoiseHolder noiseHolder) {
+            @Override public DensityFunction.NoiseHolder visitNoise(DensityFunction.NoiseHolder noiseHolder) {
                 if (noiseHolder.noise() != null) {
                     return noiseHolder;
                 }
@@ -917,7 +911,7 @@ class MinecraftNoiseRouterSnapshotTest {
 
                 var key = holder.unwrapKey().orElse(null);
                 if (key == null) return noiseHolder;
-                NormalNoise noise = randomState.getOrCreateNoise(key);
+                var noise = randomState.getOrCreateNoise(key);
                 return new DensityFunction.NoiseHolder(holder, noise);
             }
         });
@@ -925,7 +919,7 @@ class MinecraftNoiseRouterSnapshotTest {
 
     private static PositionalRandomFactory getRootRandomFactory(RandomState randomState) {
         try {
-            Field field = RandomState.class.getDeclaredField("random");
+            var field = RandomState.class.getDeclaredField("random");
             field.setAccessible(true);
             return (PositionalRandomFactory) field.get(randomState);
         } catch (ReflectiveOperationException e) {
@@ -936,8 +930,8 @@ class MinecraftNoiseRouterSnapshotTest {
     private static boolean isEndIslandDensityFunction(DensityFunction function) {
         return function != null
                 && function.getClass()
-                        .getName()
-                        .equals("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
+                .getName()
+                .equals("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
     }
 
     private static DensityFunction newEndIslandDensityFunction(long seed) {
@@ -959,16 +953,16 @@ class MinecraftNoiseRouterSnapshotTest {
         int[] zs = axisCoordinates(-WORLD_SIZE / 2, STEP, IMG_SIZE);
 
         double[] values = new double[IMG_SIZE * IMG_SIZE];
-        double min = Double.POSITIVE_INFINITY;
-        double max = Double.NEGATIVE_INFINITY;
+        var min = Double.POSITIVE_INFINITY;
+        var max = Double.NEGATIVE_INFINITY;
 
-        int x = 0;
-        for (int iy = 0; iy < IMG_SIZE; iy++) {
-            int y = ys[iy];
-            for (int iz = 0; iz < IMG_SIZE; iz++) {
-                int z = zs[iz];
+        var x = 0;
+        for (var iy = 0; iy < IMG_SIZE; iy++) {
+            var y = ys[iy];
+            for (var iz = 0; iz < IMG_SIZE; iz++) {
+                var z = zs[iz];
                 point.set(x, y, z);
-                double v = function.compute(point);
+                var v = function.compute(point);
                 if (!Double.isFinite(v)) v = 0.0;
                 values[iz + iy * IMG_SIZE] = v;
                 if (v < min) min = v;
@@ -980,7 +974,7 @@ class MinecraftNoiseRouterSnapshotTest {
             max = 0.0;
         }
 
-        BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
         MessageDigest digest = sha256();
         writeNormalizedGrayscale(img, values, min, max, digest);
 
@@ -991,19 +985,19 @@ class MinecraftNoiseRouterSnapshotTest {
     private static void writeNormalizedGrayscale(
             BufferedImage img, double[] values, double min, double max, MessageDigest digest) {
 
-        double range = max - min;
+        var range = max - min;
         if (range <= 0.0 || Double.isNaN(range) || Double.isInfinite(range)) {
             range = 1.0;
         }
 
-        for (int y = 0; y < IMG_SIZE; y++) {
-            for (int x = 0; x < IMG_SIZE; x++) {
-                double v = values[x + y * IMG_SIZE];
-                double t = (v - min) / range;
+        for (var y = 0; y < IMG_SIZE; y++) {
+            for (var x = 0; x < IMG_SIZE; x++) {
+                var v = values[x + y * IMG_SIZE];
+                var t = (v - min) / range;
                 if (t < 0.0) t = 0.0;
                 if (t > 1.0) t = 1.0;
-                int gray = (int) Math.round(t * 255.0);
-                int rgb = (gray << 16) | (gray << 8) | gray;
+                var gray = (int) Math.round(t * 255.0);
+                var rgb = (gray << 16) | (gray << 8) | gray;
                 img.setRGB(x, y, rgb);
                 digest.update((byte) gray);
             }
@@ -1012,8 +1006,8 @@ class MinecraftNoiseRouterSnapshotTest {
 
     private static int[] axisCoordinates(int start, int step, int size) {
         int[] out = new int[size];
-        int v = start;
-        for (int i = 0; i < size; i++) {
+        var v = start;
+        for (var i = 0; i < size; i++) {
             out[i] = v;
             v += step;
         }
@@ -1022,19 +1016,19 @@ class MinecraftNoiseRouterSnapshotTest {
 
     private static int[] verticalCoordinates(int minY, int maxY, int size) {
         int[] out = new int[size];
-        int range = maxY - minY;
-        for (int i = 0; i < size; i++) {
-            float t = i / (float) (size - 1);
-            int y = maxY - Math.round(range * t);
+        var range = maxY - minY;
+        for (var i = 0; i < size; i++) {
+            var t = i / (float) (size - 1);
+            var y = maxY - Math.round(range * t);
             out[i] = y;
         }
         return out;
     }
 
     private static void writeImage(File outDir, String fileName, BufferedImage img) {
-        File outFile = new File(outDir, fileName);
+        var outFile = new File(outDir, fileName);
         try {
-            boolean ok = ImageIO.write(img, "png", outFile);
+            var ok = ImageIO.write(img, "png", outFile);
             if (!ok) {
                 throw new IOException("No ImageIO writer found for png");
             }
@@ -1065,19 +1059,23 @@ class MinecraftNoiseRouterSnapshotTest {
                 HolderGetter<NormalNoise.NoiseParameters> noiseParams,
                 long seed) {
             RandomState randomState = RandomState.create(settings, noiseParams, seed);
-            NoiseSettings noiseSettings = settings.noiseSettings();
-            int minY = noiseSettings.minY();
-            int maxY = minY + noiseSettings.height() - 1;
-            int xzY = settings.seaLevel();
+            var noiseSettings = settings.noiseSettings();
+            var minY = noiseSettings.minY();
+            var maxY = minY + noiseSettings.height() - 1;
+            var xzY = settings.seaLevel();
             return new Preset(name, settings, randomState, minY, maxY, xzY);
         }
     }
 
-    private record DensityKeyEntry(String fieldName, ResourceKey<DensityFunction> key) {}
+    private record DensityKeyEntry(String fieldName, ResourceKey<DensityFunction> key) {
+    }
 
-    private record DirectDeps(Set<String> densityFunctionKeys, Set<String> noiseKeys) {}
+    private record DirectDeps(Set<String> densityFunctionKeys, Set<String> noiseKeys) {
+    }
 
-    private record DensityKeyMeta(DensityKeyEntry entry, String presetName, DirectDeps deps) {}
+    private record DensityKeyMeta(DensityKeyEntry entry, String presetName, DirectDeps deps) {
+    }
 
-    private record RenderStats(double min, double max, String digest) {}
+    private record RenderStats(double min, double max, String digest) {
+    }
 }

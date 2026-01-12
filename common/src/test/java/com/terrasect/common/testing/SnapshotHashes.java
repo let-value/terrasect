@@ -21,11 +21,11 @@ public final class SnapshotHashes {
     }
 
     public static String imageSha256(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
+        var width = image.getWidth();
+        var height = image.getHeight();
         int[] row = new int[width];
         MessageDigest digest = sha256();
-        for (int y = 0; y < height; y++) {
+        for (var y = 0; y < height; y++) {
             image.getRGB(0, y, width, 1, row, 0, width);
             for (int value : row) {
                 updateDigest(digest, value);

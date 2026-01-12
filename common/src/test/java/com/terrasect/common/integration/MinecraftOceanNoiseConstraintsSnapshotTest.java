@@ -49,22 +49,20 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static final int SURFACE_STEP = WORLD_SIZE / SURFACE_IMG_SIZE;
     private static final int SURFACE_PIXELS_PER_CHUNK = CHUNK_SIZE / SURFACE_STEP;
 
-    @BeforeAll
-    static void setupMinecraft() {
+    @BeforeAll static void setupMinecraft() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
 
-    @Test
-    void writesNoOceanAndOnlyOceanSnapshots(Snapshot snapshot) throws Exception {
+    @Test void writesNoOceanAndOnlyOceanSnapshots(Snapshot snapshot) throws Exception {
         assertEquals(4, STEP, "test assumes quart-aligned pixels");
         assertEquals(8, SURFACE_STEP, "test assumes 8-block pixels for surface views");
         assertEquals(2, SURFACE_PIXELS_PER_CHUNK, "surface pixels must divide chunk size");
 
-        long seed = 12345L;
+        var seed = 12345L;
 
         HolderLookup.Provider lookup = VanillaRegistries.createLookup();
-        HolderGetter<NormalNoise.NoiseParameters> noiseParams = lookup.lookupOrThrow(Registries.NOISE);
+        var noiseParams = lookup.lookupOrThrow(Registries.NOISE);
 
         NoiseGeneratorSettings settings;
         try {
@@ -76,20 +74,20 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         RandomState randomState = RandomState.create(settings, noiseParams, seed);
-        NoiseSettings noiseSettings = settings.noiseSettings();
-        int minY = noiseSettings.minY();
-        int maxY = minY + noiseSettings.height() - 1;
-        int seaLevel = settings.seaLevel();
+        var noiseSettings = settings.noiseSettings();
+        var minY = noiseSettings.minY();
+        var maxY = minY + noiseSettings.height() - 1;
+        var seaLevel = settings.seaLevel();
 
-        Holder<NormalNoise.NoiseParameters> continentalnessHolder = noiseParams.getOrThrow(Noises.CONTINENTALNESS);
-        NormalNoise continentalnessNoise = randomState.getOrCreateNoise(Noises.CONTINENTALNESS);
-        DensityFunction.NoiseHolder continentalness =
+        var continentalnessHolder = noiseParams.getOrThrow(Noises.CONTINENTALNESS);
+        var continentalnessNoise = randomState.getOrCreateNoise(Noises.CONTINENTALNESS);
+        var continentalness =
                 new DensityFunction.NoiseHolder(continentalnessHolder, continentalnessNoise);
 
-        File outDir = new File("build/test-snapshots/noise-constraints/ocean-control");
+        var outDir = new File("build/test-snapshots/noise-constraints/ocean-control");
         Files.createDirectories(outDir.toPath());
 
-        StringBuilder index = new StringBuilder(8 * 1024);
+        var index = new StringBuilder(8 * 1024);
         index.append("<!doctype html><html><head><meta charset=\"utf-8\">")
                 .append("<title>Terrasect Ocean Control (NoiseConstraints)</title>")
                 .append(
@@ -106,14 +104,14 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 vanilla.oceanPixels > 0 && vanilla.oceanPixels < (long) IMG_SIZE * IMG_SIZE,
                 "expected vanilla continentalness to contain both signs");
 
-        RegionDefinition noOceanDef = RegionDefinition.builder()
+        var noOceanDef = RegionDefinition.builder()
                 .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(0.05, 2.0)))
                 .build();
         RenderResult noOcean = render(outDir, "no_ocean", continentalness, seed, noOceanDef);
         indexRow(index, "No ocean (clamp to +)", noOcean);
         assertEquals(0L, noOcean.oceanPixels, "expected no-ocean clamp to remove all ocean pixels");
 
-        RegionDefinition onlyOceanDef = RegionDefinition.builder()
+        var onlyOceanDef = RegionDefinition.builder()
                 .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(-2.0, -0.05)))
                 .build();
         RenderResult onlyOcean = render(outDir, "only_ocean", continentalness, seed, onlyOceanDef);
@@ -238,7 +236,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         index.append("</table>");
 
         index.append("</body></html>\n");
-        String indexHtml = index.toString();
+        var indexHtml = index.toString();
         String indexDigest = SnapshotHashes.sha256Hex(indexHtml);
         snapshot.assertThat(indexDigest).asText().matchesSnapshotText();
         Files.writeString(outDir.toPath().resolve("index.html"), indexHtml, StandardCharsets.UTF_8);
@@ -315,14 +313,14 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static Object recordComponent(Object record, String name) {
-        RecordComponent[] components = record.getClass().getRecordComponents();
+        var components = record.getClass().getRecordComponents();
         if (components == null) {
             throw new IllegalArgumentException(record.getClass().getName() + " is not a record");
         }
 
         for (RecordComponent component : components) {
             if (!name.equals(component.getName())) continue;
-            Method accessor = component.getAccessor();
+            var accessor = component.getAccessor();
             try {
                 accessor.setAccessible(true);
                 return accessor.invoke(record);
@@ -339,9 +337,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static final class ConstrainedNoiseVisitor implements DensityFunction.Visitor {
-        @Override
-        public DensityFunction apply(DensityFunction function) {
-            String className = function.getClass().getName();
+        @Override public DensityFunction apply(DensityFunction function) {
+            var className = function.getClass().getName();
             return switch (className) {
                 case "net.minecraft.world.level.levelgen.DensityFunctions$Noise" -> ConstrainedNoise.wrap(function);
                 case "net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise" ->
@@ -366,43 +363,37 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder noise = (DensityFunction.NoiseHolder) recordComponent(function, "noise");
-            double xzScale = ((Number) recordComponent(function, "xzScale")).doubleValue();
-            double yScale = ((Number) recordComponent(function, "yScale")).doubleValue();
+            var noise = (DensityFunction.NoiseHolder) recordComponent(function, "noise");
+            var xzScale = ((Number) recordComponent(function, "xzScale")).doubleValue();
+            var yScale = ((Number) recordComponent(function, "yScale")).doubleValue();
             return new ConstrainedNoise(noise, xzScale, yScale);
         }
 
-        @Override
-        public double compute(DensityFunction.FunctionContext functionContext) {
-            double x = functionContext.blockX() * xzScale;
-            double y = functionContext.blockY() * yScale;
-            double z = functionContext.blockZ() * xzScale;
+        @Override public double compute(DensityFunction.FunctionContext functionContext) {
+            var x = functionContext.blockX() * xzScale;
+            var y = functionContext.blockY() * yScale;
+            var z = functionContext.blockZ() * xzScale;
             return NoiseHandler.sampleNoise(noise, x, y, z, functionContext);
         }
 
-        @Override
-        public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
+        @Override public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
             contextProvider.fillAllDirectly(values, this);
         }
 
-        @Override
-        public DensityFunction mapAll(DensityFunction.Visitor visitor) {
-            DensityFunction.NoiseHolder visitedNoise = visitor.visitNoise(noise);
+        @Override public DensityFunction mapAll(DensityFunction.Visitor visitor) {
+            var visitedNoise = visitor.visitNoise(noise);
             return visitor.apply(new ConstrainedNoise(visitedNoise, xzScale, yScale));
         }
 
-        @Override
-        public double minValue() {
+        @Override public double minValue() {
             return -maxValue();
         }
 
-        @Override
-        public double maxValue() {
+        @Override public double maxValue() {
             return noise.maxValue();
         }
 
-        @Override
-        public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
+        @Override public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
             throw new UnsupportedOperationException("test-only DensityFunction wrapper");
         }
     }
@@ -431,50 +422,44 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction shiftX = (DensityFunction) recordComponent(function, "shiftX");
-            DensityFunction shiftY = (DensityFunction) recordComponent(function, "shiftY");
-            DensityFunction shiftZ = (DensityFunction) recordComponent(function, "shiftZ");
-            double xzScale = ((Number) recordComponent(function, "xzScale")).doubleValue();
-            double yScale = ((Number) recordComponent(function, "yScale")).doubleValue();
-            DensityFunction.NoiseHolder noise = (DensityFunction.NoiseHolder) recordComponent(function, "noise");
+            var shiftX = (DensityFunction) recordComponent(function, "shiftX");
+            var shiftY = (DensityFunction) recordComponent(function, "shiftY");
+            var shiftZ = (DensityFunction) recordComponent(function, "shiftZ");
+            var xzScale = ((Number) recordComponent(function, "xzScale")).doubleValue();
+            var yScale = ((Number) recordComponent(function, "yScale")).doubleValue();
+            var noise = (DensityFunction.NoiseHolder) recordComponent(function, "noise");
             return new ConstrainedShiftedNoise(shiftX, shiftY, shiftZ, xzScale, yScale, noise);
         }
 
-        @Override
-        public double compute(DensityFunction.FunctionContext functionContext) {
-            double x = functionContext.blockX() * xzScale + shiftX.compute(functionContext);
-            double y = functionContext.blockY() * yScale + shiftY.compute(functionContext);
-            double z = functionContext.blockZ() * xzScale + shiftZ.compute(functionContext);
+        @Override public double compute(DensityFunction.FunctionContext functionContext) {
+            var x = functionContext.blockX() * xzScale + shiftX.compute(functionContext);
+            var y = functionContext.blockY() * yScale + shiftY.compute(functionContext);
+            var z = functionContext.blockZ() * xzScale + shiftZ.compute(functionContext);
             return NoiseHandler.sampleNoise(noise, x, y, z, functionContext);
         }
 
-        @Override
-        public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
+        @Override public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
             contextProvider.fillAllDirectly(values, this);
         }
 
-        @Override
-        public DensityFunction mapAll(DensityFunction.Visitor visitor) {
-            DensityFunction mappedShiftX = shiftX.mapAll(visitor);
-            DensityFunction mappedShiftY = shiftY.mapAll(visitor);
-            DensityFunction mappedShiftZ = shiftZ.mapAll(visitor);
-            DensityFunction.NoiseHolder mappedNoise = visitor.visitNoise(noise);
+        @Override public DensityFunction mapAll(DensityFunction.Visitor visitor) {
+            var mappedShiftX = shiftX.mapAll(visitor);
+            var mappedShiftY = shiftY.mapAll(visitor);
+            var mappedShiftZ = shiftZ.mapAll(visitor);
+            var mappedNoise = visitor.visitNoise(noise);
             return visitor.apply(new ConstrainedShiftedNoise(
                     mappedShiftX, mappedShiftY, mappedShiftZ, xzScale, yScale, mappedNoise));
         }
 
-        @Override
-        public double minValue() {
+        @Override public double minValue() {
             return -maxValue();
         }
 
-        @Override
-        public double maxValue() {
+        @Override public double maxValue() {
             return noise.maxValue();
         }
 
-        @Override
-        public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
+        @Override public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
             throw new UnsupportedOperationException("test-only DensityFunction wrapper");
         }
     }
@@ -486,30 +471,25 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             this.offsetNoise = offsetNoise;
         }
 
-        @Override
-        public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
+        @Override public void fillArray(double[] values, DensityFunction.ContextProvider contextProvider) {
             contextProvider.fillAllDirectly(values, this);
         }
 
-        @Override
-        public DensityFunction mapAll(DensityFunction.Visitor visitor) {
+        @Override public DensityFunction mapAll(DensityFunction.Visitor visitor) {
             return visitor.apply(copyWith(visitor.visitNoise(offsetNoise)));
         }
 
         abstract DensityFunction copyWith(DensityFunction.NoiseHolder noise);
 
-        @Override
-        public double minValue() {
+        @Override public double minValue() {
             return -maxValue();
         }
 
-        @Override
-        public double maxValue() {
+        @Override public double maxValue() {
             return offsetNoise.maxValue() * 4.0;
         }
 
-        @Override
-        public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
+        @Override public net.minecraft.util.KeyDispatchDataCodec<? extends DensityFunction> codec() {
             throw new UnsupportedOperationException("test-only DensityFunction wrapper");
         }
     }
@@ -520,21 +500,19 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise =
+            var offsetNoise =
                     (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShift(offsetNoise);
         }
 
-        @Override
-        public double compute(DensityFunction.FunctionContext functionContext) {
-            double x = functionContext.blockX() * 0.25;
-            double y = functionContext.blockY() * 0.25;
-            double z = functionContext.blockZ() * 0.25;
+        @Override public double compute(DensityFunction.FunctionContext functionContext) {
+            var x = functionContext.blockX() * 0.25;
+            var y = functionContext.blockY() * 0.25;
+            var z = functionContext.blockZ() * 0.25;
             return NoiseHandler.sampleNoise(offsetNoise, x, y, z, functionContext) * 4.0;
         }
 
-        @Override
-        DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
+        @Override DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
             return new ConstrainedShift(noise);
         }
     }
@@ -545,20 +523,18 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise =
+            var offsetNoise =
                     (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShiftA(offsetNoise);
         }
 
-        @Override
-        public double compute(DensityFunction.FunctionContext functionContext) {
-            double x = functionContext.blockX() * 0.25;
-            double z = functionContext.blockZ() * 0.25;
+        @Override public double compute(DensityFunction.FunctionContext functionContext) {
+            var x = functionContext.blockX() * 0.25;
+            var z = functionContext.blockZ() * 0.25;
             return NoiseHandler.sampleNoise(offsetNoise, x, 0.0, z, functionContext) * 4.0;
         }
 
-        @Override
-        DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
+        @Override DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
             return new ConstrainedShiftA(noise);
         }
     }
@@ -569,20 +545,18 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
 
         static DensityFunction wrap(DensityFunction function) {
-            DensityFunction.NoiseHolder offsetNoise =
+            var offsetNoise =
                     (DensityFunction.NoiseHolder) recordComponent(function, "offsetNoise");
             return new ConstrainedShiftB(offsetNoise);
         }
 
-        @Override
-        public double compute(DensityFunction.FunctionContext functionContext) {
-            double x = functionContext.blockZ() * 0.25;
-            double y = functionContext.blockX() * 0.25;
+        @Override public double compute(DensityFunction.FunctionContext functionContext) {
+            var x = functionContext.blockZ() * 0.25;
+            var y = functionContext.blockX() * 0.25;
             return NoiseHandler.sampleNoise(offsetNoise, x, y, 0.0, functionContext) * 4.0;
         }
 
-        @Override
-        DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
+        @Override DensityFunction copyWith(DensityFunction.NoiseHolder noise) {
             return new ConstrainedShiftB(noise);
         }
     }
@@ -595,7 +569,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             @Nullable RegionDefinition rootDefinition)
             throws Exception {
 
-        TestContext context = new TestContext(seed);
+        var context = new TestContext(seed);
 
         World.clear();
         if (rootDefinition != null) {
@@ -613,36 +587,36 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             World.register(World.emptyRoot("ROOT"), World.OVERWORLD);
         }
 
-        NoiseTestContext functionContext = new NoiseTestContext();
+        var functionContext = new NoiseTestContext();
 
         double[] values = new double[IMG_SIZE * IMG_SIZE];
-        long oceanPixels = 0;
+        var oceanPixels = 0L;
 
-        int start = -WORLD_SIZE / 2;
-        int chunks = WORLD_SIZE / CHUNK_SIZE;
+        var start = -WORLD_SIZE / 2;
+        var chunks = WORLD_SIZE / CHUNK_SIZE;
 
-        for (int cz = 0; cz < chunks; cz++) {
-            int chunkMinZ = start + cz * CHUNK_SIZE;
-            int pixelBaseZ = cz * QUART_SIZE;
-            for (int cx = 0; cx < chunks; cx++) {
-                int chunkMinX = start + cx * CHUNK_SIZE;
-                int pixelBaseX = cx * QUART_SIZE;
+        for (var cz = 0; cz < chunks; cz++) {
+            var chunkMinZ = start + cz * CHUNK_SIZE;
+            var pixelBaseZ = cz * QUART_SIZE;
+            for (var cx = 0; cx < chunks; cx++) {
+                var chunkMinX = start + cx * CHUNK_SIZE;
+                var pixelBaseX = cx * QUART_SIZE;
 
                 NoiseChunkLookup lookup =
                         rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
-                for (int qz = 0; qz < QUART_SIZE; qz++) {
-                    int blockZ = chunkMinZ + (qz << 2);
-                    int iz = pixelBaseZ + qz;
-                    for (int qx = 0; qx < QUART_SIZE; qx++) {
-                        int blockX = chunkMinX + (qx << 2);
-                        int ix = pixelBaseX + qx;
+                for (var qz = 0; qz < QUART_SIZE; qz++) {
+                    var blockZ = chunkMinZ + (qz << 2);
+                    var iz = pixelBaseZ + qz;
+                    for (var qx = 0; qx < QUART_SIZE; qx++) {
+                        var blockX = chunkMinX + (qx << 2);
+                        var ix = pixelBaseX + qx;
 
                         functionContext.set(blockX, 0, blockZ, lookup);
 
-                        double x = blockX * 0.25;
-                        double z = blockZ * 0.25;
-                        double v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
+                        var x = blockX * 0.25;
+                        var z = blockZ * 0.25;
+                        var v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
 
                         if (!Double.isFinite(v)) v = 0.0;
                         values[ix + iz * IMG_SIZE] = v;
@@ -652,8 +626,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             }
         }
 
-        String valuesFile = name + "_values.png";
-        String maskFile = name + "_ocean_mask.png";
+        var valuesFile = name + "_values.png";
+        var maskFile = name + "_ocean_mask.png";
 
         writeSignedGreenBlue(outDir, valuesFile, values);
         writeOceanMask(outDir, maskFile, values);
@@ -664,47 +638,47 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static RenderRegionsResult renderRegions(
             File outDir, String name, DensityFunction.NoiseHolder noise, long seed, Region root) throws Exception {
 
-        TestContext context = new TestContext(seed);
+        var context = new TestContext(seed);
 
         World.clear();
         World.register(root, World.OVERWORLD);
 
-        NoiseTestContext functionContext = new NoiseTestContext();
+        var functionContext = new NoiseTestContext();
 
         double[] values = new double[IMG_SIZE * IMG_SIZE];
         int[] regionIds = new int[IMG_SIZE * IMG_SIZE];
 
-        long noOceanInteriorPixels = 0;
-        long noOceanInteriorOceanPixels = 0;
-        long onlyOceanInteriorPixels = 0;
-        long onlyOceanInteriorOceanPixels = 0;
+        var noOceanInteriorPixels = 0L;
+        var noOceanInteriorOceanPixels = 0L;
+        var onlyOceanInteriorPixels = 0L;
+        var onlyOceanInteriorOceanPixels = 0L;
 
-        int start = -WORLD_SIZE / 2;
-        int chunks = WORLD_SIZE / CHUNK_SIZE;
+        var start = -WORLD_SIZE / 2;
+        var chunks = WORLD_SIZE / CHUNK_SIZE;
 
-        for (int cz = 0; cz < chunks; cz++) {
-            int chunkMinZ = start + cz * CHUNK_SIZE;
-            int pixelBaseZ = cz * QUART_SIZE;
-            for (int cx = 0; cx < chunks; cx++) {
-                int chunkMinX = start + cx * CHUNK_SIZE;
-                int pixelBaseX = cx * QUART_SIZE;
+        for (var cz = 0; cz < chunks; cz++) {
+            var chunkMinZ = start + cz * CHUNK_SIZE;
+            var pixelBaseZ = cz * QUART_SIZE;
+            for (var cx = 0; cx < chunks; cx++) {
+                var chunkMinX = start + cx * CHUNK_SIZE;
+                var pixelBaseX = cx * QUART_SIZE;
 
                 NoiseChunkLookup lookup = NoiseChunkLookup.build(context, chunkMinX, chunkMinZ);
 
-                for (int qz = 0; qz < QUART_SIZE; qz++) {
-                    int blockZ = chunkMinZ + (qz << 2);
-                    int iz = pixelBaseZ + qz;
-                    for (int qx = 0; qx < QUART_SIZE; qx++) {
-                        int blockX = chunkMinX + (qx << 2);
-                        int ix = pixelBaseX + qx;
+                for (var qz = 0; qz < QUART_SIZE; qz++) {
+                    var blockZ = chunkMinZ + (qz << 2);
+                    var iz = pixelBaseZ + qz;
+                    for (var qx = 0; qx < QUART_SIZE; qx++) {
+                        var blockX = chunkMinX + (qx << 2);
+                        var ix = pixelBaseX + qx;
 
-                        int pixelIndex = ix + iz * IMG_SIZE;
+                        var pixelIndex = ix + iz * IMG_SIZE;
 
                         functionContext.set(blockX, 0, blockZ, lookup);
 
-                        double x = blockX * 0.25;
-                        double z = blockZ * 0.25;
-                        double v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
+                        var x = blockX * 0.25;
+                        var z = blockZ * 0.25;
+                        var v = NoiseHandler.sampleNoise(noise, x, 0.0, z, functionContext);
 
                         if (!Double.isFinite(v)) v = 0.0;
                         values[pixelIndex] = v;
@@ -715,8 +689,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                         int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
                         regionIds[pixelIndex] = regionId;
 
-                        boolean interior = traversal != null && traversal.edgeInfluence <= 0.0f;
-                        boolean ocean = v < 0.0;
+                        var interior = traversal != null && traversal.edgeInfluence <= 0.0f;
+                        var ocean = v < 0.0;
                         if (interior) {
                             if (regionId == 1) {
                                 noOceanInteriorPixels++;
@@ -731,9 +705,9 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             }
         }
 
-        String valuesFile = name + "_values.png";
-        String maskFile = name + "_ocean_mask.png";
-        String regionFile = name + "_regions.png";
+        var valuesFile = name + "_values.png";
+        var maskFile = name + "_ocean_mask.png";
+        var regionFile = name + "_regions.png";
 
         writeSignedGreenBlue(outDir, valuesFile, values);
         writeOceanMask(outDir, maskFile, values);
@@ -760,7 +734,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             @Nullable RegionDefinition rootDefinition)
             throws Exception {
 
-        TestContext context = new TestContext(seed);
+        var context = new TestContext(seed);
 
         World.clear();
         if (rootDefinition != null) {
@@ -781,39 +755,39 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         DensityFunction preliminarySurfaceLevel =
                 constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
 
-        NoiseTestContext functionContext = new NoiseTestContext();
+        var functionContext = new NoiseTestContext();
 
         int[] heights = new int[SURFACE_IMG_SIZE * SURFACE_IMG_SIZE];
-        long belowSeaPixels = 0L;
-        int minHeight = Integer.MAX_VALUE;
-        int maxHeight = Integer.MIN_VALUE;
+        var belowSeaPixels = 0L;
+        var minHeight = Integer.MAX_VALUE;
+        var maxHeight = Integer.MIN_VALUE;
 
-        int start = -WORLD_SIZE / 2;
-        int chunks = WORLD_SIZE / CHUNK_SIZE;
+        var start = -WORLD_SIZE / 2;
+        var chunks = WORLD_SIZE / CHUNK_SIZE;
 
-        for (int cz = 0; cz < chunks; cz++) {
-            int chunkMinZ = start + cz * CHUNK_SIZE;
-            int pixelBaseZ = cz * SURFACE_PIXELS_PER_CHUNK;
-            for (int cx = 0; cx < chunks; cx++) {
-                int chunkMinX = start + cx * CHUNK_SIZE;
-                int pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
+        for (var cz = 0; cz < chunks; cz++) {
+            var chunkMinZ = start + cz * CHUNK_SIZE;
+            var pixelBaseZ = cz * SURFACE_PIXELS_PER_CHUNK;
+            for (var cx = 0; cx < chunks; cx++) {
+                var chunkMinX = start + cx * CHUNK_SIZE;
+                var pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
 
                 NoiseChunkLookup lookup =
                         rootDefinition != null ? NoiseChunkLookup.build(context, chunkMinX, chunkMinZ) : null;
 
-                for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
-                    int blockZ = chunkMinZ + pz * SURFACE_STEP;
-                    int iz = pixelBaseZ + pz;
-                    for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
-                        int blockX = chunkMinX + px * SURFACE_STEP;
-                        int ix = pixelBaseX + px;
-                        int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
+                for (var pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
+                    var blockZ = chunkMinZ + pz * SURFACE_STEP;
+                    var iz = pixelBaseZ + pz;
+                    for (var px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
+                        var blockX = chunkMinX + px * SURFACE_STEP;
+                        var ix = pixelBaseX + px;
+                        var pixelIndex = ix + iz * SURFACE_IMG_SIZE;
 
                         functionContext.set(blockX, 0, blockZ, lookup);
 
-                        double surface = preliminarySurfaceLevel.compute(functionContext);
+                        var surface = preliminarySurfaceLevel.compute(functionContext);
                         if (!Double.isFinite(surface)) surface = minY;
-                        int height = (int) Math.floor(surface);
+                        var height = (int) Math.floor(surface);
 
                         heights[pixelIndex] = height;
                         if (height < seaLevel) belowSeaPixels++;
@@ -824,8 +798,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             }
         }
 
-        String heightFile = name + "_preliminary_surface_height.png";
-        String belowSeaFile = name + "_preliminary_surface_below_sea.png";
+        var heightFile = name + "_preliminary_surface_height.png";
+        var belowSeaFile = name + "_preliminary_surface_below_sea.png";
 
         writeHeightMap(outDir, heightFile, SURFACE_IMG_SIZE, heights, minY, maxY);
         writeBelowSeaMask(outDir, belowSeaFile, SURFACE_IMG_SIZE, heights, seaLevel);
@@ -837,7 +811,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             File outDir, String name, RandomState randomState, long seed, int seaLevel, int minY, int maxY, Region root)
             throws Exception {
 
-        TestContext context = new TestContext(seed);
+        var context = new TestContext(seed);
 
         World.clear();
         World.register(root, World.OVERWORLD);
@@ -845,41 +819,41 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         DensityFunction preliminarySurfaceLevel =
                 constrainNoiseSampling(randomState.router().preliminarySurfaceLevel());
 
-        NoiseTestContext functionContext = new NoiseTestContext();
+        var functionContext = new NoiseTestContext();
 
         int[] heights = new int[SURFACE_IMG_SIZE * SURFACE_IMG_SIZE];
 
-        long noOceanInteriorPixels = 0L;
-        long noOceanInteriorBelowSea = 0L;
-        long onlyOceanInteriorPixels = 0L;
-        long onlyOceanInteriorBelowSea = 0L;
+        var noOceanInteriorPixels = 0L;
+        var noOceanInteriorBelowSea = 0L;
+        var onlyOceanInteriorPixels = 0L;
+        var onlyOceanInteriorBelowSea = 0L;
 
-        int start = -WORLD_SIZE / 2;
-        int chunks = WORLD_SIZE / CHUNK_SIZE;
+        var start = -WORLD_SIZE / 2;
+        var chunks = WORLD_SIZE / CHUNK_SIZE;
 
-        for (int cz = 0; cz < chunks; cz++) {
-            int chunkMinZ = start + cz * CHUNK_SIZE;
-            int pixelBaseZ = cz * SURFACE_PIXELS_PER_CHUNK;
-            for (int cx = 0; cx < chunks; cx++) {
-                int chunkMinX = start + cx * CHUNK_SIZE;
-                int pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
+        for (var cz = 0; cz < chunks; cz++) {
+            var chunkMinZ = start + cz * CHUNK_SIZE;
+            var pixelBaseZ = cz * SURFACE_PIXELS_PER_CHUNK;
+            for (var cx = 0; cx < chunks; cx++) {
+                var chunkMinX = start + cx * CHUNK_SIZE;
+                var pixelBaseX = cx * SURFACE_PIXELS_PER_CHUNK;
 
                 NoiseChunkLookup lookup = NoiseChunkLookup.build(context, chunkMinX, chunkMinZ);
 
-                for (int pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
-                    int blockZ = chunkMinZ + pz * SURFACE_STEP;
-                    int iz = pixelBaseZ + pz;
-                    for (int px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
-                        int blockX = chunkMinX + px * SURFACE_STEP;
-                        int ix = pixelBaseX + px;
+                for (var pz = 0; pz < SURFACE_PIXELS_PER_CHUNK; pz++) {
+                    var blockZ = chunkMinZ + pz * SURFACE_STEP;
+                    var iz = pixelBaseZ + pz;
+                    for (var px = 0; px < SURFACE_PIXELS_PER_CHUNK; px++) {
+                        var blockX = chunkMinX + px * SURFACE_STEP;
+                        var ix = pixelBaseX + px;
 
-                        int pixelIndex = ix + iz * SURFACE_IMG_SIZE;
+                        var pixelIndex = ix + iz * SURFACE_IMG_SIZE;
 
                         functionContext.set(blockX, 0, blockZ, lookup);
 
-                        double surface = preliminarySurfaceLevel.compute(functionContext);
+                        var surface = preliminarySurfaceLevel.compute(functionContext);
                         if (!Double.isFinite(surface)) surface = minY;
-                        int height = (int) Math.floor(surface);
+                        var height = (int) Math.floor(surface);
                         heights[pixelIndex] = height;
 
                         var traversal = World.traverse(context, blockX, blockZ);
@@ -887,8 +861,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                                 traversal != null && traversal.region != null ? traversal.region.name() : "";
                         int regionId = "NO_OCEAN".equals(regionName) ? 1 : ("ONLY_OCEAN".equals(regionName) ? 2 : 0);
 
-                        boolean interior = traversal != null && traversal.edgeInfluence <= 0.0f;
-                        boolean belowSea = height < seaLevel;
+                        var interior = traversal != null && traversal.edgeInfluence <= 0.0f;
+                        var belowSea = height < seaLevel;
                         if (interior) {
                             if (regionId == 1) {
                                 noOceanInteriorPixels++;
@@ -903,8 +877,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             }
         }
 
-        String heightFile = name + "_preliminary_surface_height.png";
-        String belowSeaFile = name + "_preliminary_surface_below_sea.png";
+        var heightFile = name + "_preliminary_surface_height.png";
+        var belowSeaFile = name + "_preliminary_surface_below_sea.png";
 
         writeHeightMap(outDir, heightFile, SURFACE_IMG_SIZE, heights, minY, maxY);
         writeBelowSeaMask(outDir, belowSeaFile, SURFACE_IMG_SIZE, heights, seaLevel);
@@ -919,7 +893,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static Region buildTwoRegionRoot(RegionDefinition noOcean, RegionDefinition onlyOcean) {
-        Region noOceanRegion = new Region(
+        var noOceanRegion = new Region(
                 "NO_OCEAN",
                 10_000,
                 noOcean,
@@ -927,7 +901,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 java.util.List.of(),
                 java.util.List.of(),
                 false);
-        Region onlyOceanRegion = new Region(
+        var onlyOceanRegion = new Region(
                 "ONLY_OCEAN",
                 10_000,
                 onlyOcean,
@@ -936,12 +910,12 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 java.util.List.of(),
                 false);
 
-        RegionDefinition rootDef = RegionDefinition.builder()
-            .strategy(com.terrasect.common.definition.GenerationStrategy.hex())
+        var rootDef = RegionDefinition.builder()
+                .strategy(com.terrasect.common.definition.GenerationStrategy.hex())
                 .build();
 
-        int rootRadiusBlocks = 128;
-        int rootBudget = rootRadiusBlocks * rootRadiusBlocks;
+        var rootRadiusBlocks = 128;
+        var rootBudget = rootRadiusBlocks * rootRadiusBlocks;
         return new Region(
                 "ROOT",
                 rootBudget,
@@ -953,15 +927,15 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static void writeSignedGreenBlue(File outDir, String fileName, double[] values) throws Exception {
-        BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
-        for (int y = 0; y < IMG_SIZE; y++) {
-            for (int x = 0; x < IMG_SIZE; x++) {
-                double v = values[x + y * IMG_SIZE];
-                double t = Math.max(-1.0, Math.min(1.0, v));
+        for (var y = 0; y < IMG_SIZE; y++) {
+            for (var x = 0; x < IMG_SIZE; x++) {
+                var v = values[x + y * IMG_SIZE];
+                var t = Math.max(-1.0, Math.min(1.0, v));
                 int green = t > 0.0 ? (int) Math.round(t * 255.0) : 0;
                 int blue = t < 0.0 ? (int) Math.round(-t * 255.0) : 0;
-                int rgb = (green << 8) | blue;
+                var rgb = (green << 8) | blue;
                 img.setRGB(x, y, rgb);
             }
         }
@@ -970,12 +944,12 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static void writeRegionMap(File outDir, String fileName, int[] regionIds) throws Exception {
-        BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
-        for (int y = 0; y < IMG_SIZE; y++) {
-            for (int x = 0; x < IMG_SIZE; x++) {
-                int id = regionIds[x + y * IMG_SIZE];
-                int rgb =
+        for (var y = 0; y < IMG_SIZE; y++) {
+            for (var x = 0; x < IMG_SIZE; x++) {
+                var id = regionIds[x + y * IMG_SIZE];
+                var rgb =
                         switch (id) {
                             case 1 -> 0xCC0000;
                             case 2 -> 0x00CCCC;
@@ -989,11 +963,11 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     }
 
     private static void writeOceanMask(File outDir, String fileName, double[] values) throws Exception {
-        BufferedImage img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
 
-        for (int y = 0; y < IMG_SIZE; y++) {
-            for (int x = 0; x < IMG_SIZE; x++) {
-                double v = values[x + y * IMG_SIZE];
+        for (var y = 0; y < IMG_SIZE; y++) {
+            for (var x = 0; x < IMG_SIZE; x++) {
+                var v = values[x + y * IMG_SIZE];
                 int rgb = v < 0.0 ? 0x0000FF : 0x00AA00;
                 img.setRGB(x, y, rgb);
             }
@@ -1004,15 +978,15 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
     private static void writeHeightMap(File outDir, String fileName, int size, int[] heights, int minY, int maxY)
             throws Exception {
-        BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
-        int range = Math.max(1, maxY - minY);
-        for (int y = 0; y < size; y++) {
-            for (int x = 0; x < size; x++) {
-                int height = heights[x + y * size];
-                int clamped = Math.max(minY, Math.min(maxY, height));
-                int gray = (int) Math.round((clamped - minY) * 255.0 / range);
-                int rgb = (gray << 16) | (gray << 8) | gray;
+        var range = Math.max(1, maxY - minY);
+        for (var y = 0; y < size; y++) {
+            for (var x = 0; x < size; x++) {
+                var height = heights[x + y * size];
+                var clamped = Math.max(minY, Math.min(maxY, height));
+                var gray = (int) Math.round((clamped - minY) * 255.0 / range);
+                var rgb = (gray << 16) | (gray << 8) | gray;
                 img.setRGB(x, y, rgb);
             }
         }
@@ -1022,11 +996,11 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
 
     private static void writeBelowSeaMask(File outDir, String fileName, int size, int[] heights, int seaLevel)
             throws Exception {
-        BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        var img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
-        for (int y = 0; y < size; y++) {
-            for (int x = 0; x < size; x++) {
-                int height = heights[x + y * size];
+        for (var y = 0; y < size; y++) {
+            for (var x = 0; x < size; x++) {
+                var height = heights[x + y * size];
                 int rgb = height < seaLevel ? 0x0000FF : 0x00AA00;
                 img.setRGB(x, y, rgb);
             }
@@ -1035,7 +1009,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         ImageIO.write(img, "png", outDir.toPath().resolve(fileName).toFile());
     }
 
-    private record RenderResult(String valuesFile, String maskFile, long oceanPixels) {}
+    private record RenderResult(String valuesFile, String maskFile, long oceanPixels) {
+    }
 
     private record RenderRegionsResult(
             String valuesFile,
@@ -1044,10 +1019,12 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             long noOceanInteriorPixels,
             long noOceanInteriorOceanPixels,
             long onlyOceanInteriorPixels,
-            long onlyOceanInteriorOceanPixels) {}
+            long onlyOceanInteriorOceanPixels) {
+    }
 
     private record SurfaceRenderResult(
-            String heightFile, String belowSeaFile, long belowSeaPixels, int minHeight, int maxHeight) {}
+            String heightFile, String belowSeaFile, long belowSeaPixels, int minHeight, int maxHeight) {
+    }
 
     private record SurfaceRegionsRenderResult(
             String heightFile,
@@ -1055,7 +1032,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             long noOceanInteriorPixels,
             long noOceanInteriorBelowSea,
             long onlyOceanInteriorPixels,
-            long onlyOceanInteriorBelowSea) {}
+            long onlyOceanInteriorBelowSea) {
+    }
 
     private static final class TestContext implements Context {
         private final long seed;
@@ -1064,13 +1042,11 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             this.seed = seed;
         }
 
-        @Override
-        public long getSeed() {
+        @Override public long getSeed() {
             return seed;
         }
 
-        @Override
-        public long getInfluence(int x, int z) {
+        @Override public long getInfluence(int x, int z) {
             return 0L;
         }
     }
@@ -1088,23 +1064,19 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             this.lookup = lookup;
         }
 
-        @Override
-        public int blockX() {
+        @Override public int blockX() {
             return blockX;
         }
 
-        @Override
-        public int blockY() {
+        @Override public int blockY() {
             return blockY;
         }
 
-        @Override
-        public int blockZ() {
+        @Override public int blockZ() {
             return blockZ;
         }
 
-        @Override
-        public @Nullable NoiseChunkLookup terrasect$getNoiseLookup() {
+        @Override public @Nullable NoiseChunkLookup terrasect$getNoiseLookup() {
             return lookup;
         }
     }

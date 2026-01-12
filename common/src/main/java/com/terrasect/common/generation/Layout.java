@@ -31,16 +31,16 @@ final class Layout {
 
     static TraversalIterator startTraversal(
             Region root, int x, int z, Context context, float gridOffsetX, float gridOffsetZ) {
-        long seed = context.getSeed();
+        var seed = context.getSeed();
 
-        int offsetX = x + (int) gridOffsetX;
-        int offsetZ = z + (int) gridOffsetZ;
+        var offsetX = x + (int) gridOffsetX;
+        var offsetZ = z + (int) gridOffsetZ;
 
-        long packedWarp = getWarpedPoint(offsetX, offsetZ, seed, context);
-        float wx = Packer.unpackPairSecond(packedWarp);
-        float wz = Packer.unpackPairFirst(packedWarp);
+        var packedWarp = getWarpedPoint(offsetX, offsetZ, seed, context);
+        var wx = Packer.unpackPairSecond(packedWarp);
+        var wz = Packer.unpackPairFirst(packedWarp);
 
-        TraversalState state = STATE.get();
+        var state = STATE.get();
         state.currentSeed = seed;
         state.cx = 0;
         state.cz = 0;
@@ -49,7 +49,7 @@ final class Layout {
         state.wz = wz;
         state.minBlockDistToEdge = Float.MAX_VALUE;
 
-        TraversalIterator iter = ITERATOR.get();
+        var iter = ITERATOR.get();
         iter.currentRegion = root;
         iter.result.region = root;
         iter.result.seed = seed;
@@ -64,10 +64,10 @@ final class Layout {
             return null;
         }
 
-        TraversalState state = STATE.get();
+        var state = STATE.get();
 
-        float dx = state.wx - state.cx;
-        float dz = state.wz - state.cz;
+        var dx = state.wx - state.cx;
+        var dz = state.wz - state.cz;
 
         QueryResult query = LayoutStrategies.query(iter.currentRegion, state.currentSeed, dx, dz, state.radius);
 
@@ -81,10 +81,10 @@ final class Layout {
         iter.result.seed = state.currentSeed;
         iter.result.edgeDistance = Math.min(iter.result.edgeDistance, query.edgeDistance);
 
-        float blockDist = query.edgeDistance * state.radius;
+        var blockDist = query.edgeDistance * state.radius;
         state.minBlockDistToEdge = Math.min(state.minBlockDistToEdge, blockDist);
 
-        float normalized = state.minBlockDistToEdge / 8.0f;
+        var normalized = state.minBlockDistToEdge / 8.0f;
         iter.result.edgeInfluence = 1.0f - Math.min(normalized, 1.0f);
 
         return iter;
@@ -92,29 +92,29 @@ final class Layout {
 
     private static long getWarpedPoint(int x, int z, long seed, Context context) {
 
-        long distSq = (long) x * x + (long) z * z;
-        float damp = 1.0f;
+        var distSq = (long) x * x + (long) z * z;
+        var damp = 1.0f;
         if (distSq < SPAWN_SAFE_RADIUS_SQ) {
             damp = (float) Math.sqrt((double) distSq) * INV_SPAWN_SAFE_RADIUS;
         }
 
-        float baseX = (NoiseUtils.valueNoise(x, z, seed, 1001, WARP_SCALE) - 0.5f) * 2.0f;
-        float baseZ = (NoiseUtils.valueNoise(x, z, seed, 1002, WARP_SCALE) - 0.5f) * 2.0f;
+        var baseX = (NoiseUtils.valueNoise(x, z, seed, 1001, WARP_SCALE) - 0.5f) * 2.0f;
+        var baseZ = (NoiseUtils.valueNoise(x, z, seed, 1002, WARP_SCALE) - 0.5f) * 2.0f;
 
-        long influence = context.getInfluence(x, z);
-        float river = Packer.unpackPairFirst(influence);
-        float ridge = Packer.unpackPairSecond(influence);
-        float featureStrength = (river + ridge) * FEATURE_STRENGTH;
+        var influence = context.getInfluence(x, z);
+        var river = Packer.unpackPairFirst(influence);
+        var ridge = Packer.unpackPairSecond(influence);
+        var featureStrength = (river + ridge) * FEATURE_STRENGTH;
 
-        float featureAngle = NoiseUtils.valueNoise(x, z, seed, 2001, WARP_SCALE / 2) * 6.283f;
-        float featureX = (float) Math.cos(featureAngle) * featureStrength;
-        float featureZ = (float) Math.sin(featureAngle) * featureStrength;
+        var featureAngle = NoiseUtils.valueNoise(x, z, seed, 2001, WARP_SCALE / 2) * 6.283f;
+        var featureX = (float) Math.cos(featureAngle) * featureStrength;
+        var featureZ = (float) Math.sin(featureAngle) * featureStrength;
 
-        float detailX = (NoiseUtils.valueNoise(x, z, seed, 3001, DETAIL_SCALE) - 0.5f) * 2.0f;
-        float detailZ = (NoiseUtils.valueNoise(x, z, seed, 3002, DETAIL_SCALE) - 0.5f) * 2.0f;
+        var detailX = (NoiseUtils.valueNoise(x, z, seed, 3001, DETAIL_SCALE) - 0.5f) * 2.0f;
+        var detailZ = (NoiseUtils.valueNoise(x, z, seed, 3002, DETAIL_SCALE) - 0.5f) * 2.0f;
 
-        float wx = x + (baseX * WARP_AMPLITUDE + featureX) * damp + detailX * DETAIL_AMPLITUDE;
-        float wz = z + (baseZ * WARP_AMPLITUDE + featureZ) * damp + detailZ * DETAIL_AMPLITUDE;
+        var wx = x + (baseX * WARP_AMPLITUDE + featureX) * damp + detailX * DETAIL_AMPLITUDE;
+        var wz = z + (baseZ * WARP_AMPLITUDE + featureZ) * damp + detailZ * DETAIL_AMPLITUDE;
 
         return Packer.packPair(wz, wx);
     }

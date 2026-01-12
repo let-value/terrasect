@@ -6,7 +6,8 @@ import com.terrasect.common.helpers.ClimateModifier;
 import net.minecraft.world.level.biome.Climate;
 
 public final class ClimateHandler {
-    private ClimateHandler() {}
+    private ClimateHandler() {
+    }
 
     public static Climate.TargetPoint modifyTargetPoint(
             Context context, int x, int y, int z, Climate.TargetPoint original) {
@@ -15,8 +16,8 @@ public final class ClimateHandler {
             return original;
         }
 
-        int blockX = x << 2;
-        int blockZ = z << 2;
+        var blockX = x << 2;
+        var blockZ = z << 2;
 
         var traversal = World.traverse(context, blockX, blockZ);
         if (traversal == null || traversal.region == null) {
@@ -28,7 +29,7 @@ public final class ClimateHandler {
             return original;
         }
 
-        float edgeFactor = 1.0f - traversal.edgeDistance;
+        var edgeFactor = 1.0f - traversal.edgeDistance;
         return ClimateModifier.modify(climate, original, edgeFactor);
     }
 }

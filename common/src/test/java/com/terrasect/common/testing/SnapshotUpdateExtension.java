@@ -27,22 +27,19 @@ public final class SnapshotUpdateExtension
     private static final String CREATED_INITIALLY_PREFIX = "Snapshots have been created the first time.";
     private static final String UPDATED_FORCEFULLY_PREFIX = "Snapshots have been updated forcefully.";
 
-    @Override
-    public void beforeAll(ExtensionContext context) {
+    @Override public void beforeAll(ExtensionContext context) {
         SnapshotTestContext testContext = createContext(context);
         context.getStore(NAMESPACE).put(CONTEXT_KEY, testContext);
     }
 
-    @Override
-    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext context)
+    @Override public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext context)
             throws ParameterResolutionException {
         SnapshotTestContext testContext = getContext(context);
         Class<?> type = parameterContext.getParameter().getType();
         return testContext.isSnapshotParameter(type) || SnapshotTestContext.class.isAssignableFrom(type);
     }
 
-    @Override
-    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext context)
+    @Override public Object resolveParameter(ParameterContext parameterContext, ExtensionContext context)
             throws ParameterResolutionException {
         SnapshotTestContext testContext = getContext(context);
         Class<?> type = parameterContext.getParameter().getType();
@@ -52,8 +49,7 @@ public final class SnapshotUpdateExtension
         return testContext.createSnapshotTestFor(context.getRequiredTestMethod());
     }
 
-    @Override
-    public void afterEach(ExtensionContext context) throws Exception {
+    @Override public void afterEach(ExtensionContext context) throws Exception {
         SnapshotTestContext testContext = getContext(context);
         try {
             testContext.finalizeSnapshotTest();
@@ -65,23 +61,19 @@ public final class SnapshotUpdateExtension
         }
     }
 
-    @Override
-    public void afterAll(ExtensionContext context) throws Exception {
+    @Override public void afterAll(ExtensionContext context) throws Exception {
         getContext(context).detectOrCleanupOrphanedSnapshots();
     }
 
-    @Override
-    public void testFailed(ExtensionContext context, Throwable cause) {
+    @Override public void testFailed(ExtensionContext context, Throwable cause) {
         getContext(context).recordFailedOrSkippedTest(context.getRequiredTestMethod());
     }
 
-    @Override
-    public void testAborted(ExtensionContext context, Throwable cause) {
+    @Override public void testAborted(ExtensionContext context, Throwable cause) {
         getContext(context).recordFailedOrSkippedTest(context.getRequiredTestMethod());
     }
 
-    @Override
-    public void testDisabled(ExtensionContext context, Optional<String> reason) {
+    @Override public void testDisabled(ExtensionContext context, Optional<String> reason) {
         getContext(context).recordFailedOrSkippedTest(context.getRequiredTestMethod());
     }
 
@@ -92,9 +84,9 @@ public final class SnapshotUpdateExtension
     }
 
     private static SnapshotTestContext getContext(ExtensionContext context) {
-        ExtensionContext current = context;
+        var current = context;
         while (current != null) {
-            SnapshotTestContext found = current.getStore(NAMESPACE).get(CONTEXT_KEY, SnapshotTestContext.class);
+            var found = current.getStore(NAMESPACE).get(CONTEXT_KEY, SnapshotTestContext.class);
             if (found != null) {
                 return found;
             }
@@ -108,7 +100,7 @@ public final class SnapshotUpdateExtension
         if (!isUpdateEnabled()) {
             return false;
         }
-        String message = error.getMessage();
+        var message = error.getMessage();
         if (message == null) {
             return false;
         }
@@ -125,16 +117,14 @@ public final class SnapshotUpdateExtension
     }
 
     private static final class Junit5Support implements TestFrameworkSupport {
-        @Override
-        public boolean isSnapshotTest(Class<?> testClass, Method method) {
+        @Override public boolean isSnapshotTest(Class<?> testClass, Method method) {
             if (Modifier.isStatic(method.getModifiers()) || Modifier.isPrivate(method.getModifiers())) {
                 return false;
             }
             return Arrays.stream(method.getParameterTypes()).anyMatch(Snapshot.class::equals);
         }
 
-        @Override
-        public Throwable assumptionFailed(String message) {
+        @Override public Throwable assumptionFailed(String message) {
             return new TestAbortedException(message);
         }
     }

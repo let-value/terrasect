@@ -34,14 +34,14 @@ public final class TerrainHeightLookup {
 
         int[] heights = new int[256];
         float[] edgeInfluences = new float[256];
-        boolean hasAnyConstraint = false;
-        boolean hasAnyBlending = false;
+        var hasAnyConstraint = false;
+        var hasAnyBlending = false;
 
-        for (int localZ = 0; localZ < 16; localZ++) {
-            int blockZ = chunkMinZ + localZ;
-            for (int localX = 0; localX < 16; localX++) {
-                int blockX = chunkMinX + localX;
-                int index = localX + localZ * 16;
+        for (var localZ = 0; localZ < 16; localZ++) {
+            var blockZ = chunkMinZ + localZ;
+            for (var localX = 0; localX < 16; localX++) {
+                var blockX = chunkMinX + localX;
+                var index = localX + localZ * 16;
 
                 TraversalResult traversal = World.traverse(context, blockX, blockZ);
                 if (traversal == null || traversal.region == null) {
@@ -55,18 +55,18 @@ public final class TerrainHeightLookup {
                     hasAnyBlending = true;
                 }
 
-                HeightConstraints constraints = traversal.region.definition().height();
+                var constraints = traversal.region.definition().height();
                 if (!constraints.hasConstraints()) {
                     heights[index] = NO_CONSTRAINT;
                     continue;
                 }
 
-                int min = constraints.minY();
-                int max = constraints.maxY();
+                var min = constraints.minY();
+                var max = constraints.maxY();
 
                 int height;
                 if (surfaceSampler != null) {
-                    int natural = surfaceSampler.applyAsInt(blockX, blockZ);
+                    var natural = surfaceSampler.applyAsInt(blockX, blockZ);
                     height = computeHeightWithVariation(natural, min, max);
                 } else {
                     height = (min + max) >> 1;
@@ -85,10 +85,10 @@ public final class TerrainHeightLookup {
             int[] blendedHeights = new int[256];
             System.arraycopy(heights, 0, blendedHeights, 0, 256);
 
-            for (int localZ = 0; localZ < 16; localZ++) {
-                for (int localX = 0; localX < 16; localX++) {
-                    int index = localX + localZ * 16;
-                    float influence = edgeInfluences[index];
+            for (var localZ = 0; localZ < 16; localZ++) {
+                for (var localX = 0; localX < 16; localX++) {
+                    var index = localX + localZ * 16;
+                    var influence = edgeInfluences[index];
 
                     if (influence > 0 && heights[index] != NO_CONSTRAINT) {
                         blendedHeights[index] =
@@ -105,30 +105,30 @@ public final class TerrainHeightLookup {
 
     private static int computeBlendedHeight(
             int localX, int localZ, int[] heights, float[] edgeInfluences, float selfInfluence) {
-        int selfIndex = localX + localZ * 16;
-        int selfHeight = heights[selfIndex];
+        var selfIndex = localX + localZ * 16;
+        var selfHeight = heights[selfIndex];
 
-        int blendRadius = Math.max(1, (int) (selfInfluence * 4));
+        var blendRadius = Math.max(1, (int) (selfInfluence * 4));
 
-        float weightSum = 1.0f;
-        float heightSum = selfHeight;
+        var weightSum = 1.0f;
+        var heightSum = selfHeight;
 
-        for (int dz = -blendRadius; dz <= blendRadius; dz++) {
-            int nz = localZ + dz;
+        for (var dz = -blendRadius; dz <= blendRadius; dz++) {
+            var nz = localZ + dz;
             if (nz < 0 || nz >= 16) continue;
 
-            for (int dx = -blendRadius; dx <= blendRadius; dx++) {
+            for (var dx = -blendRadius; dx <= blendRadius; dx++) {
                 if (dx == 0 && dz == 0) continue;
 
-                int nx = localX + dx;
+                var nx = localX + dx;
                 if (nx < 0 || nx >= 16) continue;
 
-                int nIndex = nx + nz * 16;
-                int nHeight = heights[nIndex];
+                var nIndex = nx + nz * 16;
+                var nHeight = heights[nIndex];
 
                 if (nHeight != NO_CONSTRAINT) {
-                    float dist = (float) Math.sqrt(dx * dx + dz * dz);
-                    float weight = 1.0f - (dist / (blendRadius + 1));
+                    var dist = (float) Math.sqrt(dx * dx + dz * dz);
+                    var weight = 1.0f - (dist / (blendRadius + 1));
                     if (weight > 0) {
                         heightSum += nHeight * weight;
                         weightSum += weight;
@@ -141,16 +141,16 @@ public final class TerrainHeightLookup {
     }
 
     private static int computeHeightWithVariation(int natural, int minHeight, int maxHeight) {
-        int constraintMid = (minHeight + maxHeight) >> 1;
-        int constraintRange = maxHeight - minHeight;
+        var constraintMid = (minHeight + maxHeight) >> 1;
+        var constraintRange = maxHeight - minHeight;
 
-        int deviation = natural - 64;
+        var deviation = natural - 64;
         if (deviation > 32) deviation = 32;
         if (deviation < -32) deviation = -32;
 
-        int scaled = (deviation * constraintRange) >> 6;
+        var scaled = (deviation * constraintRange) >> 6;
 
-        int result = constraintMid + scaled;
+        var result = constraintMid + scaled;
 
         if (result < minHeight) return minHeight;
         if (result > maxHeight) return maxHeight;
@@ -158,8 +158,8 @@ public final class TerrainHeightLookup {
     }
 
     public int getMaxHeight(int blockX, int blockZ) {
-        int localX = blockX - chunkMinX;
-        int localZ = blockZ - chunkMinZ;
+        var localX = blockX - chunkMinX;
+        var localZ = blockZ - chunkMinZ;
 
         if (localX < 0 || localX >= 16 || localZ < 0 || localZ >= 16) {
             return NO_CONSTRAINT;
@@ -169,8 +169,8 @@ public final class TerrainHeightLookup {
     }
 
     public float getEdgeInfluence(int blockX, int blockZ) {
-        int localX = blockX - chunkMinX;
-        int localZ = blockZ - chunkMinZ;
+        var localX = blockX - chunkMinX;
+        var localZ = blockZ - chunkMinZ;
 
         if (localX < 0 || localX >= 16 || localZ < 0 || localZ >= 16) {
             return 0.0f;

@@ -1,7 +1,7 @@
 package com.terrasect.common.definition;
 
 public sealed interface GenerationStrategy
-        permits GenerationStrategy.Hex, GenerationStrategy.Voronoi, GenerationStrategy.Subdivision, GenerationStrategy.Template {
+permits GenerationStrategy.Hex, GenerationStrategy.Voronoi, GenerationStrategy.Subdivision, GenerationStrategy.Template {
 
     static GenerationStrategy hex() {
         return Hex.DEFAULT;
