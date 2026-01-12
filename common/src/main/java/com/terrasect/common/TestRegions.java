@@ -1,9 +1,8 @@
 package com.terrasect.common;
 
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
-import com.terrasect.common.definition.StrategySettings;
 import com.terrasect.common.generation.World;
 
 public final class TestRegions {
@@ -34,15 +33,10 @@ public final class TestRegions {
         RegionRegistry registry = new RegionRegistry();
 
         registry.region("WORLD")
-                .strategy(GenerationStrategyType.HEX)
-                .settings(StrategySettings.builder().hexRing("BORDER").build())
-                .child("LANDMASS", root -> root.strategy(GenerationStrategyType.SUBDIVISION)
-                        .child("SEASONS_HUB", hub -> hub.strategy(GenerationStrategyType.TEMPLATE)
+                .strategy(GenerationStrategy.hex("BORDER"))
+                .child("LANDMASS", root -> root.strategy(GenerationStrategy.subdivision())
+                        .child("SEASONS_HUB", hub -> hub.strategy(GenerationStrategy.centerSurround("SPAWN"))
                                 .climate(c -> c.continentalness(0.8f, 1.0f))
-                                .settings(StrategySettings.builder()
-                                        .template(StrategySettings.TemplateType.CENTER_SURROUND)
-                                        .centerSurround("SPAWN")
-                                        .build())
                                 .child("SPAWN", spawn -> spawn.radius(SEASON_SIZE)
                                         .anchoredToOrigin()
                                         .biomes(b -> b.allowNames("minecraft:plains")))
@@ -74,7 +68,7 @@ public final class TestRegions {
                                                 "minecraft:ice_spikes",
                                                 "minecraft:frozen_river"))))
                         .child("TEMPERATURE_LAB", lab -> lab.radius(LAB_SIZE)
-                                .strategy(GenerationStrategyType.SUBDIVISION)
+                                .strategy(GenerationStrategy.subdivision())
                                 .child("FREEZING", zone -> zone.radius(LAB_ZONE_SIZE)
                                         .climate(c -> c.temperature(0.0f).humidity(0.5f)))
                                 .child("COLD", zone -> zone.radius(LAB_ZONE_SIZE)
@@ -86,7 +80,7 @@ public final class TestRegions {
                                 .child("HOT", zone -> zone.radius(LAB_ZONE_SIZE)
                                         .climate(c -> c.temperature(1.0f).humidity(0.5f))))
                         .child("BIOME_LAB", lab -> lab.radius(LAB_SIZE)
-                                .strategy(GenerationStrategyType.SUBDIVISION)
+                                        .strategy(GenerationStrategy.subdivision())
                                 .child("OCEANS_ONLY", zone -> zone.radius(LAB_ZONE_SIZE)
                                         .climate(c -> c.continentalness(-1.0f, -0.7f))
                                         .biomes(b -> b.allowTags("#minecraft:is_ocean")))
@@ -112,10 +106,10 @@ public final class TestRegions {
         RegionRegistry registry = new RegionRegistry();
 
         registry.region("END_ROOT")
-                .strategy(GenerationStrategyType.VORONOI)
+                .strategy(GenerationStrategy.voronoi())
                 .child("CENTRAL_VOID", region -> region.radius(200).biomes(b -> b.allowNames("minecraft:the_end")))
                 .child("OUTER_ISLANDS", region -> region.radius(1500)
-                        .strategy(GenerationStrategyType.SUBDIVISION)
+                        .strategy(GenerationStrategy.subdivision())
                         .child("END_HIGHLANDS", sub -> sub.radius(800)
                                 .biomes(b -> b.allowNames("minecraft:end_highlands")))
                         .child("END_MIDLANDS", sub -> sub.radius(500)

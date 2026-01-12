@@ -3,7 +3,7 @@ package com.terrasect.common.generation;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.Context;
 import com.terrasect.common.compat.BiomeCompat;
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.SelectionRules;
@@ -202,7 +202,7 @@ public class BiomeVisualizationTest {
     private Region buildFilteredBiomeRegions() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("WORLD")
-                .strategy(GenerationStrategyType.VORONOI)
+            .strategy(GenerationStrategy.voronoi())
                 .child("ETERNAL_FOREST", region -> region.radius(150).biomes(b -> b.allowTags("#minecraft:is_forest")))
                 .child("LANDLOCKED", region -> region.radius(200)
                         .biomes(b -> b.blockTags("#minecraft:is_ocean", "#minecraft:is_river")))

@@ -1,8 +1,7 @@
 package com.terrasect.common.strategy;
 
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
-import com.terrasect.common.definition.StrategySettings;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
@@ -15,81 +14,53 @@ public final class LayoutStrategies {
         QueryResult result = RESULT.get();
         result.isRing = false;
 
-        GenerationStrategyType type = parent.definition().generationStrategy();
-        StrategySettings settings = parent.definition().strategySettings();
+        GenerationStrategy strategy = parent.definition().generationStrategy();
         List<Region> children = parent.children();
 
-        switch (type) {
-            case HEX -> HexStrategy.query(seed, children, dx, dz, radius, settings, result);
-            case SUBDIVISION -> querySubdivision(seed, children, dx, dz, radius, settings, result);
-            case TEMPLATE -> queryTemplate(seed, children, dx, dz, radius, settings, result);
-            default -> queryVoronoi(seed, parent, dx, dz, radius, settings, result);
+        switch (strategy) {
+                case GenerationStrategy.Hex hex -> HexStrategy.query(seed, children, dx, dz, radius, hex, result);
+                case GenerationStrategy.Subdivision subdivision ->
+                    SubdivisionStrategy.query(seed, children, dx, dz, radius, subdivision, result);
+            case GenerationStrategy.Template template ->
+                    TemplateStrategy.query(seed, children, dx, dz, radius, template, result);
+            case GenerationStrategy.Voronoi voronoi ->
+                    queryVoronoi(seed, parent, dx, dz, radius, voronoi, result);
         }
 
-        result.childSeed = computeSeed(type, seed, result);
+        result.childSeed = computeSeed(strategy, seed, result);
 
         return result;
     }
 
-    private static long computeSeed(GenerationStrategyType type, long parentSeed, QueryResult result) {
-        if (type == GenerationStrategyType.HEX) {
+    private static long computeSeed(GenerationStrategy strategy, long parentSeed, QueryResult result) {
+        return switch (strategy) {
+            case GenerationStrategy.Hex ignored -> {
+                int q = (int) result.siteX;
+                int r = (int) result.siteZ;
+                yield HexStrategy.getSeed(parentSeed, q, r);
+            }
+            case GenerationStrategy.Subdivision ignored -> hashChildSeed(parentSeed, result, 777);
+            case GenerationStrategy.Template ignored -> hashChildSeed(parentSeed, result, 888);
+            case GenerationStrategy.Voronoi ignored -> hashChildSeed(parentSeed, result, 999);
+        };
+    }
 
-            int q = (int) result.siteX;
-            int r = (int) result.siteZ;
-            return HexStrategy.getSeed(parentSeed, q, r);
-        }
-
+    private static long hashChildSeed(long parentSeed, QueryResult result, int salt) {
         int siteX = Float.floatToIntBits(result.siteX);
         int siteZ = Float.floatToIntBits(result.siteZ);
-
-        int salt =
-                switch (type) {
-                    case SUBDIVISION -> 777;
-                    case TEMPLATE -> 888;
-                    default -> 999;
-                };
         return MathUtils.hash64(parentSeed, siteX ^ siteZ, result.childIndex, salt);
     }
 
     private static void queryVoronoi(
-            long seed, Region parent, float dx, float dz, float radius, StrategySettings settings, QueryResult out) {
-        int relaxationIterations = 5;
-        if (settings != null && settings.voronoi() != null) {
-            relaxationIterations = settings.voronoi().relaxationIterations();
-        }
+            long seed,
+            Region parent,
+            float dx,
+            float dz,
+            float radius,
+            GenerationStrategy.Voronoi voronoi,
+            QueryResult out) {
+        int relaxationIterations = voronoi.relaxationIterations();
         VoronoiStrategy.query(
                 seed, parent.children(), dx, dz, radius, parent.childrenTotalBudget(), relaxationIterations, out);
-    }
-
-    private static void querySubdivision(
-            long seed,
-            List<Region> children,
-            float dx,
-            float dz,
-            float radius,
-            StrategySettings settings,
-            QueryResult out) {
-        float jitter = 0.05f;
-        if (settings != null && settings.subdivision() != null) {
-            jitter = settings.subdivision().jitter();
-        }
-        SubdivisionStrategy.query(seed, children, dx, dz, radius, jitter, out);
-    }
-
-    private static void queryTemplate(
-            long seed,
-            List<Region> children,
-            float dx,
-            float dz,
-            float radius,
-            StrategySettings settings,
-            QueryResult out) {
-        StrategySettings.TemplateType templateType = null;
-        StrategySettings.CenterSurroundSettings centerSurroundSettings = null;
-        if (settings != null && settings.template() != null) {
-            templateType = settings.template().type();
-            centerSurroundSettings = settings.template().centerSurround();
-        }
-        TemplateStrategy.query(seed, children, dx, dz, radius, templateType, centerSurroundSettings, out);
     }
 }

@@ -2,7 +2,7 @@ package com.terrasect.common.generation;
 
 import com.terrasect.common.Context;
 import com.terrasect.common.compat.BiomeCompat;
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.handler.ClimateHandler;
@@ -245,8 +245,8 @@ public class ClimateVisualizationTest {
 
     private Region buildClimateRegions() {
         RegionRegistry registry = new RegionRegistry();
-        registry.region("WORLD").strategy(GenerationStrategyType.HEX).child("REGIONS", regions -> regions.strategy(
-                        GenerationStrategyType.VORONOI)
+        registry.region("WORLD").strategy(GenerationStrategy.hex()).child("REGIONS", regions -> regions.strategy(
+                GenerationStrategy.voronoi())
                 .child("BURNING_WASTES", region -> region.radius(500)
                         .climate(c -> c.temperature(1.0f).humidity(0.0f)))
                 .child("FROZEN_NORTH", region -> region.radius(100)

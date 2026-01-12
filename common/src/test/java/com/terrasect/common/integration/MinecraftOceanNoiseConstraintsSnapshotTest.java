@@ -937,7 +937,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 false);
 
         RegionDefinition rootDef = RegionDefinition.builder()
-                .strategy(com.terrasect.common.definition.GenerationStrategyType.HEX)
+            .strategy(com.terrasect.common.definition.GenerationStrategy.hex())
                 .build();
 
         int rootRadiusBlocks = 128;

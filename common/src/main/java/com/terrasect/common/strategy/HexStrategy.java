@@ -1,7 +1,7 @@
 package com.terrasect.common.strategy;
 
 import com.terrasect.common.definition.Region;
-import com.terrasect.common.definition.StrategySettings;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
@@ -15,17 +15,12 @@ public final class HexStrategy {
             float dx,
             float dz,
             float radius,
-            StrategySettings settings,
+            GenerationStrategy.Hex strategy,
             QueryResult out) {
-
-        String ringRegionName = null;
         float ringWidth = 0;
         int ringIndex = -1;
 
-        if (settings != null && settings.hex() != null) {
-            ringRegionName = settings.hex().ringRegionName();
-        }
-
+        String ringRegionName = strategy.ringRegionName();
         if (ringRegionName != null) {
             ringIndex = findChildByName(children, ringRegionName);
             if (ringIndex >= 0) {

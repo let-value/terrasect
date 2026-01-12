@@ -26,7 +26,7 @@ public class RegionRegistry {
                     rootName, 10000, RegionDefinition.empty(), Collections.emptySet(), List.of(), List.of(), false);
         }
 
-        rootDraft.strategy(GenerationStrategyType.HEX);
+        rootDraft.strategy(GenerationStrategy.hex());
 
         Map<String, List<String>> childIndex = indexChildren();
         if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
@@ -45,7 +45,7 @@ public class RegionRegistry {
         drafts.values().stream()
                 .filter(draft -> draft.parent == null || draft.parent.isBlank())
                 .forEach(draft -> {
-                    draft.strategy(GenerationStrategyType.HEX);
+                    draft.strategy(GenerationStrategy.hex());
                     roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
                 });
         return roots;

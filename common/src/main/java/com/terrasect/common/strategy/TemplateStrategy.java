@@ -1,7 +1,7 @@
 package com.terrasect.common.strategy;
 
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
-import com.terrasect.common.definition.StrategySettings;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
 
@@ -15,8 +15,7 @@ public final class TemplateStrategy {
             float dx,
             float dz,
             float radius,
-            StrategySettings.TemplateType templateType,
-            StrategySettings.CenterSurroundSettings centerSettings,
+            GenerationStrategy.Template template,
             QueryResult out) {
         if (children.isEmpty()) {
             out.childIndex = 0;
@@ -43,10 +42,13 @@ public final class TemplateStrategy {
             totalBudget += children.get(i).areaBudget();
         }
 
+        GenerationStrategy.TemplateType templateType = template != null ? template.type() : null;
+        String centerRegionName = template != null ? template.centerRegionName() : null;
+
         TemplateType type = selectTemplate(templateType, children, totalBudget, count);
 
         int centerIndex =
-                (type == TemplateType.CENTER_SURROUND) ? findCenterIndex(children, centerSettings, totalBudget) : 0;
+            (type == TemplateType.CENTER_SURROUND) ? findCenterIndex(children, centerRegionName, totalBudget) : 0;
 
         int bestIndex = 0;
         float bestMetric = Float.MAX_VALUE;
@@ -144,7 +146,7 @@ public final class TemplateStrategy {
     }
 
     private static TemplateType selectTemplate(
-            StrategySettings.TemplateType explicit, List<Region> children, float totalBudget, int count) {
+            GenerationStrategy.TemplateType explicit, List<Region> children, float totalBudget, int count) {
         if (explicit != null) {
             return switch (explicit) {
                 case BINARY -> TemplateType.BINARY;
@@ -167,13 +169,11 @@ public final class TemplateStrategy {
         return TemplateType.RADIAL;
     }
 
-    private static int findCenterIndex(
-            List<Region> children, StrategySettings.CenterSurroundSettings settings, float totalBudget) {
+    private static int findCenterIndex(List<Region> children, String centerRegionName, float totalBudget) {
 
-        if (settings != null && settings.centerRegionName() != null) {
-            String targetName = settings.centerRegionName();
+        if (centerRegionName != null) {
             for (int i = 0; i < children.size(); i++) {
-                if (children.get(i).name().equals(targetName)) {
+                if (children.get(i).name().equals(centerRegionName)) {
                     return i;
                 }
             }

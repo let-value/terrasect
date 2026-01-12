@@ -3,7 +3,7 @@ package com.terrasect.common.generation;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import org.junit.jupiter.api.AfterEach;
@@ -106,7 +106,7 @@ public class WorldTest {
 
     private Region buildSimpleRoot(String name) {
         RegionRegistry registry = new RegionRegistry();
-        registry.region(name).strategy(GenerationStrategyType.HEX).radius(1000);
+        registry.region(name).strategy(GenerationStrategy.hex()).radius(1000);
         return registry.build(name);
     }
 
@@ -162,7 +162,7 @@ public class WorldTest {
     private Region buildTestRegionsWithAnchor(String anchoredName) {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-                .strategy(GenerationStrategyType.HEX)
+            .strategy(GenerationStrategy.hex())
                 .radius(5000)
                 .child("REGION_A", r -> {
                     r.radius(1000);
@@ -209,14 +209,14 @@ public class WorldTest {
     private Region buildDeeplyNestedHierarchy() {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-                .strategy(GenerationStrategyType.HEX)
+            .strategy(GenerationStrategy.hex())
                 .radius(50000)
                 .child("CONTINENT", continent -> continent
-                        .strategy(GenerationStrategyType.SUBDIVISION)
+                .strategy(GenerationStrategy.subdivision())
                         .radius(10000)
-                        .child("KINGDOM", kingdom -> kingdom.strategy(GenerationStrategyType.VORONOI)
+                .child("KINGDOM", kingdom -> kingdom.strategy(GenerationStrategy.voronoi())
                                 .radius(3000)
-                                .child("PROVINCE", province -> province.strategy(GenerationStrategyType.SUBDIVISION)
+                    .child("PROVINCE", province -> province.strategy(GenerationStrategy.subdivision())
                                         .radius(1000)
                                         .child("SPAWN_POINT", spawn -> spawn.radius(200)
                                                 .anchoredToOrigin())
@@ -231,7 +231,7 @@ public class WorldTest {
 
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-                .strategy(GenerationStrategyType.HEX)
+            .strategy(GenerationStrategy.hex())
                 .radius(5000)
                 .child("REGION_A", r -> r.radius(1000))
                 .child("REGION_B", r -> r.radius(1000))

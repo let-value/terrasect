@@ -1,5 +1,6 @@
 package com.terrasect.common.strategy;
 
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.util.MathUtils;
 import java.util.List;
@@ -15,7 +16,13 @@ public final class SubdivisionStrategy {
     private SubdivisionStrategy() {}
 
     public static void query(
-            long seed, List<Region> children, float dx, float dz, float radius, float jitter, QueryResult out) {
+            long seed,
+            List<Region> children,
+            float dx,
+            float dz,
+            float radius,
+            GenerationStrategy.Subdivision strategy,
+            QueryResult out) {
         if (children.isEmpty()) {
             out.childIndex = 0;
             out.centerX = 0;
@@ -32,6 +39,8 @@ public final class SubdivisionStrategy {
             out.radius = 1.0f;
             return;
         }
+
+        float jitter = strategy.jitter();
 
         float nx = dx / radius;
         float nz = dz / radius;

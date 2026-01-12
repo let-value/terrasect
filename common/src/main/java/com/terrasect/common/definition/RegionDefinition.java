@@ -9,8 +9,7 @@ public record RegionDefinition(
         SelectionRules biomes,
         StructureRules structures,
         SelectionRules mobs,
-        GenerationStrategyType generationStrategy,
-        StrategySettings strategySettings) {
+        GenerationStrategy generationStrategy) {
     public RegionDefinition {
         if (climate == null) climate = ClimateSettings.empty();
         if (height == null) height = HeightConstraints.inherit();
@@ -18,7 +17,7 @@ public record RegionDefinition(
         if (biomes == null) biomes = SelectionRules.empty();
         if (structures == null) structures = StructureRules.empty();
         if (mobs == null) mobs = SelectionRules.empty();
-        if (generationStrategy == null) generationStrategy = GenerationStrategyType.VORONOI;
+        if (generationStrategy == null) generationStrategy = GenerationStrategy.voronoi();
     }
 
     public static RegionDefinition empty() {
@@ -34,8 +33,7 @@ public record RegionDefinition(
                 biomes.resolveWithParent(parent.biomes),
                 structures.resolveWithParent(parent.structures),
                 mobs.resolveWithParent(parent.mobs),
-                generationStrategy,
-                strategySettings);
+                generationStrategy);
     }
 
     public static Builder builder() {
@@ -56,8 +54,7 @@ public record RegionDefinition(
         protected SelectionRules biomes = SelectionRules.empty();
         protected StructureRules structures = StructureRules.empty();
         protected SelectionRules mobs = SelectionRules.empty();
-        protected GenerationStrategyType generationStrategy = GenerationStrategyType.VORONOI;
-        protected StrategySettings strategySettings = null;
+        protected GenerationStrategy generationStrategy = GenerationStrategy.voronoi();
 
         protected abstract T self();
 
@@ -119,26 +116,14 @@ public record RegionDefinition(
             return self();
         }
 
-        public T strategy(GenerationStrategyType generationStrategy) {
+        public T strategy(GenerationStrategy generationStrategy) {
             this.generationStrategy = generationStrategy;
-            return self();
-        }
-
-        public T settings(StrategySettings settings) {
-            this.strategySettings = settings;
-            return self();
-        }
-
-        public T settings(java.util.function.Consumer<StrategySettings.Builder> consumer) {
-            StrategySettings.Builder builder = StrategySettings.builder();
-            consumer.accept(builder);
-            this.strategySettings = builder.build();
             return self();
         }
 
         public RegionDefinition build() {
             return new RegionDefinition(
-                    climate, height, noise, biomes, structures, mobs, generationStrategy, strategySettings);
+                    climate, height, noise, biomes, structures, mobs, generationStrategy);
         }
     }
 }

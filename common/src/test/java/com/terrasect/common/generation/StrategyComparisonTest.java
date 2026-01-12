@@ -3,7 +3,7 @@ package com.terrasect.common.generation;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.definition.GenerationStrategyType;
+import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import java.util.HashMap;
@@ -20,16 +20,16 @@ public class StrategyComparisonTest {
         System.out.println("=== Strategy Comparison Test ===\n");
 
         System.out.println("--- VORONOI Strategy ---");
-        testWithStrategy(GenerationStrategyType.VORONOI, context);
+        testWithStrategy(GenerationStrategy.voronoi(), context);
 
         System.out.println("\n--- SUBDIVISION Strategy ---");
-        testWithStrategy(GenerationStrategyType.SUBDIVISION, context);
+        testWithStrategy(GenerationStrategy.subdivision(), context);
 
         System.out.println("\n--- TEMPLATE Strategy ---");
-        testWithStrategy(GenerationStrategyType.TEMPLATE, context);
+        testWithStrategy(GenerationStrategy.template(), context);
     }
 
-    private void testWithStrategy(GenerationStrategyType strategy, Context context) {
+    private void testWithStrategy(GenerationStrategy strategy, Context context) {
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
                 .child("CIVILIZATION", civ -> civ.strategy(strategy)
@@ -92,9 +92,9 @@ public class StrategyComparisonTest {
 
         RegionRegistry registry = new RegionRegistry();
         registry.region("ROOT")
-                .child("CIVILIZATION", civ -> civ.strategy(GenerationStrategyType.SUBDIVISION)
+            .child("CIVILIZATION", civ -> civ.strategy(GenerationStrategy.subdivision())
                         .child("CITY", city -> city.radius(1000)
-                                .strategy(GenerationStrategyType.SUBDIVISION)
+                    .strategy(GenerationStrategy.subdivision())
                                 .child("DOWNTOWN", d -> d.radius(700))
                                 .child("SUBURBS", s -> s.radius(700)))
                         .child("FARMLAND", farm -> farm.radius(1732))
