@@ -25,12 +25,19 @@ public class MinecraftContext implements Context {
     private final long seed;
     private final String dimensionId;
     private final Climate.Sampler sampler;
+    private final Climate.ParameterList<Holder<Biome>> parameterList;
     public final BiomeLookup biomeLookup;
 
-    private MinecraftContext(long seed, String dimensionId, Climate.Sampler sampler, BiomeLookup biomeLookup) {
+    private MinecraftContext(
+            long seed,
+            String dimensionId,
+            Climate.Sampler sampler,
+            Climate.ParameterList<Holder<Biome>> parameterList,
+            BiomeLookup biomeLookup) {
         this.seed = seed;
         this.dimensionId = dimensionId;
         this.sampler = sampler;
+        this.parameterList = parameterList;
         this.biomeLookup = biomeLookup;
     }
 
@@ -41,9 +48,11 @@ public class MinecraftContext implements Context {
             Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
 
         String dimensionId = getKeyId(dimension);
-        BiomeLookup lookup = BiomeLookup.build(parameters, dimensionId);
+        Climate.ParameterList<Holder<Biome>> parameterList = parameters.map(list -> list, holder -> holder.value().parameters());
 
-        MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, lookup);
+        BiomeLookup lookup = BiomeLookup.build(parameterList, dimensionId);
+
+        MinecraftContext context = new MinecraftContext(seed, dimensionId, sampler, parameterList, lookup);
 
         BY_DIMENSION.put(dimension, context);
         if (sampler != null) {
@@ -79,6 +88,10 @@ public class MinecraftContext implements Context {
         return seed;
     }
 
+    public Climate.ParameterList<Holder<Biome>> parameterList() {
+        return parameterList;
+    }
+
     @Override
     public String getDimensionId() {
         return dimensionId;
@@ -86,13 +99,12 @@ public class MinecraftContext implements Context {
 
     @Override
     public long getInfluence(int x, int z) {
-        Climate.ParameterList<Holder<Biome>> paramList = biomeLookup.getParameterList();
-        if (sampler == null || paramList == null) return 0L;
+        if (sampler == null || parameterList == null) return 0L;
 
         Climate.TargetPoint target =
                 ((VanillaSamplerAccessor) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
 
-        Holder<Biome> biome = paramList.findValue(target);
+        Holder<Biome> biome = parameterList.findValue(target);
         float river = biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
 
         long weirdness = target.weirdness();

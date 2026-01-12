@@ -1,6 +1,5 @@
 package com.terrasect.common.lookup;
 
-import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.definition.Region;
@@ -16,26 +15,22 @@ import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
-import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 public final class BiomeLookup {
 
     public record Entry(String id, Set<String> tags) {}
 
     public static BiomeLookup metadataOnly(IdentityHashMap<Holder<Biome>, Entry> metadata) {
-        return new BiomeLookup(metadata, null, new IdentityHashMap<>());
+        return new BiomeLookup(metadata, new IdentityHashMap<>());
     }
 
     private final IdentityHashMap<Holder<Biome>, Entry> metadata;
-    private final Climate.ParameterList<Holder<Biome>> originalParameterList;
     private final IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredParameterLists;
 
     private BiomeLookup(
             IdentityHashMap<Holder<Biome>, Entry> metadata,
-            Climate.ParameterList<Holder<Biome>> originalParameterList,
             IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredParameterLists) {
         this.metadata = metadata;
-        this.originalParameterList = originalParameterList;
         this.filteredParameterLists = filteredParameterLists;
     }
 
@@ -59,28 +54,20 @@ public final class BiomeLookup {
         return BiomeFilter.checkBiome(rules, entry.id(), entry.tags());
     }
 
-    public Climate.ParameterList<Holder<Biome>> getParameterList() {
-        return originalParameterList;
-    }
-
     public Climate.ParameterList<Holder<Biome>> getFilteredParameterList(SelectionRules rules) {
         if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
-            return originalParameterList;
+            return null;
         }
-        Climate.ParameterList<Holder<Biome>> filtered = filteredParameterLists.get(rules);
-        return filtered != null ? filtered : originalParameterList;
+        return filteredParameterLists.get(rules);
     }
 
     public static BiomeLookup build(
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters,
+            Climate.ParameterList<Holder<Biome>> parameterList,
             String dimensionId) {
 
-        if (parameters == null) {
-            return new BiomeLookup(new IdentityHashMap<>(), null, new IdentityHashMap<>());
+        if (parameterList == null) {
+            return new BiomeLookup(new IdentityHashMap<>(), new IdentityHashMap<>());
         }
-
-        Climate.ParameterList<Holder<Biome>> parameterList =
-                parameters.map(list -> list, holder -> holder.value().parameters());
 
         IdentityHashMap<Holder<Biome>, Entry> metadata = new IdentityHashMap<>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
@@ -96,7 +83,7 @@ public final class BiomeLookup {
         IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>> filteredParameterLists =
                 buildFilteredLists(dimensionId, metadata, parameterList);
 
-        return new BiomeLookup(metadata, parameterList, filteredParameterLists);
+        return new BiomeLookup(metadata, filteredParameterLists);
     }
 
     private static Set<SelectionRules> collectAllRules(Region root) {

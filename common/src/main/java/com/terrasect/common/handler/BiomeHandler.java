@@ -22,21 +22,25 @@ public final class BiomeHandler {
 
         TraversalResult traversal = World.traverse(context, blockX, blockZ);
         Region region = traversal != null ? traversal.region : null;
-        SelectionRules rules = getRules(region);
-        var parameterList = context.biomeLookup.getFilteredParameterList(rules);
-        Holder<Biome> result = parameterList.findValue(targetPoint);
 
-        return result;
-    }
-
-    public static SelectionRules getRules(Region region) {
         if (region == null) {
-            return null;
+            return selectFromBaseList(context, targetPoint);
         }
+
         SelectionRules rules = region.definition().biomes();
         if (!BiomeFilter.hasRules(rules)) {
-            return null;
+            return selectFromBaseList(context, targetPoint);
         }
-        return rules;
+
+        var filteredList = context.biomeLookup.getFilteredParameterList(rules);
+        if (filteredList == null) {
+            return selectFromBaseList(context, targetPoint);
+        }
+
+        return filteredList.findValue(targetPoint);
+    }
+
+    private static Holder<Biome> selectFromBaseList(MinecraftContext context, Climate.TargetPoint targetPoint) {
+        return context.parameterList().findValue(targetPoint);
     }
 }
