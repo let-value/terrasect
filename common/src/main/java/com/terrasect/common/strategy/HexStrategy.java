@@ -39,7 +39,6 @@ public final class HexStrategy {
 
         out.siteX = q;
         out.siteZ = r;
-        out.isRing = false;
 
         float hexCenterWorldX = ((float) Math.sqrt(3) * q + (float) Math.sqrt(3) / 2.0f * r) * gridRadius;
         float hexCenterWorldZ = (3.0f / 2.0f * r) * gridRadius;
@@ -55,8 +54,6 @@ public final class HexStrategy {
             out.centerX = hexCenterWorldX / radius;
             out.centerZ = hexCenterWorldZ / radius;
             out.radius = ringWidth;
-            out.isRing = true;
-
             float ringDist = distFromCenter - radius;
             out.edgeDistance = 1.0f - Math.min(1.0f, ringDist / (ringWidth * radius));
             return;

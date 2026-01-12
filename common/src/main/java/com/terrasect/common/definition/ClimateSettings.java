@@ -53,14 +53,14 @@ public record ClimateSettings(
 
     public ClimateSettings resolveWithParent(ClimateSettings parent) {
         if (parent == null) return this;
-        ClimateRange mergedTemperature = temperature != null ? temperature : parent.temperature;
-        ClimateRange mergedHumidity = humidity != null ? humidity : parent.humidity;
-        ClimateRange mergedContinentalness = continentalness != null ? continentalness : parent.continentalness;
-        ClimateRange mergedErosion = erosion != null ? erosion : parent.erosion;
-        ClimateRange mergedDepth = depth != null ? depth : parent.depth;
-        ClimateRange mergedWeirdness = weirdness != null ? weirdness : parent.weirdness;
-        String mergedPrecipitation = precipitation != null ? precipitation : parent.precipitation;
-        String mergedPreset = climatePreset != null ? climatePreset : parent.climatePreset;
+        var mergedTemperature = temperature != null ? temperature : parent.temperature;
+        var mergedHumidity = humidity != null ? humidity : parent.humidity;
+        var mergedContinentalness = continentalness != null ? continentalness : parent.continentalness;
+        var mergedErosion = erosion != null ? erosion : parent.erosion;
+        var mergedDepth = depth != null ? depth : parent.depth;
+        var mergedWeirdness = weirdness != null ? weirdness : parent.weirdness;
+        var mergedPrecipitation = precipitation != null ? precipitation : parent.precipitation;
+        var mergedPreset = climatePreset != null ? climatePreset : parent.climatePreset;
         return new ClimateSettings(
                 mergedTemperature,
                 mergedHumidity,

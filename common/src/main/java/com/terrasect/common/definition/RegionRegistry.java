@@ -19,7 +19,7 @@ public class RegionRegistry {
     }
 
     public Region build(String rootName) {
-        DraftRegion rootDraft = drafts.get(rootName);
+        var rootDraft = drafts.get(rootName);
         if (rootDraft == null) {
             Terrasect.LOGGER.error("Unknown region root '{}'; returning empty region", rootName);
             return new Region(
@@ -28,7 +28,7 @@ public class RegionRegistry {
 
         rootDraft.strategy(GenerationStrategy.hex());
 
-        Map<String, List<String>> childIndex = indexChildren();
+        var childIndex = indexChildren();
         if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
             Terrasect.LOGGER.warn(
                     "Root region '{}' declared parent '{}'; ignoring parent assignment", rootName, rootDraft.parent);
@@ -39,7 +39,7 @@ public class RegionRegistry {
     }
 
     public List<Region> buildAllRoots() {
-        Map<String, List<String>> childIndex = indexChildren();
+        var childIndex = indexChildren();
         List<Region> roots = new ArrayList<>();
         Set<String> visiting = new HashSet<>();
         drafts.values().stream()

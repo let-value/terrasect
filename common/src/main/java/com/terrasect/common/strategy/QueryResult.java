@@ -14,8 +14,6 @@ public final class QueryResult {
 
     public float siteZ;
 
-    public boolean isRing;
-
     public long childSeed;
 
     public float edgeDistance;
@@ -27,7 +25,6 @@ public final class QueryResult {
         radius = 0.5f;
         siteX = 0;
         siteZ = 0;
-        isRing = false;
         childSeed = 0;
         edgeDistance = 1.0f;
     }

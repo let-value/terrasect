@@ -1,9 +1,6 @@
 package com.terrasect.common.handler;
 
-import com.terrasect.common.definition.Region;
-import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.generation.MinecraftContext;
-import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.helpers.BiomeFilter;
 import net.minecraft.core.Holder;
@@ -20,14 +17,14 @@ public final class BiomeHandler {
         int blockX = quartX << 2;
         int blockZ = quartZ << 2;
 
-        TraversalResult traversal = World.traverse(context, blockX, blockZ);
-        Region region = traversal != null ? traversal.region : null;
+        var traversal = World.traverse(context, blockX, blockZ);
+        var region = traversal != null ? traversal.region : null;
 
         if (region == null) {
             return selectFromBaseList(context, targetPoint);
         }
 
-        SelectionRules rules = region.definition().biomes();
+        var rules = region.definition().biomes();
         if (!BiomeFilter.hasRules(rules)) {
             return selectFromBaseList(context, targetPoint);
         }

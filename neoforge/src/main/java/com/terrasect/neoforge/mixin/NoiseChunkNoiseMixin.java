@@ -1,8 +1,9 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.common.compat.NoiseChunkNoiseAccess;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.NoiseChunkLookup;
+import com.terrasect.common.mixin.NoiseChunkAccessor;
+
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.NoiseChunk;
@@ -18,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(NoiseChunk.class)
-public class NoiseChunkNoiseMixin implements NoiseChunkNoiseAccess {
+public class NoiseChunkNoiseMixin implements NoiseChunkAccessor {
 
     @Unique private @Nullable NoiseChunkLookup terrasect$noiseLookup;
 
@@ -42,10 +43,5 @@ public class NoiseChunkNoiseMixin implements NoiseChunkNoiseAccess {
     @Override
     public @Nullable NoiseChunkLookup terrasect$getNoiseLookup() {
         return terrasect$noiseLookup;
-    }
-
-    @Override
-    public void terrasect$setNoiseLookup(@Nullable NoiseChunkLookup lookup) {
-        this.terrasect$noiseLookup = lookup;
     }
 }

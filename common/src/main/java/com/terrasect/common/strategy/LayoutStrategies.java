@@ -12,7 +12,6 @@ public final class LayoutStrategies {
 
     public static QueryResult query(Region parent, long seed, float dx, float dz, float radius) {
         QueryResult result = RESULT.get();
-        result.isRing = false;
 
         GenerationStrategy strategy = parent.definition().generationStrategy();
         List<Region> children = parent.children();

@@ -1,10 +1,8 @@
 package com.terrasect.common.handler;
 
-import com.terrasect.common.compat.NoiseChunkNoiseAccess;
-import com.terrasect.common.lookup.CompiledNoiseRegistry;
-import com.terrasect.common.lookup.NoiseChunkLookup;
+import com.terrasect.common.mixin.NoiseChunkAccessor;
+
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 
@@ -21,10 +19,10 @@ public final class NoiseHandler {
 
         double original = noiseHolder.getValue(x, y, z);
 
-        if (!(context instanceof NoiseChunkNoiseAccess access)) {
+        if (!(context instanceof NoiseChunkAccessor access)) {
             return original;
         }
-        NoiseChunkLookup lookup = access.terrasect$getNoiseLookup();
+        var lookup = access.terrasect$getNoiseLookup();
         if (lookup == null) {
             return original;
         }
@@ -32,18 +30,18 @@ public final class NoiseHandler {
         int blockX = context.blockX();
         int blockZ = context.blockZ();
 
-        CompiledNoiseRegistry.CompiledNoiseConstraints constraints = lookup.getConstraints(blockX, blockZ);
+        var constraints = lookup.getConstraints(blockX, blockZ);
         if (constraints == null) {
             return original;
         }
 
-        Holder<NormalNoise.NoiseParameters> noiseData = noiseHolder.noiseData();
+        var noiseData = noiseHolder.noiseData();
         if (!(noiseData instanceof Holder.Reference<NormalNoise.NoiseParameters> ref)) {
             return original;
         }
 
-        ResourceKey<NormalNoise.NoiseParameters> key = ref.key();
-        CompiledNoiseRegistry.CompiledTransform transform = constraints.findNoiseTransform(key);
+        var key = ref.key();
+        var transform = constraints.findNoiseTransform(key);
         if (transform == null) {
             return original;
         }

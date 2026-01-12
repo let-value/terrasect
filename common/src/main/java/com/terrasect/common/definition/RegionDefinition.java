@@ -59,7 +59,7 @@ public record RegionDefinition(
         protected abstract T self();
 
         public T climate(Consumer<ClimateSettings.Builder> consumer) {
-            ClimateSettings.Builder builder = ClimateSettings.builder().copyFrom(climate);
+            var builder = ClimateSettings.builder().copyFrom(climate);
             consumer.accept(builder);
             climate = builder.build();
             return self();
@@ -81,7 +81,7 @@ public record RegionDefinition(
         }
 
         public T noise(java.util.function.Consumer<NoiseConstraints.Builder> consumer) {
-            NoiseConstraints.Builder builder = NoiseConstraints.builder().copyFrom(noise);
+            var builder = NoiseConstraints.builder().copyFrom(noise);
             consumer.accept(builder);
             noise = builder.build();
             return self();
@@ -93,14 +93,14 @@ public record RegionDefinition(
         }
 
         public T biomes(Consumer<SelectionRules.Builder> consumer) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(biomes);
+            var builder = SelectionRules.builder().copyFrom(biomes);
             consumer.accept(builder);
             biomes = builder.build();
             return self();
         }
 
         public T structures(Consumer<StructureRules.Builder> consumer) {
-            StructureRules.Builder builder = StructureRules.builder();
+            var builder = StructureRules.builder();
             builder.selection(
                     SelectionRules.builder().copyFrom(structures.selection()).build());
             structures.requiredStructures().forEach(builder::requireStructures);
@@ -110,7 +110,7 @@ public record RegionDefinition(
         }
 
         public T mobs(Consumer<SelectionRules.Builder> consumer) {
-            SelectionRules.Builder builder = SelectionRules.builder().copyFrom(mobs);
+            var builder = SelectionRules.builder().copyFrom(mobs);
             consumer.accept(builder);
             mobs = builder.build();
             return self();

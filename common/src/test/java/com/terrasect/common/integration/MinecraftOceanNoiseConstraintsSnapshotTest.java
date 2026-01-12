@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.compat.NoiseChunkNoiseAccess;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.World;
 import com.terrasect.common.handler.NoiseHandler;
 import com.terrasect.common.lookup.NoiseChunkLookup;
+import com.terrasect.common.mixin.NoiseChunkAccessor;
 import com.terrasect.common.testing.SnapshotHashes;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
@@ -1075,7 +1075,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         }
     }
 
-    private static final class NoiseTestContext implements DensityFunction.FunctionContext, NoiseChunkNoiseAccess {
+    private static final class NoiseTestContext implements DensityFunction.FunctionContext, NoiseChunkAccessor {
         private int blockX;
         private int blockY;
         private int blockZ;
@@ -1106,11 +1106,6 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         @Override
         public @Nullable NoiseChunkLookup terrasect$getNoiseLookup() {
             return lookup;
-        }
-
-        @Override
-        public void terrasect$setNoiseLookup(@Nullable NoiseChunkLookup lookup) {
-            this.lookup = lookup;
         }
     }
 }
