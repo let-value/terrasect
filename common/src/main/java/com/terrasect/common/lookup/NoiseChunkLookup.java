@@ -1,7 +1,6 @@
 package com.terrasect.common.lookup;
 
 import com.terrasect.common.Context;
-import com.terrasect.common.definition.RegionDefinition;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
 import org.jetbrains.annotations.Nullable;

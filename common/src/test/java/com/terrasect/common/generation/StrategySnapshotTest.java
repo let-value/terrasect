@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.util.*;
-import java.util.List;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

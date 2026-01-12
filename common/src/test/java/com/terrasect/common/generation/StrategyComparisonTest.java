@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategy;
-import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import java.util.HashMap;
 import java.util.Map;

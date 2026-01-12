@@ -1,6 +1,5 @@
 package com.terrasect.common;
 
-import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.generation.World;
 import org.slf4j.Logger;

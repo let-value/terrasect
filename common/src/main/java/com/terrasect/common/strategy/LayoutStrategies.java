@@ -33,16 +33,15 @@ public final class LayoutStrategies {
     }
 
     private static long computeSeed(GenerationStrategy strategy, long parentSeed, QueryResult result) {
-        return switch (strategy) {
-            case GenerationStrategy.Hex _ -> {
-                var q = (int) result.siteX;
-                var r = (int) result.siteZ;
-                yield HexStrategy.getSeed(parentSeed, q, r);
-            }
-            case GenerationStrategy.Subdivision _ -> hashChildSeed(parentSeed, result, 777);
-            case GenerationStrategy.Template _ -> hashChildSeed(parentSeed, result, 888);
-            case GenerationStrategy.Voronoi _ -> hashChildSeed(parentSeed, result, 999);
-        };
+        if (strategy instanceof GenerationStrategy.Hex) {
+            var q = (int) result.siteX;
+            var r = (int) result.siteZ;
+            return HexStrategy.getSeed(parentSeed, q, r);
+        }
+        var salt = strategy instanceof GenerationStrategy.Subdivision ? 777
+                : strategy instanceof GenerationStrategy.Template ? 888
+                : 999;
+        return hashChildSeed(parentSeed, result, salt);
     }
 
     private static long hashChildSeed(long parentSeed, QueryResult result, int salt) {
