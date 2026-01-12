@@ -1,6 +1,7 @@
 plugins {
     id 'base'
     id 'com.diffplug.spotless' version "${spotless_version}" apply false
+    id 'org.openrewrite.rewrite' version "${rewrite_plugin_version}" apply false
 }
 
 allprojects {
@@ -27,6 +28,7 @@ spotless {
 subprojects {
     plugins.withId('java') {
         apply plugin: 'com.diffplug.spotless'
+        apply plugin: 'org.openrewrite.rewrite'
 
         spotless {
             java {
@@ -36,6 +38,18 @@ subprojects {
                 endWithNewline()
             }
         }
+
+        rewrite {
+            activeRecipe('org.openrewrite.java.cleanup.UseVarForLocalVariables')
+            activeRecipe('org.openrewrite.java.format.AutoFormat')
+        }
+
+        dependencies {
+            rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:${rewrite_recipe_version}"))
+            rewrite('org.openrewrite.recipe:rewrite-java')
+            rewrite('org.openrewrite.recipe:rewrite-static-analysis')
+        }
+
         def updateSnapshots = false
         def updateProp = project.findProperty('updateSnapshots')
         if (updateProp == null) {
