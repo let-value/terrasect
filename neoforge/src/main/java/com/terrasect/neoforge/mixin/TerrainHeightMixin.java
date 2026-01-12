@@ -5,11 +5,9 @@ import com.terrasect.common.lookup.TerrainHeightLookup;
 import com.terrasect.common.util.MutablePointContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
-import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.NoiseChunk;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
@@ -22,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseChunk.class)
-public class NoiseChunkMixin {
+public class TerrainHeightMixin {
 
     @Unique private TerrainHeightLookup terrasect$heightLookup;
 
@@ -49,13 +47,13 @@ public class NoiseChunkMixin {
             Blender blender,
             CallbackInfo ci) {
         this.terrasect$fluidPicker = fluidPicker;
-        MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
+        var context = MinecraftContext.get(randomState.sampler());
 
-        NoiseRouter router = randomState.router();
-        DensityFunction surfaceLevel = router.preliminarySurfaceLevel();
+        var router = randomState.router();
+        var surfaceLevel = router.preliminarySurfaceLevel();
 
-        MutablePointContext pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, (x, z) -> {
+        var pointCtx = new MutablePointContext();
+        terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
             pointCtx.set(x, 0, z);
             return (int) Math.floor(surfaceLevel.compute(pointCtx));
         });
@@ -65,14 +63,14 @@ public class NoiseChunkMixin {
     private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
         if (terrasect$heightLookup == null) return;
 
-        NoiseChunk self = (NoiseChunk) (Object) this;
+        var self = (NoiseChunk) (Object) this;
         int blockX = self.blockX();
         int blockY = self.blockY();
         int blockZ = self.blockZ();
 
         int maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
-            Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
+            var fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
             return;
         }

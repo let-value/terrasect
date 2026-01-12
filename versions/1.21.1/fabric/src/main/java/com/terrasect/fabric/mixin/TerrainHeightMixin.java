@@ -1,4 +1,4 @@
-package com.terrasect.neoforge.mixin;
+package com.terrasect.fabric.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.TerrainHeightLookup;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseChunk.class)
-public class NoiseChunkMixin {
+public class TerrainHeightMixin {
 
     @Unique private TerrainHeightLookup terrasect$heightLookup;
 
@@ -51,13 +51,13 @@ public class NoiseChunkMixin {
         if (this.terrasect$heightLookup != null) return;
 
         this.terrasect$fluidPicker = fluidPicker;
-        MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
+        var context = MinecraftContext.get(randomState.sampler());
 
         NoiseRouter router = randomState.router();
         DensityFunction depth = router.depth();
 
         MutablePointContext pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, (x, z) -> {
+        terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
             pointCtx.set(x, 64, z);
             double depthValue = depth.compute(pointCtx);
             return 64 + (int) (depthValue * 128);

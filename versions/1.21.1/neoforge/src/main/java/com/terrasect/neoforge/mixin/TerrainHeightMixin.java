@@ -1,15 +1,13 @@
-package com.terrasect.fabric.mixin;
+package com.terrasect.neoforge.mixin;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.lookup.TerrainHeightLookup;
 import com.terrasect.common.util.MutablePointContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Aquifer;
-import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.DensityFunctions;
 import net.minecraft.world.level.levelgen.NoiseChunk;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-import net.minecraft.world.level.levelgen.NoiseRouter;
 import net.minecraft.world.level.levelgen.NoiseSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
@@ -22,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseChunk.class)
-public class TerrainMixin {
+public class TerrainHeightMixin {
 
     @Unique private TerrainHeightLookup terrasect$heightLookup;
 
@@ -34,9 +32,8 @@ public class TerrainMixin {
                     @At(
                             value = "FIELD",
                             target =
-                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
-                            opcode = Opcodes.PUTFIELD,
-                            shift = At.Shift.AFTER))
+                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
+                            opcode = Opcodes.PUTFIELD))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
@@ -48,16 +45,20 @@ public class TerrainMixin {
             Aquifer.FluidPicker fluidPicker,
             Blender blender,
             CallbackInfo ci) {
+
+        if (this.terrasect$heightLookup != null) return;
+
         this.terrasect$fluidPicker = fluidPicker;
-        MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
+        var context = MinecraftContext.get(randomState.sampler());
 
-        NoiseRouter router = randomState.router();
-        DensityFunction surfaceLevel = router.preliminarySurfaceLevel();
+        var router = randomState.router();
+        var depth = router.depth();
 
-        MutablePointContext pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, (x, z) -> {
-            pointCtx.set(x, 0, z);
-            return (int) Math.floor(surfaceLevel.compute(pointCtx));
+        var pointCtx = new MutablePointContext();
+        terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
+            pointCtx.set(x, 64, z);
+            double depthValue = depth.compute(pointCtx);
+            return 64 + (int) (depthValue * 128);
         });
     }
 
@@ -72,10 +73,8 @@ public class TerrainMixin {
 
         int maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
-
             Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
-            return;
         }
     }
 
@@ -91,7 +90,6 @@ public class TerrainMixin {
             int original = cir.getReturnValue();
             if (original > maxHeight) {
                 cir.setReturnValue(maxHeight);
-                return;
             }
         }
     }

@@ -9,7 +9,7 @@
     "ClimateTargetPointMixin",
     "FeatureMixin",
     "MultiNoiseBiomeSourceMixin",
-    "TerrainMixin",
+    "TerrainHeightMixin",
     "NoiseChunkNoiseMixin",
     "NoiseMixin",
     "ShiftedNoiseMixin",

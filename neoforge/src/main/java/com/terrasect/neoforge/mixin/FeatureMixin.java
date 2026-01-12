@@ -1,6 +1,5 @@
 package com.terrasect.neoforge.mixin;
 
-import com.terrasect.common.Context;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.TraversalResult;
@@ -25,7 +24,7 @@ public class FeatureMixin {
             RandomSource random,
             BlockPos pos,
             CallbackInfoReturnable<Boolean> cir) {
-        Context context = MinecraftContext.get(level.getLevel().dimension());
+        var context = MinecraftContext.get(level.getLevel().dimension());
 
         if (context == null) {
             return;

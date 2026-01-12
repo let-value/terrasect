@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseChunk.class)
-public class TerrainMixin {
+public class TerrainHeightMixin {
 
     @Unique private TerrainHeightLookup terrasect$heightLookup;
 
@@ -34,8 +34,9 @@ public class TerrainMixin {
                     @At(
                             value = "FIELD",
                             target =
-                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
-                            opcode = Opcodes.PUTFIELD))
+                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
+                            opcode = Opcodes.PUTFIELD,
+                            shift = At.Shift.AFTER))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
@@ -47,20 +48,16 @@ public class TerrainMixin {
             Aquifer.FluidPicker fluidPicker,
             Blender blender,
             CallbackInfo ci) {
-
-        if (this.terrasect$heightLookup != null) return;
-
         this.terrasect$fluidPicker = fluidPicker;
-        MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
+        var context = MinecraftContext.get(randomState.sampler());
 
         NoiseRouter router = randomState.router();
-        DensityFunction depth = router.depth();
+        DensityFunction surfaceLevel = router.preliminarySurfaceLevel();
 
         MutablePointContext pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(ctx, chunkMinX, chunkMinZ, (x, z) -> {
-            pointCtx.set(x, 64, z);
-            double depthValue = depth.compute(pointCtx);
-            return 64 + (int) (depthValue * 128);
+        terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
+            pointCtx.set(x, 0, z);
+            return (int) Math.floor(surfaceLevel.compute(pointCtx));
         });
     }
 
@@ -75,8 +72,10 @@ public class TerrainMixin {
 
         int maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
+
             Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
+            return;
         }
     }
 
@@ -92,6 +91,7 @@ public class TerrainMixin {
             int original = cir.getReturnValue();
             if (original > maxHeight) {
                 cir.setReturnValue(maxHeight);
+                return;
             }
         }
     }

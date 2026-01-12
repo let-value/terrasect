@@ -35,8 +35,8 @@ public class NoiseChunkNoiseMixin implements NoiseChunkNoiseAccess {
             Blender blender,
             CallbackInfo ci) {
 
-        MinecraftContext ctx = MinecraftContext.get(randomState.sampler());
-        terrasect$noiseLookup = NoiseChunkLookup.build(ctx, chunkMinX, chunkMinZ);
+        var context = MinecraftContext.get(randomState.sampler());
+        terrasect$noiseLookup = NoiseChunkLookup.build(context, chunkMinX, chunkMinZ);
     }
 
     @Override
