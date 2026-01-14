@@ -4,6 +4,7 @@ import com.terrasect.common.Context;
 import com.terrasect.common.TestRegions;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.helpers.RegionSampler;
+import com.terrasect.common.testing.SnapshotHtmlReports;
 import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
@@ -217,6 +218,16 @@ public class SnapshotTest {
         for (var i = 0; i < depthImages.size(); i++) {
             ImageIO.write(depthImages.get(i), "png", new File(outDir, "depth_" + i + ".png"));
         }
+        var images = new ArrayList<SnapshotHtmlReports.ImageEntry>();
+        images.add(SnapshotHtmlReports.ImageEntry.of("voronoi", "voronoi.png", width, height));
+        images.add(SnapshotHtmlReports.ImageEntry.of("edge", "edge.png", width, height));
+        images.add(SnapshotHtmlReports.ImageEntry.of("river", "river.png", width, height));
+        images.add(SnapshotHtmlReports.ImageEntry.of("ridge", "ridge.png", width, height));
+        images.add(SnapshotHtmlReports.ImageEntry.of("combined", "combined.png", width, height));
+        for (var i = 0; i < depthImages.size(); i++) {
+            images.add(SnapshotHtmlReports.ImageEntry.of("depth_" + i, "depth_" + i + ".png", width, height));
+        }
+        SnapshotHtmlReports.writeIndex(outDir, "Region Snapshot", images);
 
         System.out.println("Snapshot digest: " + actualDigest);
 

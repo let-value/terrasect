@@ -10,11 +10,11 @@ import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotHtmlReports;
 import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.Packer;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -91,7 +91,6 @@ public class BiomeVisualizationTest {
         var filteredBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         var filterOverlay = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         var regionMap = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        var combinedView = new BufferedImage(WIDTH * 2, HEIGHT * 2, BufferedImage.TYPE_INT_RGB);
 
         var blockedCount = 0;
         var replacedCount = 0;
@@ -151,20 +150,6 @@ public class BiomeVisualizationTest {
             }
         }
 
-        var g = combinedView.createGraphics();
-        g.drawImage(vanillaBiomes, 0, 0, null);
-        g.drawImage(filteredBiomes, WIDTH, 0, null);
-        g.drawImage(regionMap, 0, HEIGHT, null);
-        g.drawImage(filterOverlay, WIDTH, HEIGHT, null);
-
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("Vanilla Biomes", 10, 20);
-        g.drawString("Filtered Biomes", WIDTH + 10, 20);
-        g.drawString("Region Map", 10, HEIGHT + 20);
-        g.drawString("Filter Overlay (red=replaced, green=allowed)", WIDTH + 10, HEIGHT + 20);
-        g.dispose();
-
         var outDir = SnapshotOutputPaths.forTestClass(BiomeVisualizationTest.class);
         outDir.mkdirs();
 
@@ -172,7 +157,14 @@ public class BiomeVisualizationTest {
         ImageIO.write(filteredBiomes, "png", new File(outDir, "filtered_biomes.png"));
         ImageIO.write(filterOverlay, "png", new File(outDir, "filter_overlay.png"));
         ImageIO.write(regionMap, "png", new File(outDir, "region_map.png"));
-        ImageIO.write(combinedView, "png", new File(outDir, "combined_biome_view.png"));
+        SnapshotHtmlReports.writeIndex(
+                outDir,
+                "Biome Visualization",
+                List.of(
+                        SnapshotHtmlReports.ImageEntry.of("vanilla_biomes", "vanilla_biomes.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of("filtered_biomes", "filtered_biomes.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of("filter_overlay", "filter_overlay.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of("region_map", "region_map.png", WIDTH, HEIGHT)));
 
         System.out.println("=== Biome Filtering Statistics ===");
         System.out.println("Total pixels: " + (WIDTH * HEIGHT));
@@ -192,7 +184,6 @@ public class BiomeVisualizationTest {
         appendImageHash(snapshotText, "filtered_biomes", filteredBiomes);
         appendImageHash(snapshotText, "filter_overlay", filterOverlay);
         appendImageHash(snapshotText, "region_map", regionMap);
-        appendImageHash(snapshotText, "combined_biome_view", combinedView);
         snapshot.assertThat(snapshotText.toString()).asText().matchesSnapshotText();
     }
 

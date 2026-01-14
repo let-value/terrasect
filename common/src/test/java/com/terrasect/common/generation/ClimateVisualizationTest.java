@@ -7,14 +7,15 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.handler.ClimateHandler;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotHtmlReports;
 import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.Packer;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
@@ -82,7 +83,6 @@ public class ClimateVisualizationTest {
         var regionBoundaries = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         var vanillaBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         var modifiedBiomes = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-        var combinedView = new BufferedImage(WIDTH * 3, HEIGHT * 3, BufferedImage.TYPE_INT_RGB);
 
         var totalModified = 0L;
         var totalTempDelta = 0D;
@@ -166,35 +166,6 @@ public class ClimateVisualizationTest {
             }
         }
 
-        var g = combinedView.createGraphics();
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, WIDTH * 3, HEIGHT * 3);
-
-        g.drawImage(vanillaTemp, 0, 0, null);
-        g.drawImage(modifiedTemp, WIDTH, 0, null);
-        g.drawImage(tempDiff, WIDTH * 2, 0, null);
-
-        g.drawImage(vanillaHumidity, 0, HEIGHT, null);
-        g.drawImage(modifiedHumidity, WIDTH, HEIGHT, null);
-        g.drawImage(regionBoundaries, WIDTH * 2, HEIGHT, null);
-
-        g.drawImage(vanillaBiomes, 0, HEIGHT * 2, null);
-        g.drawImage(modifiedBiomes, WIDTH, HEIGHT * 2, null);
-        g.drawImage(regionOverlay, WIDTH * 2, HEIGHT * 2, null);
-
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("Vanilla Temperature", 10, 20);
-        g.drawString("Modified Temperature", WIDTH + 10, 20);
-        g.drawString("Temperature Delta", WIDTH * 2 + 10, 20);
-        g.drawString("Vanilla Humidity", 10, HEIGHT + 20);
-        g.drawString("Modified Humidity", WIDTH + 10, HEIGHT + 20);
-        g.drawString("Region Boundaries", WIDTH * 2 + 10, HEIGHT + 20);
-        g.drawString("Vanilla Biomes", 10, HEIGHT * 2 + 20);
-        g.drawString("Climate-Modified Biomes", WIDTH + 10, HEIGHT * 2 + 20);
-        g.drawString("Region Colors", WIDTH * 2 + 10, HEIGHT * 2 + 20);
-        g.dispose();
-
         var outDir = SnapshotOutputPaths.forTestClass(ClimateVisualizationTest.class);
         outDir.mkdirs();
 
@@ -207,7 +178,28 @@ public class ClimateVisualizationTest {
         ImageIO.write(regionBoundaries, "png", new File(outDir, "region_boundaries.png"));
         ImageIO.write(vanillaBiomes, "png", new File(outDir, "vanilla_biomes.png"));
         ImageIO.write(modifiedBiomes, "png", new File(outDir, "climate_modified_biomes.png"));
-        ImageIO.write(combinedView, "png", new File(outDir, "combined_climate_view.png"));
+        SnapshotHtmlReports.writeIndex(
+                outDir,
+                "Climate Visualization",
+                List.of(
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "vanilla_temperature", "vanilla_temperature.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "modified_temperature", "modified_temperature.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "temperature_delta", "temperature_delta.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "vanilla_humidity", "vanilla_humidity.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "modified_humidity", "modified_humidity.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "region_boundaries", "region_boundaries.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "vanilla_biomes", "vanilla_biomes.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "climate_modified_biomes", "climate_modified_biomes.png", WIDTH, HEIGHT),
+                        SnapshotHtmlReports.ImageEntry.of(
+                                "region_overlay", "region_overlay.png", WIDTH, HEIGHT)));
 
         System.out.println("=== Climate Modification Statistics ===");
         System.out.println("Total pixels: " + (WIDTH * HEIGHT));
@@ -236,7 +228,6 @@ public class ClimateVisualizationTest {
         appendImageHash(snapshotText, "vanilla_biomes", vanillaBiomes);
         appendImageHash(snapshotText, "climate_modified_biomes", modifiedBiomes);
         appendImageHash(snapshotText, "region_overlay", regionOverlay);
-        appendImageHash(snapshotText, "combined_climate_view", combinedView);
         snapshot.assertThat(snapshotText.toString()).asText().matchesSnapshotText();
     }
 

@@ -4,10 +4,10 @@ import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
+import com.terrasect.common.testing.SnapshotHtmlReports;
 import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.testing.SnapshotTests;
 import de.skuzzle.test.snapshots.Snapshot;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -424,7 +424,13 @@ public class StrategySnapshotTest {
         }
         ImageIO.write(imgCombined, "png", new File(outDir, "combined.png"));
 
-        generateLegend(testName, depthCounts, maxDepth);
+        var images = new ArrayList<SnapshotHtmlReports.ImageEntry>();
+        for (var d = 1; d <= maxDepth; d++) {
+            images.add(SnapshotHtmlReports.ImageEntry.of("depth_" + d, "depth_" + d + ".png", IMG_SIZE, IMG_SIZE));
+        }
+        images.add(SnapshotHtmlReports.ImageEntry.of("combined", "combined.png", IMG_SIZE, IMG_SIZE));
+        var legendEntries = buildLegendEntries(depthCounts, maxDepth);
+        SnapshotHtmlReports.writeIndexWithLegend(outDir, "Strategy Snapshot: " + testName, images, legendEntries);
 
         var actualDigest = java.util.HexFormat.of().formatHex(digest.digest());
         System.out.println("[" + testName + "] Digest: " + actualDigest);
@@ -436,39 +442,19 @@ public class StrategySnapshotTest {
         return actualDigest;
     }
 
-    private void generateLegend(String testName, Map<Integer, Map<String, Integer>> depthCounts, int maxDepth)
-            throws IOException {
-
+    private List<SnapshotHtmlReports.LegendEntry> buildLegendEntries(
+            Map<Integer, Map<String, Integer>> depthCounts, int maxDepth) {
         var allRegions = new TreeSet<String>();
         for (var d = 1; d <= maxDepth; d++) {
             allRegions.addAll(depthCounts.get(d).keySet());
         }
 
-        var legendWidth = 200;
-        var rowHeight = 20;
-        var legendHeight = allRegions.size() * rowHeight + 30;
-
-        var legend = new BufferedImage(legendWidth, legendHeight, BufferedImage.TYPE_INT_RGB);
-        var g = legend.createGraphics();
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, legendWidth, legendHeight);
-
-        g.setColor(Color.BLACK);
-        g.drawString(testName, 5, 15);
-
-        var y = 30;
+        var entries = new ArrayList<SnapshotHtmlReports.LegendEntry>(allRegions.size());
         for (String regionName : allRegions) {
-            var color = getRegionColor(regionName);
-            g.setColor(new Color(color));
-            g.fillRect(5, y - 12, 15, 15);
-            g.setColor(Color.BLACK);
-            g.drawRect(5, y - 12, 15, 15);
-            g.drawString(regionName, 25, y);
-            y += rowHeight;
+            var color = getRegionColor(regionName) & 0xFFFFFF;
+            entries.add(new SnapshotHtmlReports.LegendEntry(regionName, String.format("%06X", color)));
         }
-
-        g.dispose();
-        ImageIO.write(legend, "png", new File(outDir, "legend.png"));
+        return entries;
     }
 
     private void updateDigest(MessageDigest digest, int val) {

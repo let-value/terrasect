@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>{{title}}</title>
+<style>
+body{font-family:sans-serif;margin:20px}
+ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+li{border:1px solid #ccc;padding:8px}
+img{image-rendering:pixelated;max-width:100%;height:auto}
+code{white-space:nowrap}
+div.legend{margin:20px 0}
+div.legend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+span.swatch{display:inline-block;width:14px;height:14px;margin-right:6px;border:1px solid #333;vertical-align:middle}
+</style></head><body>
+<h1>{{title}}</h1>
+<ul>
+{{#images}}
+<li><div><code>{{label}}</code></div><img src="{{file}}"{{#width}} width="{{width}}"{{/width}}{{#height}} height="{{height}}"{{/height}}></li>
+{{/images}}
+</ul>
+{{#hasLegend}}
+<div class="legend">
+<h2>Legend</h2>
+<div class="legend-grid">
+{{#legend}}
+<div><span class="swatch" style="background:#{{colorHex}}"></span><code>{{label}}</code></div>
+{{/legend}}
+</div>
+</div>
+{{/hasLegend}}
+</body></html>
