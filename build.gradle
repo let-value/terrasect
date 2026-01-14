@@ -32,7 +32,7 @@ subprojects {
 
         spotless {
             java {
-                palantirJavaFormat("${palantir_java_format_version}")
+                googleJavaFormat("${google_java_format_version}")
                 formatAnnotations()
                 trimTrailingWhitespace()
                 endWithNewline()
@@ -41,12 +41,10 @@ subprojects {
 
         dependencies {
             rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:${rewrite_recipe_version}"))
-            rewrite('org.openrewrite.recipe:rewrite-static-analysis')
             rewrite('org.openrewrite.recipe:rewrite-migrate-java')
         }
 
         rewrite {
-            activeRecipe('org.openrewrite.java.format.AutoFormat')
             activeRecipe('org.openrewrite.java.migrate.lang.UseVar')
         }
 

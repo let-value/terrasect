@@ -27,14 +27,14 @@ public class TerrainHeightMixin {
     @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
     @Inject(
-            method = "<init>",
-            at =
-                    @At(
-                            value = "FIELD",
-                            target =
-                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
-                            opcode = Opcodes.PUTFIELD,
-                            shift = At.Shift.AFTER))
+        method = "<init>",
+        at =
+                @At(
+                        value = "FIELD",
+                        target =
+                                "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
+                        opcode = Opcodes.PUTFIELD,
+                        shift = At.Shift.AFTER))
     private void initHeightConstraintsEarly(
             int cellCountXZ,
             RandomState randomState,
