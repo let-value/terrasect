@@ -4,4 +4,4 @@ snapshot-number: 0
 test-class: com.terrasect.common.integration.MinecraftOceanNoiseConstraintsSnapshotTest
 test-method: writesNoOceanAndOnlyOceanSnapshots
 
-b4dd567877b5ebc66c0ab2271395ab63bda6ccf8b2525b69d924e26a2ed965f0
+f3102914b46a3748b4a8b088f488ce52e85755d45560acc432c5c6faeb67bb4e

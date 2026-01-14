@@ -3,6 +3,9 @@ package com.terrasect.common.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.resolver.ClasspathResolver;
 import com.terrasect.common.Context;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionDefinition;
@@ -15,9 +18,12 @@ import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.lang.reflect.RecordComponent;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderLookup;
@@ -43,6 +49,9 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
     private static final int SURFACE_IMG_SIZE = 128;
     private static final int SURFACE_STEP = WORLD_SIZE / SURFACE_IMG_SIZE;
     private static final int SURFACE_PIXELS_PER_CHUNK = CHUNK_SIZE / SURFACE_STEP;
+    private static final DefaultMustacheFactory MUSTACHE_FACTORY =
+            new DefaultMustacheFactory(new ClasspathResolver("templates"));
+    private static final String REPORT_TITLE = "Terrasect Ocean Control (NoiseConstraints)";
 
     @BeforeAll static void setupMinecraft() {
         SharedConstants.tryDetectVersion();
@@ -82,19 +91,7 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         var outDir = new File("build/test-snapshots/noise-constraints/ocean-control");
         Files.createDirectories(outDir.toPath());
 
-        var index = new StringBuilder(8 * 1024);
-        index.append("<!doctype html><html><head><meta charset=\"utf-8\">")
-                .append("<title>Terrasect Ocean Control (NoiseConstraints)</title>")
-                .append(
-                        "<style>body{font-family:sans-serif}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px}code{white-space:nowrap}</style>")
-                .append("</head><body>")
-                .append("<h1>Terrasect Ocean Control (NoiseConstraints)</h1>")
-                .append(
-                        "<p>Noise sampled: <code>minecraft:continentalness</code> (scaled coords x/z * 0.25). Ocean mask uses threshold &lt; 0.</p>")
-                .append("<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Ocean Pixels</th></tr>");
-
         RenderResult vanilla = render(outDir, "vanilla", continentalness, seed, null);
-        indexRow(index, "Vanilla (no constraints)", vanilla);
         assertTrue(
                 vanilla.oceanPixels > 0 && vanilla.oceanPixels < (long) IMG_SIZE * IMG_SIZE,
                 "expected vanilla continentalness to contain both signs");
@@ -103,62 +100,19 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(0.05, 2.0)))
                 .build();
         RenderResult noOcean = render(outDir, "no_ocean", continentalness, seed, noOceanDef);
-        indexRow(index, "No ocean (clamp to +)", noOcean);
         assertEquals(0L, noOcean.oceanPixels, "expected no-ocean clamp to remove all ocean pixels");
 
         var onlyOceanDef = RegionDefinition.builder()
                 .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(-2.0, -0.05)))
                 .build();
         RenderResult onlyOcean = render(outDir, "only_ocean", continentalness, seed, onlyOceanDef);
-        indexRow(index, "Only ocean (clamp to -)", onlyOcean);
         assertEquals(
                 (long) IMG_SIZE * IMG_SIZE,
                 onlyOcean.oceanPixels,
                 "expected only-ocean clamp to make all pixels ocean");
 
-        index.append("</table>");
-
         Region regionsRoot = buildTwoRegionRoot(noOceanDef, onlyOceanDef);
         RenderRegionsResult regions = renderRegions(outDir, "two_regions", continentalness, seed, regionsRoot);
-
-        index.append("<h2>Two-region demo</h2>")
-                .append("<p>Same clamp rules, but applied per-region with edge blending (8-block boundary zone).</p>")
-                .append(
-                        "<table><tr><th>Scenario</th><th>Values</th><th>Ocean Mask</th><th>Region Map</th><th>Interior Stats</th></tr>");
-        index.append("<tr><td><code>NO_OCEAN</code> vs <code>ONLY_OCEAN</code></td>")
-                .append("<td><img width=\"")
-                .append(IMG_SIZE)
-                .append("\" height=\"")
-                .append(IMG_SIZE)
-                .append("\" src=\"")
-                .append(regions.valuesFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(IMG_SIZE)
-                .append("\" height=\"")
-                .append(IMG_SIZE)
-                .append("\" src=\"")
-                .append(regions.maskFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(IMG_SIZE)
-                .append("\" height=\"")
-                .append(IMG_SIZE)
-                .append("\" src=\"")
-                .append(regions.regionFile)
-                .append("\"></td>")
-                .append("<td><code>")
-                .append("NO_OCEAN=")
-                .append(regions.noOceanInteriorOceanPixels)
-                .append("/")
-                .append(regions.noOceanInteriorPixels)
-                .append("<br>")
-                .append("ONLY_OCEAN=")
-                .append(regions.onlyOceanInteriorOceanPixels)
-                .append("/")
-                .append(regions.onlyOceanInteriorPixels)
-                .append("</code></td></tr>\n");
-        index.append("</table>");
 
         assertTrue(regions.noOceanInteriorPixels > 0, "expected at least one NO_OCEAN interior sample");
         assertTrue(regions.onlyOceanInteriorPixels > 0, "expected at least one ONLY_OCEAN interior sample");
@@ -168,139 +122,89 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
                 regions.onlyOceanInteriorOceanPixels,
                 "ONLY_OCEAN interior should be all ocean pixels");
 
-        index.append("<h2>Terrain impact</h2>")
-                .append("<p>Computed <code>NoiseRouter.preliminary_surface_level</code> under the same constraints. ")
-                .append("Below-sea mask uses <code>height &lt; seaLevel</code> (seaLevel=")
-                .append(seaLevel)
-                .append(").</p>")
-                .append(
-                        "<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Below Sea Pixels</th><th>Min/Max</th></tr>");
-
         SurfaceRenderResult vanillaSurface =
                 renderPreliminarySurfaceLevel(outDir, "vanilla", randomState, seed, seaLevel, minY, maxY, null);
-        indexSurfaceRow(index, "Vanilla (no constraints)", vanillaSurface);
 
         SurfaceRenderResult noOceanSurface =
                 renderPreliminarySurfaceLevel(outDir, "no_ocean", randomState, seed, seaLevel, minY, maxY, noOceanDef);
-        indexSurfaceRow(index, "No ocean (clamp to +)", noOceanSurface);
 
         SurfaceRenderResult onlyOceanSurface = renderPreliminarySurfaceLevel(
                 outDir, "only_ocean", randomState, seed, seaLevel, minY, maxY, onlyOceanDef);
-        indexSurfaceRow(index, "Only ocean (clamp to -)", onlyOceanSurface);
-
-        index.append("</table>");
 
         SurfaceRegionsRenderResult regionsSurface = renderPreliminarySurfaceLevelRegions(
                 outDir, "two_regions", randomState, seed, seaLevel, minY, maxY, regionsRoot);
-        index.append("<h3>Two-region terrain</h3>")
-                .append(
-                        "<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Region Map</th><th>Interior Stats</th></tr>");
-        index.append("<tr><td><code>NO_OCEAN</code> vs <code>ONLY_OCEAN</code></td>")
-                .append("<td><img width=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" height=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" src=\"")
-                .append(regionsSurface.heightFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" height=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" src=\"")
-                .append(regionsSurface.belowSeaFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" height=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" src=\"")
-                .append(regions.regionFile)
-                .append("\"></td>")
-                .append("<td><code>")
-                .append("NO_OCEAN=")
-                .append(regionsSurface.noOceanInteriorBelowSea)
-                .append("/")
-                .append(regionsSurface.noOceanInteriorPixels)
-                .append("<br>")
-                .append("ONLY_OCEAN=")
-                .append(regionsSurface.onlyOceanInteriorBelowSea)
-                .append("/")
-                .append(regionsSurface.onlyOceanInteriorPixels)
-                .append("</code></td></tr>\n");
-        index.append("</table>");
 
-        index.append("</body></html>\n");
-        var indexHtml = index.toString();
+        var totalPixels = (long) IMG_SIZE * IMG_SIZE;
+        var totalSurfacePixels = (long) SURFACE_IMG_SIZE * SURFACE_IMG_SIZE;
+        var scenarioRows = List.of(
+                new ScenarioRow("Vanilla (no constraints)", vanilla.valuesFile, vanilla.maskFile, vanilla.oceanPixels),
+                new ScenarioRow("No ocean (clamp to +)", noOcean.valuesFile, noOcean.maskFile, noOcean.oceanPixels),
+                new ScenarioRow("Only ocean (clamp to -)", onlyOcean.valuesFile, onlyOcean.maskFile, onlyOcean.oceanPixels));
+        var regionsRow = new RegionsRow(
+                regions.valuesFile,
+                regions.maskFile,
+                regions.regionFile,
+                regions.noOceanInteriorOceanPixels,
+                regions.noOceanInteriorPixels,
+                regions.onlyOceanInteriorOceanPixels,
+                regions.onlyOceanInteriorPixels);
+        var terrainRows = List.of(
+                new TerrainRow(
+                        "Vanilla (no constraints)",
+                        vanillaSurface.heightFile,
+                        vanillaSurface.belowSeaFile,
+                        vanillaSurface.belowSeaPixels,
+                        vanillaSurface.minHeight,
+                        vanillaSurface.maxHeight),
+                new TerrainRow(
+                        "No ocean (clamp to +)",
+                        noOceanSurface.heightFile,
+                        noOceanSurface.belowSeaFile,
+                        noOceanSurface.belowSeaPixels,
+                        noOceanSurface.minHeight,
+                        noOceanSurface.maxHeight),
+                new TerrainRow(
+                        "Only ocean (clamp to -)",
+                        onlyOceanSurface.heightFile,
+                        onlyOceanSurface.belowSeaFile,
+                        onlyOceanSurface.belowSeaPixels,
+                        onlyOceanSurface.minHeight,
+                        onlyOceanSurface.maxHeight));
+        var terrainRegions = new TerrainRegionsRow(
+                regionsSurface.heightFile,
+                regionsSurface.belowSeaFile,
+                regions.regionFile,
+                regionsSurface.noOceanInteriorBelowSea,
+                regionsSurface.noOceanInteriorPixels,
+                regionsSurface.onlyOceanInteriorBelowSea,
+                regionsSurface.onlyOceanInteriorPixels);
+        var page = new OceanConstraintsPage(
+                REPORT_TITLE,
+                seed,
+                STEP,
+                IMG_SIZE,
+                SURFACE_IMG_SIZE,
+                seaLevel,
+                minY,
+                maxY,
+                totalPixels,
+                totalSurfacePixels,
+                scenarioRows,
+                regionsRow,
+                terrainRows,
+                terrainRegions);
+        var indexHtml = renderTemplate("ocean-constraints/layout.mustache", page);
         String indexDigest = SnapshotHashes.sha256Hex(indexHtml);
         snapshot.assertThat(indexDigest).asText().matchesSnapshotText();
         Files.writeString(outDir.toPath().resolve("index.html"), indexHtml, StandardCharsets.UTF_8);
         System.out.println("Wrote ocean-control snapshot report to: " + outDir.getAbsolutePath());
     }
 
-    private static void indexRow(StringBuilder index, String title, RenderResult result) {
-        index.append("<tr><td>")
-                .append(escapeHtml(title))
-                .append("</td>")
-                .append("<td><img width=\"")
-                .append(IMG_SIZE)
-                .append("\" height=\"")
-                .append(IMG_SIZE)
-                .append("\" src=\"")
-                .append(result.valuesFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(IMG_SIZE)
-                .append("\" height=\"")
-                .append(IMG_SIZE)
-                .append("\" src=\"")
-                .append(result.maskFile)
-                .append("\"></td>")
-                .append("<td><code>")
-                .append(result.oceanPixels)
-                .append(" / ")
-                .append((long) IMG_SIZE * IMG_SIZE)
-                .append("</code></td></tr>\n");
-    }
-
-    private static void indexSurfaceRow(StringBuilder index, String title, SurfaceRenderResult result) {
-        index.append("<tr><td>")
-                .append(escapeHtml(title))
-                .append("</td>")
-                .append("<td><img width=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" height=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" src=\"")
-                .append(result.heightFile)
-                .append("\"></td>")
-                .append("<td><img width=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" height=\"")
-                .append(SURFACE_IMG_SIZE)
-                .append("\" src=\"")
-                .append(result.belowSeaFile)
-                .append("\"></td>")
-                .append("<td><code>")
-                .append(result.belowSeaPixels)
-                .append(" / ")
-                .append((long) SURFACE_IMG_SIZE * SURFACE_IMG_SIZE)
-                .append("</code></td>")
-                .append("<td><code>")
-                .append(result.minHeight)
-                .append(" / ")
-                .append(result.maxHeight)
-                .append("</code></td>")
-                .append("</tr>\n");
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
+    private static String renderTemplate(String name, Object context) throws IOException {
+        Mustache mustache = MUSTACHE_FACTORY.compile(name);
+        var out = new StringWriter(8 * 1024);
+        mustache.execute(out, context);
+        return out.toString();
     }
 
     private static DensityFunction constrainNoiseSampling(DensityFunction function) {
@@ -1028,6 +932,55 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
             long noOceanInteriorBelowSea,
             long onlyOceanInteriorPixels,
             long onlyOceanInteriorBelowSea) {
+    }
+
+    private record OceanConstraintsPage(
+            String title,
+            long seed,
+            int step,
+            int imgSize,
+            int surfaceImgSize,
+            int seaLevel,
+            int minY,
+            int maxY,
+            long totalPixels,
+            long totalSurfacePixels,
+            List<ScenarioRow> scenarios,
+            RegionsRow regions,
+            List<TerrainRow> terrainRows,
+            TerrainRegionsRow terrainRegions) {
+    }
+
+    private record ScenarioRow(String title, String valuesFile, String maskFile, long oceanPixels) {
+    }
+
+    private record RegionsRow(
+            String valuesFile,
+            String maskFile,
+            String regionFile,
+            long noOceanInteriorOceanPixels,
+            long noOceanInteriorPixels,
+            long onlyOceanInteriorOceanPixels,
+            long onlyOceanInteriorPixels) {
+    }
+
+    private record TerrainRow(
+            String title,
+            String heightFile,
+            String belowSeaFile,
+            long belowSeaPixels,
+            int minHeight,
+            int maxHeight) {
+    }
+
+    private record TerrainRegionsRow(
+            String heightFile,
+            String belowSeaFile,
+            String regionFile,
+            long noOceanInteriorBelowSea,
+            long noOceanInteriorPixels,
+            long onlyOceanInteriorBelowSea,
+            long onlyOceanInteriorPixels) {
     }
 
     private static final class TestContext implements Context {

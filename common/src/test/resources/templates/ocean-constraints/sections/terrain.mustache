@@ -1,0 +1,7 @@
+<h2>Terrain impact</h2>
+<p>Computed <code>NoiseRouter.preliminary_surface_level</code> under the same constraints. Below-sea mask uses <code>height &lt; seaLevel</code> (seaLevel={{seaLevel}}).</p>
+<table><tr><th>Scenario</th><th>Height</th><th>Below Sea</th><th>Below Sea Pixels</th><th>Min/Max</th></tr>
+{{#terrainRows}}
+<tr><td>{{title}}</td><td><img width="{{surfaceImgSize}}" height="{{surfaceImgSize}}" src="{{heightFile}}"></td><td><img width="{{surfaceImgSize}}" height="{{surfaceImgSize}}" src="{{belowSeaFile}}"></td><td><code>{{belowSeaPixels}} / {{totalSurfacePixels}}</code></td><td><code>{{minHeight}} / {{maxHeight}}</code></td></tr>
+{{/terrainRows}}
+</table>
