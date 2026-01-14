@@ -35,14 +35,14 @@ public final class SnapshotUpdateExtension
     @Override public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext context)
             throws ParameterResolutionException {
         SnapshotTestContext testContext = getContext(context);
-        Class<?> type = parameterContext.getParameter().getType();
+        var type = parameterContext.getParameter().getType();
         return testContext.isSnapshotParameter(type) || SnapshotTestContext.class.isAssignableFrom(type);
     }
 
     @Override public Object resolveParameter(ParameterContext parameterContext, ExtensionContext context)
             throws ParameterResolutionException {
         SnapshotTestContext testContext = getContext(context);
-        Class<?> type = parameterContext.getParameter().getType();
+        var type = parameterContext.getParameter().getType();
         if (SnapshotTestContext.class.isAssignableFrom(type)) {
             return testContext;
         }
@@ -78,7 +78,7 @@ public final class SnapshotUpdateExtension
     }
 
     private static SnapshotTestContext createContext(ExtensionContext context) {
-        Class<?> testClass = context.getRequiredTestClass();
+        var testClass = context.getRequiredTestClass();
         SnapshotConfiguration configuration = SnapshotConfiguration.defaultConfigurationFor(testClass);
         return SnapshotTestContext.forConfiguration(configuration, new Junit5Support());
     }

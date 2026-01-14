@@ -17,19 +17,43 @@ public final class LayoutStrategies {
         var strategy = parent.definition().generationStrategy();
         List<Region> children = parent.children();
 
-        switch (strategy) {
-            case GenerationStrategy.Hex hex -> HexStrategy.query(seed, children, dx, dz, radius, hex, result);
-            case GenerationStrategy.Subdivision subdivision ->
-                SubdivisionStrategy.query(seed, children, dx, dz, radius, subdivision, result);
-            case GenerationStrategy.Template template ->
-                TemplateStrategy.query(seed, children, dx, dz, radius, template, result);
-            case GenerationStrategy.Voronoi voronoi ->
-                queryVoronoi(seed, parent, dx, dz, radius, voronoi, result);
-        }
+        dispatchQuery(strategy, parent, children, seed, dx, dz, radius, result);
 
         result.childSeed = computeSeed(strategy, seed, result);
 
         return result;
+    }
+
+    private static void dispatchQuery(
+            GenerationStrategy strategy,
+            Region parent,
+            List<Region> children,
+            long seed,
+            float dx,
+            float dz,
+            float radius,
+            QueryResult out) {
+        if (strategy instanceof GenerationStrategy.Hex hex) {
+            HexStrategy.query(seed, children, dx, dz, radius, hex, out);
+            return;
+        }
+
+        if (strategy instanceof GenerationStrategy.Subdivision subdivision) {
+            SubdivisionStrategy.query(seed, children, dx, dz, radius, subdivision, out);
+            return;
+        }
+
+        if (strategy instanceof GenerationStrategy.Template template) {
+            TemplateStrategy.query(seed, children, dx, dz, radius, template, out);
+            return;
+        }
+
+        if (strategy instanceof GenerationStrategy.Voronoi voronoi) {
+            queryVoronoi(seed, parent, dx, dz, radius, voronoi, out);
+            return;
+        }
+
+        throw new IllegalStateException("Unknown generation strategy: " + strategy);
     }
 
     private static long computeSeed(GenerationStrategy strategy, long parentSeed, QueryResult result) {
@@ -38,9 +62,16 @@ public final class LayoutStrategies {
             var r = (int) result.siteZ;
             return HexStrategy.getSeed(parentSeed, q, r);
         }
-        var salt = strategy instanceof GenerationStrategy.Subdivision ? 777
-                : strategy instanceof GenerationStrategy.Template ? 888
-                : 999;
+
+        final int salt;
+        if (strategy instanceof GenerationStrategy.Subdivision) {
+            salt = 777;
+        } else if (strategy instanceof GenerationStrategy.Template) {
+            salt = 888;
+        } else {
+            salt = 999;
+        }
+
         return hashChildSeed(parentSeed, result, salt);
     }
 

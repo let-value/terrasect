@@ -677,7 +677,7 @@ class MinecraftNoiseRouterSnapshotTest {
             return;
         }
 
-        Class<?> cls = obj.getClass();
+        var cls = obj.getClass();
         if (cls.isArray()) {
             if (cls.getComponentType().isPrimitive()) return;
             var values = (Object[]) obj;
@@ -936,8 +936,7 @@ class MinecraftNoiseRouterSnapshotTest {
 
     private static DensityFunction newEndIslandDensityFunction(long seed) {
         try {
-            Class<?> cls =
-                    Class.forName("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
+            var cls = Class.forName("net.minecraft.world.level.levelgen.DensityFunctions$EndIslandDensityFunction");
             var ctor = cls.getDeclaredConstructor(long.class);
             ctor.setAccessible(true);
             return (DensityFunction) ctor.newInstance(seed);
