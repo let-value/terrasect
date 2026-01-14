@@ -14,6 +14,7 @@ import com.terrasect.common.handler.NoiseHandler;
 import com.terrasect.common.lookup.NoiseChunkLookup;
 import com.terrasect.common.mixin.NoiseChunkAccessor;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
 import java.awt.image.BufferedImage;
@@ -88,7 +89,8 @@ class MinecraftOceanNoiseConstraintsSnapshotTest {
         var continentalness =
                 new DensityFunction.NoiseHolder(continentalnessHolder, continentalnessNoise);
 
-        var outDir = new File("build/test-snapshots/noise-constraints/ocean-control");
+        var outDir = SnapshotOutputPaths.forTestClass(
+                MinecraftOceanNoiseConstraintsSnapshotTest.class, "ocean-control");
         Files.createDirectories(outDir.toPath());
 
         RenderResult vanilla = render(outDir, "vanilla", continentalness, seed, null);

@@ -7,6 +7,7 @@ import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.handler.ClimateHandler;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.Packer;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
@@ -194,7 +195,7 @@ public class ClimateVisualizationTest {
         g.drawString("Region Colors", WIDTH * 2 + 10, HEIGHT * 2 + 20);
         g.dispose();
 
-        var outDir = new File("build/climate-snapshots");
+        var outDir = SnapshotOutputPaths.forTestClass(ClimateVisualizationTest.class);
         outDir.mkdirs();
 
         ImageIO.write(vanillaTemp, "png", new File(outDir, "vanilla_temperature.png"));

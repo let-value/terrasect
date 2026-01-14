@@ -4,6 +4,7 @@ import com.terrasect.common.Context;
 import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.testing.SnapshotTests;
 import de.skuzzle.test.snapshots.Snapshot;
 import java.awt.*;
@@ -334,7 +335,7 @@ public class StrategySnapshotTest {
 
     private String runSnapshot(String testName, Region root, int maxDepth) throws Exception {
         World.register(root, World.OVERWORLD);
-        outDir = new File("build/test-snapshots/" + testName);
+        outDir = SnapshotOutputPaths.forTestClass(StrategySnapshotTest.class, testName);
         outDir.mkdirs();
         var step = WORLD_SIZE / IMG_SIZE;
 

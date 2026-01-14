@@ -7,6 +7,7 @@ import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.resolver.ClasspathResolver;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.testing.SnapshotTests;
 import com.terrasect.common.util.MutablePointContext;
 import de.skuzzle.test.snapshots.Snapshot;
@@ -96,7 +97,7 @@ class MinecraftNoiseRouterSnapshotTest {
         var maxY = minY + noiseSettings.height() - 1;
         var seaLevel = settings.seaLevel();
 
-        var outDir = new File("build/test-snapshots/noise-router/overworld");
+        var outDir = SnapshotOutputPaths.forTestClass(MinecraftNoiseRouterSnapshotTest.class, "overworld");
         Files.createDirectories(outDir.toPath());
 
         var functions = collectDensityFunctions(router);

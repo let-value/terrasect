@@ -4,6 +4,7 @@ import com.terrasect.common.Context;
 import com.terrasect.common.TestRegions;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.helpers.RegionSampler;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.MathUtils;
 import com.terrasect.common.util.NoiseUtils;
 import com.terrasect.common.util.Packer;
@@ -205,7 +206,7 @@ public class SnapshotTest {
 
         var actualDigest = HexFormat.of().formatHex(digest.digest());
 
-        var outDir = new File("build/test-snapshots");
+        var outDir = SnapshotOutputPaths.forTestClass(SnapshotTest.class);
         outDir.mkdirs();
         ImageIO.write(imgVoronoi, "png", new File(outDir, "voronoi.png"));
         ImageIO.write(imgEdge, "png", new File(outDir, "edge.png"));

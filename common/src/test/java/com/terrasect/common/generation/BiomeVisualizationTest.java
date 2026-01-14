@@ -10,6 +10,7 @@ import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.testing.SnapshotHashes;
+import com.terrasect.common.testing.SnapshotOutputPaths;
 import com.terrasect.common.util.Packer;
 import de.skuzzle.test.snapshots.Snapshot;
 import com.terrasect.common.testing.SnapshotTests;
@@ -164,7 +165,7 @@ public class BiomeVisualizationTest {
         g.drawString("Filter Overlay (red=replaced, green=allowed)", WIDTH + 10, HEIGHT + 20);
         g.dispose();
 
-        var outDir = new File("build/biome-snapshots");
+        var outDir = SnapshotOutputPaths.forTestClass(BiomeVisualizationTest.class);
         outDir.mkdirs();
 
         ImageIO.write(vanillaBiomes, "png", new File(outDir, "vanilla_biomes.png"));
