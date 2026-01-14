@@ -88,7 +88,7 @@ public final class BiomeLookup {
     }
 
     private static Set<SelectionRules> collectAllRules(Region root) {
-        Set<SelectionRules> rules = Collections.newSetFromMap(new IdentityHashMap<>());
+        var rules = Collections.newSetFromMap(new IdentityHashMap<SelectionRules, Boolean>());
         collectRulesRecursive(root, rules);
         return rules;
     }

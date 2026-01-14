@@ -2,12 +2,8 @@ package com.terrasect.fabric.client;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
-import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.state.BlockState;
 
 public class ClientGameTestIntegration implements FabricClientGameTest {
 
@@ -20,7 +16,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
         System.out.println(
                 "Target coordinate: (" + PROBLEM_COORD[0] + ", " + PROBLEM_COORD[1] + ", " + PROBLEM_COORD[2] + ")");
 
-        try (TestSingleplayerContext singleplayer = context.worldBuilder()
+        try (var singleplayer = context.worldBuilder()
                 .setUseConsistentSettings(false)
                 .adjustSettings(settings -> {
                     settings.setSeed("seed");
@@ -35,7 +31,7 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
 
             System.out.println("\n=== Teleporting to test location ===");
             singleplayer.getServer().runOnServer(server -> {
-                ServerPlayer player = server.getPlayerList().getPlayers().get(0);
+                var player = server.getPlayerList().getPlayers().get(0);
 
                 player.teleportTo(PROBLEM_COORD[0], 200, PROBLEM_COORD[2]);
             });
@@ -48,26 +44,26 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
             context.takeScreenshot("01_above_test_location");
 
             singleplayer.getServer().runOnServer(server -> {
-                ServerPlayer player = server.getPlayerList().getPlayers().get(0);
-                double playerY = player.getY();
-                int blockX = (int) Math.floor(player.getX());
-                int blockZ = (int) Math.floor(player.getZ());
+                var player = server.getPlayerList().getPlayers().get(0);
+                var playerY = player.getY();
+                var blockX = (int) Math.floor(player.getX());
+                var blockZ = (int) Math.floor(player.getZ());
 
                 System.out.println("\n=== TERRAIN ANALYSIS AT TEST LOCATION ===");
                 System.out.println("Player position: (" + blockX + ", " + playerY + ", " + blockZ + ")");
 
-                ServerLevel level = server.overworld();
+                var level = server.overworld();
                 System.out.println("\nBlocks at player column (from Y=100 down to Y=-64):");
                 System.out.println("  Target X,Z: (" + PROBLEM_COORD[0] + ", " + PROBLEM_COORD[2] + ")");
                 System.out.println("  ---");
 
-                int highestSolid = Integer.MIN_VALUE;
-                int lowestAir = Integer.MAX_VALUE;
+                var highestSolid = Integer.MIN_VALUE;
+                var lowestAir = Integer.MAX_VALUE;
 
-                for (int y = 100; y >= -64; y--) {
-                    BlockPos pos = new BlockPos(PROBLEM_COORD[0], y, PROBLEM_COORD[2]);
-                    BlockState state = level.getBlockState(pos);
-                    String blockName = state.getBlock().getName().getString();
+                for (var y = 100; y >= -64; y--) {
+                    var pos = new BlockPos(PROBLEM_COORD[0], y, PROBLEM_COORD[2]);
+                    var state = level.getBlockState(pos);
+                    var blockName = state.getBlock().getName().getString();
 
                     if (!state.isAir() && y > highestSolid) {
                         highestSolid = y;
@@ -88,16 +84,16 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
 
                 System.out.println("\n=== TERRAIN HEIGHT VARIATION (sampling 16x16 area) ===");
                 int[] surfaceHeights = new int[256];
-                int minSurface = Integer.MAX_VALUE;
-                int maxSurface = Integer.MIN_VALUE;
-                for (int dz = 0; dz < 16; dz++) {
-                    for (int dx = 0; dx < 16; dx++) {
-                        int x = PROBLEM_COORD[0] + dx;
-                        int z = PROBLEM_COORD[2] + dz;
+                var minSurface = Integer.MAX_VALUE;
+                var maxSurface = Integer.MIN_VALUE;
+                for (var dz = 0; dz < 16; dz++) {
+                    for (var dx = 0; dx < 16; dx++) {
+                        var x = PROBLEM_COORD[0] + dx;
+                        var z = PROBLEM_COORD[2] + dz;
 
-                        for (int y = 62; y >= 30; y--) {
-                            BlockPos pos = new BlockPos(x, y, z);
-                            BlockState state = level.getBlockState(pos);
+                        for (var y = 62; y >= 30; y--) {
+                            var pos = new BlockPos(x, y, z);
+                            var state = level.getBlockState(pos);
                             if (!state.isAir() && !state.getFluidState().isSource()) {
                                 surfaceHeights[dx + dz * 16] = y;
                                 minSurface = Math.min(minSurface, y);
@@ -110,11 +106,11 @@ public class ClientGameTestIntegration implements FabricClientGameTest {
                 System.out.println("  Surface height range: Y=" + minSurface + " to Y=" + maxSurface);
                 System.out.println("  Expected: Y=40 to Y=55 (with natural variation)");
 
-                boolean hasWater = false;
-                int waterLevel = -1;
-                for (int y = 100; y >= -64; y--) {
-                    BlockPos pos = new BlockPos(PROBLEM_COORD[0], y, PROBLEM_COORD[2]);
-                    BlockState state = level.getBlockState(pos);
+                var hasWater = false;
+                var waterLevel = -1;
+                for (var y = 100; y >= -64; y--) {
+                    var pos = new BlockPos(PROBLEM_COORD[0], y, PROBLEM_COORD[2]);
+                    var state = level.getBlockState(pos);
                     if (state.getFluidState().isSource()) {
                         hasWater = true;
                         if (waterLevel < 0) waterLevel = y;

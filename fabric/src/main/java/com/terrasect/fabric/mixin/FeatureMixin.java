@@ -31,7 +31,6 @@ public class FeatureMixin {
         }
 
         TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
-        @SuppressWarnings("unused")
-        Region region = traversal != null ? traversal.region : null;
+        @SuppressWarnings("unused") Region region = traversal != null ? traversal.region : null;
     }
 }

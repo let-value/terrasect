@@ -28,9 +28,9 @@ public class BiomeMixin {
             int quartZ,
             Climate.Sampler sampler) {
 
-                var context = MinecraftContext.get(sampler);
-                assert context != null : "MinecraftContext not found in Climate.Sampler";
+        var context = MinecraftContext.get(sampler);
+        assert context != null : "MinecraftContext not found in Climate.Sampler";
 
-                return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
+        return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
     }
 }

@@ -11,5 +11,6 @@ public class TerrasectFabricClient implements ClientModInitializer {
             DebugScreenEntries.register(Identifier.fromNamespaceAndPath("terrasect", "region"), new RegionDebugEntry());
 
     @Override
-    public void onInitializeClient() {}
+    public void onInitializeClient() {
+    }
 }

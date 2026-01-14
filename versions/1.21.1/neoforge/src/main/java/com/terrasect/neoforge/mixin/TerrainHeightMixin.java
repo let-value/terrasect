@@ -27,24 +27,24 @@ public class TerrainHeightMixin {
     @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
     @Inject(
-            method = "<init>",
-            at =
-                    @At(
-                            value = "FIELD",
-                            target =
-                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
-                            opcode = Opcodes.PUTFIELD))
+                            method = "<init>",
+                            at =
+                                                    @At(
+                                                                            value = "FIELD",
+                                                                            target =
+                                                                                                    "Lnet/minecraft/world/level/levelgen/NoiseChunk;aquifer:Lnet/minecraft/world/level/levelgen/Aquifer;",
+                                                                            opcode = Opcodes.PUTFIELD))
     private void initHeightConstraintsEarly(
-            int cellCountXZ,
-            RandomState randomState,
-            int chunkMinX,
-            int chunkMinZ,
-            NoiseSettings noiseSettings,
-            DensityFunctions.BeardifierOrMarker beardifier,
-            NoiseGeneratorSettings generatorSettings,
-            Aquifer.FluidPicker fluidPicker,
-            Blender blender,
-            CallbackInfo ci) {
+                            int cellCountXZ,
+                            RandomState randomState,
+                            int chunkMinX,
+                            int chunkMinZ,
+                            NoiseSettings noiseSettings,
+                            DensityFunctions.BeardifierOrMarker beardifier,
+                            NoiseGeneratorSettings generatorSettings,
+                            Aquifer.FluidPicker fluidPicker,
+                            Blender blender,
+                            CallbackInfo ci) {
 
         if (this.terrasect$heightLookup != null) return;
 
@@ -57,7 +57,7 @@ public class TerrainHeightMixin {
         var pointCtx = new MutablePointContext();
         terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
             pointCtx.set(x, 64, z);
-            double depthValue = depth.compute(pointCtx);
+            var depthValue = depth.compute(pointCtx);
             return 64 + (int) (depthValue * 128);
         });
     }
@@ -66,14 +66,14 @@ public class TerrainHeightMixin {
     private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
         if (terrasect$heightLookup == null) return;
 
-        NoiseChunk self = (NoiseChunk) (Object) this;
-        int blockX = self.blockX();
-        int blockY = self.blockY();
-        int blockZ = self.blockZ();
+        var self = (NoiseChunk) (Object) this;
+        var blockX = self.blockX();
+        var blockY = self.blockY();
+        var blockZ = self.blockZ();
 
-        int maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
+        var maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
-            Aquifer.FluidStatus fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
+            var fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
         }
     }
@@ -82,12 +82,12 @@ public class TerrainHeightMixin {
     private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
         if (terrasect$heightLookup == null) return;
 
-        int x = (int) (packedPos & 0xFFFFFFFFL);
-        int z = (int) (packedPos >>> 32);
-        int maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
+        var x = (int) (packedPos & 0xFFFFFFFFL);
+        var z = (int) (packedPos >>> 32);
+        var maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
 
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT) {
-            int original = cir.getReturnValue();
+            var original = cir.getReturnValue();
             if (original > maxHeight) {
                 cir.setReturnValue(maxHeight);
             }

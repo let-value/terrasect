@@ -13,9 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(targets = "net.minecraft.world.level.levelgen.DensityFunctions$ShiftB")
 public class ShiftBNoiseMixin implements ShiftNoiseAccess {
 
-    @Shadow
-    @Final
-    private DensityFunction.NoiseHolder offsetNoise;
+    @Shadow @Final private DensityFunction.NoiseHolder offsetNoise;
 
     @Override
     public DensityFunction.NoiseHolder terrasect$getOffsetNoise() {
@@ -27,10 +25,10 @@ public class ShiftBNoiseMixin implements ShiftNoiseAccess {
             at = @At("HEAD"),
             cancellable = true)
     private void terrasect$computeShift(DensityFunction.FunctionContext context, CallbackInfoReturnable<Double> cir) {
-        double z = context.blockZ();
-        double x = context.blockX();
+        var z = context.blockZ();
+        var x = context.blockX();
 
-        double result = NoiseHandler.sampleNoise(offsetNoise, z * 0.25, x * 0.25, 0.0, context) * 4.0;
+        var result = NoiseHandler.sampleNoise(offsetNoise, z * 0.25, x * 0.25, 0.0, context) * 4.0;
         cir.setReturnValue(result);
     }
 }

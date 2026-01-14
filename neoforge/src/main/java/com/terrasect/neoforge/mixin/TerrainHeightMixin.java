@@ -64,11 +64,11 @@ public class TerrainHeightMixin {
         if (terrasect$heightLookup == null) return;
 
         var self = (NoiseChunk) (Object) this;
-        int blockX = self.blockX();
-        int blockY = self.blockY();
-        int blockZ = self.blockZ();
+        var blockX = self.blockX();
+        var blockY = self.blockY();
+        var blockZ = self.blockZ();
 
-        int maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
+        var maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
             var fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
             cir.setReturnValue(fluidStatus.at(blockY));
@@ -80,12 +80,12 @@ public class TerrainHeightMixin {
     private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
         if (terrasect$heightLookup == null) return;
 
-        int x = (int) (packedPos & 0xFFFFFFFFL);
-        int z = (int) (packedPos >>> 32);
-        int maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
+        var x = (int) (packedPos & 0xFFFFFFFFL);
+        var z = (int) (packedPos >>> 32);
+        var maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
 
         if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT) {
-            int original = cir.getReturnValue();
+            var original = cir.getReturnValue();
             if (original > maxHeight) {
                 cir.setReturnValue(maxHeight);
                 return;

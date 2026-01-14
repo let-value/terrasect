@@ -16,7 +16,8 @@ public class ClimateMixin implements VanillaSamplerAccessor {
     @Unique private static final ThreadLocal<Boolean> terrasect$wantVanilla = ThreadLocal.withInitial(() -> false);
 
     @Override
-    @Unique public Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z) {
+    @Unique
+    public Climate.TargetPoint terrasect$sampleVanilla(int x, int y, int z) {
         terrasect$wantVanilla.set(true);
         try {
             return ((Climate.Sampler) (Object) this).sample(x, y, z);

@@ -26,28 +26,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class LevelMixin {
 
     @Inject(
-            method = "<init>",
-            at =
-                    @At(
-                            value = "INVOKE",
-                            target =
-                                    "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-                            ordinal = 0,
-                            shift = At.Shift.BEFORE))
+                            method = "<init>",
+                            at =
+                                                    @At(
+                                                                            value = "INVOKE",
+                                                                            target =
+                                                                                                    "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+                                                                            ordinal = 0,
+                                                                            shift = At.Shift.BEFORE))
     private void onInit(
-            MinecraftServer minecraftServer,
-            Executor executor,
-            LevelStorageSource.LevelStorageAccess levelStorageAccess,
-            ServerLevelData serverLevelData,
-            ResourceKey<Level> resourceKey,
-            LevelStem levelStem,
-            ChunkProgressListener chunkProgressListener,
-            boolean bl,
-            long seed,
-            List<CustomSpawner> list,
-            boolean bl2,
-            @Nullable RandomSequences randomSequences,
-            CallbackInfo ci) {
+                            MinecraftServer minecraftServer,
+                            Executor executor,
+                            LevelStorageSource.LevelStorageAccess levelStorageAccess,
+                            ServerLevelData serverLevelData,
+                            ResourceKey<Level> resourceKey,
+                            LevelStem levelStem,
+                            ChunkProgressListener chunkProgressListener,
+                            boolean bl,
+                            long seed,
+                            List<CustomSpawner> list,
+                            boolean bl2,
+                            @Nullable RandomSequences randomSequences,
+                            CallbackInfo ci) {
 
         var level = (ServerLevel) (Object) this;
         var generator = level.getChunkSource().getGenerator();
