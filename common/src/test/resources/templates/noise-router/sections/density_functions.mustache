@@ -1,0 +1,7 @@
+<h2>NoiseRouterData Density Functions</h2>
+<p>Rows are ordered by direct dependency depth (best-effort topo sort) so roots appear first. Images are written under <code>density-functions/</code>.</p>
+<table><tr><th>Level</th><th>Key</th><th>Preset</th><th>XZ</th><th>YZ</th><th>Deps</th></tr>
+{{#densityRows}}
+<tr id="{{anchor}}"><td>{{level}}</td><td><code>{{fieldName}}</code><br><code><a href="#{{anchor}}">{{id}}</a></code></td><td>{{presetName}}<br>xzY={{xzY}}<br>y=[{{minY}}..{{maxY}}]</td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{xzFile}}"></td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{yzFile}}"></td><td>{{#deps}}<div><code>{{label}}({{count}})</code></div>{{#hasItems}}<ul class="deps">{{#items}}<li>{{#link}}<a href="#{{anchor}}"><code>{{name}}</code></a>{{/link}}{{^link}}<code>{{name}}</code>{{/link}}</li>{{/items}}</ul>{{/hasItems}}{{/deps}}<div>min/max xz={{xzMin}}/{{xzMax}}</div><div>min/max yz={{yzMin}}/{{yzMax}}</div></td></tr>
+{{/densityRows}}
+</table>

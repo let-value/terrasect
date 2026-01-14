@@ -28,6 +28,7 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation "de.skuzzle.test:snapshot-tests-junit5:${rootProject.property('snapshot_tests_version')}"
+    testImplementation 'com.github.spullara.mustache.java:compiler:0.9.10'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

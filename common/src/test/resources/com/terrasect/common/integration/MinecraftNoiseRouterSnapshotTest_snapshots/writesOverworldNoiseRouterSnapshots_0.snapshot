@@ -4,4 +4,4 @@ snapshot-number: 0
 test-class: com.terrasect.common.integration.MinecraftNoiseRouterSnapshotTest
 test-method: writesOverworldNoiseRouterSnapshots
 
-ae14499465fa5f3e6186bbc8854cc1fd11a0c432db056908cff5224eb79084ce
+cf6c11c7ee1fa8821bd8d1329939818bfc8fd9645e18bd38a7f57da5ce83e813

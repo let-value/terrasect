@@ -1,0 +1,7 @@
+<h2>Noise Parameters</h2>
+<p>Rows are the underlying <code>minecraft:noise</code> entries referenced by density functions. Images are written under <code>noise/</code>.</p>
+<table><tr><th>Key</th><th>Used In</th><th>XZ</th><th>YZ</th><th>Stats</th></tr>
+{{#noiseParameterRows}}
+<tr id="{{anchor}}"><td><code><a href="#{{anchor}}">{{key}}</a></code></td><td>{{#usedIn}}<div class="preset"><code>{{name}}</code></div>{{/usedIn}}</td><td>{{#presets}}<div class="preset"><code>{{name}}</code><br><img width="{{imgSize}}" height="{{imgSize}}" src="{{xzFile}}"></div>{{/presets}}</td><td>{{#presets}}<div class="preset"><code>{{name}}</code><br><img width="{{imgSize}}" height="{{imgSize}}" src="{{yzFile}}"></div>{{/presets}}</td><td>{{#presets}}<div class="preset"><code>{{name}}</code><br>xz[min={{stats.xzMin}}, max={{stats.xzMax}}]<br>yz[min={{stats.yzMin}}, max={{stats.yzMax}}]<br>theoretical[min={{stats.theoreticalMin}}, max={{stats.theoreticalMax}}]<br>xzDigest={{stats.xzDigest}}<br>yzDigest={{stats.yzDigest}}</div>{{/presets}}</td></tr>
+{{/noiseParameterRows}}
+</table>

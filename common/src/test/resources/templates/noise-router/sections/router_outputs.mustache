@@ -1,0 +1,10 @@
+<h2>NoiseRouter Outputs</h2>
+<table><tr><th>Noise</th><th>XZ @ y={{seaLevel}}</th><th>YZ @ x=0</th><th>Stats</th></tr>
+{{#noiseRows}}
+<tr><td><code>{{name}}</code></td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{xzFile}}"></td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{yzFile}}"></td><td>xz[min={{stats.xzMin}}, max={{stats.xzMax}}]<br>yz[min={{stats.yzMin}}, max={{stats.yzMax}}]<br>theoretical[min={{stats.theoreticalMin}}, max={{stats.theoreticalMax}}]<br>xzDigest={{stats.xzDigest}}<br>yzDigest={{stats.yzDigest}}</td></tr>
+{{/noiseRows}}
+<tr><th colspan="4">Sources (density function registry)</th></tr>
+{{#sourceRows}}
+<tr><td><code>{{name}}</code></td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{xzFile}}"></td><td><img width="{{imgSize}}" height="{{imgSize}}" src="{{yzFile}}"></td><td>xz[min={{stats.xzMin}}, max={{stats.xzMax}}]<br>yz[min={{stats.yzMin}}, max={{stats.yzMax}}]<br>theoretical[min={{stats.theoreticalMin}}, max={{stats.theoreticalMax}}]<br>xzDigest={{stats.xzDigest}}<br>yzDigest={{stats.yzDigest}}</td></tr>
+{{/sourceRows}}
+</table>
