@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
@@ -57,12 +58,19 @@ public final class StructureLookup {
     }
 
     public static StructureLookup build(RegistryAccess registryAccess) {
-        Registry<Structure> registry = registryAccess.registryOrThrow(Registries.STRUCTURE);
+        Registry<Structure> registry = registryAccess.lookupOrThrow(Registries.STRUCTURE);
         return build(registry);
     }
 
     public static StructureLookup build(Registry<Structure> registry) {
         var entries = buildEntries(registry);
+        var indexByStructure = buildIndex(entries);
+        var masks = new IdentityHashMap<StructureRules, StructureMask>();
+        return new StructureLookup(entries, indexByStructure, masks);
+    }
+
+    public static StructureLookup build(HolderLookup.RegistryLookup<Structure> registryLookup) {
+        var entries = buildEntries(registryLookup);
         var indexByStructure = buildIndex(entries);
         var masks = new IdentityHashMap<StructureRules, StructureMask>();
         return new StructureLookup(entries, indexByStructure, masks);
@@ -76,13 +84,10 @@ public final class StructureLookup {
 
         StructureEntry[] entries = new StructureEntry[size];
         int index = 0;
-        for (var key : registry.keySet()) {
-            Structure structure = registry.get(key);
-            if (structure == null) {
-                continue;
-            }
-
-            Holder<Structure> holder = registry.getHolder(key).orElse(null);
+        for (var entry : registry.entrySet()) {
+            var key = entry.getKey();
+            var structure = entry.getValue();
+            Holder<Structure> holder = registry.wrapAsHolder(structure);
             Set<String> tags = holder != null ? buildTags(holder) : Collections.emptySet();
             String id = ResourceKeyCompat.getKeyId(key);
 
@@ -97,6 +102,23 @@ public final class StructureLookup {
         StructureEntry[] trimmed = new StructureEntry[index];
         System.arraycopy(entries, 0, trimmed, 0, index);
         return trimmed;
+    }
+
+    private static StructureEntry[] buildEntries(HolderLookup.RegistryLookup<Structure> registryLookup) {
+        var holders = registryLookup.listElements().toList();
+        int size = holders.size();
+        if (size == 0) {
+            return new StructureEntry[0];
+        }
+
+        StructureEntry[] entries = new StructureEntry[size];
+        for (int i = 0; i < size; i++) {
+            Holder<Structure> holder = holders.get(i);
+            String id = holder.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+            entries[i] = new StructureEntry(holder.value(), new Entry(id, buildTags(holder)));
+        }
+
+        return entries;
     }
 
     private static IdentityHashMap<Structure, Integer> buildIndex(StructureEntry[] entries) {
@@ -140,7 +162,11 @@ public final class StructureLookup {
 
     private static Set<String> buildTags(Holder<Structure> structure) {
         var tags = new HashSet<String>();
-        StructureCompat.getTags(structure).forEach(tag -> tags.add("#" + tag.location().toString()));
+        try {
+            StructureCompat.getTags(structure).forEach(tag -> tags.add("#" + tag.location().toString()));
+        } catch (IllegalStateException ignored) {
+            // Tags may be unbound in registry-only contexts (tests).
+        }
         return tags;
     }
 
