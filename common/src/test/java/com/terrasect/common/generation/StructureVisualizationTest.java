@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import javax.imageio.ImageIO;
 import net.minecraft.SharedConstants;
@@ -29,6 +30,12 @@ import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +70,10 @@ public class StructureVisualizationTest {
         }
 
         StructureLookup structureLookup = structures.hasRegistryStructures ? StructureLookup.build(registry) : null;
+        StructureSetSnapshot[] structureSets = collectStructureSets(lookup.lookupOrThrow(Registries.STRUCTURE_SET), seed);
+        if (structureSets.length == 0) {
+            throw new IllegalStateException("No structure sets registered for visualization test");
+        }
 
         var vanilla = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
         var filtered = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -77,11 +88,15 @@ public class StructureVisualizationTest {
                 var blockX = chunkX * CHUNK_SIZE;
                 var blockZ = chunkZ * CHUNK_SIZE;
 
-                var index = (int) Math.floorMod(MathUtils.hash64(seed, chunkX, chunkZ, 91), structures.ids.length);
-                Structure structure = structures.structures != null ? structures.structures[index] : null;
-                String structureId = structures.ids[index];
+                StructureSelection selection = pickStructureForChunk(seed, chunkX, chunkZ, structureSets);
+                if (selection == null) {
+                    vanilla.setRGB(px, py, 0x000000);
+                    filtered.setRGB(px, py, 0x000000);
+                    continue;
+                }
 
-                vanilla.setRGB(px, py, structureToColor(structureId));
+                Structure structure = selection.structure;
+                String structureId = selection.id;
 
                 TraversalResult traversal = World.traverse(context, blockX, blockZ);
                 Region region = traversal != null ? traversal.region : null;
@@ -91,8 +106,8 @@ public class StructureVisualizationTest {
                 if (structureLookup != null && structure != null) {
                     allowed = structureLookup.isAllowed(structure, rules);
                 } else {
-                    var selection = rules != null ? rules.selection() : null;
-                    allowed = StructureHandler.checkStructure(selection, structureId, Set.of())
+                    var ruleSelection = rules != null ? rules.selection() : null;
+                    allowed = StructureHandler.checkStructure(ruleSelection, structureId, Set.of())
                             != StructureHandler.FilterResult.BLOCKED;
                 }
                 totalCount++;
@@ -102,6 +117,7 @@ public class StructureVisualizationTest {
                 } else {
                     filtered.setRGB(px, py, structureToColor(structureId));
                 }
+                vanilla.setRGB(px, py, structureToColor(structureId));
             }
         }
 
@@ -123,7 +139,8 @@ public class StructureVisualizationTest {
         snapshotText.append("totalCount=").append(totalCount).append('\n');
         snapshotText.append("blockedCount=").append(blockedCount).append('\n');
         snapshotText.append("blockedRate=").append(
-                String.format("%.2f", totalCount > 0 ? 100.0 * blockedCount / totalCount : 0)).append('\n');
+                String.format(Locale.ROOT, "%.2f", totalCount > 0 ? 100.0 * blockedCount / totalCount : 0))
+                .append('\n');
         appendImageHash(snapshotText, "vanilla_structures", vanilla);
         appendImageHash(snapshotText, "filtered_structures", filtered);
         snapshot.assertThat(snapshotText.toString()).asText().matchesSnapshotText();
@@ -200,6 +217,159 @@ public class StructureVisualizationTest {
         return (r << 16) | (g << 8) | b;
     }
 
+    private static StructureSetSnapshot[] collectStructureSets(
+            HolderLookup.RegistryLookup<StructureSet> registry,
+            long seed) {
+        var holders = registry.listElements().toList();
+        if (holders.isEmpty()) {
+            return new StructureSetSnapshot[0];
+        }
+
+        var entries = new ArrayList<StructureSetSnapshot>(holders.size());
+        for (var holder : holders) {
+            var set = holder.value();
+            var structures = set.structures();
+            if (structures.isEmpty()) {
+                continue;
+            }
+            String setId = holder.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown_set");
+            var selectionEntries = new StructureSelection[structures.size()];
+            int totalWeight = 0;
+            for (int i = 0; i < structures.size(); i++) {
+                var entry = structures.get(i);
+                var structureHolder = entry.structure();
+                String structureId = structureHolder.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+                selectionEntries[i] = new StructureSelection(structureHolder.value(), structureId, entry.weight());
+                totalWeight += entry.weight();
+            }
+
+            long[] ringPositions = null;
+            if (set.placement() instanceof ConcentricRingsStructurePlacement rings) {
+                ringPositions = computeRingPositions(seed, rings);
+            }
+
+            entries.add(new StructureSetSnapshot(setId, set.placement(), selectionEntries, totalWeight, ringPositions));
+        }
+
+        entries.sort((a, b) -> a.id.compareTo(b.id));
+        return entries.toArray(new StructureSetSnapshot[0]);
+    }
+
+    private static StructureSelection pickStructureForChunk(
+            long seed,
+            int chunkX,
+            int chunkZ,
+            StructureSetSnapshot[] sets) {
+        for (StructureSetSnapshot set : sets) {
+            if (!isStructureChunk(seed, chunkX, chunkZ, set)) {
+                continue;
+            }
+            StructureSelection picked = pickStructureFromSet(seed, chunkX, chunkZ, set);
+            if (picked != null) {
+                return picked;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isStructureChunk(
+            long seed,
+            int chunkX,
+            int chunkZ,
+            StructureSetSnapshot set) {
+        StructurePlacement placement = set.placement;
+        if (placement instanceof RandomSpreadStructurePlacement randomSpread) {
+            if (!randomSpread.applyAdditionalChunkRestrictions(chunkX, chunkZ, seed)) {
+                return false;
+            }
+            ChunkPos potential = randomSpread.getPotentialStructureChunk(seed, chunkX, chunkZ);
+            return potential.getMinBlockX() == chunkX * CHUNK_SIZE
+                    && potential.getMinBlockZ() == chunkZ * CHUNK_SIZE;
+        }
+        if (placement instanceof ConcentricRingsStructurePlacement rings) {
+            if (!rings.applyAdditionalChunkRestrictions(chunkX, chunkZ, seed)) {
+                return false;
+            }
+            return containsRingChunk(set.ringPositions, chunkX, chunkZ);
+        }
+        return false;
+    }
+
+    private static boolean containsRingChunk(long[] ringPositions, int chunkX, int chunkZ) {
+        if (ringPositions == null || ringPositions.length == 0) {
+            return false;
+        }
+        long target = packChunkPos(chunkX, chunkZ);
+        for (long ringPos : ringPositions) {
+            if (ringPos == target) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static StructureSelection pickStructureFromSet(
+            long seed,
+            int chunkX,
+            int chunkZ,
+            StructureSetSnapshot set) {
+        if (set.totalWeight <= 0) {
+            return null;
+        }
+        int roll = (int) Math.floorMod(
+                MathUtils.hash64(seed, chunkX, chunkZ, set.selectionSalt()),
+                (long) set.totalWeight);
+        for (StructureSelection selection : set.selections) {
+            roll -= selection.weight;
+            if (roll < 0) {
+                return selection;
+            }
+        }
+        return set.selections[set.selections.length - 1];
+    }
+
+    private static long[] computeRingPositions(long seed, ConcentricRingsStructurePlacement placement) {
+        int count = placement.count();
+        if (count <= 0) {
+            return new long[0];
+        }
+
+        int distance = placement.distance();
+        int spread = placement.spread();
+        long[] positions = new long[count];
+
+        RandomSource random = RandomSource.create();
+        random.setSeed(seed);
+
+        double angle = random.nextDouble() * Math.PI * 2.0;
+        int ringIndex = 0;
+        int ring = 0;
+
+        for (int i = 0; i < count; i++) {
+            double radius = 4 * distance + distance * ring * 6 + (random.nextDouble() - 0.5) * (distance * 2.5);
+            int x = (int) Math.round(Math.cos(angle) * radius);
+            int z = (int) Math.round(Math.sin(angle) * radius);
+            positions[i] = packChunkPos(x, z);
+
+            angle += (Math.PI * 2) / spread;
+            ringIndex++;
+            if (ringIndex == spread) {
+                ring++;
+                ringIndex = 0;
+                spread += 2 * spread / (ring + 1);
+                spread = Math.min(spread, count - i);
+                if (spread > 0) {
+                    angle += random.nextDouble() * Math.PI * 2.0;
+                }
+            }
+        }
+        return positions;
+    }
+
+    private static long packChunkPos(int chunkX, int chunkZ) {
+        return ((long) chunkX & 0xFFFFFFFFL) | (((long) chunkZ & 0xFFFFFFFFL) << 32);
+    }
+
     private static void appendImageHash(StringBuilder sb, String name, BufferedImage image) {
         sb.append(name).append('=').append(SnapshotHashes.imageSha256(image)).append('\n');
     }
@@ -255,5 +425,19 @@ public class StructureVisualizationTest {
     }
 
     private record StructureEntry(Structure structure, String id) {
+    }
+
+    private record StructureSetSnapshot(
+            String id,
+            StructurePlacement placement,
+            StructureSelection[] selections,
+            int totalWeight,
+            long[] ringPositions) {
+        private int selectionSalt() {
+            return id.hashCode();
+        }
+    }
+
+    private record StructureSelection(Structure structure, String id, int weight) {
     }
 }

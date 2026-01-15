@@ -4,8 +4,8 @@ snapshot-number: 0
 test-class: com.terrasect.common.generation.StructureVisualizationTest
 test-method: visualizeStructureFiltering
 
-totalCount=65536
-blockedCount=16486
-blockedRate=25.16
-vanilla_structures=837ff9f1a470af0af79e5f825c74800113af750a3b6cfb47610b8f42e85971d9
-filtered_structures=4f343f71d045db7dfc80bc4270b454fedccfb0a76e365cab1ad9e282599a9f6a
+totalCount=17964
+blockedCount=2982
+blockedRate=16.60
+vanilla_structures=b9835107c6d4894fa74ec168323a270b8c1b2fdc039d843408029494eaef4881
+filtered_structures=947056fb7b417f82bfe2db3a1a71989612c39a29e2b9c948854b76ae5c3664d8

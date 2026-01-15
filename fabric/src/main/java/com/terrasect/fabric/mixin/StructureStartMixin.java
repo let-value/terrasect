@@ -4,7 +4,6 @@ import com.terrasect.common.definition.StructureRules;
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.TraversalResult;
 import com.terrasect.common.generation.World;
-import com.terrasect.common.lookup.StructureLookup;
 import com.terrasect.common.mixin.StructureLookupAccess;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
@@ -39,11 +38,7 @@ public class StructureStartMixin {
             return;
         }
 
-        StructureLookup lookup = lookupAccess.terrasect$getStructureLookup();
-        if (lookup == null) {
-            lookup = StructureLookup.build(level.registryAccess());
-            lookupAccess.terrasect$setStructureLookup(lookup);
-        }
+        var lookup = lookupAccess.terrasect$getStructureLookup();
 
         var context = MinecraftContext.get(level.getLevel().dimension());
         if (context == null) {
