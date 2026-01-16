@@ -7,10 +7,10 @@ import net.minecraft.resources.Identifier;
 
 public class TerrasectFabricClient implements ClientModInitializer {
 
-    public static final Identifier REGION_DEBUG =
-            DebugScreenEntries.register(Identifier.fromNamespaceAndPath("terrasect", "region"), new RegionDebugEntry());
+  public static final Identifier REGION_DEBUG =
+      DebugScreenEntries.register(
+          Identifier.fromNamespaceAndPath("terrasect", "region"), new RegionDebugEntry());
 
-    @Override
-    public void onInitializeClient() {
-    }
+  @Override
+  public void onInitializeClient() {}
 }

@@ -4,11 +4,11 @@ import com.terrasect.common.generation.World;
 
 public interface Context {
 
-    long getSeed();
+  long getSeed();
 
-    long getInfluence(int x, int z);
+  long getInfluence(int x, int z);
 
-    default String getDimensionId() {
-        return World.OVERWORLD;
-    }
+  default String getDimensionId() {
+    return World.OVERWORLD;
+  }
 }

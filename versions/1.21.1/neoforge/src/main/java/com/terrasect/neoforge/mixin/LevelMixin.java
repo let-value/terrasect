@@ -25,40 +25,41 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
-    @Inject(
-                            method = "<init>",
-                            at =
-                                                    @At(
-                                                                            value = "INVOKE",
-                                                                            target =
-                                                                                                    "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-                                                                            ordinal = 0,
-                                                                            shift = At.Shift.BEFORE))
-    private void onInit(
-                            MinecraftServer minecraftServer,
-                            Executor executor,
-                            LevelStorageSource.LevelStorageAccess levelStorageAccess,
-                            ServerLevelData serverLevelData,
-                            ResourceKey<Level> resourceKey,
-                            LevelStem levelStem,
-                            ChunkProgressListener chunkProgressListener,
-                            boolean bl,
-                            long seed,
-                            List<CustomSpawner> list,
-                            boolean bl2,
-                            @Nullable RandomSequences randomSequences,
-                            CallbackInfo ci) {
+  @Inject(
+      method = "<init>",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+              ordinal = 0,
+              shift = At.Shift.BEFORE))
+  private void onInit(
+      MinecraftServer minecraftServer,
+      Executor executor,
+      LevelStorageSource.LevelStorageAccess levelStorageAccess,
+      ServerLevelData serverLevelData,
+      ResourceKey<Level> resourceKey,
+      LevelStem levelStem,
+      ChunkProgressListener chunkProgressListener,
+      boolean bl,
+      long seed,
+      List<CustomSpawner> list,
+      boolean bl2,
+      @Nullable RandomSequences randomSequences,
+      CallbackInfo ci) {
 
-        var level = (ServerLevel) (Object) this;
-        var generator = level.getChunkSource().getGenerator();
-        var biomeSource = generator.getBiomeSource();
+    var level = (ServerLevel) (Object) this;
+    var generator = level.getChunkSource().getGenerator();
+    var biomeSource = generator.getBiomeSource();
 
-        if (biomeSource instanceof MultiNoiseBiomeSource multiNoise && generator instanceof NoiseBasedChunkGenerator) {
+    if (biomeSource instanceof MultiNoiseBiomeSource multiNoise
+        && generator instanceof NoiseBasedChunkGenerator) {
 
-            var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
-            var sampler = level.getChunkSource().randomState().sampler();
+      var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
+      var sampler = level.getChunkSource().randomState().sampler();
 
-            LevelHandler.registerContext(resourceKey, seed, sampler, parameters);
-        }
+      LevelHandler.registerContext(resourceKey, seed, sampler, parameters);
     }
+  }
 }

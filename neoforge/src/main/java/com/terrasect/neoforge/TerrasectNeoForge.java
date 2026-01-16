@@ -5,7 +5,7 @@ import net.neoforged.fml.common.Mod;
 
 @Mod("terrasect")
 public class TerrasectNeoForge {
-    public TerrasectNeoForge() {
-        Terrasect.init();
-    }
+  public TerrasectNeoForge() {
+    Terrasect.init();
+  }
 }

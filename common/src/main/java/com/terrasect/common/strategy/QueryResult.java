@@ -2,30 +2,30 @@ package com.terrasect.common.strategy;
 
 public final class QueryResult {
 
-    public int childIndex;
+  public int childIndex;
 
-    public float centerX;
+  public float centerX;
 
-    public float centerZ;
+  public float centerZ;
 
-    public float radius;
+  public float radius;
 
-    public float siteX;
+  public float siteX;
 
-    public float siteZ;
+  public float siteZ;
 
-    public long childSeed;
+  public long childSeed;
 
-    public float edgeDistance;
+  public float edgeDistance;
 
-    public void reset() {
-        childIndex = 0;
-        centerX = 0;
-        centerZ = 0;
-        radius = 0.5f;
-        siteX = 0;
-        siteZ = 0;
-        childSeed = 0;
-        edgeDistance = 1.0f;
-    }
+  public void reset() {
+    childIndex = 0;
+    centerX = 0;
+    centerZ = 0;
+    radius = 0.5f;
+    siteX = 0;
+    siteZ = 0;
+    childSeed = 0;
+    edgeDistance = 1.0f;
+  }
 }

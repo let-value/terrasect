@@ -8,5 +8,6 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 public interface MultiNoiseBiomeSourceAccessor {
 
-    Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> terrasect$getParameters();
+  Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>>
+      terrasect$getParameters();
 }

@@ -7,14 +7,13 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 
 public final class StructureCompat {
 
-    private StructureCompat() {
-    }
+  private StructureCompat() {}
 
-    public static String getStructureId(Holder<Structure> structure) {
-        return structure.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
-    }
+  public static String getStructureId(Holder<Structure> structure) {
+    return structure.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+  }
 
-    public static Stream<TagKey<Structure>> getTags(Holder<Structure> structure) {
-        return structure.tags();
-    }
+  public static Stream<TagKey<Structure>> getTags(Holder<Structure> structure) {
+    return structure.tags();
+  }
 }

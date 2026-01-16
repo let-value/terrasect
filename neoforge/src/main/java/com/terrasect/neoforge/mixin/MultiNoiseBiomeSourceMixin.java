@@ -13,7 +13,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(MultiNoiseBiomeSource.class)
 public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceAccessor {
 
-    @Accessor("parameters")
-    @Override
-    Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> terrasect$getParameters();
+  @Accessor("parameters")
+  @Override
+  Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>>
+      terrasect$getParameters();
 }

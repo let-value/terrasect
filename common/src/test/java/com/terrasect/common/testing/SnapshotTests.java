@@ -9,5 +9,4 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @ExtendWith(SnapshotUpdateExtension.class)
-public @interface SnapshotTests {
-}
+public @interface SnapshotTests {}

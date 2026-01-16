@@ -13,24 +13,25 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(MultiNoiseBiomeSource.class)
 public class BiomeMixin {
 
-    @Redirect(
-            method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
-            at =
-                    @At(
-                            value = "INVOKE",
-                            target =
-                                    "Lnet/minecraft/world/level/biome/MultiNoiseBiomeSource;getNoiseBiome(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;"))
-    private Holder<Biome> terrasect$filterBiome(
-            MultiNoiseBiomeSource self,
-            Climate.TargetPoint targetPoint,
-            int quartX,
-            int quartY,
-            int quartZ,
-            Climate.Sampler sampler) {
+  @Redirect(
+      method =
+          "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/world/level/biome/MultiNoiseBiomeSource;getNoiseBiome(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;"))
+  private Holder<Biome> terrasect$filterBiome(
+      MultiNoiseBiomeSource self,
+      Climate.TargetPoint targetPoint,
+      int quartX,
+      int quartY,
+      int quartZ,
+      Climate.Sampler sampler) {
 
-        var context = MinecraftContext.get(sampler);
-        assert context != null : "MinecraftContext not found in Climate.Sampler";
+    var context = MinecraftContext.get(sampler);
+    assert context != null : "MinecraftContext not found in Climate.Sampler";
 
-        return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
-    }
+    return BiomeHandler.selectBiome(context, quartX, quartZ, targetPoint);
+  }
 }

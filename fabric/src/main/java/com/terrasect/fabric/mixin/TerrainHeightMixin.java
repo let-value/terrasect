@@ -22,75 +22,80 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(NoiseChunk.class)
 public class TerrainHeightMixin {
 
-    @Unique private TerrainHeightLookup terrasect$heightLookup;
+  @Unique private TerrainHeightLookup terrasect$heightLookup;
 
-    @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
+  @Unique private Aquifer.FluidPicker terrasect$fluidPicker;
 
-    @Inject(
-        method = "<init>",
-        at =
-                @At(
-                        value = "FIELD",
-                        target =
-                                "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
-                        opcode = Opcodes.PUTFIELD,
-                        shift = At.Shift.AFTER))
-    private void initHeightConstraintsEarly(
-            int cellCountXZ,
-            RandomState randomState,
-            int chunkMinX,
-            int chunkMinZ,
-            NoiseSettings noiseSettings,
-            DensityFunctions.BeardifierOrMarker beardifier,
-            NoiseGeneratorSettings generatorSettings,
-            Aquifer.FluidPicker fluidPicker,
-            Blender blender,
-            CallbackInfo ci) {
-        this.terrasect$fluidPicker = fluidPicker;
-        var context = MinecraftContext.get(randomState.sampler());
+  @Inject(
+      method = "<init>",
+      at =
+          @At(
+              value = "FIELD",
+              target =
+                  "Lnet/minecraft/world/level/levelgen/NoiseChunk;preliminarySurfaceLevel:Lnet/minecraft/world/level/levelgen/DensityFunction;",
+              opcode = Opcodes.PUTFIELD,
+              shift = At.Shift.AFTER))
+  private void initHeightConstraintsEarly(
+      int cellCountXZ,
+      RandomState randomState,
+      int chunkMinX,
+      int chunkMinZ,
+      NoiseSettings noiseSettings,
+      DensityFunctions.BeardifierOrMarker beardifier,
+      NoiseGeneratorSettings generatorSettings,
+      Aquifer.FluidPicker fluidPicker,
+      Blender blender,
+      CallbackInfo ci) {
+    this.terrasect$fluidPicker = fluidPicker;
+    var context = MinecraftContext.get(randomState.sampler());
 
-        var router = randomState.router();
-        var surfaceLevel = router.preliminarySurfaceLevel();
+    var router = randomState.router();
+    var surfaceLevel = router.preliminarySurfaceLevel();
 
-        var pointCtx = new MutablePointContext();
-        terrasect$heightLookup = TerrainHeightLookup.build(context, chunkMinX, chunkMinZ, (x, z) -> {
-            pointCtx.set(x, 0, z);
-            return (int) Math.floor(surfaceLevel.compute(pointCtx));
-        });
+    var pointCtx = new MutablePointContext();
+    terrasect$heightLookup =
+        TerrainHeightLookup.build(
+            context,
+            chunkMinX,
+            chunkMinZ,
+            (x, z) -> {
+              pointCtx.set(x, 0, z);
+              return (int) Math.floor(surfaceLevel.compute(pointCtx));
+            });
+  }
+
+  @Inject(method = "getInterpolatedState", at = @At("HEAD"), cancellable = true)
+  private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
+    if (terrasect$heightLookup == null) return;
+
+    var self = (NoiseChunk) (Object) this;
+    var blockX = self.blockX();
+    var blockY = self.blockY();
+    var blockZ = self.blockZ();
+
+    var maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
+    if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
+
+      var fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
+      cir.setReturnValue(fluidStatus.at(blockY));
+      return;
     }
+  }
 
-    @Inject(method = "getInterpolatedState", at = @At("HEAD"), cancellable = true)
-    private void constrainTerrainHeight(CallbackInfoReturnable<BlockState> cir) {
-        if (terrasect$heightLookup == null) return;
+  @Inject(method = "computePreliminarySurfaceLevel", at = @At("RETURN"), cancellable = true)
+  private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
+    if (terrasect$heightLookup == null) return;
 
-        var self = (NoiseChunk) (Object) this;
-        var blockX = self.blockX();
-        var blockY = self.blockY();
-        var blockZ = self.blockZ();
+    var x = (int) (packedPos & 0xFFFFFFFFL);
+    var z = (int) (packedPos >>> 32);
+    var maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
 
-        var maxHeight = terrasect$heightLookup.getMaxHeight(blockX, blockZ);
-        if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT && blockY > maxHeight) {
-
-            var fluidStatus = terrasect$fluidPicker.computeFluid(blockX, blockY, blockZ);
-            cir.setReturnValue(fluidStatus.at(blockY));
-            return;
-        }
+    if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT) {
+      var original = cir.getReturnValue();
+      if (original > maxHeight) {
+        cir.setReturnValue(maxHeight);
+        return;
+      }
     }
-
-    @Inject(method = "computePreliminarySurfaceLevel", at = @At("RETURN"), cancellable = true)
-    private void clampPreliminarySurfaceLevel(long packedPos, CallbackInfoReturnable<Integer> cir) {
-        if (terrasect$heightLookup == null) return;
-
-        var x = (int) (packedPos & 0xFFFFFFFFL);
-        var z = (int) (packedPos >>> 32);
-        var maxHeight = terrasect$heightLookup.getMaxHeight(x, z);
-
-        if (maxHeight != TerrainHeightLookup.NO_CONSTRAINT) {
-            var original = cir.getReturnValue();
-            if (original > maxHeight) {
-                cir.setReturnValue(maxHeight);
-                return;
-            }
-        }
-    }
+  }
 }
