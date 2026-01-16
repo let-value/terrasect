@@ -7,14 +7,13 @@ import net.minecraft.world.level.biome.Biome;
 
 public final class BiomeCompat {
 
-    private BiomeCompat() {
-    }
+  private BiomeCompat() {}
 
-    public static String getBiomeId(Holder<Biome> biome) {
-        return biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
-    }
+  public static String getBiomeId(Holder<Biome> biome) {
+    return biome.unwrapKey().map(ResourceKeyCompat::getKeyId).orElse("unknown");
+  }
 
-    public static Stream<TagKey<Biome>> getTags(Holder<Biome> biome) {
-        return biome.tags();
-    }
+  public static Stream<TagKey<Biome>> getTags(Holder<Biome> biome) {
+    return biome.tags();
+  }
 }

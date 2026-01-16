@@ -1,68 +1,71 @@
 package com.terrasect.common.definition;
 
 public record HeightConstraints(int minY, int maxY) {
-    private static final int INHERIT_SENTINEL = Integer.MIN_VALUE;
-    private static final int UNCONSTRAINED_SENTINEL = Integer.MIN_VALUE + 1;
+  private static final int INHERIT_SENTINEL = Integer.MIN_VALUE;
+  private static final int UNCONSTRAINED_SENTINEL = Integer.MIN_VALUE + 1;
 
-    private static final HeightConstraints INHERIT = new HeightConstraints(INHERIT_SENTINEL, INHERIT_SENTINEL);
-    private static final HeightConstraints UNCONSTRAINED =
-            new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
+  private static final HeightConstraints INHERIT =
+      new HeightConstraints(INHERIT_SENTINEL, INHERIT_SENTINEL);
+  private static final HeightConstraints UNCONSTRAINED =
+      new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
 
-    public HeightConstraints {
-        var inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;
-        var unconstrained = minY == UNCONSTRAINED_SENTINEL || maxY == UNCONSTRAINED_SENTINEL;
+  public HeightConstraints {
+    var inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;
+    var unconstrained = minY == UNCONSTRAINED_SENTINEL || maxY == UNCONSTRAINED_SENTINEL;
 
-        if (inherit && unconstrained) {
-            throw new IllegalArgumentException("HeightConstraints cannot be both inherit and unconstrained");
-        }
-
-        if (inherit) {
-            if (minY != INHERIT_SENTINEL || maxY != INHERIT_SENTINEL) {
-                throw new IllegalArgumentException("HeightConstraints inherit must set both minY and maxY");
-            }
-        } else if (unconstrained) {
-            if (minY != UNCONSTRAINED_SENTINEL || maxY != UNCONSTRAINED_SENTINEL) {
-                throw new IllegalArgumentException("HeightConstraints unconstrained must set both minY and maxY");
-            }
-        } else if (minY > maxY) {
-            var tmp = minY;
-            minY = maxY;
-            maxY = tmp;
-        }
+    if (inherit && unconstrained) {
+      throw new IllegalArgumentException(
+          "HeightConstraints cannot be both inherit and unconstrained");
     }
 
-    public static HeightConstraints inherit() {
-        return INHERIT;
+    if (inherit) {
+      if (minY != INHERIT_SENTINEL || maxY != INHERIT_SENTINEL) {
+        throw new IllegalArgumentException("HeightConstraints inherit must set both minY and maxY");
+      }
+    } else if (unconstrained) {
+      if (minY != UNCONSTRAINED_SENTINEL || maxY != UNCONSTRAINED_SENTINEL) {
+        throw new IllegalArgumentException(
+            "HeightConstraints unconstrained must set both minY and maxY");
+      }
+    } else if (minY > maxY) {
+      var tmp = minY;
+      minY = maxY;
+      maxY = tmp;
     }
+  }
 
-    public static HeightConstraints unconstrained() {
-        return UNCONSTRAINED;
-    }
+  public static HeightConstraints inherit() {
+    return INHERIT;
+  }
 
-    public static HeightConstraints range(int minY, int maxY) {
-        return new HeightConstraints(minY, maxY);
-    }
+  public static HeightConstraints unconstrained() {
+    return UNCONSTRAINED;
+  }
 
-    public static HeightConstraints exact(int y) {
-        return new HeightConstraints(y, y);
-    }
+  public static HeightConstraints range(int minY, int maxY) {
+    return new HeightConstraints(minY, maxY);
+  }
 
-    public boolean isInherit() {
-        return minY == INHERIT_SENTINEL;
-    }
+  public static HeightConstraints exact(int y) {
+    return new HeightConstraints(y, y);
+  }
 
-    public boolean isUnconstrained() {
-        return minY == UNCONSTRAINED_SENTINEL;
-    }
+  public boolean isInherit() {
+    return minY == INHERIT_SENTINEL;
+  }
 
-    public boolean hasConstraints() {
-        return !isInherit() && !isUnconstrained();
-    }
+  public boolean isUnconstrained() {
+    return minY == UNCONSTRAINED_SENTINEL;
+  }
 
-    public HeightConstraints resolveWithParent(HeightConstraints parent) {
-        if (isInherit() && parent != null) {
-            return parent;
-        }
-        return this;
+  public boolean hasConstraints() {
+    return !isInherit() && !isUnconstrained();
+  }
+
+  public HeightConstraints resolveWithParent(HeightConstraints parent) {
+    if (isInherit() && parent != null) {
+      return parent;
     }
+    return this;
+  }
 }

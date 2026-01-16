@@ -8,33 +8,33 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Climate.TargetPoint.class)
 public interface ClimateTargetPointMixin extends ClimateTargetPointAccessor {
-    @Accessor("temperature")
-    @Mutable
-    @Override
-    void terrasect$setTemperature(long temperature);
+  @Accessor("temperature")
+  @Mutable
+  @Override
+  void terrasect$setTemperature(long temperature);
 
-    @Accessor("humidity")
-    @Mutable
-    @Override
-    void terrasect$setHumidity(long humidity);
+  @Accessor("humidity")
+  @Mutable
+  @Override
+  void terrasect$setHumidity(long humidity);
 
-    @Accessor("continentalness")
-    @Mutable
-    @Override
-    void terrasect$setContinentalness(long continentalness);
+  @Accessor("continentalness")
+  @Mutable
+  @Override
+  void terrasect$setContinentalness(long continentalness);
 
-    @Accessor("erosion")
-    @Mutable
-    @Override
-    void terrasect$setErosion(long erosion);
+  @Accessor("erosion")
+  @Mutable
+  @Override
+  void terrasect$setErosion(long erosion);
 
-    @Accessor("depth")
-    @Mutable
-    @Override
-    void terrasect$setDepth(long depth);
+  @Accessor("depth")
+  @Mutable
+  @Override
+  void terrasect$setDepth(long depth);
 
-    @Accessor("weirdness")
-    @Mutable
-    @Override
-    void terrasect$setWeirdness(long weirdness);
+  @Accessor("weirdness")
+  @Mutable
+  @Override
+  void terrasect$setWeirdness(long weirdness);
 }

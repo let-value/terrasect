@@ -12,6 +12,7 @@ import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.storage.LevelStorageSource;
@@ -25,40 +26,44 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerLevel.class)
 public class LevelMixin {
 
-    @Inject(
-                            method = "<init>",
-                            at =
-                                                    @At(
-                                                                            value = "INVOKE",
-                                                                            target =
-                                                                                                    "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-                                                                            ordinal = 0,
-                                                                            shift = At.Shift.BEFORE))
-    private void onInit(
-                            MinecraftServer server,
-                            Executor executor,
-                            LevelStorageSource.LevelStorageAccess storage,
-                            ServerLevelData levelData,
-                            ResourceKey<Level> dimension,
-                            LevelStem levelStem,
-                            ChunkProgressListener chunkProgressListener,
-                            boolean bl,
-                            long seed,
-                            List<CustomSpawner> spawners,
-                            boolean bl2,
-                            @Nullable RandomSequences randomSequences,
-                            CallbackInfo ci) {
+  @Inject(
+      method = "<init>",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+              ordinal = 0,
+              shift = At.Shift.BEFORE))
+  private void onInit(
+      MinecraftServer server,
+      Executor executor,
+      LevelStorageSource.LevelStorageAccess storage,
+      ServerLevelData levelData,
+      ResourceKey<Level> dimension,
+      LevelStem levelStem,
+      ChunkProgressListener chunkProgressListener,
+      boolean bl,
+      long seed,
+      List<CustomSpawner> spawners,
+      boolean bl2,
+      @Nullable RandomSequences randomSequences,
+      CallbackInfo ci) {
 
-        var level = (ServerLevel) (Object) this;
-        var generator = level.getChunkSource().getGenerator();
-        var biomeSource = generator.getBiomeSource();
+    var level = (ServerLevel) (Object) this;
+    var chunkSource = level.getChunkSource();
+    var generator = chunkSource.getGenerator();
+    var biomeSource = generator.getBiomeSource();
 
-        if (biomeSource instanceof MultiNoiseBiomeSource multiNoise && generator instanceof NoiseBasedChunkGenerator) {
-
-            var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
-            var sampler = level.getChunkSource().randomState().sampler();
-
-            LevelHandler.registerContext(dimension, seed, sampler, parameters);
-        }
+    if (biomeSource instanceof MultiNoiseBiomeSource multiNoise
+        && generator instanceof NoiseBasedChunkGenerator) {
+      var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
+      var sampler = chunkSource.randomState().sampler();
+      LevelHandler.registerContext(dimension, seed, sampler, parameters);
     }
+
+    ChunkGeneratorStructureState structureState = chunkSource.getGeneratorState();
+    var possibleSets = structureState.possibleStructureSets().toList();
+    LevelHandler.initializeStructureSets(dimension, possibleSets, server.registryAccess());
+  }
 }

@@ -4,110 +4,130 @@ import static com.terrasect.common.compat.ResourceKeyCompat.getKeyId;
 
 import com.mojang.datafixers.util.Either;
 import com.terrasect.common.Context;
+import com.terrasect.common.definition.Region;
 import com.terrasect.common.lookup.BiomeLookup;
+import com.terrasect.common.lookup.StructureSetsLookup;
 import com.terrasect.common.mixin.VanillaSamplerAccessor;
 import com.terrasect.common.util.Packer;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 public class MinecraftContext implements Context {
 
-    private static final Map<ResourceKey<Level>, MinecraftContext> BY_DIMENSION = new ConcurrentHashMap<>();
-    private static final Map<Climate.Sampler, MinecraftContext> BY_SAMPLER = new ConcurrentHashMap<>();
+  private static final Map<ResourceKey<Level>, MinecraftContext> BY_DIMENSION =
+      new ConcurrentHashMap<>();
+  private static final Map<Climate.Sampler, MinecraftContext> BY_SAMPLER =
+      new ConcurrentHashMap<>();
 
-    private final long seed;
-    private final String dimensionId;
-    private final Climate.Sampler sampler;
-    private final Climate.ParameterList<Holder<Biome>> parameterList;
-    public final BiomeLookup biomeLookup;
+  private final long seed;
+  private final String dimensionId;
+  private final Climate.Sampler sampler;
+  private final Climate.ParameterList<Holder<Biome>> parameterList;
+  public final BiomeLookup biomeLookup;
+  public final StructureSetsLookup structureSetsLookup;
 
-    private MinecraftContext(
-            long seed,
-            String dimensionId,
-            Climate.Sampler sampler,
-            Climate.ParameterList<Holder<Biome>> parameterList,
-            BiomeLookup biomeLookup) {
-        this.seed = seed;
-        this.dimensionId = dimensionId;
-        this.sampler = sampler;
-        this.parameterList = parameterList;
-        this.biomeLookup = biomeLookup;
+  private MinecraftContext(
+      long seed,
+      String dimensionId,
+      Climate.Sampler sampler,
+      Climate.ParameterList<Holder<Biome>> parameterList,
+      BiomeLookup biomeLookup,
+      StructureSetsLookup structureSetsLookup) {
+    this.seed = seed;
+    this.dimensionId = dimensionId;
+    this.sampler = sampler;
+    this.parameterList = parameterList;
+    this.biomeLookup = biomeLookup;
+    this.structureSetsLookup = structureSetsLookup;
+  }
+
+  public static MinecraftContext create(
+      ResourceKey<Level> dimension,
+      long seed,
+      Climate.Sampler sampler,
+      Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>>
+          parameters,
+      List<Holder<StructureSet>> possibleSets,
+      RegistryAccess registryAccess) {
+
+    var dimensionId = getKeyId(dimension);
+    var parameterList = parameters.map(list -> list, holder -> holder.value().parameters());
+    Region root = World.getRoot(dimensionId);
+
+    var biomeLookup = BiomeLookup.build(parameterList, root);
+    var structureSetsLookup = StructureSetsLookup.build(possibleSets, root, registryAccess);
+
+    var context =
+        new MinecraftContext(
+            seed, dimensionId, sampler, parameterList, biomeLookup, structureSetsLookup);
+
+    BY_DIMENSION.put(dimension, context);
+    if (sampler != null) {
+      BY_SAMPLER.put(sampler, context);
     }
 
-    public static MinecraftContext create(
-            ResourceKey<Level> dimension,
-            long seed,
-            Climate.Sampler sampler,
-            Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters) {
+    World.initialize(context);
 
-        String dimensionId = getKeyId(dimension);
-        var parameterList = parameters.map(list -> list, holder -> holder.value().parameters());
+    return context;
+  }
 
-        BiomeLookup lookup = BiomeLookup.build(parameterList, dimensionId);
+  public static MinecraftContext get(ResourceKey<Level> dimension) {
+    return BY_DIMENSION.get(dimension);
+  }
 
-        var context = new MinecraftContext(seed, dimensionId, sampler, parameterList, lookup);
+  public static MinecraftContext get(Climate.Sampler sampler) {
+    var ctx = BY_SAMPLER.get(sampler);
+    if (ctx != null) return ctx;
 
-        BY_DIMENSION.put(dimension, context);
-        if (sampler != null) {
-            BY_SAMPLER.put(sampler, context);
-        }
+    ctx = BY_DIMENSION.get(Level.OVERWORLD);
+    if (ctx != null) return ctx;
 
-        World.initialize(context);
+    return BY_DIMENSION.values().stream().findFirst().orElse(null);
+  }
 
-        return context;
-    }
+  public static void clear() {
+    BY_DIMENSION.clear();
+    BY_SAMPLER.clear();
+  }
 
-    public static MinecraftContext get(ResourceKey<Level> dimension) {
-        return BY_DIMENSION.get(dimension);
-    }
+  @Override
+  public long getSeed() {
+    return seed;
+  }
 
-    public static MinecraftContext get(Climate.Sampler sampler) {
-        var ctx = BY_SAMPLER.get(sampler);
-        if (ctx != null) return ctx;
+  public Climate.ParameterList<Holder<Biome>> parameterList() {
+    return parameterList;
+  }
 
-        ctx = BY_DIMENSION.get(Level.OVERWORLD);
-        if (ctx != null) return ctx;
+  @Override
+  public String getDimensionId() {
+    return dimensionId;
+  }
 
-        return BY_DIMENSION.values().stream().findFirst().orElse(null);
-    }
+  @Override
+  public long getInfluence(int x, int z) {
+    if (sampler == null || parameterList == null) return 0L;
 
-    public static void clear() {
-        BY_DIMENSION.clear();
-        BY_SAMPLER.clear();
-    }
+    var target =
+        ((VanillaSamplerAccessor) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
 
-    @Override public long getSeed() {
-        return seed;
-    }
+    var biome = parameterList.findValue(target);
+    float river = biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
 
-    public Climate.ParameterList<Holder<Biome>> parameterList() {
-        return parameterList;
-    }
+    var weirdness = target.weirdness();
+    var normalized = (weirdness + 10000.0f) / 20000.0f;
+    var ridge = Math.max(0.0f, Math.min(1.0f, normalized));
 
-    @Override public String getDimensionId() {
-        return dimensionId;
-    }
-
-    @Override public long getInfluence(int x, int z) {
-        if (sampler == null || parameterList == null) return 0L;
-
-        var target =
-                ((VanillaSamplerAccessor) (Object) sampler).terrasect$sampleVanilla(x >> 2, 16, z >> 2);
-
-        var biome = parameterList.findValue(target);
-        float river = biome.is(BiomeTags.IS_RIVER) ? 1.0f : 0.0f;
-
-        var weirdness = target.weirdness();
-        var normalized = (weirdness + 10000.0f) / 20000.0f;
-        var ridge = Math.max(0.0f, Math.min(1.0f, normalized));
-
-        return Packer.packPair(river, ridge);
-    }
+    return Packer.packPair(river, ridge);
+  }
 }

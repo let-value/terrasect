@@ -1,0 +1,11 @@
+dynamic-directory: false
+snapshot-name: visualizeStructureFiltering_0
+snapshot-number: 0
+test-class: com.terrasect.common.generation.StructureVisualizationTest
+test-method: visualizeStructureFiltering
+
+totalCount=17964
+blockedCount=15056
+blockedRate=83.81
+vanilla_structures=b9835107c6d4894fa74ec168323a270b8c1b2fdc039d843408029494eaef4881
+filtered_structures=36357d64ad231200e77b4492fafbab1586f907321c341d5f411ca2f8f69f6365

@@ -17,20 +17,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(PlacedFeature.class)
 public class FeatureMixin {
 
-    @Inject(method = "place", at = @At("HEAD"), cancellable = true)
-    private void onPlace(
-            WorldGenLevel level,
-            ChunkGenerator generator,
-            RandomSource random,
-            BlockPos pos,
-            CallbackInfoReturnable<Boolean> cir) {
-        var context = MinecraftContext.get(level.getLevel().dimension());
+  @Inject(method = "place", at = @At("HEAD"), cancellable = true)
+  private void onPlace(
+      WorldGenLevel level,
+      ChunkGenerator generator,
+      RandomSource random,
+      BlockPos pos,
+      CallbackInfoReturnable<Boolean> cir) {
+    var context = MinecraftContext.get(level.getLevel().dimension());
 
-        if (context == null) {
-            return;
-        }
-
-        TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
-        @SuppressWarnings("unused") Region region = traversal != null ? traversal.region : null;
+    if (context == null) {
+      return;
     }
+
+    TraversalResult traversal = World.traverse(context, pos.getX(), pos.getZ());
+    @SuppressWarnings("unused")
+    Region region = traversal != null ? traversal.region : null;
+  }
 }

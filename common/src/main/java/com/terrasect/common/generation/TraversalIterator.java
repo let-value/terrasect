@@ -4,29 +4,28 @@ import com.terrasect.common.definition.Region;
 
 public final class TraversalIterator {
 
-    final TraversalResult result = new TraversalResult();
+  final TraversalResult result = new TraversalResult();
 
-    Region currentRegion;
+  Region currentRegion;
 
-    TraversalIterator() {
+  TraversalIterator() {}
+
+  public TraversalResult current() {
+    return result;
+  }
+
+  public boolean hasNext() {
+    return currentRegion.hasChildren();
+  }
+
+  public TraversalIterator next() {
+    return Layout.step(this);
+  }
+
+  public TraversalIterator toLeaf() {
+    while (hasNext()) {
+      next();
     }
-
-    public TraversalResult current() {
-        return result;
-    }
-
-    public boolean hasNext() {
-        return currentRegion.hasChildren();
-    }
-
-    public TraversalIterator next() {
-        return Layout.step(this);
-    }
-
-    public TraversalIterator toLeaf() {
-        while (hasNext()) {
-            next();
-        }
-        return this;
-    }
+    return this;
+  }
 }

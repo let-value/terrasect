@@ -8,19 +8,20 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(targets = "net.minecraft.world.level.levelgen.DensityFunctions$WeirdScaledSampler")
 public class WeirdScaledSamplerMixin {
-    @Redirect(
-            method = "transform",
-            at =
-                    @At(
-                            value = "INVOKE",
-                            target = "Lnet/minecraft/world/level/levelgen/DensityFunction$NoiseHolder;getValue(DDD)D"))
-    private double terrasect$sampleWeirdNoise(
-            DensityFunction.NoiseHolder noiseHolder,
-            double x,
-            double y,
-            double z,
-            DensityFunction.FunctionContext context,
-            double input) {
-        return NoiseHandler.sampleNoise(noiseHolder, x, y, z, context);
-    }
+  @Redirect(
+      method = "transform",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/world/level/levelgen/DensityFunction$NoiseHolder;getValue(DDD)D"))
+  private double terrasect$sampleWeirdNoise(
+      DensityFunction.NoiseHolder noiseHolder,
+      double x,
+      double y,
+      double z,
+      DensityFunction.FunctionContext context,
+      double input) {
+    return NoiseHandler.sampleNoise(noiseHolder, x, y, z, context);
+  }
 }
