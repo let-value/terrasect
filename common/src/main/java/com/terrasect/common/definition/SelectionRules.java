@@ -41,15 +41,23 @@ public record SelectionRules(
 
     var namespace = extractNamespace(resourceId);
 
-    if (isNameBlocked(resourceId) || hasBlockedTag(tags) || isModBlocked(namespace)) {
+    if (isNameBlocked(resourceId)) {
+      return Match.BLOCKED;
+    }
+
+    if (isNameAllowed(resourceId)) {
+      return Match.ALLOWED;
+    }
+
+    if (hasBlockedTag(tags) || isModBlocked(namespace)) {
       return Match.BLOCKED;
     }
 
     if (!hasAllowRules) {
-      return Match.NO_RULES;
+      return Match.ALLOWED;
     }
 
-    if (isNameAllowed(resourceId) || hasAllowedTag(tags) || isModAllowed(namespace)) {
+    if (hasAllowedTag(tags) || isModAllowed(namespace)) {
       return Match.ALLOWED;
     }
 

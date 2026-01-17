@@ -124,16 +124,17 @@ public class StructureVisualizationTest {
     // Assert reasonable filtering is happening
     // Due to non-deterministic registry iteration order, exact counts vary slightly
     var blockedRate = 100.0 * blockedCount / totalCount;
-    
+
     // We expect significant filtering (>50%) with our restrictive rules
     if (blockedRate < 50.0 || blockedRate > 99.0) {
-      throw new AssertionError(String.format(
-          "Expected blocked rate between 50%% and 99%%, got %.2f%% (blocked=%d, total=%d)",
-          blockedRate, blockedCount, totalCount));
+      throw new AssertionError(
+          String.format(
+              "Expected blocked rate between 50%% and 99%%, got %.2f%% (blocked=%d, total=%d)",
+              blockedRate, blockedCount, totalCount));
     }
-    
-    System.out.printf("Structure filtering: %d/%d blocked (%.2f%%)%n",
-        blockedCount, totalCount, blockedRate);
+
+    System.out.printf(
+        "Structure filtering: %d/%d blocked (%.2f%%)%n", blockedCount, totalCount, blockedRate);
   }
 
   private Region buildFilteredStructureRegions() {
