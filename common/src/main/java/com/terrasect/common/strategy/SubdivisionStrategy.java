@@ -7,9 +7,6 @@ import java.util.List;
 
 public final class SubdivisionStrategy {
 
-  private static final float WARP_AMPLITUDE = 0.12f;
-  private static final int WARP_OCTAVES = 2;
-
   private static final ThreadLocal<float[]> BUDGETS_BUFFER =
       ThreadLocal.withInitial(() -> new float[8]);
   private static final ThreadLocal<int[]> INDICES_BUFFER =
@@ -238,23 +235,6 @@ public final class SubdivisionStrategy {
         }
       }
     }
-  }
-
-  @SuppressWarnings("unused")
-  private static float edgeWarp(float coord, long seed, int depth) {
-    var warp = 0F;
-    var amplitude = WARP_AMPLITUDE;
-    var frequency = 4.0f;
-
-    for (var octave = 0; octave < WARP_OCTAVES; octave++) {
-      var coordInt = (int) (coord * frequency * 1000);
-      var noise = hashToFloat(seed, coordInt, depth + octave * 100);
-      warp += (noise - 0.5f) * amplitude;
-      amplitude *= 0.5f;
-      frequency *= 2.0f;
-    }
-
-    return warp;
   }
 
   public static long getSeed(long parentSeed, int childIndex, Region region) {

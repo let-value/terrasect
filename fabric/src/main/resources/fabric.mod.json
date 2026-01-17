@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "Terrasect",
   "description": "Multi-loader mod foundation for Terrasect",
-  "authors": ["Terrasect Team"],
+  "authors": [
+    "Terrasect Team"
+  ],
   "contact": {
     "sources": "https://example.com/terrasect"
   },
@@ -18,7 +20,7 @@
       "com.terrasect.fabric.client.TerrasectFabricClient"
     ],
     "fabric-client-gametest": [
-      "com.terrasect.fabric.client.ProfilerGameTest"
+      "com.terrasect.fabric.client.ClientGameTestIntegration"
     ]
   },
   "depends": {
