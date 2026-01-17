@@ -48,57 +48,61 @@ public record RegionDefinition(
   }
 
   public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
-    protected ClimateSettings climate = ClimateSettings.empty();
-    protected HeightConstraints height = HeightConstraints.empty();
-    protected NoiseConstraints noise = NoiseConstraints.empty();
-    protected SelectionRules biomes = SelectionRules.empty();
-    protected StructureRules structures = StructureRules.empty();
-    protected SelectionRules mobs = SelectionRules.empty();
-    protected GenerationStrategy generationStrategy = GenerationStrategy.voronoi();
+    protected ClimateSettings.Builder climate;
+    protected HeightConstraints.Builder height;
+    protected NoiseConstraints.Builder noise;
+    protected SelectionRules.Builder biomes;
+    protected StructureRules.Builder structures;
+    protected SelectionRules.Builder mobs;
+    protected GenerationStrategy generationStrategy;
 
     protected abstract T self();
 
     public T climate(Consumer<ClimateSettings.Builder> consumer) {
-      var builder = ClimateSettings.builder().copyFrom(climate);
-      consumer.accept(builder);
-      climate = builder.build();
+      if (climate == null) {
+        climate = ClimateSettings.builder();
+      }
+      consumer.accept(climate);
       return self();
     }
 
     public T height(Consumer<HeightConstraints.Builder> consumer) {
-      var builder = HeightConstraints.builder().copyFrom(height);
-      consumer.accept(builder);
-      height = builder.build();
+      if (height == null) {
+        height = HeightConstraints.builder();
+      }
+      consumer.accept(height);
       return self();
     }
 
     public T noise(Consumer<NoiseConstraints.Builder> consumer) {
-      var builder = NoiseConstraints.builder().copyFrom(noise);
-      consumer.accept(builder);
-      noise = builder.build();
+      if (noise == null) {
+        noise = NoiseConstraints.builder();
+      }
+      consumer.accept(noise);
       return self();
     }
 
     public T biomes(Consumer<SelectionRules.Builder> consumer) {
-      var builder = SelectionRules.builder().copyFrom(biomes);
-      consumer.accept(builder);
-      biomes = builder.build();
+      if (biomes == null) {
+        biomes = SelectionRules.builder();
+      }
+      consumer.accept(biomes);
       return self();
     }
 
     public T structures(Consumer<StructureRules.Builder> consumer) {
-      var builder = StructureRules.builder();
-      builder.selection(structures.selection());
-      structures.requiredStructures().forEach(builder::requireStructures);
-      consumer.accept(builder);
-      structures = builder.buildRules();
+      if (structures == null) {
+        structures = StructureRules.builder();
+      }
+      consumer.accept(structures);
       return self();
     }
 
     public T mobs(Consumer<SelectionRules.Builder> consumer) {
-      var builder = SelectionRules.builder().copyFrom(mobs);
-      consumer.accept(builder);
-      mobs = builder.build();
+      if (mobs == null) {
+        mobs = SelectionRules.builder();
+      }
+      consumer.accept(mobs);
       return self();
     }
 
@@ -109,7 +113,13 @@ public record RegionDefinition(
 
     public RegionDefinition build() {
       return new RegionDefinition(
-          climate, height, noise, biomes, structures, mobs, generationStrategy);
+          climate == null ? null : climate.build(),
+          height == null ? null : height.build(),
+          noise == null ? null : noise.build(),
+          biomes == null ? null : biomes.build(),
+          structures == null ? null : structures.buildRules(),
+          mobs == null ? null : mobs.build(),
+          generationStrategy);
     }
   }
 }
