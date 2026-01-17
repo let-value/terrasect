@@ -87,11 +87,6 @@ public record RegionDefinition(
       return self();
     }
 
-    public T noNoiseConstraints() {
-      this.noise = NoiseConstraints.clearParent();
-      return self();
-    }
-
     public T biomes(Consumer<SelectionRules.Builder> consumer) {
       var builder = SelectionRules.builder().copyFrom(biomes);
       consumer.accept(builder);

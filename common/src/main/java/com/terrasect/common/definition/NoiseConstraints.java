@@ -7,12 +7,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 public record NoiseConstraints(
-    Map<String, NoiseTransform> noises, Map<String, NoiseTransform> densityFunctions) {
-  private static final String CLEAR_PARENT_MARKER = "\u0000terrasect:clear_parent\u0000";
-  private static final NoiseTransform MARKER_VALUE = NoiseTransform.empty();
-
-  private static final NoiseConstraints EMPTY =
-      new NoiseConstraints(Collections.emptyMap(), Collections.emptyMap());
+    Map<String, NoiseTransform> noises,
+    Map<String, NoiseTransform> densityFunctions,
+    boolean clearsParent) {
 
   public NoiseConstraints {
     if (noises == null) noises = Collections.emptyMap();
@@ -21,69 +18,26 @@ public record NoiseConstraints(
     densityFunctions = Map.copyOf(densityFunctions);
   }
 
-  public static NoiseConstraints empty() {
-    return EMPTY;
-  }
-
-  public static NoiseConstraints clearParent() {
-    return new NoiseConstraints(Map.of(CLEAR_PARENT_MARKER, MARKER_VALUE), Collections.emptyMap());
-  }
-
   public boolean hasAnyConstraints() {
-    for (String key : noises.keySet()) {
-      if (!CLEAR_PARENT_MARKER.equals(key)) return true;
-    }
-    for (String key : densityFunctions.keySet()) {
-      if (!CLEAR_PARENT_MARKER.equals(key)) return true;
-    }
-    return false;
+    return !noises.isEmpty() || !densityFunctions.isEmpty();
+  }
+
+  public static NoiseConstraints empty() {
+    return new NoiseConstraints(Collections.emptyMap(), Collections.emptyMap(), false);
   }
 
   public NoiseConstraints resolveWithParent(NoiseConstraints parent) {
-    var clearParent = clearsParent();
+    if (clearsParent) return this;
+    if (parent == null) return this;
+    if (!parent.hasAnyConstraints()) return this;
+    
+    var mergedNoises = new LinkedHashMap<String, NoiseTransform>(parent.noises);
+    mergedNoises.putAll(noises);
 
-    var hasLocal = hasAnyConstraints();
-    if (!hasLocal) {
-      if (clearParent) {
-        return NoiseConstraints.empty();
-      }
-      return Objects.requireNonNullElse(parent, NoiseConstraints.empty());
-    }
+    var mergedDensity = new LinkedHashMap<String, NoiseTransform>(parent.densityFunctions);
+    mergedDensity.putAll(densityFunctions);
 
-    NoiseConstraints base =
-        clearParent
-            ? NoiseConstraints.empty()
-            : Objects.requireNonNullElse(parent, NoiseConstraints.empty());
-    if (base.noises.isEmpty() && base.densityFunctions.isEmpty() && !clearParent) {
-      return this;
-    }
-
-    Map<String, NoiseTransform> mergedNoises =
-        base.noises.isEmpty() ? new LinkedHashMap<>() : new LinkedHashMap<>(base.noises);
-    for (var entry : noises.entrySet()) {
-      if (CLEAR_PARENT_MARKER.equals(entry.getKey())) continue;
-      mergedNoises.put(entry.getKey(), entry.getValue());
-    }
-
-    Map<String, NoiseTransform> mergedDensity =
-        base.densityFunctions.isEmpty()
-            ? new LinkedHashMap<>()
-            : new LinkedHashMap<>(base.densityFunctions);
-    for (var entry : densityFunctions.entrySet()) {
-      if (CLEAR_PARENT_MARKER.equals(entry.getKey())) continue;
-      mergedDensity.put(entry.getKey(), entry.getValue());
-    }
-
-    if (mergedNoises.isEmpty() && mergedDensity.isEmpty()) {
-      return NoiseConstraints.empty();
-    }
-
-    return new NoiseConstraints(mergedNoises, mergedDensity);
-  }
-
-  private boolean clearsParent() {
-    return noises.containsKey(CLEAR_PARENT_MARKER)
-        || densityFunctions.containsKey(CLEAR_PARENT_MARKER);
+    return new NoiseConstraints(mergedNoises, mergedDensity, false);
   }
 
   public static Builder builder() {
@@ -97,15 +51,6 @@ public record NoiseConstraints(
 
     public Builder clearParent() {
       clearParent = true;
-      noises.clear();
-      densityFunctions.clear();
-      return this;
-    }
-
-    public Builder noConstraints() {
-      clearParent = true;
-      noises.clear();
-      densityFunctions.clear();
       return this;
     }
 
@@ -147,22 +92,13 @@ public record NoiseConstraints(
       densityFunctions.clear();
       noises.putAll(constraints.noises());
       densityFunctions.putAll(constraints.densityFunctions());
-      noises.remove(CLEAR_PARENT_MARKER);
-      densityFunctions.remove(CLEAR_PARENT_MARKER);
       return this;
     }
 
     public NoiseConstraints build() {
-      if (!clearParent && noises.isEmpty() && densityFunctions.isEmpty()) {
-        return NoiseConstraints.empty();
-      }
-
       var builtNoises = new LinkedHashMap<String, NoiseTransform>(noises);
       var builtDensity = new LinkedHashMap<String, NoiseTransform>(densityFunctions);
-      if (clearParent) {
-        builtNoises.put(CLEAR_PARENT_MARKER, MARKER_VALUE);
-      }
-      return new NoiseConstraints(builtNoises, builtDensity);
+      return new NoiseConstraints(builtNoises, builtDensity, clearParent);
     }
   }
 }
