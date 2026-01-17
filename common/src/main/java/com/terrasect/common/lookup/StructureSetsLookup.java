@@ -89,7 +89,7 @@ public final class StructureSetsLookup {
 
     var rules = region.definition().structures();
 
-    if (rules != null && !filtered.containsKey(rules) && hasActiveRules(rules)) {
+    if (rules != null && rules.hasFilters() && !filtered.containsKey(rules)) {
       FilteredSets filteredSets = filterSets(possibleSets, rules, structureLookup);
       filtered.put(rules, filteredSets);
     }
@@ -97,13 +97,6 @@ public final class StructureSetsLookup {
     for (Region child : region.children()) {
       collectAndFilter(child, possibleSets, structureLookup, filtered);
     }
-  }
-
-  private static boolean hasActiveRules(StructureRules rules) {
-    if (rules == null) return false;
-    var selection = rules.selection();
-    return (selection != null && (selection.hasAllowRules() || selection.hasBlockRules()))
-        || !rules.requiredStructures().isEmpty();
   }
 
   private static FilteredSets filterSets(

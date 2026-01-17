@@ -24,28 +24,18 @@ public final class StructureHandler {
       return null;
     }
 
-    var rules = sampleRules(context, chunkPos);
+    var rules = resolveRules(context, chunkPos);
     return lookup.getSets(rules);
   }
 
-  private static StructureRules sampleRules(MinecraftContext context, ChunkPos chunkPos) {
-    var blockX = chunkPos.getMinBlockX() + 8;
-    var blockZ = chunkPos.getMinBlockZ() + 8;
-
-    var traversal = World.traverse(context, blockX, blockZ);
+  private static StructureRules resolveRules(MinecraftContext context, ChunkPos chunkPos) {
+    var traversal =
+        World.traverse(context, chunkPos.getMinBlockX() + 8, chunkPos.getMinBlockZ() + 8);
     if (traversal == null || traversal.region == null) {
       return null;
     }
 
     var rules = traversal.region.definition().structures();
-    if (rules == null) {
-      return null;
-    }
-
-    var selection = rules.selection();
-    var hasRules =
-        (selection != null && (selection.hasAllowRules() || selection.hasBlockRules()))
-            || !rules.requiredStructures().isEmpty();
-    return hasRules ? rules : null;
+    return rules != null && rules.hasFilters() ? rules : null;
   }
 }

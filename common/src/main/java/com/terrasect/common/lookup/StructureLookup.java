@@ -2,8 +2,8 @@ package com.terrasect.common.lookup;
 
 import com.terrasect.common.compat.ResourceKeyCompat;
 import com.terrasect.common.compat.StructureCompat;
+import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.definition.StructureRules;
-import com.terrasect.common.helpers.StructureHandler;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -130,15 +130,7 @@ public final class StructureLookup {
   }
 
   private static StructureMask buildMask(StructureEntry[] entries, StructureRules rules) {
-    if (rules == null) {
-      return NO_RULES;
-    }
-
-    var hasRules =
-        (rules.selection() != null
-                && (rules.selection().hasAllowRules() || rules.selection().hasBlockRules()))
-            || !rules.requiredStructures().isEmpty();
-    if (!hasRules || entries.length == 0) {
+    if (rules == null || entries.length == 0 || !rules.hasFilters()) {
       return NO_RULES;
     }
 
@@ -153,9 +145,7 @@ public final class StructureLookup {
         continue;
       }
 
-      allowed[i] =
-          StructureHandler.checkStructure(selection, entry.id(), entry.tags())
-              != StructureHandler.FilterResult.BLOCKED;
+      allowed[i] = isAllowed(selection, entry);
     }
 
     return new StructureMask(allowed);
@@ -182,6 +172,49 @@ public final class StructureLookup {
       masks.put(rules, mask);
     }
     return mask;
+  }
+
+  private static boolean isAllowed(SelectionRules selection, Entry entry) {
+    if (selection == null || (!selection.hasAllowRules() && !selection.hasBlockRules())) {
+      return true;
+    }
+
+    var id = entry.id();
+    var tags = entry.tags();
+
+    if (selection.isNameAllowed(id)) {
+      return true;
+    }
+    if (selection.isNameBlocked(id)) {
+      return false;
+    }
+
+    if (selection.hasBlockedTag(tags)) {
+      return false;
+    }
+
+    var namespace = extractNamespace(id);
+    if (selection.isModBlocked(namespace)) {
+      return false;
+    }
+
+    if (!selection.hasAllowRules()) {
+      return true;
+    }
+
+    if (selection.hasAllowedTag(tags)) {
+      return true;
+    }
+    return selection.isModAllowed(namespace);
+  }
+
+  private static String extractNamespace(String resourceId) {
+    if (resourceId == null || resourceId.isEmpty()) return "minecraft";
+    var colonIndex = resourceId.indexOf(':');
+    if (colonIndex > 0) {
+      return resourceId.substring(0, colonIndex);
+    }
+    return "minecraft";
   }
 
   private static final class StructureEntry {

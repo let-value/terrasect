@@ -10,6 +10,10 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
     if (requiredStructures == null) requiredStructures = Collections.emptySet();
   }
 
+  public boolean hasFilters() {
+    return selection.hasAllowRules() || selection.hasBlockRules() || !requiredStructures.isEmpty();
+  }
+
   public static StructureRules empty() {
     return builder().build();
   }
