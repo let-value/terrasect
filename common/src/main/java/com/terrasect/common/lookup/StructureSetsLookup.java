@@ -77,8 +77,7 @@ public final class StructureSetsLookup {
   }
 
   private static FilteredSets buildDefault(List<Holder<StructureSet>> possibleSets) {
-
-    return new FilteredSets(possibleSets, new IdentityHashMap<>());
+    return new FilteredSets(List.copyOf(possibleSets), new IdentityHashMap<>(possibleSets.size()));
   }
 
   private static void collectAndFilter(
@@ -112,16 +111,20 @@ public final class StructureSetsLookup {
 
       var filteredEntries = filterEntries(original, rules, lookup);
 
-      if (!filteredEntries.isEmpty()) {
+      if (filteredEntries == null) {
         filteredSetList.add(setHolder);
-
-        if (filteredEntries.size() < original.size()) {
-          entriesBySet.put(set, filteredEntries);
-        }
+        continue;
       }
+
+      if (filteredEntries.isEmpty()) {
+        continue;
+      }
+
+      filteredSetList.add(setHolder);
+      entriesBySet.put(set, filteredEntries);
     }
 
-    return new FilteredSets(filteredSetList, entriesBySet);
+    return new FilteredSets(List.copyOf(filteredSetList), entriesBySet);
   }
 
   private static List<StructureSet.StructureSelectionEntry> filterEntries(
@@ -140,7 +143,6 @@ public final class StructureSetsLookup {
           filtered.add(entry);
         }
       } else {
-
         if (filtered == null) {
           filtered = new ArrayList<>(entries.size());
           for (var j = 0; j < i; j++) {
@@ -150,6 +152,9 @@ public final class StructureSetsLookup {
       }
     }
 
-    return filtered != null ? filtered : entries;
+    if (filtered == null) {
+      return null;
+    }
+    return List.copyOf(filtered);
   }
 }
