@@ -139,7 +139,7 @@ public final class StructureLookup {
 
     for (var i = 0; i < entries.length; i++) {
       var entry = entries[i].entry;
-      allowed[i] = isAllowed(selection, entry);
+      allowed[i] = selection.evaluate(entry.id(), entry.tags()) != SelectionRules.Match.BLOCKED;
     }
 
     return new StructureMask(allowed);
@@ -166,49 +166,6 @@ public final class StructureLookup {
       masks.put(rules, mask);
     }
     return mask;
-  }
-
-  private static boolean isAllowed(SelectionRules selection, Entry entry) {
-    if (selection == null || (!selection.hasAllowRules() && !selection.hasBlockRules())) {
-      return true;
-    }
-
-    var id = entry.id();
-    var tags = entry.tags();
-
-    if (selection.isNameAllowed(id)) {
-      return true;
-    }
-    if (selection.isNameBlocked(id)) {
-      return false;
-    }
-
-    if (selection.hasBlockedTag(tags)) {
-      return false;
-    }
-
-    var namespace = extractNamespace(id);
-    if (selection.isModBlocked(namespace)) {
-      return false;
-    }
-
-    if (!selection.hasAllowRules()) {
-      return true;
-    }
-
-    if (selection.hasAllowedTag(tags)) {
-      return true;
-    }
-    return selection.isModAllowed(namespace);
-  }
-
-  private static String extractNamespace(String resourceId) {
-    if (resourceId == null || resourceId.isEmpty()) return "minecraft";
-    var colonIndex = resourceId.indexOf(':');
-    if (colonIndex > 0) {
-      return resourceId.substring(0, colonIndex);
-    }
-    return "minecraft";
   }
 
   private static final class StructureEntry {

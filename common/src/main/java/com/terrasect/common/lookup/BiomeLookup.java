@@ -57,7 +57,7 @@ public final class BiomeLookup {
   }
 
   public Climate.ParameterList<Holder<Biome>> getFilteredParameterList(SelectionRules rules) {
-    if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
+    if (rules == null || !rules.hasRules()) {
       return null;
     }
     return filteredParameterLists.get(rules);
@@ -93,7 +93,7 @@ public final class BiomeLookup {
 
   private static void collectRulesRecursive(Region region, Set<SelectionRules> rules) {
     var biomeRules = region.definition().biomes();
-    if (biomeRules != null && (biomeRules.hasAllowRules() || biomeRules.hasBlockRules())) {
+    if (biomeRules != null && biomeRules.hasRules()) {
       rules.add(biomeRules);
     }
 
@@ -127,7 +127,7 @@ public final class BiomeLookup {
     var filteredLists = new IdentityHashMap<SelectionRules, Climate.ParameterList<Holder<Biome>>>();
 
     for (SelectionRules rules : rulesToPreBake) {
-      if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
+      if (rules == null || !rules.hasRules()) {
         continue;
       }
 

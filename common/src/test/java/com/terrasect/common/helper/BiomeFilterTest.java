@@ -118,6 +118,19 @@ public class BiomeFilterTest {
   }
 
   @Test
+  public void blockOverridesAllowForSameName() {
+    var rules =
+        SelectionRules.builder()
+            .allowNames("minecraft:desert")
+            .blockNames("minecraft:desert")
+            .build();
+
+    assertEquals(
+        BiomeFilter.FilterResult.BLOCKED,
+        BiomeFilter.checkBiome(rules, "minecraft:desert", Collections.emptySet()));
+  }
+
+  @Test
   public void allowRulesBlockUnmatchedBiomes() {
     var rules = SelectionRules.builder().allowNames("minecraft:plains").build();
 

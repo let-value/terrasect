@@ -14,6 +14,13 @@ public record SelectionRules(
     Set<String> blockedNames,
     boolean hasAllowRules,
     boolean hasBlockRules) {
+
+  public enum Match {
+    ALLOWED,
+    BLOCKED,
+    NO_RULES
+  }
+
   public SelectionRules {
     if (allowedMods == null) allowedMods = Collections.emptySet();
     if (allowedTags == null) allowedTags = Collections.emptySet();
@@ -21,6 +28,41 @@ public record SelectionRules(
     if (blockedMods == null) blockedMods = Collections.emptySet();
     if (blockedTags == null) blockedTags = Collections.emptySet();
     if (blockedNames == null) blockedNames = Collections.emptySet();
+  }
+
+  public boolean hasRules() {
+    return hasAllowRules || hasBlockRules;
+  }
+
+  public Match evaluate(String resourceId, Set<String> tags) {
+    if (!hasRules()) {
+      return Match.NO_RULES;
+    }
+
+    var namespace = extractNamespace(resourceId);
+
+    if (isNameBlocked(resourceId) || hasBlockedTag(tags) || isModBlocked(namespace)) {
+      return Match.BLOCKED;
+    }
+
+    if (!hasAllowRules) {
+      return Match.NO_RULES;
+    }
+
+    if (isNameAllowed(resourceId) || hasAllowedTag(tags) || isModAllowed(namespace)) {
+      return Match.ALLOWED;
+    }
+
+    return Match.BLOCKED;
+  }
+
+  private static String extractNamespace(String resourceId) {
+    if (resourceId == null || resourceId.isEmpty()) return "minecraft";
+    var colonIndex = resourceId.indexOf(':');
+    if (colonIndex > 0) {
+      return resourceId.substring(0, colonIndex);
+    }
+    return "minecraft";
   }
 
   public boolean isNameAllowed(String biomeId) {
@@ -104,7 +146,14 @@ public record SelectionRules(
     return new Builder();
   }
 
-  public static class Builder {
+  public static class Builder extends BuilderBase<Builder> {
+    @Override
+    protected Builder self() {
+      return this;
+    }
+  }
+
+  public abstract static class BuilderBase<T extends BuilderBase<T>> {
     private final Set<String> allowedMods = new HashSet<>();
     private final Set<String> allowedTags = new HashSet<>();
     private final Set<String> allowedNames = new HashSet<>();
@@ -112,12 +161,14 @@ public record SelectionRules(
     private final Set<String> blockedTags = new HashSet<>();
     private final Set<String> blockedNames = new HashSet<>();
 
-    public Builder allowMods(String... mods) {
+    protected abstract T self();
+
+    public T allowMods(String... mods) {
       Collections.addAll(allowedMods, mods);
-      return this;
+      return self();
     }
 
-    public Builder allowTags(String... tags) {
+    public T allowTags(String... tags) {
       for (String tag : tags) {
 
         allowedTags.add(tag);
@@ -127,20 +178,20 @@ public record SelectionRules(
           allowedTags.add("#" + tag);
         }
       }
-      return this;
+      return self();
     }
 
-    public Builder allowNames(String... names) {
+    public T allowNames(String... names) {
       Collections.addAll(allowedNames, names);
-      return this;
+      return self();
     }
 
-    public Builder blockMods(String... mods) {
+    public T blockMods(String... mods) {
       Collections.addAll(blockedMods, mods);
-      return this;
+      return self();
     }
 
-    public Builder blockTags(String... tags) {
+    public T blockTags(String... tags) {
       for (String tag : tags) {
 
         blockedTags.add(tag);
@@ -150,12 +201,12 @@ public record SelectionRules(
           blockedTags.add("#" + tag);
         }
       }
-      return this;
+      return self();
     }
 
-    public Builder blockNames(String... names) {
+    public T blockNames(String... names) {
       Collections.addAll(blockedNames, names);
-      return this;
+      return self();
     }
 
     public SelectionRules build() {
@@ -173,15 +224,15 @@ public record SelectionRules(
           hasBlock);
     }
 
-    public Builder copyFrom(SelectionRules rules) {
-      if (rules == null) return this;
+    public T copyFrom(SelectionRules rules) {
+      if (rules == null) return self();
       allowedMods.addAll(rules.allowedMods());
       allowedTags.addAll(rules.allowedTags());
       allowedNames.addAll(rules.allowedNames());
       blockedMods.addAll(rules.blockedMods());
       blockedTags.addAll(rules.blockedTags());
       blockedNames.addAll(rules.blockedNames());
-      return this;
+      return self();
     }
   }
 }

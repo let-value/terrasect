@@ -11,11 +11,11 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
   }
 
   public boolean hasFilters() {
-    return selection.hasAllowRules() || selection.hasBlockRules();
+    return selection.hasRules();
   }
 
   public static StructureRules empty() {
-    return builder().build();
+    return builder().buildRules();
   }
 
   public StructureRules resolveWithParent(StructureRules parent) {
@@ -33,59 +33,11 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
     return new Builder();
   }
 
-  public static class Builder {
-    private SelectionRules selection = SelectionRules.empty();
+  public static class Builder extends SelectionRules.BuilderBase<Builder> {
     private final Set<String> requiredStructures = new LinkedHashSet<>();
 
-    public Builder selection(SelectionRules selection) {
-      this.selection = selection;
-      return this;
-    }
-
-    public Builder selection(SelectionRules.Builder builder) {
-      this.selection = builder.build();
-      return this;
-    }
-
-    public Builder allowMods(String... mods) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.allowMods(mods);
-      selection = builder.build();
-      return this;
-    }
-
-    public Builder allowTags(String... tags) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.allowTags(tags);
-      selection = builder.build();
-      return this;
-    }
-
-    public Builder allowNames(String... names) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.allowNames(names);
-      selection = builder.build();
-      return this;
-    }
-
-    public Builder blockMods(String... mods) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.blockMods(mods);
-      selection = builder.build();
-      return this;
-    }
-
-    public Builder blockTags(String... tags) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.blockTags(tags);
-      selection = builder.build();
-      return this;
-    }
-
-    public Builder blockNames(String... names) {
-      var builder = SelectionRules.builder().copyFrom(selection);
-      builder.blockNames(names);
-      selection = builder.build();
+    @Override
+    protected Builder self() {
       return this;
     }
 
@@ -94,9 +46,14 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
       return this;
     }
 
-    public StructureRules build() {
+    public Builder selection(SelectionRules selection) {
+      copyFrom(selection);
+      return this;
+    }
+
+    public StructureRules buildRules() {
       return new StructureRules(
-          selection, Collections.unmodifiableSet(new LinkedHashSet<>(requiredStructures)));
+          super.build(), Collections.unmodifiableSet(new LinkedHashSet<>(requiredStructures)));
     }
   }
 }

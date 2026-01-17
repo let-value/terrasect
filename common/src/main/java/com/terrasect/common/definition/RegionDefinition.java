@@ -101,10 +101,10 @@ public record RegionDefinition(
 
     public T structures(Consumer<StructureRules.Builder> consumer) {
       var builder = StructureRules.builder();
-      builder.selection(SelectionRules.builder().copyFrom(structures.selection()).build());
+      builder.selection(structures.selection());
       structures.requiredStructures().forEach(builder::requireStructures);
       consumer.accept(builder);
-      structures = builder.build();
+      structures = builder.buildRules();
       return self();
     }
 

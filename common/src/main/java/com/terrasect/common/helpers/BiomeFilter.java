@@ -15,38 +15,15 @@ public final class BiomeFilter {
 
   public static FilterResult checkBiome(
       SelectionRules rules, String biomeId, Set<String> biomeTags) {
-    if (rules == null || (!rules.hasAllowRules() && !rules.hasBlockRules())) {
+    if (rules == null) {
       return FilterResult.NO_RULES;
     }
 
-    if (rules.isNameAllowed(biomeId)) {
-      return FilterResult.ALLOWED;
-    }
-    if (rules.isNameBlocked(biomeId)) {
-      return FilterResult.BLOCKED;
-    }
-
-    if (rules.hasBlockedTag(biomeTags)) {
-      return FilterResult.BLOCKED;
-    }
-
-    String modNamespace = extractNamespace(biomeId);
-    if (rules.isModBlocked(modNamespace)) {
-      return FilterResult.BLOCKED;
-    }
-
-    if (!rules.hasAllowRules()) {
-      return FilterResult.NO_RULES;
-    }
-
-    if (rules.hasAllowedTag(biomeTags)) {
-      return FilterResult.ALLOWED;
-    }
-    if (rules.isModAllowed(modNamespace)) {
-      return FilterResult.ALLOWED;
-    }
-
-    return FilterResult.BLOCKED;
+    return switch (rules.evaluate(biomeId, biomeTags)) {
+      case ALLOWED -> FilterResult.ALLOWED;
+      case BLOCKED -> FilterResult.BLOCKED;
+      case NO_RULES -> FilterResult.NO_RULES;
+    };
   }
 
   public static boolean isAllowed(SelectionRules rules, String biomeId, Set<String> biomeTags) {
@@ -55,17 +32,7 @@ public final class BiomeFilter {
   }
 
   public static boolean hasRules(SelectionRules rules) {
-    if (rules == null) return false;
-    return rules.hasAllowRules() || rules.hasBlockRules();
-  }
-
-  private static String extractNamespace(String resourceId) {
-    if (resourceId == null || resourceId.isEmpty()) return "minecraft";
-    var colonIndex = resourceId.indexOf(':');
-    if (colonIndex > 0) {
-      return resourceId.substring(0, colonIndex);
-    }
-    return "minecraft";
+    return rules != null && rules.hasRules();
   }
 
   private BiomeFilter() {}
