@@ -136,15 +136,9 @@ public final class StructureLookup {
 
     boolean[] allowed = new boolean[entries.length];
     var selection = rules.selection();
-    var required = rules.requiredStructures();
 
     for (var i = 0; i < entries.length; i++) {
       var entry = entries[i].entry;
-      if (!required.isEmpty() && required.contains(entry.id())) {
-        allowed[i] = true;
-        continue;
-      }
-
       allowed[i] = isAllowed(selection, entry);
     }
 

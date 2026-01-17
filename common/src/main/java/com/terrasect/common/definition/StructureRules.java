@@ -11,7 +11,7 @@ public record StructureRules(SelectionRules selection, Set<String> requiredStruc
   }
 
   public boolean hasFilters() {
-    return selection.hasAllowRules() || selection.hasBlockRules() || !requiredStructures.isEmpty();
+    return selection.hasAllowRules() || selection.hasBlockRules();
   }
 
   public static StructureRules empty() {
