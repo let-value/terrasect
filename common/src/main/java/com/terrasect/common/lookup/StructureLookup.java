@@ -2,7 +2,6 @@ package com.terrasect.common.lookup;
 
 import com.terrasect.common.compat.ResourceKeyCompat;
 import com.terrasect.common.compat.StructureCompat;
-import com.terrasect.common.definition.SelectionRules;
 import com.terrasect.common.definition.StructureRules;
 import java.util.Collections;
 import java.util.HashSet;
@@ -139,7 +138,7 @@ public final class StructureLookup {
 
     for (var i = 0; i < entries.length; i++) {
       var entry = entries[i].entry;
-      allowed[i] = selection.evaluate(entry.id(), entry.tags()) != SelectionRules.Match.BLOCKED;
+      allowed[i] = selection.allows(entry.id(), entry.tags());
     }
 
     return new StructureMask(allowed);

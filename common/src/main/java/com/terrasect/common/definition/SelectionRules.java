@@ -64,6 +64,14 @@ public record SelectionRules(
     return Match.BLOCKED;
   }
 
+  public boolean allows(String resourceId, Set<String> tags) {
+    return evaluate(resourceId, tags) != Match.BLOCKED;
+  }
+
+  public boolean denies(String resourceId, Set<String> tags) {
+    return evaluate(resourceId, tags) == Match.BLOCKED;
+  }
+
   private static String extractNamespace(String resourceId) {
     if (resourceId == null || resourceId.isEmpty()) return "minecraft";
     var colonIndex = resourceId.indexOf(':');

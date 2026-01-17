@@ -4,7 +4,6 @@ import com.mojang.datafixers.util.Pair;
 import com.terrasect.common.compat.BiomeCompat;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.SelectionRules;
-import com.terrasect.common.helpers.BiomeFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,16 +43,10 @@ public final class BiomeLookup {
     if (entry == null) {
       return true;
     }
-    return BiomeFilter.checkBiome(rules, entry.id(), entry.tags())
-        != BiomeFilter.FilterResult.BLOCKED;
-  }
-
-  public BiomeFilter.FilterResult checkBiome(Holder<Biome> key, SelectionRules rules) {
-    var entry = metadata.get(key);
-    if (entry == null) {
-      return BiomeFilter.FilterResult.NO_RULES;
+    if (rules == null) {
+      return true;
     }
-    return BiomeFilter.checkBiome(rules, entry.id(), entry.tags());
+    return rules.allows(entry.id(), entry.tags());
   }
 
   public Climate.ParameterList<Holder<Biome>> getFilteredParameterList(SelectionRules rules) {
@@ -137,10 +130,7 @@ public final class BiomeLookup {
         Holder<Biome> biome = entry.getSecond();
         var meta = metadata.get(biome);
 
-        var allowed =
-            meta == null
-                || BiomeFilter.checkBiome(rules, meta.id(), meta.tags())
-                    != BiomeFilter.FilterResult.BLOCKED;
+        var allowed = meta == null || rules.allows(meta.id(), meta.tags());
 
         if (allowed) {
           filtered.add(entry);

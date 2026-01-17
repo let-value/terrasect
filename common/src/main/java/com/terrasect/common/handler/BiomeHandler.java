@@ -2,7 +2,6 @@ package com.terrasect.common.handler;
 
 import com.terrasect.common.generation.MinecraftContext;
 import com.terrasect.common.generation.World;
-import com.terrasect.common.helpers.BiomeFilter;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
@@ -25,7 +24,7 @@ public final class BiomeHandler {
     }
 
     var rules = region.definition().biomes();
-    if (!BiomeFilter.hasRules(rules)) {
+    if (rules == null || !rules.hasRules()) {
       return selectFromBaseList(context, targetPoint);
     }
 

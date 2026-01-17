@@ -7,7 +7,6 @@ import com.terrasect.common.definition.GenerationStrategy;
 import com.terrasect.common.definition.Region;
 import com.terrasect.common.definition.RegionRegistry;
 import com.terrasect.common.definition.SelectionRules;
-import com.terrasect.common.helpers.BiomeFilter;
 import com.terrasect.common.lookup.BiomeLookup;
 import com.terrasect.common.testing.SnapshotHashes;
 import com.terrasect.common.testing.SnapshotHtmlReports;
@@ -124,17 +123,17 @@ public class BiomeVisualizationTest {
 
         float edgeFactor = traversal != null ? 1.0f - traversal.edgeDistance : 0.5f;
 
-        BiomeFilter.FilterResult filterResult =
-            BiomeFilter.checkBiome(biomeRules, vanillaBiomeId, vanillaTags);
+        var blocked = biomeRules != null && biomeRules.denies(vanillaBiomeId, vanillaTags);
+        var hasRules = biomeRules != null && biomeRules.hasRules();
 
         Holder<Biome> finalBiome = vanillaBiome;
         var overlayColor = 0x444444;
 
-        if (BiomeFilter.hasRules(biomeRules)) {
+        if (hasRules) {
           totalWithRules++;
         }
 
-        if (filterResult == BiomeFilter.FilterResult.BLOCKED) {
+        if (blocked) {
           blockedCount++;
 
           finalBiome = findAllowedBiomeFallback(biomeLookup, vanilla, biomeRules, parameterList);
@@ -146,7 +145,7 @@ public class BiomeVisualizationTest {
             overlayColor = 0xFF8800;
             finalBiome = vanillaBiome;
           }
-        } else if (BiomeFilter.hasRules(biomeRules)) {
+        } else if (hasRules) {
           overlayColor = 0x00FF00;
         }
 
@@ -241,7 +240,7 @@ public class BiomeVisualizationTest {
       SelectionRules rules,
       Climate.ParameterList<Holder<Biome>> parameterList) {
 
-    if (rules == null || !BiomeFilter.hasRules(rules)) {
+    if (rules == null || !rules.hasRules()) {
       return null;
     }
 
