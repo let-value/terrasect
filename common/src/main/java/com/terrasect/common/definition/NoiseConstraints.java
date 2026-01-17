@@ -30,7 +30,7 @@ public record NoiseConstraints(
     if (clearsParent) return this;
     if (parent == null) return this;
     if (!parent.hasAnyConstraints()) return this;
-    
+
     var mergedNoises = new LinkedHashMap<String, NoiseTransform>(parent.noises);
     mergedNoises.putAll(noises);
 

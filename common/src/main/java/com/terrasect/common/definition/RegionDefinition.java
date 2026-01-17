@@ -9,10 +9,10 @@ public record RegionDefinition(
     SelectionRules biomes,
     StructureRules structures,
     SelectionRules mobs,
-    GenerationStrategy generationStrategy) {
+  GenerationStrategy generationStrategy) {
   public RegionDefinition {
     if (climate == null) climate = ClimateSettings.empty();
-    if (height == null) height = HeightConstraints.inherit();
+    if (height == null) height = HeightConstraints.empty();
     if (noise == null) noise = NoiseConstraints.empty();
     if (biomes == null) biomes = SelectionRules.empty();
     if (structures == null) structures = StructureRules.empty();
@@ -49,7 +49,7 @@ public record RegionDefinition(
 
   public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
     protected ClimateSettings climate = ClimateSettings.empty();
-    protected HeightConstraints height = HeightConstraints.inherit();
+    protected HeightConstraints height = HeightConstraints.empty();
     protected NoiseConstraints noise = NoiseConstraints.empty();
     protected SelectionRules biomes = SelectionRules.empty();
     protected StructureRules structures = StructureRules.empty();
@@ -65,22 +65,14 @@ public record RegionDefinition(
       return self();
     }
 
-    public T height(int minY, int maxY) {
-      this.height = HeightConstraints.range(minY, maxY);
+    public T height(Consumer<HeightConstraints.Builder> consumer) {
+      var builder = HeightConstraints.builder().copyFrom(height);
+      consumer.accept(builder);
+      height = builder.build();
       return self();
     }
 
-    public T height(int y) {
-      this.height = HeightConstraints.exact(y);
-      return self();
-    }
-
-    public T noHeightConstraints() {
-      this.height = HeightConstraints.unconstrained();
-      return self();
-    }
-
-    public T noise(java.util.function.Consumer<NoiseConstraints.Builder> consumer) {
+    public T noise(Consumer<NoiseConstraints.Builder> consumer) {
       var builder = NoiseConstraints.builder().copyFrom(noise);
       consumer.accept(builder);
       noise = builder.build();

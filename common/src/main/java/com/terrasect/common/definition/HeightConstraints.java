@@ -1,71 +1,91 @@
 package com.terrasect.common.definition;
 
-public record HeightConstraints(int minY, int maxY) {
-  private static final int INHERIT_SENTINEL = Integer.MIN_VALUE;
-  private static final int UNCONSTRAINED_SENTINEL = Integer.MIN_VALUE + 1;
-
-  private static final HeightConstraints INHERIT =
-      new HeightConstraints(INHERIT_SENTINEL, INHERIT_SENTINEL);
-  private static final HeightConstraints UNCONSTRAINED =
-      new HeightConstraints(UNCONSTRAINED_SENTINEL, UNCONSTRAINED_SENTINEL);
+public record HeightConstraints(Integer minY, Integer maxY, boolean clearsParent) {
 
   public HeightConstraints {
-    var inherit = minY == INHERIT_SENTINEL || maxY == INHERIT_SENTINEL;
-    var unconstrained = minY == UNCONSTRAINED_SENTINEL || maxY == UNCONSTRAINED_SENTINEL;
+    var hasLower = minY != null;
+    var hasUpper = maxY != null;
 
-    if (inherit && unconstrained) {
+    if (hasLower != hasUpper) {
       throw new IllegalArgumentException(
-          "HeightConstraints cannot be both inherit and unconstrained");
+          "HeightConstraints requires both minY and maxY or neither");
     }
 
-    if (inherit) {
-      if (minY != INHERIT_SENTINEL || maxY != INHERIT_SENTINEL) {
-        throw new IllegalArgumentException("HeightConstraints inherit must set both minY and maxY");
-      }
-    } else if (unconstrained) {
-      if (minY != UNCONSTRAINED_SENTINEL || maxY != UNCONSTRAINED_SENTINEL) {
-        throw new IllegalArgumentException(
-            "HeightConstraints unconstrained must set both minY and maxY");
-      }
-    } else if (minY > maxY) {
+    if (clearsParent && hasLower) {
+      throw new IllegalArgumentException("HeightConstraints cannot clear parent and set bounds");
+    }
+
+    if (hasLower && minY > maxY) {
       var tmp = minY;
       minY = maxY;
       maxY = tmp;
     }
   }
 
-  public static HeightConstraints inherit() {
-    return INHERIT;
-  }
-
-  public static HeightConstraints unconstrained() {
-    return UNCONSTRAINED;
-  }
-
-  public static HeightConstraints range(int minY, int maxY) {
-    return new HeightConstraints(minY, maxY);
-  }
-
-  public static HeightConstraints exact(int y) {
-    return new HeightConstraints(y, y);
-  }
-
-  public boolean isInherit() {
-    return minY == INHERIT_SENTINEL;
-  }
-
-  public boolean isUnconstrained() {
-    return minY == UNCONSTRAINED_SENTINEL;
+  public static HeightConstraints empty() {
+    return new HeightConstraints(null, null, false);
   }
 
   public boolean hasConstraints() {
-    return !isInherit() && !isUnconstrained();
+    return minY != null;
   }
 
   public HeightConstraints resolveWithParent(HeightConstraints parent) {
-    if (isInherit() && parent != null) {
+    if (!hasConstraints() && !clearsParent && parent != null) {
       return parent;
     }
     return this;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static final class Builder {
+    private Integer minY;
+    private Integer maxY;
+    private boolean clearsParent;
+
+    public Builder copyFrom(HeightConstraints constraints) {
+      if (constraints == null) {
+        return this;
+      }
+      minY = constraints.minY();
+      maxY = constraints.maxY();
+      clearsParent = constraints.clearsParent();
+      return this;
+    }
+
+    public Builder inherit() {
+      minY = null;
+      maxY = null;
+      clearsParent = false;
+      return this;
+    }
+
+    public Builder unconstrained() {
+      minY = null;
+      maxY = null;
+      clearsParent = true;
+      return this;
+    }
+
+    public Builder range(int minY, int maxY) {
+      this.minY = minY;
+      this.maxY = maxY;
+      clearsParent = false;
+      return this;
+    }
+
+    public Builder exact(int y) {
+      minY = y;
+      maxY = y;
+      clearsParent = false;
+      return this;
+    }
+
+    public HeightConstraints build() {
+      return new HeightConstraints(minY, maxY, clearsParent);
+    }
   }
 }

@@ -164,7 +164,7 @@ public final class TestRegions {
             border ->
                 border
                     .radius(CHUNK * 20)
-                    .height(40, 55)
+                    .height(height -> height.range(40, 55))
                     .climate(
                         c ->
                             c.depth(-1.5f, -0.5f).continentalness(-1.0f, -0.7f).erosion(0.5f, 1.0f))

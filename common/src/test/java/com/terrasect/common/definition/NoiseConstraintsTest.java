@@ -52,7 +52,11 @@ public class NoiseConstraintsTest {
             .noise(n -> n.noise("minecraft:continentalness", t -> t.clamp(0.1, 2.0)))
             .build();
 
-    var child = RegionDefinition.builder().noNoiseConstraints().build().resolveInherited(parent);
+    var child =
+        RegionDefinition.builder()
+            .noise(noise -> noise.clearParent())
+            .build()
+            .resolveInherited(parent);
 
     var resolved = child.noise();
     assertFalse(resolved.hasAnyConstraints());
