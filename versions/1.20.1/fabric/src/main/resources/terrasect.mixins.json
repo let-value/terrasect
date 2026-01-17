@@ -7,7 +7,6 @@
         "BiomeMixin",
         "ClimateMixin",
         "ClimateTargetPointMixin",
-        "FeatureMixin",
         "MultiNoiseBiomeSourceMixin",
         "TerrainHeightMixin",
         "NoiseChunkNoiseMixin",
