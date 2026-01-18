@@ -7,6 +7,7 @@ import com.terrasect.common.lookup.StructureSetsLookup;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Climate;
 
 public final class StructureHandler {
 
@@ -14,7 +15,16 @@ public final class StructureHandler {
 
   public static StructureSetsLookup.FilteredSets getFilteredSets(
       ResourceKey<Level> dimension, ChunkPos chunkPos) {
-    var context = MinecraftContext.get(dimension);
+    return getFilteredSets(MinecraftContext.get(dimension), chunkPos);
+  }
+
+  public static StructureSetsLookup.FilteredSets getFilteredSets(
+      Climate.Sampler sampler, ChunkPos chunkPos) {
+    return getFilteredSets(MinecraftContext.get(sampler), chunkPos);
+  }
+
+  private static StructureSetsLookup.FilteredSets getFilteredSets(
+      MinecraftContext context, ChunkPos chunkPos) {
     if (context == null) {
       return null;
     }

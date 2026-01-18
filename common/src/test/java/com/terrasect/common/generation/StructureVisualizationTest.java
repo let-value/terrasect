@@ -95,7 +95,7 @@ public class StructureVisualizationTest {
         StructureRules rules = region != null ? region.definition().structures() : null;
 
         // Use StructureLookup.isAllowed() to check if structure is allowed (same as production)
-        boolean allowed = structureLookup.isAllowed(vanillaSelection.structure, rules);
+        var allowed = structureLookup.isAllowed(vanillaSelection.structure, rules);
 
         totalCount++;
         if (!allowed) {
@@ -247,7 +247,7 @@ public class StructureVisualizationTest {
 
   private static boolean isStructureChunk(
       long seed, int chunkX, int chunkZ, PlacementSnapshot snapshot) {
-    StructurePlacement placement = snapshot.set.placement();
+    var placement = snapshot.set.placement();
     if (placement instanceof RandomSpreadStructurePlacement randomSpread) {
       if (!randomSpread.applyAdditionalChunkRestrictions(chunkX, chunkZ, seed)) {
         return false;

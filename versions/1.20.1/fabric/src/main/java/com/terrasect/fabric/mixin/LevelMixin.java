@@ -34,7 +34,7 @@ public class LevelMixin {
                   "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
               ordinal = 0,
               shift = At.Shift.BEFORE))
-  private void onInit(
+  private void terrasect$registerContext(
       MinecraftServer server,
       Executor executor,
       LevelStorageSource.LevelStorageAccess storage,
@@ -59,6 +59,7 @@ public class LevelMixin {
       var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
       var sampler = chunkSource.randomState().sampler();
       var possibleSets = chunkSource.getGeneratorState().possibleStructureSets();
+
       LevelHandler.registerContext(
           dimension, seed, sampler, parameters, possibleSets, server.registryAccess());
     }

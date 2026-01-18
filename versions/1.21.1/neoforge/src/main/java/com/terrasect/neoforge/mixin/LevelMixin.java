@@ -50,16 +50,19 @@ public class LevelMixin {
       CallbackInfo ci) {
 
     var level = (ServerLevel) (Object) this;
-    var generator = level.getChunkSource().getGenerator();
+    var chunkSource = level.getChunkSource();
+    var generator = chunkSource.getGenerator();
     var biomeSource = generator.getBiomeSource();
 
     if (biomeSource instanceof MultiNoiseBiomeSource multiNoise
         && generator instanceof NoiseBasedChunkGenerator) {
 
       var parameters = ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters();
-      var sampler = level.getChunkSource().randomState().sampler();
+      var sampler = chunkSource.randomState().sampler();
+      var possibleSets = chunkSource.getGeneratorState().possibleStructureSets();
 
-      LevelHandler.registerContext(resourceKey, seed, sampler, parameters);
+      LevelHandler.registerContext(
+          resourceKey, seed, sampler, parameters, possibleSets, minecraftServer.registryAccess());
     }
   }
 }
