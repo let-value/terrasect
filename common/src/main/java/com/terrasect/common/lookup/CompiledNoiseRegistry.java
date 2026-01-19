@@ -12,6 +12,7 @@ import java.util.Map;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,27 +62,39 @@ public final class CompiledNoiseRegistry {
     }
 
     Map<String, NoiseTransform> noises = constraints.noises();
-    if (noises.isEmpty()) {
+    Map<String, NoiseTransform> densityFunctions = constraints.densityFunctions();
+    if (noises.isEmpty() && densityFunctions.isEmpty()) {
       return CompiledNoiseConstraints.EMPTY;
     }
 
-    var count = 0;
+    var noiseCount = 0;
     for (var entry : noises.entrySet()) {
       var transform = entry.getValue();
       if (transform == null || transform.isEmpty()) continue;
       if (ResourceKeyCompat.tryParse(Registries.NOISE, entry.getKey()) == null) continue;
-      count++;
+      noiseCount++;
     }
 
-    if (count == 0) {
+    var densityCount = 0;
+    for (var entry : densityFunctions.entrySet()) {
+      var transform = entry.getValue();
+      if (transform == null || transform.isEmpty()) continue;
+      if (ResourceKeyCompat.tryParse(Registries.DENSITY_FUNCTION, entry.getKey()) == null) continue;
+      densityCount++;
+    }
+
+    if (noiseCount == 0 && densityCount == 0) {
       return CompiledNoiseConstraints.EMPTY;
     }
 
     @SuppressWarnings("unchecked")
-    var keys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[count];
-    CompiledTransform[] transforms = new CompiledTransform[count];
+    var noiseKeys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[noiseCount];
+    CompiledTransform[] noiseTransforms = new CompiledTransform[noiseCount];
+    @SuppressWarnings("unchecked")
+    var densityKeys = (ResourceKey<DensityFunction>[]) new ResourceKey<?>[densityCount];
+    CompiledTransform[] densityTransforms = new CompiledTransform[densityCount];
 
-    var i = 0;
+    var noiseIndex = 0;
     for (var entry : noises.entrySet()) {
       var transform = entry.getValue();
       if (transform == null || transform.isEmpty()) continue;
@@ -93,43 +106,87 @@ public final class CompiledNoiseRegistry {
         continue;
       }
 
-      keys[i] = key;
-      transforms[i] = CompiledTransform.compile(transform);
-      i++;
+      noiseKeys[noiseIndex] = key;
+      noiseTransforms[noiseIndex] = CompiledTransform.compile(transform);
+      noiseIndex++;
     }
 
-    if (i == 0) {
+    var densityIndex = 0;
+    for (var entry : densityFunctions.entrySet()) {
+      var transform = entry.getValue();
+      if (transform == null || transform.isEmpty()) continue;
+
+      var key = ResourceKeyCompat.tryParse(Registries.DENSITY_FUNCTION, entry.getKey());
+      if (key == null) {
+        Terrasect.LOGGER.warn(
+            "Invalid density function key '{}' in NoiseConstraints; skipping", entry.getKey());
+        continue;
+      }
+
+      densityKeys[densityIndex] = key;
+      densityTransforms[densityIndex] = CompiledTransform.compile(transform);
+      densityIndex++;
+    }
+
+    if (noiseIndex == 0 && densityIndex == 0) {
       return CompiledNoiseConstraints.EMPTY;
     }
 
-    if (i != count) {
+    var finalNoiseKeys = noiseKeys;
+    var finalNoiseTransforms = noiseTransforms;
+    if (noiseIndex != noiseCount) {
       @SuppressWarnings("unchecked")
-      var trimmedKeys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[i];
-      CompiledTransform[] trimmedTransforms = new CompiledTransform[i];
-      System.arraycopy(keys, 0, trimmedKeys, 0, i);
-      System.arraycopy(transforms, 0, trimmedTransforms, 0, i);
-      return new CompiledNoiseConstraints(trimmedKeys, trimmedTransforms);
+      var trimmedKeys = (ResourceKey<NormalNoise.NoiseParameters>[]) new ResourceKey<?>[noiseIndex];
+      CompiledTransform[] trimmedTransforms = new CompiledTransform[noiseIndex];
+      System.arraycopy(noiseKeys, 0, trimmedKeys, 0, noiseIndex);
+      System.arraycopy(noiseTransforms, 0, trimmedTransforms, 0, noiseIndex);
+      finalNoiseKeys = trimmedKeys;
+      finalNoiseTransforms = trimmedTransforms;
     }
 
-    return new CompiledNoiseConstraints(keys, transforms);
+    var finalDensityKeys = densityKeys;
+    var finalDensityTransforms = densityTransforms;
+    if (densityIndex != densityCount) {
+      @SuppressWarnings("unchecked")
+      var trimmedKeys = (ResourceKey<DensityFunction>[]) new ResourceKey<?>[densityIndex];
+      CompiledTransform[] trimmedTransforms = new CompiledTransform[densityIndex];
+      System.arraycopy(densityKeys, 0, trimmedKeys, 0, densityIndex);
+      System.arraycopy(densityTransforms, 0, trimmedTransforms, 0, densityIndex);
+      finalDensityKeys = trimmedKeys;
+      finalDensityTransforms = trimmedTransforms;
+    }
+
+    return new CompiledNoiseConstraints(
+        finalNoiseKeys, finalNoiseTransforms, finalDensityKeys, finalDensityTransforms);
   }
 
   public static final class CompiledNoiseConstraints {
     static final CompiledNoiseConstraints EMPTY =
-        new CompiledNoiseConstraints(new ResourceKey<?>[0], new CompiledTransform[0]);
+        new CompiledNoiseConstraints(
+            new ResourceKey<?>[0], new CompiledTransform[0], new ResourceKey<?>[0], new CompiledTransform[0]);
 
     private final ResourceKey<NormalNoise.NoiseParameters>[] noiseKeys;
     private final CompiledTransform[] noiseTransforms;
+    private final ResourceKey<DensityFunction>[] densityKeys;
+    private final CompiledTransform[] densityTransforms;
 
-    CompiledNoiseConstraints(ResourceKey<?>[] noiseKeys, CompiledTransform[] noiseTransforms) {
+    CompiledNoiseConstraints(
+        ResourceKey<?>[] noiseKeys,
+        CompiledTransform[] noiseTransforms,
+        ResourceKey<?>[] densityKeys,
+        CompiledTransform[] densityTransforms) {
       @SuppressWarnings("unchecked")
       var typed = (ResourceKey<NormalNoise.NoiseParameters>[]) noiseKeys;
       this.noiseKeys = typed;
       this.noiseTransforms = noiseTransforms;
+      @SuppressWarnings("unchecked")
+      var typedDensity = (ResourceKey<DensityFunction>[]) densityKeys;
+      this.densityKeys = typedDensity;
+      this.densityTransforms = densityTransforms;
     }
 
     public boolean isEmpty() {
-      return noiseKeys.length == 0;
+      return noiseKeys.length == 0 && densityKeys.length == 0;
     }
 
     public @Nullable CompiledTransform findNoiseTransform(
@@ -137,6 +194,15 @@ public final class CompiledNoiseRegistry {
       for (var i = 0; i < noiseKeys.length; i++) {
         if (noiseKeys[i] == key) {
           return noiseTransforms[i];
+        }
+      }
+      return null;
+    }
+
+    public @Nullable CompiledTransform findDensityTransform(ResourceKey<DensityFunction> key) {
+      for (var i = 0; i < densityKeys.length; i++) {
+        if (densityKeys[i] == key) {
+          return densityTransforms[i];
         }
       }
       return null;

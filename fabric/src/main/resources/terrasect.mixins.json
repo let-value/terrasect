@@ -11,6 +11,7 @@
     "MultiNoiseBiomeSourceMixin",
     "TerrainHeightMixin",
     "NoiseChunkNoiseMixin",
+    "DensityFunctionHolderMixin",
     "NoiseMixin",
     "ShiftedNoiseMixin",
     "WeirdScaledSamplerMixin",
