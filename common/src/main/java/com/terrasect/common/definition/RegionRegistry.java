@@ -32,7 +32,9 @@ public class RegionRegistry {
           false);
     }
 
-    rootDraft.strategy(GenerationStrategy.hex());
+    if (rootDraft.generationStrategy == null) {
+      rootDraft.strategy(GenerationStrategy.hex());
+    }
 
     var childIndex = indexChildren();
     if (rootDraft.parent != null && !rootDraft.parent.isBlank()) {
@@ -54,7 +56,9 @@ public class RegionRegistry {
         .filter(draft -> draft.parent == null || draft.parent.isBlank())
         .forEach(
             draft -> {
-              draft.strategy(GenerationStrategy.hex());
+              if (draft.generationStrategy == null) {
+                draft.strategy(GenerationStrategy.hex());
+              }
               roots.add(buildResolved(draft.name, RegionDefinition.empty(), childIndex, visiting));
             });
     return roots;
