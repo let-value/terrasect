@@ -9,8 +9,7 @@ public final class TestRegions {
 
   private static final int CHUNK = 16;
   private static final int SEASON_SIZE = CHUNK * 4;
-  private static final int LAB_SIZE = CHUNK * 8;
-  private static final int LAB_ZONE_SIZE = CHUNK * 2;
+  private static final int LAB_ZONE_SIZE = CHUNK * 6;
   private static final int STRUCTURE_ZONE_SIZE = CHUNK * 8;
 
   private TestRegions() {}
