@@ -17,23 +17,12 @@ public final class StructureSetsLookup {
 
     private final List<Holder<StructureSet>> sets;
 
-    private final IdentityHashMap<StructureSet, List<StructureSet.StructureSelectionEntry>>
-        entriesBySet;
-
-    private FilteredSets(
-        List<Holder<StructureSet>> sets,
-        IdentityHashMap<StructureSet, List<StructureSet.StructureSelectionEntry>> entriesBySet) {
+    private FilteredSets(List<Holder<StructureSet>> sets) {
       this.sets = sets;
-      this.entriesBySet = entriesBySet;
     }
 
     public List<Holder<StructureSet>> sets() {
       return sets;
-    }
-
-    public List<StructureSet.StructureSelectionEntry> getEntries(StructureSet set) {
-      var filtered = entriesBySet.get(set);
-      return filtered != null ? filtered : set.structures();
     }
   }
 
@@ -77,7 +66,7 @@ public final class StructureSetsLookup {
   }
 
   private static FilteredSets buildDefault(List<Holder<StructureSet>> possibleSets) {
-    return new FilteredSets(List.copyOf(possibleSets), new IdentityHashMap<>(possibleSets.size()));
+    return new FilteredSets(List.copyOf(possibleSets));
   }
 
   private static void collectAndFilter(
@@ -102,8 +91,6 @@ public final class StructureSetsLookup {
       List<Holder<StructureSet>> sets, StructureRules rules, StructureLookup lookup) {
 
     var filteredSetList = new ArrayList<Holder<StructureSet>>(sets.size());
-    var entriesBySet =
-        new IdentityHashMap<StructureSet, List<StructureSet.StructureSelectionEntry>>();
 
     for (Holder<StructureSet> setHolder : sets) {
       var set = setHolder.value();
@@ -120,11 +107,11 @@ public final class StructureSetsLookup {
         continue;
       }
 
-      filteredSetList.add(setHolder);
-      entriesBySet.put(set, filteredEntries);
+      var filteredSet = new StructureSet(filteredEntries, set.placement());
+      filteredSetList.add(Holder.direct(filteredSet));
     }
 
-    return new FilteredSets(List.copyOf(filteredSetList), entriesBySet);
+    return new FilteredSets(List.copyOf(filteredSetList));
   }
 
   private static List<StructureSet.StructureSelectionEntry> filterEntries(

@@ -51,18 +51,4 @@ public class ChunkGeneratorMixin {
     }
     return terrasect$filteredSets.sets();
   }
-
-  @Redirect(
-      method = "createStructures",
-      at =
-          @At(
-              value = "INVOKE",
-              target =
-                  "Lnet/minecraft/world/level/levelgen/structure/StructureSet;structures()Ljava/util/List;"))
-  private List<StructureSet.StructureSelectionEntry> terrasect$filterStructures(StructureSet set) {
-    if (terrasect$filteredSets == null) {
-      return set.structures();
-    }
-    return terrasect$filteredSets.getEntries(set);
-  }
 }
