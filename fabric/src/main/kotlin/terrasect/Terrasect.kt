@@ -1,7 +1,5 @@
-package com.letvalue.terrasect
+package terrasect
 
-import com.letvalue.terrasect.TerrasectCommon
-import com.letvalue.terrasect.TerrasectConstants
 import net.fabricmc.api.ModInitializer
 import org.slf4j.LoggerFactory
 

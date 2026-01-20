@@ -1,4 +1,4 @@
-package com.letvalue.terrasect
+package terrasect
 
 /**
  * Common mod constants and shared values.

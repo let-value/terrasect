@@ -1,7 +1,5 @@
-package com.letvalue.terrasect
+package terrasect
 
-import com.letvalue.terrasect.TerrasectCommon
-import com.letvalue.terrasect.TerrasectConstants
 import com.mojang.logging.LogUtils
 import net.minecraft.client.Minecraft
 import net.neoforged.bus.api.IEventBus

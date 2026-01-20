@@ -1,6 +1,5 @@
-package com.letvalue.terrasect
+package terrasect
 
-import com.letvalue.terrasect.TerrasectCommon
 import net.fabricmc.api.ClientModInitializer
 
 object TerrasectClient : ClientModInitializer {

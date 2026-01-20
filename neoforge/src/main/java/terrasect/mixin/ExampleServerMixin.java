@@ -1,6 +1,6 @@
-package com.letvalue.terrasect.mixin;
+package terrasect.mixin;
 
-import com.letvalue.terrasect.TerrasectConstants;
+import terrasect.TerrasectConstants;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInfo;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Example server mixin for Fabric.
+ * Example server mixin for NeoForge.
  * Mixins should be written in Java, not Kotlin.
  */
 @Mixin(MinecraftServer.class)

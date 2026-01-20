@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.letvalue.terrasect.mixin.client",
+	"package": "terrasect.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 	],
