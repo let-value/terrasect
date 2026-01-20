@@ -3,6 +3,7 @@
 	"package": "com.letvalue.terrasect.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"ExampleServerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
