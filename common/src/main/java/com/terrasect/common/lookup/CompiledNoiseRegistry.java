@@ -163,7 +163,10 @@ public final class CompiledNoiseRegistry {
   public static final class CompiledNoiseConstraints {
     static final CompiledNoiseConstraints EMPTY =
         new CompiledNoiseConstraints(
-            new ResourceKey<?>[0], new CompiledTransform[0], new ResourceKey<?>[0], new CompiledTransform[0]);
+            new ResourceKey<?>[0],
+            new CompiledTransform[0],
+            new ResourceKey<?>[0],
+            new CompiledTransform[0]);
 
     private final ResourceKey<NormalNoise.NoiseParameters>[] noiseKeys;
     private final CompiledTransform[] noiseTransforms;

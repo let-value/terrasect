@@ -9,7 +9,7 @@ public record RegionDefinition(
     SelectionRules biomes,
     StructureRules structures,
     SelectionRules mobs,
-  GenerationStrategy generationStrategy) {
+    GenerationStrategy generationStrategy) {
   public RegionDefinition {
     if (climate == null) climate = ClimateSettings.empty();
     if (height == null) height = HeightConstraints.empty();

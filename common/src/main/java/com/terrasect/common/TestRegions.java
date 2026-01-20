@@ -122,10 +122,7 @@ public final class TestRegions {
         .radius(LAB_ZONE_SIZE)
         .climate(c -> c.temperature(1.0f).humidity(0.5f));
 
-    registry
-        .region("BIOME_LAB")
-        .parent("LANDMASS")
-        .strategy(GenerationStrategy.subdivision());
+    registry.region("BIOME_LAB").parent("LANDMASS").strategy(GenerationStrategy.subdivision());
     registry
         .region("OCEANS_ONLY")
         .parent("BIOME_LAB")
@@ -149,10 +146,7 @@ public final class TestRegions {
         .radius(LAB_ZONE_SIZE)
         .biomes(b -> b.allowTags("#minecraft:is_river"));
 
-    registry
-        .region("NOISE_LAB")
-        .parent("LANDMASS")
-        .strategy(GenerationStrategy.subdivision());
+    registry.region("NOISE_LAB").parent("LANDMASS").strategy(GenerationStrategy.subdivision());
     registry
         .region("NO_OCEAN")
         .parent("NOISE_LAB")
@@ -201,10 +195,7 @@ public final class TestRegions {
         .radius(LAB_ZONE_SIZE)
         .noise(n -> n.noise("minecraft:ridge", t -> t.multiply(0.0)));
 
-    registry
-        .region("STRUCTURE_LAB")
-        .parent("LANDMASS")
-        .strategy(GenerationStrategy.subdivision());
+    registry.region("STRUCTURE_LAB").parent("LANDMASS").strategy(GenerationStrategy.subdivision());
     registry
         .region("SETTLEMENTS")
         .parent("STRUCTURE_LAB")
@@ -248,8 +239,6 @@ public final class TestRegions {
                     "minecraft:pillager_outpost",
                     "minecraft:mineshaft",
                     "minecraft:mineshaft_mesa"));
-
-;
 
     registry
         .region("BORDER")
