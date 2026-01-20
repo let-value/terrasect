@@ -1,0 +1,25 @@
+# Ignore common IDE/build files
+.idea/
+*.iml
+.gradle/
+.kotlin/
+build/
+out/
+run/
+
+# Mac system files
+.DS_Store
+
+# Fabric-specific
+**/src/generated/
+
+# NeoForge-specific
+src/generated/
+
+# Compiled files
+*.class
+*.jar
+
+# Logs
+*.log
+logs/
