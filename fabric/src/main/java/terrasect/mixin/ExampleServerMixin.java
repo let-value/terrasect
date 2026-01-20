@@ -1,6 +1,6 @@
 package terrasect.mixin;
 
-import terrasect.TerrasectConstants;
+import terrasect.Constants;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInfo;
@@ -26,6 +26,6 @@ public abstract class ExampleServerMixin extends ReentrantBlockableEventLoop<Tic
 
     @Inject(method = "loadLevel", at = @At("TAIL"))
     private void terrasect$onLoadLevel(CallbackInfo ci) {
-        System.out.println("[" + TerrasectConstants.MOD_NAME + "] Server level loaded! (modid: " + TerrasectConstants.MOD_ID + ")");
+        System.out.println("[" + Constants.MOD_NAME + "] Server level loaded! (modid: " + Constants.MOD_ID + ")");
     }
 }

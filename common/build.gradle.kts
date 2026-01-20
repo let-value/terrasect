@@ -29,8 +29,8 @@ neoForge {
         register("server") {
             server()
         }
-        register("data") {
-            data()
+        register("serverData") {
+            serverData()
         }
     }
 }

@@ -17,19 +17,19 @@
 	"entrypoints": {
 		"main": [
 			{
-				"value": "terrasect.Terrasect",
+				"value": "terrasect.TerrasectFabric",
 				"adapter": "kotlin"
 			}
 		],
 		"client": [
 			{
-				"value": "terrasect.TerrasectClient",
+				"value": "terrasect.TerrasectFabricClient",
 				"adapter": "kotlin"
 			}
 		],
 		"fabric-datagen": [
 			{
-				"value": "terrasect.TerrasectDataGenerator",
+				"value": "terrasect.TerrasectFabricDataGenerator",
 				"adapter": "kotlin"
 			}
 		]

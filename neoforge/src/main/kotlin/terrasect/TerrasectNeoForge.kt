@@ -15,8 +15,8 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent
  * Main mod class for NeoForge.
  * The value here should match an entry in the META-INF/neoforge.mods.toml file.
  */
-@Mod(TerrasectConstants.MOD_ID)
-class Terrasect(modEventBus: IEventBus, modContainer: ModContainer) {
+@Mod(Constants.MOD_ID)
+class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
     
     companion object {
         private val LOGGER = LogUtils.getLogger()
@@ -30,28 +30,28 @@ class Terrasect(modEventBus: IEventBus, modContainer: ModContainer) {
         // Register ourselves for server and other game events we are interested in
         NeoForge.EVENT_BUS.register(this)
         
-        LOGGER.info("Hello from ${TerrasectConstants.MOD_NAME} on NeoForge!")
+        LOGGER.info("Hello from ${Constants.MOD_NAME} on NeoForge!")
     }
 
     private fun commonSetup(event: FMLCommonSetupEvent) {
         // Some common setup code
-        LOGGER.info("${TerrasectConstants.MOD_NAME} common setup")
+        LOGGER.info("${Constants.MOD_NAME} common setup")
         
         // Initialize common code
-        TerrasectCommon.init()
+        Terrasect.init()
     }
     
     private fun clientSetup(event: FMLClientSetupEvent) {
-        LOGGER.info("${TerrasectConstants.MOD_NAME} client setup")
+        LOGGER.info("${Constants.MOD_NAME} client setup")
         LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
         
         // Initialize common client code
-        TerrasectCommon.initClient()
+        Terrasect.initClient()
     }
 
     @SubscribeEvent
     fun onServerStarting(event: ServerStartingEvent) {
         // Do something when the server starts
-        LOGGER.info("${TerrasectConstants.MOD_NAME} server starting")
+        LOGGER.info("${Constants.MOD_NAME} server starting")
     }
 }

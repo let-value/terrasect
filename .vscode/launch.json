@@ -1,0 +1,159 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "common - Client",
+      "presentation": {
+        "group": "Mod Development - common",
+        "order": 0
+      },
+      "projectName": "common",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\common\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\common\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003d"
+      ],
+      "cwd": "${workspaceFolder}\\common\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "common - Data",
+      "presentation": {
+        "group": "Mod Development - common",
+        "order": 1
+      },
+      "projectName": "common",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\common\\build\\moddev\\dataRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\common\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003d"
+      ],
+      "cwd": "${workspaceFolder}\\common\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "common - Server",
+      "presentation": {
+        "group": "Mod Development - common",
+        "order": 2
+      },
+      "projectName": "common",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\common\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\common\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003d"
+      ],
+      "cwd": "${workspaceFolder}\\common\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - neoforge",
+        "order": 0
+      },
+      "projectName": "neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "neoforge - Data",
+      "presentation": {
+        "group": "Mod Development - neoforge",
+        "order": 1
+      },
+      "projectName": "neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\dataRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "neoforge - GameTestServer",
+      "presentation": {
+        "group": "Mod Development - neoforge",
+        "order": 2
+      },
+      "projectName": "neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - neoforge",
+        "order": 3
+      },
+      "projectName": "neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\terrasect\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\neoforge\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}
