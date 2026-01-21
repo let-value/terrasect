@@ -25,7 +25,7 @@ java {
 }
 
 neoForge {
-    version = neo_version
+    version = neoforge_loader_version
 
     parchment {
         mappingsVersion = parchment_mappings_version
@@ -81,26 +81,26 @@ configurations {
 }
 
 dependencies {
-    implementation "thedarkcolour:kotlinforforge-neoforge:${kff_version}"
+    implementation "thedarkcolour:kotlinforforge-neoforge:${neoforge_kotlin_version}"
     implementation project(':common')
 }
 
 def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
     def replaceProperties = [
-        'minecraft_version'      : minecraft_version,
-        'minecraft_version_range': minecraft_version_range,
-        'neo_version'            : neo_version,
-        'neo_version_range'      : neo_version_range,
-        'kff_version'            : kff_version,
-        'kff_version_range'      : kff_version_range,
-        'loader_version_range'   : loader_version_range,
-        'java_version'           : java_version,
-        'mod_id'                 : mod_id,
-        'mod_name'               : mod_name,
-        'mod_license'            : mod_license,
-        'mod_version'            : mod_version,
-        'mod_authors'            : mod_authors,
-        'mod_description'        : mod_description
+        'minecraft_version'                 : minecraft_version,
+        'neoforge_minecraft_version_range'  : neoforge_minecraft_version_range,
+        'neoforge_loader_version'           : neoforge_loader_version,
+        'neoforge_version_range'            : neoforge_version_range,
+        'neoforge_kotlin_version'           : neoforge_kotlin_version,
+        'neoforge_kotlin_version_range'     : neoforge_kotlin_version_range,
+        'neoforge_loader_version_range'     : neoforge_loader_version_range,
+        'java_version'                      : java_version,
+        'mod_id'                            : mod_id,
+        'mod_name'                          : mod_name,
+        'mod_license'                       : mod_license,
+        'mod_version'                       : mod_version,
+        'mod_authors'                       : mod_authors,
+        'mod_description'                   : mod_description
     ]
 
     inputs.properties replaceProperties

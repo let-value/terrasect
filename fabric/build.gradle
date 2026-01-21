@@ -29,7 +29,7 @@ dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.officialMojangMappings()
 
-    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     modImplementation "net.fabricmc:fabric-language-kotlin:${fabric_kotlin_version}"
 
@@ -38,15 +38,17 @@ dependencies {
 
 processResources {
     def props = [
-        'version'           : version,
-        'mod_id'            : mod_id,
-        'mod_name'          : mod_name,
-        'mod_description'   : mod_description,
-        'mod_authors'       : mod_authors,
-        'mod_license'       : mod_license,
-        'loader_version'    : loader_version,
-        'minecraft_version' : minecraft_version,
-        'java_version'      : java_version
+        'version'              : version,
+        'mod_id'               : mod_id,
+        'mod_name'             : mod_name,
+        'mod_description'      : mod_description,
+        'mod_authors'          : mod_authors,
+        'mod_license'          : mod_license,
+        'fabric_loader_version': fabric_loader_version,
+        'minecraft_version'    : minecraft_version,
+        'java_version'         : java_version,
+        'fabric_api_version'   : fabric_api_version,
+        'fabric_kotlin_version': fabric_kotlin_version
     ]
 
     inputs.properties props

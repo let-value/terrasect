@@ -13,8 +13,8 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        id 'net.neoforged.moddev' version moddev_version
-        id 'fabric-loom' version loom_version
+        id 'net.neoforged.moddev' version neoforge_moddev_version
+        id 'fabric-loom' version fabric_loom_version
         id 'org.jetbrains.kotlin.jvm' version kotlin_version
     }
 }

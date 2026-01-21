@@ -9,7 +9,7 @@ base {
 }
 
 neoForge {
-    neoFormVersion = neoform_version
+    neoFormVersion = neoforge_neoform_version
 
     parchment {
         mappingsVersion = parchment_mappings_version
