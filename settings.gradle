@@ -1,0 +1,30 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        maven {
+            name = 'NeoForge'
+            url = 'https://maven.neoforged.net/releases'
+        }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id 'net.neoforged.moddev' version moddev_version
+        id 'fabric-loom' version loom_version
+        id 'org.jetbrains.kotlin.jvm' version kotlin_version
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'terrasect'
+
+include 'common'
+include 'fabric'
+include 'neoforge'
