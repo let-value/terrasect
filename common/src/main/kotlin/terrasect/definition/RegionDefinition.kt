@@ -9,6 +9,20 @@ class RegionDefinition(
     val mobs: SelectionRules? = null,
     val generationStrategy: GenerationStrategy? = null,
 ) {
+
+  fun inheritParent(parent: RegionDefinition?): RegionDefinition {
+    if (parent == null) return this
+    return RegionDefinition(
+        climate = this.climate?.inheritParent(parent.climate) ?: parent.climate,
+        height = this.height?.inheritParent(parent.height) ?: parent.height,
+        noise = this.noise?.inheritParent(parent.noise) ?: parent.noise,
+        biomes = this.biomes?.inheritParent(parent.biomes) ?: parent.biomes,
+        structures = this.structures?.inheritParent(parent.structures) ?: parent.structures,
+        mobs = this.mobs?.inheritParent(parent.mobs) ?: parent.mobs,
+        generationStrategy = this.generationStrategy ?: parent.generationStrategy,
+    )
+  }
+
   companion object {
     fun builder() = Builder()
   }

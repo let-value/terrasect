@@ -21,11 +21,31 @@ class SelectionRules(
       }
     }
 
-    val namespace = extractNamespace(resourceId)
+    val namespace = (resourceId)
     if (blockedMods?.contains(namespace) == true) return false
     if (allowedMods?.contains(namespace) == true) return true
 
     return true
+  }
+
+  fun inheritParent(parent: SelectionRules?): SelectionRules {
+    if (parent == null) return this
+    val combinedAllowedMods = (parent.allowedMods ?: emptySet()) + (this.allowedMods ?: emptySet())
+    val combinedAllowedTags = (parent.allowedTags ?: emptySet()) + (this.allowedTags ?: emptySet())
+    val combinedAllowedNames =
+        (parent.allowedNames ?: emptySet()) + (this.allowedNames ?: emptySet())
+    val combinedBlockedMods = (parent.blockedMods ?: emptySet()) + (this.blockedMods ?: emptySet())
+    val combinedBlockedTags = (parent.blockedTags ?: emptySet()) + (this.blockedTags ?: emptySet())
+    val combinedBlockedNames =
+        (parent.blockedNames ?: emptySet()) + (this.blockedNames ?: emptySet())
+    return SelectionRules(
+        allowedMods = combinedAllowedMods.ifEmpty { null },
+        allowedTags = combinedAllowedTags.ifEmpty { null },
+        allowedNames = combinedAllowedNames.ifEmpty { null },
+        blockedMods = combinedBlockedMods.ifEmpty { null },
+        blockedTags = combinedBlockedTags.ifEmpty { null },
+        blockedNames = combinedBlockedNames.ifEmpty { null },
+    )
   }
 
   companion object {
