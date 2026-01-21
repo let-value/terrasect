@@ -16,9 +16,7 @@ subprojects {
     def javaVersion = Integer.parseInt(java_version)
 
     java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(javaVersion)
-        }
+        toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
         withSourcesJar()
     }
 
@@ -39,6 +37,6 @@ subprojects {
     }
 }
 
-tasks.named('wrapper', Wrapper) {
+wrapper {
     distributionType = Wrapper.DistributionType.BIN
 }

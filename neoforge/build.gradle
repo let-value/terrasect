@@ -18,11 +18,9 @@ repositories {
     }
 }
 
-def javaVersion = Integer.parseInt(java_version)
-
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion)
+        languageVersion = JavaLanguageVersion.of(Integer.parseInt(java_version))
     }
 }
 
@@ -75,13 +73,7 @@ neoForge {
     }
 }
 
-sourceSets {
-    main {
-        resources {
-            srcDir 'src/generated/resources'
-        }
-    }
-}
+sourceSets.main.resources.srcDir 'src/generated/resources'
 
 configurations {
     localRuntime
@@ -116,17 +108,11 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
     into layout.buildDirectory.dir('generated/sources/modMetadata')
 }
 
-sourceSets {
-    main {
-        resources {
-            srcDir generateModMetadata
-        }
-    }
-}
+sourceSets.main.resources.srcDir generateModMetadata
 
 neoForge.ideSyncTask(generateModMetadata)
 
-tasks.named('jar', Jar) {
+jar {
     from project(':common').sourceSets.main.output
 }
 

@@ -17,14 +17,8 @@ neoForge {
     }
 
     runs {
-        client {
-            client()
-        }
-        server {
-            server()
-        }
-        serverData {
-            serverData()
-        }
+        client { client() }
+        server { server() }
+        serverData { serverData() }
     }
 }
