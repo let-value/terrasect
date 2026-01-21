@@ -6,13 +6,9 @@ plugins {
 
 val modId = property("mod_id").toString()
 
-base {
-    archivesName.set("$modId-fabric")
-}
+base { archivesName.set("$modId-fabric") }
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
 loom {
     splitEnvironmentSourceSets()
@@ -40,22 +36,18 @@ loom {
     }
 }
 
-fabricApi {
-    configureDataGeneration {
-        client.set(true)
-    }
-}
+fabricApi { configureDataGeneration { client.set(true) } }
 
 dependencies {
     // Minecraft
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
     mappings(loom.officialMojangMappings())
-    
+
     // Fabric
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
-    
+
     // Common module
     implementation(project(":common"))
 }
@@ -64,20 +56,13 @@ tasks.processResources {
     inputs.property("version", project.version)
     inputs.property("mod_id", modId)
 
-    filesMatching("fabric.mod.json") {
-        expand(
-            "version" to project.version,
-            "mod_id" to modId
-        )
-    }
+    filesMatching("fabric.mod.json") { expand("version" to project.version, "mod_id" to modId) }
 }
 
 tasks.jar {
     from(project(":common").sourceSets.main.get().output)
-    
-    from("LICENSE") {
-        rename { "${it}_${base.archivesName.get()}" }
-    }
+
+    from("LICENSE") { rename { "${it}_${base.archivesName.get()}" } }
 }
 
 publishing {

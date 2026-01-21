@@ -26,7 +26,7 @@
     {
       "type": "java",
       "request": "launch",
-      "name": "common - Data",
+      "name": "common - Server",
       "presentation": {
         "group": "Mod Development - common",
         "order": 1
@@ -34,10 +34,10 @@
       "projectName": "common",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\common\\build\\moddev\\dataRunProgramArgs.txt"
+        "@D:\\terrasect\\common\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\common\\build\\moddev\\dataRunVmArgs.txt",
+        "@D:\\terrasect\\common\\build\\moddev\\serverRunVmArgs.txt",
         "-Dfml.modFolders\u003d"
       ],
       "cwd": "${workspaceFolder}\\common\\run",
@@ -48,7 +48,7 @@
     {
       "type": "java",
       "request": "launch",
-      "name": "common - Server",
+      "name": "common - ServerData",
       "presentation": {
         "group": "Mod Development - common",
         "order": 2
@@ -56,10 +56,10 @@
       "projectName": "common",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverRunProgramArgs.txt"
+        "@D:\\terrasect\\common\\build\\moddev\\serverDataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverRunVmArgs.txt",
+        "@D:\\terrasect\\common\\build\\moddev\\serverDataRunVmArgs.txt",
         "-Dfml.modFolders\u003d"
       ],
       "cwd": "${workspaceFolder}\\common\\run",
