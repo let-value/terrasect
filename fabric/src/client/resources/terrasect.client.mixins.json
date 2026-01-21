@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "terrasect.mixin.client",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_${java_version}",
   "client": [
   ],
   "injectors": {

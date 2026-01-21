@@ -94,6 +94,7 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
         'kff_version'            : kff_version,
         'kff_version_range'      : kff_version_range,
         'loader_version_range'   : loader_version_range,
+        'java_version'           : java_version,
         'mod_id'                 : mod_id,
         'mod_name'               : mod_name,
         'mod_license'            : mod_license,

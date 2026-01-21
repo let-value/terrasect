@@ -37,10 +37,22 @@ dependencies {
 }
 
 processResources {
-    inputs.property 'version', version
+    def props = [
+        'version'           : version,
+        'mod_id'            : mod_id,
+        'mod_name'          : mod_name,
+        'mod_description'   : mod_description,
+        'mod_authors'       : mod_authors,
+        'mod_license'       : mod_license,
+        'loader_version'    : loader_version,
+        'minecraft_version' : minecraft_version,
+        'java_version'      : java_version
+    ]
 
-    filesMatching('fabric.mod.json') {
-        expand 'version': inputs.properties.version
+    inputs.properties props
+
+    filesMatching(['fabric.mod.json', '*.mixins.json']) {
+        expand props
     }
 }
 

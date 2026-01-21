@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "id": "${mod_id}",
   "version": "${version}",
-  "name": "Terrasect",
-  "description": "A multiloader Minecraft mod.",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
   "authors": [
-    "LetValue"
+    "${mod_authors}"
   ],
   "contact": {
     "homepage": "",
     "sources": ""
   },
-  "license": "All Rights Reserved",
+  "license": "${mod_license}",
   "icon": "assets/terrasect/icon.png",
   "environment": "*",
   "entrypoints": {
@@ -42,9 +42,9 @@
     }
   ],
   "depends": {
-    "fabricloader": ">=0.18.4",
-    "minecraft": "~1.21.11",
-    "java": ">=21",
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=${java_version}",
     "fabric-api": "*",
     "fabric-language-kotlin": "*"
   }
