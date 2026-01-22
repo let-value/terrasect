@@ -1,6 +1,6 @@
 package terrasect.definition
 
-class RegionDefinition(
+open class RegionDefinition(
     val climate: ClimateSettings? = null,
     val height: HeightConstraints? = null,
     val noise: NoiseConstraints? = null,
@@ -10,24 +10,11 @@ class RegionDefinition(
     val generationStrategy: GenerationStrategy? = null,
 ) {
 
-  fun inheritParent(parent: RegionDefinition?): RegionDefinition {
-    if (parent == null) return this
-    return RegionDefinition(
-        climate = this.climate?.inheritParent(parent.climate) ?: parent.climate,
-        height = this.height?.inheritParent(parent.height) ?: parent.height,
-        noise = this.noise?.inheritParent(parent.noise) ?: parent.noise,
-        biomes = this.biomes?.inheritParent(parent.biomes) ?: parent.biomes,
-        structures = this.structures?.inheritParent(parent.structures) ?: parent.structures,
-        mobs = this.mobs?.inheritParent(parent.mobs) ?: parent.mobs,
-        generationStrategy = this.generationStrategy ?: parent.generationStrategy,
-    )
-  }
-
   companion object {
     fun builder() = Builder()
   }
 
-  class Builder {
+  open class Builder {
     val climateLazyBuilder = lazy { ClimateSettings.builder() }
     val climateBuilder by climateLazyBuilder
     val heightLazyBuilder = lazy { HeightConstraints.builder() }
@@ -66,6 +53,30 @@ class RegionDefinition(
 
     fun generationStrategy(strategy: GenerationStrategy) = apply {
       this.generationStrategy = strategy
+    }
+
+    fun inheritParent(parent: Builder) = apply {
+      if (parent.climateLazyBuilder.isInitialized()) {
+        this.climateBuilder.inheritParent(parent.climateBuilder)
+      }
+      if (parent.heightLazyBuilder.isInitialized()) {
+        this.heightBuilder.inheritParent(parent.heightBuilder)
+      }
+      if (parent.noiseLazyBuilder.isInitialized()) {
+        this.noiseBuilder.inheritParent(parent.noiseBuilder)
+      }
+      if (parent.biomesLazyBuilder.isInitialized()) {
+        this.biomesBuilder.inheritParent(parent.biomesBuilder)
+      }
+      if (parent.structuresLazyBuilder.isInitialized()) {
+        this.structuresBuilder.inheritParent(parent.structuresBuilder)
+      }
+      if (parent.mobsLazyBuilder.isInitialized()) {
+        this.mobsBuilder.inheritParent(parent.mobsBuilder)
+      }
+      if (this.generationStrategy == null) {
+        this.generationStrategy = parent.generationStrategy
+      }
     }
 
     fun build(): RegionDefinition {

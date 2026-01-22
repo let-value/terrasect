@@ -1,5 +1,7 @@
 package terrasect.definition
 
+import terrasect.helpers.NoiseTransform
+
 class NoiseConstraints(
     val noises: Map<String, NoiseTransform>,
     val densityFunctions: Map<String, NoiseTransform>,
@@ -8,86 +10,32 @@ class NoiseConstraints(
     fun builder() = Builder()
   }
 
-  fun inheritParent(parent: NoiseConstraints?): NoiseConstraints {
-    if (parent == null) return this
-
-    val combinedNoises = parent.noises.toMutableMap()
-    combinedNoises.putAll(this.noises)
-
-    val combinedDensityFunctions = parent.densityFunctions.toMutableMap()
-    combinedDensityFunctions.putAll(this.densityFunctions)
-
-    return NoiseConstraints(combinedNoises, combinedDensityFunctions)
-  }
-
   class Builder {
     private val noises = mutableMapOf<String, NoiseTransform>()
     private val densityFunctions = mutableMapOf<String, NoiseTransform>()
 
     fun noise(name: String, transform: NoiseTransform) = apply { noises[name] = transform }
 
+    fun noise(name: String, consumer: (NoiseTransform.Builder) -> Unit) = apply {
+      val transform = NoiseTransform.builder().apply(consumer).build()
+      noises[name] = transform
+    }
+
     fun densityFunction(name: String, transform: NoiseTransform) = apply {
       densityFunctions[name] = transform
     }
 
+    fun inheritParent(parent: Builder) = apply {
+      for ((name, transform) in parent.noises) {
+        this.noises.putIfAbsent(name, transform)
+      }
+      for ((name, transform) in parent.densityFunctions) {
+        this.densityFunctions.putIfAbsent(name, transform)
+      }
+    }
+
     fun build(): NoiseConstraints {
       return NoiseConstraints(noises, densityFunctions)
-    }
-  }
-}
-
-class NoiseTransform(val operations: List<Operation>) {
-  companion object {
-    fun builder() = Builder()
-  }
-
-  interface Operation
-
-  class Clamp(val min: Double, val max: Double) : Operation
-
-  class Add(val value: Double) : Operation
-
-  class Multiply(val factor: Double) : Operation
-
-  class Map(val type: MapType) : Operation
-
-  enum class MapType {
-    ABS,
-    SQUARE,
-    CUBE,
-    HALF_NEGATIVE,
-    QUARTER_NEGATIVE,
-    INVERT,
-    SQUEEZE,
-  }
-
-  class Builder {
-    private val operations = mutableListOf<Operation>()
-
-    fun clamp(min: Double, max: Double) = apply { operations.add(Clamp(min, max)) }
-
-    fun add(value: Double) = apply { operations.add(Add(value)) }
-
-    fun multiply(factor: Double) = apply { operations.add(Multiply(factor)) }
-
-    fun map(type: MapType) = apply { operations.add(Map(type)) }
-
-    fun abs() = apply { operations.add(Map(MapType.ABS)) }
-
-    fun square() = apply { operations.add(Map(MapType.SQUARE)) }
-
-    fun cube() = apply { operations.add(Map(MapType.CUBE)) }
-
-    fun halfNegative() = apply { operations.add(Map(MapType.HALF_NEGATIVE)) }
-
-    fun quarterNegative() = apply { operations.add(Map(MapType.QUARTER_NEGATIVE)) }
-
-    fun invert() = apply { operations.add(Map(MapType.INVERT)) }
-
-    fun squeeze() = apply { operations.add(Map(MapType.SQUEEZE)) }
-
-    fun build(): NoiseTransform {
-      return NoiseTransform(operations)
     }
   }
 }

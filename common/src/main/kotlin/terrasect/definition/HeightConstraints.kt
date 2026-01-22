@@ -2,11 +2,6 @@ package terrasect.definition
 
 class HeightConstraints(val minY: Int, val maxY: Int? = null) {
 
-  fun inheritParent(parent: HeightConstraints?): HeightConstraints {
-    if (parent == null) return this
-    return HeightConstraints(minY = this.minY, maxY = this.maxY ?: parent.maxY)
-  }
-
   companion object {
     fun builder(): Builder = Builder()
   }
@@ -23,6 +18,11 @@ class HeightConstraints(val minY: Int, val maxY: Int? = null) {
     fun exact(minY: Int) = apply {
       this.minY = minY
       this.maxY = null
+    }
+
+    fun inheritParent(parent: Builder) = apply {
+      this.minY = this.minY.takeIf { it != 0 } ?: parent.minY
+      this.maxY = this.maxY ?: parent.maxY
     }
 
     fun build(): HeightConstraints {

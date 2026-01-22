@@ -3,7 +3,9 @@
   "package": "terrasect.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
-    "ExampleServerMixin"
+    "ClimateSamplerMixin",
+    "LevelMixin",
+    "MultiNoiseBiomeSourceMixin"
   ],
   "injectors": {
     "defaultRequire": 1

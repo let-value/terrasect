@@ -28,19 +28,6 @@ data class ClimateSettings(
     val precipitation: String? = null,
     val climatePreset: String? = null,
 ) {
-  fun inheritParent(parent: ClimateSettings?): ClimateSettings {
-    if (parent == null) return this
-    return ClimateSettings(
-        temperature = this.temperature ?: parent.temperature,
-        humidity = this.humidity ?: parent.humidity,
-        continentalness = this.continentalness ?: parent.continentalness,
-        erosion = this.erosion ?: parent.erosion,
-        depth = this.depth ?: parent.depth,
-        weirdness = this.weirdness ?: parent.weirdness,
-        precipitation = this.precipitation ?: parent.precipitation,
-        climatePreset = this.climatePreset ?: parent.climatePreset,
-    )
-  }
 
   companion object {
     fun builder(): Builder = Builder()
@@ -87,6 +74,17 @@ data class ClimateSettings(
     fun precipitation(precipitation: String) = apply { this.precipitation = precipitation }
 
     fun climatePreset(climatePreset: String) = apply { this.climatePreset = climatePreset }
+
+    fun inheritParent(parent: Builder) = apply {
+      this.temperature = this.temperature ?: parent.temperature
+      this.humidity = this.humidity ?: parent.humidity
+      this.continentalness = this.continentalness ?: parent.continentalness
+      this.erosion = this.erosion ?: parent.erosion
+      this.depth = this.depth ?: parent.depth
+      this.weirdness = this.weirdness ?: parent.weirdness
+      this.precipitation = this.precipitation ?: parent.precipitation
+      this.climatePreset = this.climatePreset ?: parent.climatePreset
+    }
 
     fun build(): ClimateSettings =
         ClimateSettings(

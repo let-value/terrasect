@@ -10,6 +10,8 @@ class RegionDefinitionTest {
     RegionDefinition.builder()
         .biomes { it.allowMods("minecraft") }
         .climate { it.temperature(10.0f).depth(10f) }
+        .noise { noise -> noise.noise("factor") { t -> t.clamp(1.0, 2.0) } }
+        .build()
   }
 
   @Test
