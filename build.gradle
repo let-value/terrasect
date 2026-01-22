@@ -35,6 +35,26 @@ subprojects {
         mavenLocal()
         mavenCentral()
     }
+
+    def updateSnapshots = false
+    def updateProp = project.findProperty('updateSnapshots')
+    if (updateProp == null) {
+        updateProp = project.findProperty('snapshotUpdate')
+    }
+    if (updateProp != null) {
+        def value = updateProp.toString().trim()
+        updateSnapshots =
+                value.isEmpty() ||
+                value.equalsIgnoreCase('true') ||
+                value == '1' ||
+                value.equalsIgnoreCase('yes')
+    }
+
+    test {
+        if (updateSnapshots) {
+            systemProperty 'forceUpdateSnapshots', 'true'
+        }
+    }
 }
 
 wrapper {
