@@ -36,8 +36,7 @@ dependencies {
     implementation project(':common')
 }
 
-processResources {
-    def props = [
+def props = [
         'version'              : version,
         'mod_id'               : mod_id,
         'mod_name'             : mod_name,
@@ -49,11 +48,20 @@ processResources {
         'java_version'         : java_version,
         'fabric_api_version'   : fabric_api_version,
         'fabric_kotlin_version': fabric_kotlin_version
-    ]
+]
 
+processResources {
     inputs.properties props
 
     filesMatching(['fabric.mod.json', '*.mixins.json']) {
+        expand props
+    }
+}
+
+processClientResources {
+    inputs.properties props
+
+    filesMatching(['*.mixins.json']) {
         expand props
     }
 }
