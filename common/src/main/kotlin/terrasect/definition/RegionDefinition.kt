@@ -57,6 +57,10 @@ open class RegionDefinition(
       this.generationStrategy = strategy
     }
 
+    fun copy(): Builder {
+      return Builder().also { it.inheritParent(this) }
+    }
+
     fun inheritParent(parent: Builder) = apply {
       if (parent.climateLazyBuilder.isInitialized()) {
         this.climateBuilder.inheritParent(parent.climateBuilder)

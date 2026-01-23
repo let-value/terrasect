@@ -7,7 +7,7 @@ object RegionRegistry {
 
   private val visiting = mutableSetOf<String>()
 
-  fun build(name: String, parent: DraftRegion? = null): Region {
+  fun build(name: String, parent: RegionDefinition.Builder? = null): Region {
     val draft = drafts[name] ?: return Region.empty(name)
 
     // initialize strategy
@@ -16,13 +16,14 @@ object RegionRegistry {
       return Region.empty(name)
     }
 
+    val builder = draft.copy()
     if (parent !== null) {
-      draft.inheritParent(parent)
+      builder.inheritParent(parent)
     }
 
-    val definition = draft.build()
+    val children = draft.children.map { childName -> build(childName, builder) }.toSet()
 
-    val children = draft.children.map { childName -> build(childName, draft) }.toSet()
+    val definition = builder.build()
 
     visiting.remove(name)
 
