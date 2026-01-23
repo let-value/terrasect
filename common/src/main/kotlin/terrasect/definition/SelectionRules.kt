@@ -28,26 +28,6 @@ class SelectionRules(
     return true
   }
 
-  fun inheritParent(parent: SelectionRules?): SelectionRules {
-    if (parent == null) return this
-    val combinedAllowedMods = (parent.allowedMods ?: emptySet()) + (this.allowedMods ?: emptySet())
-    val combinedAllowedTags = (parent.allowedTags ?: emptySet()) + (this.allowedTags ?: emptySet())
-    val combinedAllowedNames =
-        (parent.allowedNames ?: emptySet()) + (this.allowedNames ?: emptySet())
-    val combinedBlockedMods = (parent.blockedMods ?: emptySet()) + (this.blockedMods ?: emptySet())
-    val combinedBlockedTags = (parent.blockedTags ?: emptySet()) + (this.blockedTags ?: emptySet())
-    val combinedBlockedNames =
-        (parent.blockedNames ?: emptySet()) + (this.blockedNames ?: emptySet())
-    return SelectionRules(
-        allowedMods = combinedAllowedMods.ifEmpty { null },
-        allowedTags = combinedAllowedTags.ifEmpty { null },
-        allowedNames = combinedAllowedNames.ifEmpty { null },
-        blockedMods = combinedBlockedMods.ifEmpty { null },
-        blockedTags = combinedBlockedTags.ifEmpty { null },
-        blockedNames = combinedBlockedNames.ifEmpty { null },
-    )
-  }
-
   companion object {
     fun extractNamespace(resourceId: String?): String {
       if (resourceId.isNullOrEmpty()) return "minecraft"
@@ -77,6 +57,15 @@ class SelectionRules(
     fun blockTags(vararg tags: String) = apply { for (t in tags) blockedTags.add(t) }
 
     fun blockNames(vararg names: String) = apply { for (n in names) blockedNames.add(n) }
+
+    fun inheritParent(parent: Builder) = apply {
+      allowedMods.addAll(parent.allowedMods)
+      allowedTags.addAll(parent.allowedTags)
+      allowedNames.addAll(parent.allowedNames)
+      blockedMods.addAll(parent.blockedMods)
+      blockedTags.addAll(parent.blockedTags)
+      blockedNames.addAll(parent.blockedNames)
+    }
 
     fun build(): SelectionRules {
       return SelectionRules(

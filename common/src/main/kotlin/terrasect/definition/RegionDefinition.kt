@@ -29,27 +29,29 @@ open class RegionDefinition(
     val mobsBuilder by mobsLazyBuilder
     var generationStrategy: GenerationStrategy? = null
 
-    inline fun climate(consumer: (ClimateSettings.Builder) -> Unit) = apply {
-      consumer(climateBuilder)
+    inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
+      climateBuilder.apply(consumer)
     }
 
-    inline fun height(consumer: (HeightConstraints.Builder) -> Unit) = apply {
-      consumer(heightBuilder)
+    inline fun height(consumer: HeightConstraints.Builder.() -> Unit) = apply {
+      heightBuilder.apply(consumer)
     }
 
-    inline fun noise(consumer: (NoiseConstraints.Builder) -> Unit) = apply {
-      consumer(noiseBuilder)
+    inline fun noise(consumer: NoiseConstraints.Builder.() -> Unit) = apply {
+      noiseBuilder.apply(consumer)
     }
 
-    inline fun biomes(consumer: (SelectionRules.Builder) -> Unit) = apply {
-      consumer(biomesBuilder)
+    inline fun biomes(consumer: SelectionRules.Builder.() -> Unit) = apply {
+      biomesBuilder.apply(consumer)
     }
 
-    inline fun structures(consumer: (SelectionRules.Builder) -> Unit) = apply {
-      consumer(structuresBuilder)
+    inline fun structures(consumer: SelectionRules.Builder.() -> Unit) = apply {
+      structuresBuilder.apply(consumer)
     }
 
-    inline fun mobs(consumer: (SelectionRules.Builder) -> Unit) = apply { consumer(mobsBuilder) }
+    inline fun mobs(consumer: SelectionRules.Builder.() -> Unit) = apply {
+      mobsBuilder.apply(consumer)
+    }
 
     fun generationStrategy(strategy: GenerationStrategy) = apply {
       this.generationStrategy = strategy
