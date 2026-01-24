@@ -2,8 +2,13 @@ package terrasect.definition
 
 object RegionRegistry {
   val drafts = mutableMapOf<String, DraftRegion>()
+  val dimensionRoots = mutableMapOf<String, String>()
 
   fun region(name: String) = drafts.getOrPut(name) { DraftRegion(name) }
+
+  fun setRoot(dimensionId: String, name: String) = dimensionRoots.set(dimensionId, name)
+
+  fun getRoot(dimensionId: String): String? = dimensionRoots[dimensionId]
 
   private val visiting = mutableSetOf<String>()
 

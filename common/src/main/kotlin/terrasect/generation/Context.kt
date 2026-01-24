@@ -10,6 +10,8 @@ import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.VanillaSamplerAccessor
 import terrasect.compat.ResourceKeyCompat
+import terrasect.definition.Region
+import terrasect.definition.RegionRegistry
 import terrasect.utils.Packer
 import kotlin.math.max
 import kotlin.math.min
@@ -17,6 +19,7 @@ import kotlin.math.min
 class Context(
     val dimensionId: String,
     val seed: Long,
+    val region: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) {
@@ -53,7 +56,10 @@ class Context(
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
 
-      val context = Context(dimensionId, seed, sampler, biomesClimate)
+      val root = RegionRegistry.getRoot(dimensionId) ?: return
+      val region = RegionRegistry.build(root)
+
+      val context = Context(dimensionId, seed, region, sampler, biomesClimate)
       byDimension[dimensionId] = context
       bySampler[sampler] = context
     }
