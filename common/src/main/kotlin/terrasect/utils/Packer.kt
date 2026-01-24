@@ -1,28 +1,17 @@
 package terrasect.utils
 
+typealias Packed = Long
+
 object Packer {
-  fun packPair(first: Float, second: Float): Long {
-    return (((second.toRawBits()).toLong() shl 32) or
-        ((first.toRawBits()).toLong() and 0xFFFFFFFFL))
+  fun pack(first: Int, second: Int): Packed {
+    return ((second.toLong() shl 32) or (first.toLong() and 0xFFFFFFFFL))
   }
 
-  fun unpackPairFirst(packed: Long): Float {
-    return (packed.toInt().toFloat())
+  fun unpackFirst(packed: Packed): Int {
+    return (packed.toInt())
   }
 
-  fun unpackPairSecond(packed: Long): Float {
-    return ((packed ushr 32).toInt().toFloat())
-  }
-
-  fun packIntFloat(intVal: Int, floatVal: Float): Long {
-    return (intVal.toLong() shl 32) or ((floatVal.toRawBits()).toLong() and 0xFFFFFFFFL)
-  }
-
-  fun unpackInt(packed: Long): Int {
-    return (packed ushr 32).toInt()
-  }
-
-  fun unpackFloat(packed: Long): Float {
-    return (packed.toInt().toFloat())
+  fun unpackSecond(packed: Packed): Int {
+    return ((packed ushr 32).toInt())
   }
 }

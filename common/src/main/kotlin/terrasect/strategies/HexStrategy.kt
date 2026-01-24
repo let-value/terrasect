@@ -3,12 +3,14 @@ package terrasect.strategies
 import terrasect.definition.GenerationStrategy
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
+import terrasect.utils.Packed
+import terrasect.utils.Packer
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object HexStrategy {
-  fun getCell(x: Int, z: Int, size: Int): Pair<Int, Int> {
+  fun getCell(x: Int, z: Int, size: Int): Packed {
     val q = (sqrt(3.0) / 3 * x - 1.0 / 3 * z) / size
     val r = (2.0 / 3 * z) / size
 
@@ -29,7 +31,7 @@ object HexStrategy {
       finalR = -rq - rs
     }
 
-    return Pair(finalQ, finalR)
+    return Packer.pack(finalQ, finalR)
   }
 
   fun traverse(

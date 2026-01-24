@@ -39,7 +39,7 @@ class Context(
     val normalized = (weirdness + 10000.0f) / 20000.0f
     val ridge = max(0.0f, min(1.0f, normalized))
 
-    return Packer.packPair(river, ridge)
+    return Packer.pack(river.toRawBits(), ridge.toRawBits())
   }
 
   companion object {
