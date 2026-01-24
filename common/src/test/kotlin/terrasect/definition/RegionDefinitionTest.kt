@@ -1,10 +1,6 @@
 package terrasect.definition
 
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class RegionDefinitionTest {
@@ -23,7 +19,7 @@ class RegionDefinitionTest {
               allowTags("coniferous", "taiga")
               blockNames("minecraft:swamp")
             }
-            .generationStrategy(GenerationStrategy.hex("whispering_pines_ring"))
+            .strategy(Strategy.hex("whispering_pines_ring"))
             .build()
 
     assertAll(
@@ -40,11 +36,11 @@ class RegionDefinitionTest {
         { assertNull(region.noise) },
         { assertNull(region.structures) },
         { assertNull(region.mobs) },
-        { assertTrue(region.generationStrategy is GenerationStrategy.Hex) },
+        { assertTrue(region.strategy is Strategy.Hex) },
         {
           assertEquals(
               "whispering_pines_ring",
-              (region.generationStrategy as GenerationStrategy.Hex).ringRegionName,
+              (region.strategy as Strategy.Hex).ringRegionName,
           )
         },
     )
@@ -65,7 +61,7 @@ class RegionDefinitionTest {
               allowNames("minecraft:village")
               blockTags("ruins")
             }
-            .generationStrategy(GenerationStrategy.subdivision(0.2f))
+            .strategy(Strategy.subdivision(0.2f))
 
     val child =
         RegionDefinition.builder()
@@ -86,11 +82,11 @@ class RegionDefinitionTest {
         { assertEquals(setOf("minecraft:old_growth_pine_taiga"), child.biomes!!.blockedNames) },
         { assertEquals(setOf("minecraft:village"), child.structures!!.allowedNames) },
         { assertEquals(setOf("ruins"), child.structures!!.blockedTags) },
-        { assertTrue(child.generationStrategy is GenerationStrategy.Subdivision) },
+        { assertTrue(child.strategy is Strategy.Subdivision) },
         {
           assertEquals(
               0.2f,
-              (child.generationStrategy as GenerationStrategy.Subdivision).jitter,
+              (child.strategy as Strategy.Subdivision).jitter,
           )
         },
         { assertNull(child.noise) },

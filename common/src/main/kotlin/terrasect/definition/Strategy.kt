@@ -3,9 +3,18 @@ package terrasect.definition
 import kotlin.math.max
 import kotlin.math.min
 
-interface GenerationStrategy {
+enum class StrategyId(val value: Byte) {
+  HEX(1),
+  VORONOI(2),
+  SUBDIVISION(3),
+  TEMPLATE(4),
+}
+
+interface Strategy {
 
   companion object {
+    const val SEPARATOR: Char = ','
+
     fun hex() = Hex()
 
     fun hex(ringRegionName: String) = Hex(ringRegionName)
@@ -26,13 +35,13 @@ interface GenerationStrategy {
         Template(TemplateType.CENTER_SURROUND, centerRegionName)
   }
 
-  class Hex(val ringRegionName: String? = null) : GenerationStrategy
+  class Hex(val ringRegionName: String? = null) : Strategy
 
-  class Voronoi(relaxationIterations: Int = 5) : GenerationStrategy {
+  class Voronoi(relaxationIterations: Int = 5) : Strategy {
     val relaxationIterations = max(0, min(20, relaxationIterations))
   }
 
-  class Subdivision(jitter: Float = 0.05f) : GenerationStrategy {
+  class Subdivision(jitter: Float = 0.05f) : Strategy {
     val jitter = max(0f, min(0.5f, jitter))
   }
 
@@ -45,5 +54,5 @@ interface GenerationStrategy {
   }
 
   class Template(val type: TemplateType = TemplateType.AUTO, centerRegionName: String? = null) :
-      GenerationStrategy
+      Strategy
 }

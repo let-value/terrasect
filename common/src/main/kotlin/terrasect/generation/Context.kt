@@ -12,7 +12,7 @@ import terrasect.VanillaSamplerAccessor
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
-import terrasect.utils.Packer
+import terrasect.utils.packPair
 import kotlin.math.max
 import kotlin.math.min
 
@@ -39,7 +39,7 @@ class Context(
     val normalized = (weirdness + 10000.0f) / 20000.0f
     val ridge = max(0.0f, min(1.0f, normalized))
 
-    return Packer.pack(river.toRawBits(), ridge.toRawBits())
+    return packPair(river.toRawBits(), ridge.toRawBits())
   }
 
   companion object {

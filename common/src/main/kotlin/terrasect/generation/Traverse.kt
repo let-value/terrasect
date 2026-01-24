@@ -1,7 +1,7 @@
 package terrasect.generation
 
-import terrasect.definition.GenerationStrategy
 import terrasect.definition.Region
+import terrasect.definition.Strategy
 import terrasect.strategies.HexStrategy
 import java.nio.ByteBuffer
 
@@ -30,10 +30,9 @@ fun Context.step(step: TraversalStep): TraversalStep? {
     return null
   }
 
-  return when (region.generationStrategy) {
-    is GenerationStrategy.Hex -> HexStrategy.traverse(this, step, region.generationStrategy)
-    else ->
-        throw IllegalArgumentException("Unknown generation strategy: ${region.generationStrategy}")
+  return when (region.strategy) {
+    is Strategy.Hex -> HexStrategy.traverse(this, step, region.strategy)
+    else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
   }
 }
 

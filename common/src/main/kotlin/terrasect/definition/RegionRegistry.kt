@@ -42,7 +42,7 @@ object RegionRegistry {
         biomes = definition.biomes,
         structures = definition.structures,
         mobs = definition.mobs,
-        generationStrategy = definition.generationStrategy,
+        strategy = definition.strategy,
     )
   }
 

@@ -10,7 +10,7 @@ class Region(
     biomes: SelectionRules? = null,
     structures: SelectionRules? = null,
     mobs: SelectionRules? = null,
-    generationStrategy: GenerationStrategy? = null,
+    strategy: Strategy? = null,
 ) :
     RegionDefinition(
         climate,
@@ -19,7 +19,7 @@ class Region(
         biomes,
         structures,
         mobs,
-        generationStrategy,
+        strategy,
     ) {
   val hasChildren = children.isNotEmpty()
 
