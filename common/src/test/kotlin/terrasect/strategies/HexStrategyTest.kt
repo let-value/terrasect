@@ -3,8 +3,6 @@ package terrasect.strategies
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.SnapshotOutputPaths
-import terrasect.utils.first
-import terrasect.utils.second
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
@@ -12,7 +10,8 @@ class HexStrategyTest {
 
   @Test
   fun `should render cells`() {
-    val size = 20
+    val size = 40
+    val gap = 4
     val width = 200
     val height = 200
     val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
@@ -21,8 +20,15 @@ class HexStrategyTest {
 
     for (z in 0 until height) {
       for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x - originX, z - originZ, size)
-        image.setRGB(x, z, colorForCell(cell.first(), cell.second()))
+        val cell = HexStrategy.getCell(x - originX, z - originZ, size, gap)
+
+        val color =
+            if (cell.isGap) {
+              0xFFF2F2F2.toInt()
+            } else {
+              colorForCell(cell.q, cell.r)
+            }
+        image.setRGB(x, z, color)
       }
     }
 
