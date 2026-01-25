@@ -4,7 +4,10 @@ import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 object HexStrategy {
   val discriminator = StrategyId.HEX
@@ -21,9 +24,12 @@ object HexStrategy {
     get() = cellLocal.get()
 
   private val sqrt3 = sqrt(3.0f)
-  private val tan30 = tan(30f)
-  private val sin60 = sin(60f)
-  private val cos60 = cos(60f)
+  // Correct trig values for degrees (sin/cos/tan take radians, so use exact values)
+  private val sin30 = 0.5f // sin(30°)
+  private val cos30 = sqrt3 / 2.0f // cos(30°) ≈ 0.866
+  private val sin60 = sqrt3 / 2.0f // sin(60°) ≈ 0.866
+  private val cos60 = 0.5f // cos(60°)
+  private val tan30 = 1.0f / sqrt3 // tan(30°) ≈ 0.577
   private const val oneThird = 1.0f / 3.0f
   private const val twoThirds = 2.0f / 3.0f
 
@@ -54,12 +60,16 @@ object HexStrategy {
     val localX = x - centerX
     val localZ = z - centerZ
 
-    val distance = hexDistance(localX, localZ, size)
+    var distance = hexDistance(localX, localZ, size)
+    val isGap = distance > 0f && gap > 0
+    if (isGap) {
+      distance -= gap
+    }
 
     cell.q = q
     cell.r = r
     cell.distance = distance
-    cell.isGap = distance > 0f
+    cell.isGap = isGap
 
     return cell
   }
