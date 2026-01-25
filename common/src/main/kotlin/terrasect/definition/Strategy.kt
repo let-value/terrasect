@@ -19,7 +19,7 @@ class HexSettings(val ringRegion: Region? = null) : Strategy {
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
   }
 
-  class Builder(private var ringRegionName: String? = null) : StrategySettings {
+  class Builder(var ringRegionName: String? = null) : StrategySettings {
 
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
@@ -49,7 +49,7 @@ class SubdivisionSettings(val jitter: Float) : Strategy {
     fun builder(jitter: Float = 0.05f) = Builder(jitter)
   }
 
-  class Builder(private var jitter: Float) : StrategySettings {
+  class Builder(var jitter: Float) : StrategySettings {
 
     fun jitter(jitter: Float) = apply { this.jitter = jitter }
 

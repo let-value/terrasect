@@ -5,21 +5,13 @@ class Region(
     val budget: Int,
     val children: Set<Region>,
     val strategy: Strategy? = null,
-    climate: ClimateSettings? = null,
-    height: HeightConstraints? = null,
-    noise: NoiseConstraints? = null,
-    biomes: SelectionRules? = null,
-    structures: SelectionRules? = null,
-    mobs: SelectionRules? = null,
-) :
-    RegionDefinition(
-        climate,
-        height,
-        noise,
-        biomes,
-        structures,
-        mobs,
-    ) {
+    val climate: ClimateSettings? = null,
+    val height: HeightConstraints? = null,
+    val noise: NoiseConstraints? = null,
+    val biomes: SelectionRules? = null,
+    val structures: SelectionRules? = null,
+    val mobs: SelectionRules? = null,
+) {
   val hasChildren = children.isNotEmpty()
 
   companion object {

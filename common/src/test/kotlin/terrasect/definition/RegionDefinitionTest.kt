@@ -36,11 +36,11 @@ class RegionDefinitionTest {
         { assertNull(region.noise) },
         { assertNull(region.structures) },
         { assertNull(region.mobs) },
-        { assertTrue(region.settings is Strategy.Hex) },
+        { assertTrue(region.strategy is HexSettings.Builder) },
         {
           assertEquals(
               "whispering_pines_ring",
-              (region.settings as Strategy.Hex).ringRegionName,
+              (region.strategy as HexSettings.Builder).ringRegionName,
           )
         },
     )
@@ -82,11 +82,11 @@ class RegionDefinitionTest {
         { assertEquals(setOf("minecraft:old_growth_pine_taiga"), child.biomes!!.blockedNames) },
         { assertEquals(setOf("minecraft:village"), child.structures!!.allowedNames) },
         { assertEquals(setOf("ruins"), child.structures!!.blockedTags) },
-        { assertTrue(child.settings is Strategy.Subdivision) },
+        { assertTrue(child.strategy is SubdivisionSettings.Builder) },
         {
           assertEquals(
               0.2f,
-              (child.settings as Strategy.Subdivision).jitter,
+              (child.strategy as SubdivisionSettings.Builder).jitter,
           )
         },
         { assertNull(child.noise) },

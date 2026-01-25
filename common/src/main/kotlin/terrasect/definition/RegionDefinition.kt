@@ -1,13 +1,13 @@
 package terrasect.definition
 
 open class RegionDefinition(
+    val strategy: StrategySettings? = null,
     val climate: ClimateSettings? = null,
     val height: HeightConstraints? = null,
     val noise: NoiseConstraints? = null,
     val biomes: SelectionRules? = null,
     val structures: SelectionRules? = null,
     val mobs: SelectionRules? = null,
-    val settings: StrategySettings? = null,
 ) {
 
   companion object {
@@ -15,6 +15,7 @@ open class RegionDefinition(
   }
 
   open class Builder {
+    var strategy: StrategySettings? = null
     val climateLazyBuilder = lazy { ClimateSettings.builder() }
     val climateBuilder by climateLazyBuilder
     val heightLazyBuilder = lazy { HeightConstraints.builder() }
@@ -27,7 +28,8 @@ open class RegionDefinition(
     val structuresBuilder by structuresLazyBuilder
     val mobsLazyBuilder = lazy { SelectionRules.builder() }
     val mobsBuilder by mobsLazyBuilder
-    var settings: StrategySettings? = null
+
+    fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
 
     inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
       climateBuilder.apply(consumer)
@@ -53,8 +55,6 @@ open class RegionDefinition(
       mobsBuilder.apply(consumer)
     }
 
-    fun strategy(strategy: StrategySettings) = apply { this.settings = strategy }
-
     fun copy(): Builder {
       return Builder().also { it.inheritParent(this) }
     }
@@ -78,13 +78,14 @@ open class RegionDefinition(
       if (parent.mobsLazyBuilder.isInitialized()) {
         this.mobsBuilder.inheritParent(parent.mobsBuilder)
       }
-      if (this.settings == null) {
-        this.settings = parent.settings
+      if (this.strategy == null) {
+        this.strategy = parent.strategy
       }
     }
 
     fun build(): RegionDefinition {
       return RegionDefinition(
+          strategy = this.strategy,
           climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
           height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
           noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
@@ -92,7 +93,6 @@ open class RegionDefinition(
           structures =
               if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
           mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
-          settings = this.settings,
       )
     }
   }
