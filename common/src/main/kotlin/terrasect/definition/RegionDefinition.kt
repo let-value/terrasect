@@ -7,7 +7,7 @@ open class RegionDefinition(
     val biomes: SelectionRules? = null,
     val structures: SelectionRules? = null,
     val mobs: SelectionRules? = null,
-    val strategy: Strategy? = null,
+    val settings: StrategySettings? = null,
 ) {
 
   companion object {
@@ -27,7 +27,7 @@ open class RegionDefinition(
     val structuresBuilder by structuresLazyBuilder
     val mobsLazyBuilder = lazy { SelectionRules.builder() }
     val mobsBuilder by mobsLazyBuilder
-    var strategy: Strategy? = null
+    var settings: StrategySettings? = null
 
     inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
       climateBuilder.apply(consumer)
@@ -53,7 +53,7 @@ open class RegionDefinition(
       mobsBuilder.apply(consumer)
     }
 
-    fun strategy(strategy: Strategy) = apply { this.strategy = strategy }
+    fun strategy(strategy: StrategySettings) = apply { this.settings = strategy }
 
     fun copy(): Builder {
       return Builder().also { it.inheritParent(this) }
@@ -78,8 +78,8 @@ open class RegionDefinition(
       if (parent.mobsLazyBuilder.isInitialized()) {
         this.mobsBuilder.inheritParent(parent.mobsBuilder)
       }
-      if (this.strategy == null) {
-        this.strategy = parent.strategy
+      if (this.settings == null) {
+        this.settings = parent.settings
       }
     }
 
@@ -92,7 +92,7 @@ open class RegionDefinition(
           structures =
               if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
           mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
-          strategy = this.strategy,
+          settings = this.settings,
       )
     }
   }

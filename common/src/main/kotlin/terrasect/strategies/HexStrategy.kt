@@ -1,5 +1,6 @@
 package terrasect.strategies
 
+import terrasect.definition.HexSettings
 import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
@@ -82,9 +83,8 @@ object HexStrategy {
   fun traverse(
       context: Context,
       step: TraversalStep,
-      settings: Strategy.Hex,
+      settings: HexSettings,
   ): TraversalStep {
-
     val cell = getCell(step.x, step.z, context.region.budget)
 
     step.id.put(discriminator.value)

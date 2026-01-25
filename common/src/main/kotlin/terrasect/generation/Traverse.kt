@@ -30,9 +30,9 @@ fun Context.step(step: TraversalStep): TraversalStep? {
     return null
   }
 
-  return when (region.strategy) {
-    is Strategy.Hex -> HexStrategy.traverse(this, step, region.strategy)
-    else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
+  return when (region.settings) {
+    is Strategy.Hex -> HexStrategy.traverse(this, step, region.settings)
+    else -> throw IllegalArgumentException("Unknown generation strategy: ${region.settings}")
   }
 }
 

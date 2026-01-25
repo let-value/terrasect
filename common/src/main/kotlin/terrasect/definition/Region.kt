@@ -4,13 +4,13 @@ class Region(
     val name: String,
     val budget: Int,
     val children: Set<Region>,
+    val strategy: Strategy? = null,
     climate: ClimateSettings? = null,
     height: HeightConstraints? = null,
     noise: NoiseConstraints? = null,
     biomes: SelectionRules? = null,
     structures: SelectionRules? = null,
     mobs: SelectionRules? = null,
-    strategy: Strategy? = null,
 ) :
     RegionDefinition(
         climate,
@@ -19,7 +19,6 @@ class Region(
         biomes,
         structures,
         mobs,
-        strategy,
     ) {
   val hasChildren = children.isNotEmpty()
 

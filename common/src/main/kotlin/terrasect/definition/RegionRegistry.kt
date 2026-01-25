@@ -36,13 +36,13 @@ object RegionRegistry {
         name = draft.name,
         budget = draft.areaBudget ?: 10000,
         children = children,
+        strategy = definition.settings?.build(),
         climate = definition.climate,
         height = definition.height,
         noise = definition.noise,
         biomes = definition.biomes,
         structures = definition.structures,
         mobs = definition.mobs,
-        strategy = definition.strategy,
     )
   }
 
