@@ -4,17 +4,10 @@ import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
-import java.lang.Math.clamp
 import kotlin.math.*
 
 object HexStrategy {
   val discriminator = StrategyId.HEX
-
-  private val sqrt3 = sqrt(3.0f)
-  private val tan30 = sqrt3 / 3.0f
-  private val sin60 = sqrt3 / 2.0f
-  private const val oneThird = 1.0f / 3.0f
-  private const val twoThirds = 2.0f / 3.0f
 
   data class GetCellResult(
       var q: Int = 0,
@@ -26,6 +19,13 @@ object HexStrategy {
   val cellLocal: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
   val cell: GetCellResult
     get() = cellLocal.get()
+
+  private val sqrt3 = sqrt(3.0f)
+  private val tan30 = tan(30f)
+  private val sin60 = sin(60f)
+  private val cos60 = cos(60f)
+  private const val oneThird = 1.0f / 3.0f
+  private const val twoThirds = 2.0f / 3.0f
 
   fun getCell(x: Int, z: Int, size: Int, gap: Int = 0): GetCellResult {
     val spacing = (size + gap.coerceAtLeast(0))
@@ -54,8 +54,7 @@ object HexStrategy {
     val localX = x - centerX
     val localZ = z - centerZ
 
-    val apothem = size * sin60
-    val distance = hexSignedDistance(localX, localZ, apothem)
+    val distance = hexDistance(localX, localZ, size)
 
     cell.q = q
     cell.r = r
@@ -65,27 +64,15 @@ object HexStrategy {
     return cell
   }
 
-  fun hexSignedDistance(px: Float, pz: Float, r: Float): Float {
-    val kx = -sin60
-    val ky = 0.5f
-    val kz = tan30
+  fun hexDistance(px: Float, pz: Float, r: Int): Float {
+    val x = abs(px)
+    val z = abs(pz)
 
-    var x = abs(pz)
-    var y = abs(px)
+    val dist = max(x, x * cos60 + z * sin60)
 
-    val dotK = kx * x + ky * y
-    val minVal = min(dotK, 0.0f)
+    val apothem = r * sin60
 
-    x -= 2.0f * minVal * kx
-    y -= 2.0f * minVal * ky
-
-    val clampLimit = kz * r
-    val clampedX = x - clamp(x, -clampLimit, clampLimit)
-
-    val lengthVecX = clampedX
-    val lengthVecY = y - r
-
-    return hypot(lengthVecX, lengthVecY) * sign(lengthVecY)
+    return dist - apothem
   }
 
   fun traverse(
