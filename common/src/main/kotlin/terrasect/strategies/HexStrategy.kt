@@ -4,10 +4,7 @@ import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.math.*
 
 object HexStrategy {
   val discriminator = StrategyId.HEX
@@ -23,21 +20,18 @@ object HexStrategy {
   val cell: GetCellResult
     get() = cellLocal.get()
 
-  private val sqrt3 = sqrt(3.0f)
-  // Correct trig values for degrees (sin/cos/tan take radians, so use exact values)
-  private val sin30 = 0.5f // sin(30°)
-  private val cos30 = sqrt3 / 2.0f // cos(30°) ≈ 0.866
-  private val sin60 = sqrt3 / 2.0f // sin(60°) ≈ 0.866
-  private val cos60 = 0.5f // cos(60°)
-  private val tan30 = 1.0f / sqrt3 // tan(30°) ≈ 0.577
-  private const val oneThird = 1.0f / 3.0f
-  private const val twoThirds = 2.0f / 3.0f
+  private val SQRT3 = sqrt(3.0f)
+  private val SIN60 = sin(Math.toRadians(60.0)).toFloat()
+  private val COS60 = cos(Math.toRadians(60.0)).toFloat()
+  private val TAN30 = tan(Math.toRadians(30.0)).toFloat()
+  private const val ONE_THIRD = 1.0f / 3.0f
+  private const val TWO_THIRDS = 2.0f / 3.0f
 
   fun getCell(x: Int, z: Int, size: Int, gap: Int = 0): GetCellResult {
     val spacing = (size + gap.coerceAtLeast(0))
 
-    val qFrac = (tan30 * x - oneThird * z) / spacing
-    val rFrac = (twoThirds * z) / spacing
+    val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
+    val rFrac = (TWO_THIRDS * z) / spacing
     val sFrac = -qFrac - rFrac
 
     var q = qFrac.roundToInt()
@@ -54,7 +48,7 @@ object HexStrategy {
       r = -q - s
     }
 
-    val centerX = (sqrt3 * q + sin60 * r) * spacing
+    val centerX = (SQRT3 * q + SIN60 * r) * spacing
     val centerZ = (1.5f * r) * spacing
 
     val localX = x - centerX
@@ -63,7 +57,7 @@ object HexStrategy {
     var distance = hexDistance(localX, localZ, size)
     val isGap = distance > 0f && gap > 0
     if (isGap) {
-      distance -= gap
+      distance = -distance
     }
 
     cell.q = q
@@ -78,9 +72,9 @@ object HexStrategy {
     val x = abs(px)
     val z = abs(pz)
 
-    val dist = max(x, x * cos60 + z * sin60)
+    val dist = max(x, x * COS60 + z * SIN60)
 
-    val apothem = r * sin60
+    val apothem = r * SIN60
 
     return dist - apothem
   }
@@ -91,7 +85,7 @@ object HexStrategy {
       settings: Strategy.Hex,
   ): TraversalStep {
 
-    getCell(step.x, step.z, context.region.budget)
+    val cell = getCell(step.x, step.z, context.region.budget)
 
     step.id.put(discriminator.value)
     step.id.putInt(cell.q)

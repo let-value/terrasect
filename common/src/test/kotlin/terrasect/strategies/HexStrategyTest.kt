@@ -51,7 +51,7 @@ class HexStrategyTest {
       for (x in 0 until width) {
         val cell = HexStrategy.getCell(x - originX, z - originZ, size, gap)
 
-        distanceImage.setRGB(x, z, colorForDistance(cell.distance))
+        distanceImage.setRGB(x, z, colorForDistance(cell.distance, cell.isGap))
       }
     }
 
@@ -62,12 +62,14 @@ class HexStrategyTest {
     assertTrue(distanceWritten, "Expected to write PNG snapshot to ${distanceFile.absolutePath}")
   }
 
-  private fun colorForDistance(distance: Float): Int {
-    val edgeByte = abs(distance).toInt().coerceIn(0, 255)
+  private fun colorForDistance(distance: Float, isGap: Boolean): Int {
+    val maxDistance = if (isGap) gap else size
+    val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0f, 255f).toInt()
+
     return if (distance <= 0f) {
-      (0xFF shl 24) or (edgeByte shl 16) or (edgeByte shl 8) or 0xFF
+      (0xFF shl 24) or (normalizedDistance shl 16) or (normalizedDistance shl 8) or 0xFF
     } else {
-      (0xFF shl 24) or (0xFF shl 16) or (edgeByte shl 8) or edgeByte
+      (0xFF shl 24) or (0xFF shl 16) or (normalizedDistance shl 8) or normalizedDistance
     }
   }
 }
