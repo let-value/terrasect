@@ -57,11 +57,15 @@ class Context(
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
 
       val root = RegionRegistry.getRoot(dimensionId) ?: return
-      val region = RegionRegistry.build(root)
+      val region = RegionRegistry.buildTree(root)
 
       val context = Context(dimensionId, seed, region, sampler, biomesClimate)
       byDimension[dimensionId] = context
       bySampler[sampler] = context
     }
+
+    fun get(dimensionId: String): Context? = byDimension[dimensionId]
+
+    fun get(sampler: Climate.Sampler): Context? = bySampler[sampler]
   }
 }

@@ -11,10 +11,10 @@ enum class StrategyId(val value: Byte) {
 }
 
 interface StrategySettings {
-  fun build(): Strategy
+  fun build(definition: RegionDefinition, children: Set<Region>): Strategy
 }
 
-class HexSettings(val ringRegion: Region? = null) : Strategy {
+class HexSettings(val children: Region, val ringRegion: Region? = null) : Strategy {
   companion object {
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
   }
@@ -23,7 +23,8 @@ class HexSettings(val ringRegion: Region? = null) : Strategy {
 
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
-    override fun build() = HexSettings(ringRegionName?.let { RegionRegistry.build(it, null) })
+    override fun build(definition: RegionDefinition, children: Set<Region>) =
+        HexSettings(children.first(), ringRegionName?.let { RegionRegistry.build(it) })
   }
 }
 
@@ -39,7 +40,8 @@ class VoronoiSettings(val relaxationIterations: Int) : Strategy {
       this.relaxationIterations = relaxationIterations
     }
 
-    override fun build() = VoronoiSettings(max(0, min(20, relaxationIterations)))
+    override fun build(definition: RegionDefinition, children: Set<Region>) =
+        VoronoiSettings(max(0, min(20, relaxationIterations)))
   }
 }
 
@@ -53,7 +55,8 @@ class SubdivisionSettings(val jitter: Float) : Strategy {
 
     fun jitter(jitter: Float) = apply { this.jitter = jitter }
 
-    override fun build() = SubdivisionSettings(max(0f, min(0.5f, jitter)))
+    override fun build(definition: RegionDefinition, children: Set<Region>) =
+        SubdivisionSettings(max(0f, min(0.5f, jitter)))
   }
 }
 
@@ -79,7 +82,8 @@ class TemplateSettings(val type: TemplateType, centerRegionName: String? = null)
       this.centerRegionName = centerRegionName
     }
 
-    override fun build() = TemplateSettings(type, centerRegionName)
+    override fun build(definition: RegionDefinition, children: Set<Region>) =
+        TemplateSettings(type, centerRegionName)
   }
 }
 

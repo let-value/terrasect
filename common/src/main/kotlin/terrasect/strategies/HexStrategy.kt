@@ -1,11 +1,11 @@
 package terrasect.strategies
 
+import kotlin.math.*
 import terrasect.definition.HexSettings
 import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
-import kotlin.math.*
 
 object HexStrategy {
   val discriminator = StrategyId.HEX
@@ -91,6 +91,13 @@ object HexStrategy {
     step.id.putInt(cell.q)
     step.id.putInt(cell.r)
     step.id.putChar(Strategy.SEPARATOR)
+
+    step.region =
+        if (cell.isGap && settings.ringRegion != null) {
+          settings.ringRegion
+        } else {
+          settings.children
+        }
 
     return step
   }

@@ -1,99 +1,133 @@
 package terrasect.definition
 
+import kotlin.math.max
+import terrasect.definition.RegionRegistry.region
+
 open class RegionDefinition(
-    val strategy: StrategySettings? = null,
+    val name: String,
+    val originAnchor: Boolean = false,
+    var budget: Int,
+    val strategy: StrategySettings,
+    var adjacentTo: Set<String>? = null,
+    var parent: String? = null,
+    val children: MutableSet<String>? = null,
     val climate: ClimateSettings? = null,
     val height: HeightConstraints? = null,
     val noise: NoiseConstraints? = null,
     val biomes: SelectionRules? = null,
     val structures: SelectionRules? = null,
     val mobs: SelectionRules? = null,
-) {
+)
 
-  companion object {
-    fun builder() = Builder()
+open class RegionBuilder(var name: String) {
+  var originAnchor = false
+  var budget: Int? = null
+  var strategy: StrategySettings? = null
+  val adjacentToLazy = lazy { setOf<String>() }
+  val adjacentTo by adjacentToLazy
+  var parent: String? = null
+  val childrenLazy = lazy { mutableSetOf<String>() }
+  val children by childrenLazy
+  val climateLazyBuilder = lazy { ClimateSettings.builder() }
+  val climateBuilder by climateLazyBuilder
+  val heightLazyBuilder = lazy { HeightConstraints.builder() }
+  val heightBuilder by heightLazyBuilder
+  val noiseLazyBuilder = lazy { NoiseConstraints.builder() }
+  val noiseBuilder by noiseLazyBuilder
+  val biomesLazyBuilder = lazy { SelectionRules.builder() }
+  val biomesBuilder by biomesLazyBuilder
+  val structuresLazyBuilder = lazy { SelectionRules.builder() }
+  val structuresBuilder by structuresLazyBuilder
+  val mobsLazyBuilder = lazy { SelectionRules.builder() }
+  val mobsBuilder by mobsLazyBuilder
+
+  fun area(budget: Int) = apply { this.budget = budget * budget }
+
+  fun originAnchor() = apply { originAnchor = true }
+
+  fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
+
+  fun parent(name: String) = apply { parent = name }
+
+  fun adjacentTo(vararg regionNames: String) = apply { adjacentTo.plus(regionNames) }
+
+  fun child(name: String, consumer: (RegionBuilder) -> Unit) = apply {
+    region(name).apply(consumer).parent(name)
+    children.add(name)
   }
 
-  open class Builder {
-    var strategy: StrategySettings? = null
-    val climateLazyBuilder = lazy { ClimateSettings.builder() }
-    val climateBuilder by climateLazyBuilder
-    val heightLazyBuilder = lazy { HeightConstraints.builder() }
-    val heightBuilder by heightLazyBuilder
-    val noiseLazyBuilder = lazy { NoiseConstraints.builder() }
-    val noiseBuilder by noiseLazyBuilder
-    val biomesLazyBuilder = lazy { SelectionRules.builder() }
-    val biomesBuilder by biomesLazyBuilder
-    val structuresLazyBuilder = lazy { SelectionRules.builder() }
-    val structuresBuilder by structuresLazyBuilder
-    val mobsLazyBuilder = lazy { SelectionRules.builder() }
-    val mobsBuilder by mobsLazyBuilder
+  inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
+    climateBuilder.apply(consumer)
+  }
 
-    fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
+  inline fun height(consumer: HeightConstraints.Builder.() -> Unit) = apply {
+    heightBuilder.apply(consumer)
+  }
 
-    inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
-      climateBuilder.apply(consumer)
+  inline fun noise(consumer: NoiseConstraints.Builder.() -> Unit) = apply {
+    noiseBuilder.apply(consumer)
+  }
+
+  inline fun biomes(consumer: SelectionRules.Builder.() -> Unit) = apply {
+    biomesBuilder.apply(consumer)
+  }
+
+  inline fun structures(consumer: SelectionRules.Builder.() -> Unit) = apply {
+    structuresBuilder.apply(consumer)
+  }
+
+  inline fun mobs(consumer: SelectionRules.Builder.() -> Unit) = apply {
+    mobsBuilder.apply(consumer)
+  }
+
+  fun copy(): RegionBuilder {
+    return RegionBuilder(this.name).also { it.inheritParent(this) }
+  }
+
+  fun inheritParent(parent: RegionBuilder) = apply {
+    this.parent = parent.name
+
+    if (parent.climateLazyBuilder.isInitialized()) {
+      this.climateBuilder.inheritParent(parent.climateBuilder)
     }
-
-    inline fun height(consumer: HeightConstraints.Builder.() -> Unit) = apply {
-      heightBuilder.apply(consumer)
+    if (parent.heightLazyBuilder.isInitialized()) {
+      this.heightBuilder.inheritParent(parent.heightBuilder)
     }
-
-    inline fun noise(consumer: NoiseConstraints.Builder.() -> Unit) = apply {
-      noiseBuilder.apply(consumer)
+    if (parent.noiseLazyBuilder.isInitialized()) {
+      this.noiseBuilder.inheritParent(parent.noiseBuilder)
     }
-
-    inline fun biomes(consumer: SelectionRules.Builder.() -> Unit) = apply {
-      biomesBuilder.apply(consumer)
+    if (parent.biomesLazyBuilder.isInitialized()) {
+      this.biomesBuilder.inheritParent(parent.biomesBuilder)
     }
-
-    inline fun structures(consumer: SelectionRules.Builder.() -> Unit) = apply {
-      structuresBuilder.apply(consumer)
+    if (parent.structuresLazyBuilder.isInitialized()) {
+      this.structuresBuilder.inheritParent(parent.structuresBuilder)
     }
-
-    inline fun mobs(consumer: SelectionRules.Builder.() -> Unit) = apply {
-      mobsBuilder.apply(consumer)
+    if (parent.mobsLazyBuilder.isInitialized()) {
+      this.mobsBuilder.inheritParent(parent.mobsBuilder)
     }
-
-    fun copy(): Builder {
-      return Builder().also { it.inheritParent(this) }
+    if (this.strategy == null) {
+      this.strategy = parent.strategy
     }
+  }
 
-    fun inheritParent(parent: Builder) = apply {
-      if (parent.climateLazyBuilder.isInitialized()) {
-        this.climateBuilder.inheritParent(parent.climateBuilder)
-      }
-      if (parent.heightLazyBuilder.isInitialized()) {
-        this.heightBuilder.inheritParent(parent.heightBuilder)
-      }
-      if (parent.noiseLazyBuilder.isInitialized()) {
-        this.noiseBuilder.inheritParent(parent.noiseBuilder)
-      }
-      if (parent.biomesLazyBuilder.isInitialized()) {
-        this.biomesBuilder.inheritParent(parent.biomesBuilder)
-      }
-      if (parent.structuresLazyBuilder.isInitialized()) {
-        this.structuresBuilder.inheritParent(parent.structuresBuilder)
-      }
-      if (parent.mobsLazyBuilder.isInitialized()) {
-        this.mobsBuilder.inheritParent(parent.mobsBuilder)
-      }
-      if (this.strategy == null) {
-        this.strategy = parent.strategy
-      }
-    }
+  fun build(children: Set<Region>): RegionDefinition {
+    val budget = max(this.budget ?: 0, children.sumOf { it.budget })
 
-    fun build(): RegionDefinition {
-      return RegionDefinition(
-          strategy = this.strategy,
-          climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
-          height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
-          noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
-          biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
-          structures =
-              if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
-          mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
-      )
-    }
+    return RegionDefinition(
+        name = this.name,
+        originAnchor = this.originAnchor,
+        budget,
+        strategy = this.strategy ?: Strategy.template(),
+        adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
+        parent = this.parent,
+        children = if (this.childrenLazy.isInitialized()) this.children else null,
+        climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
+        height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
+        noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
+        biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
+        structures =
+            if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
+        mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
+    )
   }
 }

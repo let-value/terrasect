@@ -1,10 +1,10 @@
 package terrasect.definition
 
 object RegionRegistry {
-  val drafts = mutableMapOf<String, DraftRegion>()
+  val drafts = mutableMapOf<String, RegionBuilder>()
   val dimensionRoots = mutableMapOf<String, String>()
 
-  fun region(name: String) = drafts.getOrPut(name) { DraftRegion(name) }
+  fun region(name: String) = drafts.getOrPut(name) { RegionBuilder(name) }
 
   fun setRoot(dimensionId: String, name: String) = dimensionRoots.set(dimensionId, name)
 
@@ -12,10 +12,8 @@ object RegionRegistry {
 
   private val visiting = mutableSetOf<String>()
 
-  fun build(name: String, parent: RegionDefinition.Builder? = null): Region {
+  fun buildTree(name: String, parent: RegionBuilder? = null): Region {
     val draft = drafts[name] ?: return Region.empty(name)
-
-    // initialize strategy
 
     if (!visiting.add(name)) {
       return Region.empty(name)
@@ -26,17 +24,17 @@ object RegionRegistry {
       builder.inheritParent(parent)
     }
 
-    val children = draft.children.map { childName -> build(childName, builder) }.toSet()
+    val children = draft.children.map { childName -> buildTree(childName, builder) }.toSet()
 
-    val definition = builder.build()
+    val definition = builder.build(children)
 
     visiting.remove(name)
 
     return Region(
-        name = draft.name,
-        budget = draft.areaBudget ?: 10000,
+        name = definition.name,
+        budget = definition.budget,
         children = children,
-        strategy = definition.strategy?.build(),
+        strategy = definition.strategy.build(definition, children),
         climate = definition.climate,
         height = definition.height,
         noise = definition.noise,
@@ -46,24 +44,21 @@ object RegionRegistry {
     )
   }
 
-  class DraftRegion(val name: String) : RegionDefinition.Builder() {
-    var areaBudget: Int? = null
-    var adjacentTo = setOf<String>()
-    var parent: String? = null
-    val children = mutableSetOf<String>()
-    var originAnchor = false
+  fun resolveDraft(name: String): RegionBuilder {
+    val draft = drafts[name] ?: return RegionBuilder(name)
 
-    fun parent(name: String) = apply { parent = name }
-
-    fun area(budget: Int) = apply { areaBudget = budget * budget }
-
-    fun adjacentTo(vararg regionNames: String) = apply { adjacentTo = regionNames.toSet() }
-
-    fun originAnchor() = apply { originAnchor = true }
-
-    fun child(name: String, consumer: (DraftRegion) -> Unit) = apply {
-      region(name).apply(consumer).parent(name)
-      children.add(name)
+    val builder = draft.copy()
+    if (draft.parent != null) {
+      val parentDraft = resolveDraft(draft.parent!!)
+      builder.inheritParent(parentDraft)
     }
+
+    return builder
+  }
+
+  fun build(name: String): Region {
+    val draft = resolveDraft(name)
+
+    return buildTree(name, draft)
   }
 }

@@ -36,6 +36,6 @@ public class ClimateSamplerMixin implements VanillaSamplerAccessor {
 
     var context = Context.Companion.get(self);
 
-    ClimateHandler.modifyTargetPoint(context, x, y, z, cir.getReturnValue());
+    // ClimateHandler.modifyTargetPoint(context, x, y, z, cir.getReturnValue());
   }
 }
