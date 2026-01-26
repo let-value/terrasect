@@ -110,13 +110,13 @@ open class RegionBuilder(var name: String) {
     }
   }
 
-  fun build(children: Set<Region>): RegionDefinition {
-    val budget = max(this.budget ?: 0, children.sumOf { it.budget })
+  fun build(children: Set<Region>? = null): RegionDefinition {
+    val budget = children?.sumOf { it.budget }?.let { max(this.budget ?: 0, it) }
 
     return RegionDefinition(
         name = this.name,
         originAnchor = this.originAnchor,
-        budget,
+        budget = budget ?: (this.budget ?: 0),
         strategy = this.strategy ?: Strategy.template(),
         adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
         parent = this.parent,

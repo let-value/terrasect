@@ -8,7 +8,7 @@ class RegionDefinitionTest {
   @Test
   fun `designer can define a focused region without extra constraints`() {
     val region =
-        RegionDefinition.builder()
+        RegionBuilder("whispering_pines")
             .climate {
               temperature(-0.3f, 0.2f)
               humidity(0.6f)
@@ -49,7 +49,7 @@ class RegionDefinitionTest {
   @Test
   fun `child region inherits narrative defaults but keeps its overrides`() {
     val worldDefaults =
-        RegionDefinition.builder()
+        RegionBuilder("parent")
             .climate {
               temperature(-0.6f, -0.2f)
               humidity(0.7f, 0.9f)
@@ -64,7 +64,7 @@ class RegionDefinitionTest {
             .strategy(Strategy.subdivision(0.2f))
 
     val child =
-        RegionDefinition.builder()
+        RegionBuilder("child")
             .climate { temperature(-0.1f) }
             .biomes { blockNames("minecraft:old_growth_pine_taiga") }
             .inheritParent(worldDefaults)

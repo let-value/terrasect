@@ -8,16 +8,16 @@ import java.nio.ByteBuffer
 class TraversalStep(val context: Context) {
   val id = ByteBuffer.allocate(256)
   var region: Region = context.region
-  var x: Int = 0
-  var z: Int = 0
-  var edgeDistance: Float = 0f
+  var x: Long = 0
+  var z: Long = 0
+  var distance: Double = 0.0
 
-  fun reset(x: Int, z: Int) {
+  fun reset(x: Long, z: Long) {
     this.id.clear()
     this.x = x
     this.z = z
     this.region = context.region
-    this.edgeDistance = 0f
+    this.distance = 0.0
   }
 }
 
@@ -36,19 +36,19 @@ fun Context.step(step: TraversalStep): TraversalStep? {
   }
 }
 
-fun Context.iterate(x: Int, z: Int): TraversalStep {
+fun Context.iterate(x: Long, z: Long): TraversalStep {
   val step = this.iterator.get()
   step.reset(x, z)
 
   return step
 }
 
-fun Context.traverse(x: Int, z: Int): TraversalStep {
-  var iteration = this.iterate(x, z)
+fun Context.traverse(x: Long, z: Long): TraversalStep {
+  var step = this.iterate(x, z)
 
-  while (iteration.region.hasChildren) {
-    iteration = this.step(iteration) ?: break
+  while (step.region.hasChildren) {
+    step = this.step(step) ?: break
   }
 
-  return iteration
+  return step
 }

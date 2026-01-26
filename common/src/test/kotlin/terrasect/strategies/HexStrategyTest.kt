@@ -12,8 +12,6 @@ class HexStrategyTest {
   val gap = 20
   val width = 200
   val height = 200
-  val originX = width / 2
-  val originZ = height / 2
 
   @Test
   fun `should render cells`() {
@@ -21,8 +19,8 @@ class HexStrategyTest {
 
     for (z in 0 until height) {
       for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x - originX, z - originZ, size, gap)
-        val color = colorForCell(cell.q, cell.r, cell.isGap)
+        val cell = HexStrategy.getCell(x.toLong(), z.toLong(), size, gap)
+        val color = colorForCell(cell.q.toInt(), cell.r.toInt(), cell.isGap)
 
         cellImage.setRGB(x, z, color)
       }
@@ -49,7 +47,7 @@ class HexStrategyTest {
 
     for (z in 0 until height) {
       for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x - originX, z - originZ, size, gap)
+        val cell = HexStrategy.getCell(x.toLong(), z.toLong(), size, gap)
 
         distanceImage.setRGB(x, z, colorForDistance(cell.distance, cell.isGap))
       }
@@ -62,9 +60,9 @@ class HexStrategyTest {
     assertTrue(distanceWritten, "Expected to write PNG snapshot to ${distanceFile.absolutePath}")
   }
 
-  private fun colorForDistance(distance: Float, isGap: Boolean): Int {
+  private fun colorForDistance(distance: Double, isGap: Boolean): Int {
     val maxDistance = if (isGap) gap else size
-    val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0f, 255f).toInt()
+    val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0.0, 255.0).toInt()
 
     return if (distance <= 0f) {
       (0xFF shl 24) or (normalizedDistance shl 16) or (normalizedDistance shl 8) or 0xFF
