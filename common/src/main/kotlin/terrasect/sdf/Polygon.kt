@@ -17,12 +17,12 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
   val cols = max(1, ceil(expanded.spanX / CELL_SIZE).toInt())
   val rows = max(1, ceil(expanded.spanZ / CELL_SIZE).toInt())
 
+  var z0 = expanded.minZ
   for (row in 0 until rows) {
-    val z0 = expanded.minZ + row * CELL_SIZE
-    val z1 = min(expanded.maxZ, z0 + CELL_SIZE)
+    val z1 = if (row == rows - 1) expanded.maxZ else z0 + CELL_SIZE
+    var x0 = expanded.minX
     for (col in 0 until cols) {
-      val x0 = expanded.minX + col * CELL_SIZE
-      val x1 = min(expanded.maxX, x0 + CELL_SIZE)
+      val x1 = if (col == cols - 1) expanded.maxX else x0 + CELL_SIZE
 
       val v0 = sdf(x0, z0)
       val v1 = sdf(x1, z0)
@@ -34,27 +34,58 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
       val e2 = v2 <= 0.0
       val e3 = v3 <= 0.0
 
-      val edgePoints = arrayOfNulls<Vec2>(4)
-      if (e0 != e1) edgePoints[0] = interp(x0, z0, x1, z0, v0, v1)
-      if (e1 != e2) edgePoints[1] = interp(x1, z0, x1, z1, v1, v2)
-      if (e2 != e3) edgePoints[2] = interp(x1, z1, x0, z1, v2, v3)
-      if (e3 != e0) edgePoints[3] = interp(x0, z1, x0, z0, v3, v0)
+      var p0: Vec2? = null
+      var p1: Vec2? = null
+      var p2: Vec2? = null
+      var p3: Vec2? = null
+      var count = 0
+      var first: Vec2? = null
+      var second: Vec2? = null
 
-      val indices = edgePoints.indices.filter { edgePoints[it] != null }
-      if (indices.size == 2) {
-        segments.add(Segment(edgePoints[indices[0]]!!, edgePoints[indices[1]]!!))
-      } else if (indices.size == 4) {
+      if (e0 != e1) {
+        val p = interp(x0, z0, x1, z0, v0, v1)
+        p0 = p
+        if (count == 0) first = p else if (count == 1) second = p
+        count++
+      }
+      if (e1 != e2) {
+        val p = interp(x1, z0, x1, z1, v1, v2)
+        p1 = p
+        if (count == 0) first = p else if (count == 1) second = p
+        count++
+      }
+      if (e2 != e3) {
+        val p = interp(x1, z1, x0, z1, v2, v3)
+        p2 = p
+        if (count == 0) first = p else if (count == 1) second = p
+        count++
+      }
+      if (e3 != e0) {
+        val p = interp(x0, z1, x0, z0, v3, v0)
+        p3 = p
+        if (count == 0) first = p else if (count == 1) second = p
+        count++
+      }
+
+      if (count == 2) {
+        segments.add(Segment(first!!, second!!))
+      } else if (count == 4) {
         val centerValue = sdf((x0 + x1) * 0.5, (z0 + z1) * 0.5)
         if (centerValue <= 0.0) {
-          segments.add(Segment(edgePoints[0]!!, edgePoints[1]!!))
-          segments.add(Segment(edgePoints[2]!!, edgePoints[3]!!))
+          segments.add(Segment(p0!!, p1!!))
+          segments.add(Segment(p2!!, p3!!))
         } else {
-          segments.add(Segment(edgePoints[0]!!, edgePoints[3]!!))
-          segments.add(Segment(edgePoints[1]!!, edgePoints[2]!!))
+          segments.add(Segment(p0!!, p3!!))
+          segments.add(Segment(p1!!, p2!!))
         }
       }
+
+      x0 = x1
     }
+    z0 = z1
   }
+
+  if (segments.isEmpty()) return emptyList()
 
   val polygons = stitchSegments(segments)
   var best: List<Vec2> = emptyList()
@@ -87,7 +118,7 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
 }
 
 private fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
-  if (segments.isEmpty()) return emptyList()
+  if (segments.size < 2) return emptyList()
 
   val snap = max(1e-6, CELL_SIZE * 1e-3)
   fun key(p: Vec2): Long {
@@ -134,7 +165,7 @@ private fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
       if (currentKey == startKey) break
     }
 
-    val isClosed = path.size > 2 && key(path.first()) == key(path.last())
+    val isClosed = path.size > 2 && currentKey == startKey
     if (isClosed) {
       path.removeAt(path.size - 1)
       polygons.add(path)

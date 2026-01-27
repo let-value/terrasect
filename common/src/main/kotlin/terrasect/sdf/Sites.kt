@@ -60,6 +60,7 @@ fun getSites(
   val localZ = DoubleArray(budgets.size)
   val maxBudget = normalizedBudgets.maxOrNull() ?: 0.0
   val cellSize = max(1.0, maxBudget)
+  val invCellSize = 1.0 / cellSize
   val grid = HashMap<Long, MutableList<Int>>(budgets.size * 2)
   val attempts = ATTEMPTS_PER_SITE.coerceAtLeast(8)
   val gradientEps = max(1e-3, max(bounds.spanX, bounds.spanZ) * 1e-4)
@@ -73,10 +74,13 @@ fun getSites(
   for (index in order) {
     val budget = normalizedBudgets[index]
     val neighborRange = max(1, ceil((budget + maxBudget) / cellSize).toInt())
+    val hasNeighbors = grid.isNotEmpty()
     var bestScore = Double.NEGATIVE_INFINITY
+    var bestBoundaryClearance = Double.NEGATIVE_INFINITY
     var bestX = 0.0
     var bestZ = 0.0
     var bestInsideScore = Double.NEGATIVE_INFINITY
+    var bestInsideBoundaryClearance = Double.NEGATIVE_INFINITY
     var bestInsideX = 0.0
     var bestInsideZ = 0.0
 
@@ -84,12 +88,34 @@ fun getSites(
       val candidateX = bounds.minX + rng.nextDouble() * spanX
       val candidateZ = bounds.minZ + rng.nextDouble() * spanZ
       val boundaryClearance = -(sdf(candidateX, candidateZ) + budget)
+      val inside = boundaryClearance >= 0.0
+      val cutoff = if (inside) min(bestScore, bestInsideScore) else bestScore
+
+      if (boundaryClearance <= cutoff) {
+        continue
+      }
+
+      if (!hasNeighbors) {
+        if (boundaryClearance > bestScore) {
+          bestScore = boundaryClearance
+          bestBoundaryClearance = boundaryClearance
+          bestX = candidateX
+          bestZ = candidateZ
+        }
+        if (inside && boundaryClearance > bestInsideScore) {
+          bestInsideScore = boundaryClearance
+          bestInsideBoundaryClearance = boundaryClearance
+          bestInsideX = candidateX
+          bestInsideZ = candidateZ
+        }
+        continue
+      }
 
       var neighborClearance = Double.POSITIVE_INFINITY
-      val cx = floor(candidateX / cellSize).toInt()
-      val cz = floor(candidateZ / cellSize).toInt()
+      val cx = floor(candidateX * invCellSize).toInt()
+      val cz = floor(candidateZ * invCellSize).toInt()
 
-      for (gx in cx - neighborRange..cx + neighborRange) {
+      neighborSearch@ for (gx in cx - neighborRange..cx + neighborRange) {
         for (gz in cz - neighborRange..cz + neighborRange) {
           val bucket = grid[cellKey(gx, gz)] ?: continue
           for (other in bucket) {
@@ -100,28 +126,36 @@ fun getSites(
             val clearance = distance - minDistance
             if (clearance < neighborClearance) {
               neighborClearance = clearance
+              if (neighborClearance <= cutoff) {
+                break@neighborSearch
+              }
             }
           }
         }
       }
 
+      if (neighborClearance <= cutoff) continue
+
       val score = min(boundaryClearance, neighborClearance)
       if (score > bestScore) {
         bestScore = score
+        bestBoundaryClearance = boundaryClearance
         bestX = candidateX
         bestZ = candidateZ
       }
-      if (boundaryClearance >= 0.0 && score > bestInsideScore) {
+      if (inside && score > bestInsideScore) {
         bestInsideScore = score
+        bestInsideBoundaryClearance = boundaryClearance
         bestInsideX = candidateX
         bestInsideZ = candidateZ
       }
     }
 
-    var chosenX = if (bestInsideScore > Double.NEGATIVE_INFINITY) bestInsideX else bestX
-    var chosenZ = if (bestInsideScore > Double.NEGATIVE_INFINITY) bestInsideZ else bestZ
-
-    val boundaryDistance = sdf(chosenX, chosenZ) + budget
+    val useInside = bestInsideScore > Double.NEGATIVE_INFINITY
+    var chosenX = if (useInside) bestInsideX else bestX
+    var chosenZ = if (useInside) bestInsideZ else bestZ
+    val boundaryDistance =
+        if (useInside) -bestInsideBoundaryClearance else -bestBoundaryClearance
     if (boundaryDistance > 0.0) {
       val (gx, gz) = numericGradient(sdf, chosenX, chosenZ, gradientEps)
       val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-6)
@@ -131,8 +165,8 @@ fun getSites(
 
     localX[index] = chosenX
     localZ[index] = chosenZ
-    val cellX = floor(chosenX / cellSize).toInt()
-    val cellZ = floor(chosenZ / cellSize).toInt()
+    val cellX = floor(chosenX * invCellSize).toInt()
+    val cellZ = floor(chosenZ * invCellSize).toInt()
     val key = cellKey(cellX, cellZ)
     grid.getOrPut(key) { mutableListOf() }.add(index)
   }

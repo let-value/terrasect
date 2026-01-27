@@ -36,7 +36,6 @@ fun estimateBounds(
   val maxCells = max(1, ceil(MAX_RADIUS / CELL_SIZE).toInt())
   val originCellX = floor(originX / CELL_SIZE).toInt()
   val originCellZ = floor(originZ / CELL_SIZE).toInt()
-  val gradientEps = max(1e-3, CELL_SIZE * 0.25)
 
   val originDistance = sdf(originX, originZ)
   var bestX = originX
@@ -71,6 +70,7 @@ fun estimateBounds(
   }
 
   if (seedX.isNaN()) {
+    val gradientEps = max(1e-3, CELL_SIZE * 0.25)
     var x = bestX
     var z = bestZ
     var distance = sdf(x, z)
@@ -85,10 +85,11 @@ fun estimateBounds(
     }
 
     val (gx, gz) = numericGradient(sdf, x, z, gradientEps)
-    val length = sqrt(gx * gx + gz * gz)
+    val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-8)
+    val halfCell = CELL_SIZE * 0.5
 
-    seedX = x - gx / length * (CELL_SIZE * 0.5)
-    seedZ = z - gz / length * (CELL_SIZE * 0.5)
+    seedX = x - gx / length * halfCell
+    seedZ = z - gz / length * halfCell
   }
 
   return floodBounds(sdf, seedX, seedZ, originX, originZ)

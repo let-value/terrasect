@@ -17,12 +17,6 @@ object HexStrategy {
       var isGap: Boolean = false,
   )
 
-  data class Site(
-      var x: Double = 0.0,
-      var z: Double = 0.0,
-      var budget: Double = 0.0,
-  )
-
   val cellRef: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
 
   private val SQRT3 = sqrt(3.0)
@@ -32,7 +26,7 @@ object HexStrategy {
   private const val TWO_THIRDS = 2.0 / 3.0
 
   fun getCell(x: Long, z: Long, radius: Int, gap: Int = 0): GetCellResult {
-    val spacing = (radius + gap.coerceAtLeast(0))
+    val spacing = radius + gap.coerceAtLeast(0)
 
     val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
     val rFrac = (TWO_THIRDS * z) / spacing
