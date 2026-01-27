@@ -11,7 +11,7 @@ import kotlin.math.sqrt
 
 const val SITE_AREA_COLOR = 0xFFFF4D4D.toInt()
 
-class SdfSitesTest {
+class SitesTest {
   private val width = 200
   private val height = 200
 
@@ -63,7 +63,7 @@ class SdfSitesTest {
       }
     }
 
-    val sitesFile = SnapshotOutputPaths.forTestClass(SdfSitesTest::class.java, "sdf-sites.png")
+    val sitesFile = SnapshotOutputPaths.forTestClass(SitesTest::class.java, "sdf-sites.png")
     sitesFile.parentFile.mkdirs()
     val sitesWritten = ImageIO.write(image, "png", sitesFile)
     assertTrue(sitesWritten, "Expected to write PNG snapshot to ${sitesFile.absolutePath}")

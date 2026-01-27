@@ -28,7 +28,7 @@ fun bananaLocalSdf(x: Double, z: Double): Double {
 
 const val LINE_COLOR = 0xFF4DD5FF.toInt()
 
-class SdfPolygonTest {
+class PolygonTest {
   private val width = 200
   private val height = 200
 
@@ -74,7 +74,7 @@ class SdfPolygonTest {
     }
 
     val polygonFile =
-        SnapshotOutputPaths.forTestClass(SdfPolygonTest::class.java, "banana-polygon.png")
+        SnapshotOutputPaths.forTestClass(PolygonTest::class.java, "banana-polygon.png")
     polygonFile.parentFile.mkdirs()
     val polygonWritten = ImageIO.write(image, "png", polygonFile)
     assertTrue(polygonWritten, "Expected to write PNG snapshot to ${polygonFile.absolutePath}")

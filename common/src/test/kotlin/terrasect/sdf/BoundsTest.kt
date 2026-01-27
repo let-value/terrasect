@@ -3,7 +3,7 @@ package terrasect.sdf
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class SdfBoundsTest {
+class BoundsTest {
   @Test
   fun `should expand bounds`() {
     val bounds = SdfBounds(-10.0, 10.0, -5.0, 5.0)

@@ -26,14 +26,14 @@ class HexCellSdf : Sdf2 {
 class HexGapSdf : Sdf2 {
   var centerX = 0.0
   var centerZ = 0.0
-  var innerRadius = 0
-  var outerRadius = 0
+  var radius = 0
+  var gap = 0
 
   override fun invoke(x: Double, z: Double): Double {
     val dx = x - centerX
     val dz = z - centerZ
-    val outer = hexDistance(dx, dz, outerRadius)
-    val inner = hexDistance(dx, dz, innerRadius)
+    val outer = hexDistance(dx, dz, radius + gap)
+    val inner = hexDistance(dx, dz, radius)
     return max(outer, -inner)
   }
 }

@@ -98,8 +98,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
         val sdf = settings.gapSdfRef.get()
         sdf.centerX = cell.centerX
         sdf.centerZ = cell.centerZ
-        sdf.innerRadius = cell.radius
-        sdf.outerRadius = cell.radius + gap
+        sdf.radius = cell.radius
+        sdf.gap = gap
         step.composeSdf(sdf)
       } else {
         val sdf = settings.cellSdfRef.get()
