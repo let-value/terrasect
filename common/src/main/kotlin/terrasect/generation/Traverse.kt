@@ -2,7 +2,6 @@ package terrasect.generation
 
 import terrasect.definition.Region
 import terrasect.sdf.Sdf2
-import terrasect.strategies.HexSettings
 import terrasect.strategies.HexStrategy
 import java.nio.ByteBuffer
 import kotlin.math.max
@@ -68,7 +67,7 @@ fun Context.step(step: TraversalStep): TraversalStep? {
   }
 
   return when (region.strategy) {
-    is HexSettings -> HexStrategy.traverse(this, step, region.strategy)
+    is HexStrategy -> HexStrategy.traverse(this, step, region.strategy)
     else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
   }
 }

@@ -1,11 +1,11 @@
 package terrasect.strategies
 
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import terrasect.testing.SnapshotOutputPaths
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.math.abs
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import terrasect.testing.SnapshotOutputPaths
 
 class HexStrategyTest {
   val size = 40
@@ -49,7 +49,7 @@ class HexStrategyTest {
       for (x in 0 until width) {
         val cell = HexStrategy.getCell(x.toLong(), z.toLong(), size, gap)
 
-        distanceImage.setRGB(x, z, colorForDistance(cell.distance, cell.isGap))
+        distanceImage.setRGB(x, z, colorForDistance(cell.distance))
       }
     }
 
@@ -60,8 +60,8 @@ class HexStrategyTest {
     assertTrue(distanceWritten, "Expected to write PNG snapshot to ${distanceFile.absolutePath}")
   }
 
-  private fun colorForDistance(distance: Double, isGap: Boolean): Int {
-    val maxDistance = if (isGap) gap else size
+  private fun colorForDistance(distance: Double): Int {
+    val maxDistance = size + gap
     val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0.0, 255.0).toInt()
 
     return if (distance <= 0f) {

@@ -2,8 +2,7 @@ package terrasect.definition
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import terrasect.strategies.HexSettings
-import terrasect.strategies.hex
+import terrasect.strategies.HexStrategy
 
 class RegionDefinitionTest {
 
@@ -21,7 +20,7 @@ class RegionDefinitionTest {
               allowTags("coniferous", "taiga")
               blockNames("minecraft:swamp")
             }
-            .strategy(Strategy.hex("whispering_pines_ring"))
+            .strategy(HexStrategy.builder("whispering_pines_ring"))
             .build()
 
     assertAll(
@@ -38,11 +37,11 @@ class RegionDefinitionTest {
         { assertNull(region.noise) },
         { assertNull(region.structures) },
         { assertNull(region.mobs) },
-        { assertTrue(region.strategy is HexSettings.Builder) },
+        { assertTrue(region.strategy is HexStrategy.Builder) },
         {
           assertEquals(
               "whispering_pines_ring",
-              (region.strategy as HexSettings.Builder).ringRegionName,
+              (region.strategy as HexStrategy.Builder).ringRegionName,
           )
         },
     )
