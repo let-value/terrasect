@@ -14,20 +14,6 @@ interface StrategySettings {
   fun build(definition: RegionDefinition, children: Set<Region>): Strategy
 }
 
-class HexSettings(val children: Region, val ringRegion: Region? = null) : Strategy {
-  companion object {
-    fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
-  }
-
-  class Builder(var ringRegionName: String? = null) : StrategySettings {
-
-    fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
-
-    override fun build(definition: RegionDefinition, children: Set<Region>) =
-        HexSettings(children.first(), ringRegionName?.let { RegionRegistry.build(it) })
-  }
-}
-
 class VoronoiSettings(val relaxationIterations: Int) : Strategy {
 
   companion object {
@@ -91,10 +77,6 @@ interface Strategy {
 
   companion object {
     const val SEPARATOR: Char = ','
-
-    fun hex() = HexSettings.builder()
-
-    fun hex(ringRegionName: String) = HexSettings.builder(ringRegionName)
 
     fun voronoi() = VoronoiSettings.builder()
 

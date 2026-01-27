@@ -2,6 +2,8 @@ package terrasect.definition
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import terrasect.strategies.HexSettings
+import terrasect.strategies.hex
 
 class RegionDefinitionTest {
 

@@ -1,23 +1,60 @@
 package terrasect.generation
 
-import terrasect.definition.HexSettings
 import terrasect.definition.Region
+import terrasect.sdf.Sdf2
+import terrasect.strategies.HexSettings
 import terrasect.strategies.HexStrategy
 import java.nio.ByteBuffer
+import kotlin.math.max
+
+private object EmptySdf : Sdf2 {
+  override fun invoke(x: Double, z: Double): Double = Double.NEGATIVE_INFINITY
+}
+
+private class SdfCompose : Sdf2 {
+  var left: Sdf2 = EmptySdf
+  var right: Sdf2 = EmptySdf
+
+  override fun invoke(x: Double, z: Double): Double = max(left(x, z), right(x, z))
+}
 
 class TraversalStep(val context: Context) {
-  val id = ByteBuffer.allocate(256)
+  val id: ByteBuffer = ByteBuffer.allocate(256)
   var region: Region = context.region
   var x: Long = 0
   var z: Long = 0
-  var distance: Double = 0.0
+  var distance: Double = Double.NEGATIVE_INFINITY
+  var sdf: Sdf2 = EmptySdf
+
+  private var composePool = Array(8) { SdfCompose() }
+  private var composeCount = 0
+
+  fun composeSdf(bound: Sdf2) {
+    sdf =
+        if (sdf === EmptySdf) {
+          bound
+        } else {
+          if (composeCount == composePool.size) {
+            composePool =
+                Array(composePool.size * 2) { index ->
+                  if (index < composePool.size) composePool[index] else SdfCompose()
+                }
+          }
+          val node = composePool[composeCount++]
+          node.left = sdf
+          node.right = bound
+          node
+        }
+  }
 
   fun reset(x: Long, z: Long) {
     this.id.clear()
     this.x = x
     this.z = z
     this.region = context.region
-    this.distance = 0.0
+    this.distance = Double.NEGATIVE_INFINITY
+    this.sdf = EmptySdf
+    this.composeCount = 0
   }
 }
 
