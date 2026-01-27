@@ -5,6 +5,9 @@ import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
+import terrasect.sdf.Sdf2
+import terrasect.sdf.SdfBounds
+import terrasect.sdf.SdfSites
 import kotlin.math.*
 
 object HexStrategy {
