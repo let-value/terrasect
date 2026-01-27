@@ -5,9 +5,6 @@ import terrasect.definition.Strategy
 import terrasect.definition.StrategyId
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
-import terrasect.sdf.Sdf2
-import terrasect.sdf.SdfBounds
-import terrasect.sdf.SdfSites
 import kotlin.math.*
 
 object HexStrategy {
@@ -30,7 +27,6 @@ object HexStrategy {
 
   private val SQRT3 = sqrt(3.0)
   private val SIN60 = sin(Math.toRadians(60.0))
-  private val COS60 = cos(Math.toRadians(60.0))
   private val TAN30 = tan(Math.toRadians(30.0))
   private const val ONE_THIRD = 1.0 / 3.0
   private const val TWO_THIRDS = 2.0 / 3.0
@@ -84,75 +80,6 @@ object HexStrategy {
     val d = x * 0.5 + z * SIN60
 
     return max(d, x) - radius
-  }
-
-  private fun hexGradient(px: Double, pz: Double): Pair<Double, Double> {
-    val sx = if (px < 0.0) -1.0 else 1.0
-    val sz = if (pz < 0.0) -1.0 else 1.0
-    val x = abs(px)
-    val z = abs(pz)
-    val d = x * 0.5 + z * SIN60
-
-    return if (x >= d) {
-      Pair(sx, 0.0)
-    } else {
-      Pair(sx * 0.5, sz * SIN60)
-    }
-  }
-
-  fun getSites(
-      seed: Long,
-      q: Long,
-      r: Long,
-      radius: Int,
-      budgets: IntArray,
-      gap: Int = 0,
-      relaxIterations: Int = 24,
-      attemptsPerSite: Int = 28,
-  ): Array<Site> {
-    if (budgets.isEmpty()) return emptyArray()
-    val doubleBudgets = DoubleArray(budgets.size) { budgets[it].toDouble() }
-    return getSites(seed, q, r, radius, doubleBudgets, gap, relaxIterations, attemptsPerSite)
-  }
-
-  fun getSites(
-      seed: Long,
-      q: Long,
-      r: Long,
-      radius: Int,
-      budgets: DoubleArray,
-      gap: Int = 0,
-      relaxIterations: Int = 24,
-      attemptsPerSite: Int = 28,
-  ): Array<Site> {
-    val spacing = (radius + gap.coerceAtLeast(0))
-    val centerX = (SQRT3 * q + SIN60 * r) * spacing
-    val centerZ = (1.5 * r) * spacing
-    val maxZ = radius / SIN60
-    val bounds = SdfBounds(-radius.toDouble(), radius.toDouble(), -maxZ, maxZ)
-    val sdf: Sdf2 = { x, z -> hexDistance(x, z, radius) }
-    val baseSites =
-        SdfSites.getSites(
-            seed = seed,
-            bounds = bounds,
-            budgets = budgets,
-            sdf = sdf,
-            gradient = ::hexGradient,
-            seedSaltA = q,
-            seedSaltB = r,
-            relaxIterations = relaxIterations,
-            attemptsPerSite = attemptsPerSite,
-        )
-
-    val sites = Array(baseSites.size) { Site() }
-    for (i in baseSites.indices) {
-      val site = baseSites[i]
-      sites[i].x = centerX + site.x
-      sites[i].z = centerZ + site.z
-      sites[i].budget = site.budget
-    }
-
-    return sites
   }
 
   fun traverse(

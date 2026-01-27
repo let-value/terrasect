@@ -8,12 +8,12 @@ data class Site(
     var budget: Double = 0.0,
 )
 
-const val ATTEMPTS_PER_SITE = 32
-const val HASH_MIX_1 = -0x7a143595a75d9f3fL
-const val HASH_MIX_2 = -0x64b9d715d07a173fL
-const val SM64_GAMMA = -7046029254386353131L
-const val SM64_MIX_1 = -4658895280553007687L
-const val SM64_MIX_2 = -7723592293110705685L
+private const val ATTEMPTS_PER_SITE = 32
+private const val HASH_MIX_1 = -0x7a143595a75d9f3fL
+private const val HASH_MIX_2 = -0x64b9d715d07a173fL
+private const val SM64_GAMMA = -7046029254386353131L
+private const val SM64_MIX_1 = -4658895280553007687L
+private const val SM64_MIX_2 = -7723592293110705685L
 
 private class SplitMix64(seed: Long) {
   private var state = seed
@@ -61,24 +61,18 @@ fun getSites(
   val maxBudget = normalizedBudgets.maxOrNull() ?: 0.0
   val cellSize = max(1.0, maxBudget)
   val grid = HashMap<Long, MutableList<Int>>(budgets.size * 2)
-  // relaxIterations is kept for compatibility; it just adds more candidate attempts.
-  val attempts = (ATTEMPTS_PER_SITE).coerceAtLeast(8)
+  val attempts = ATTEMPTS_PER_SITE.coerceAtLeast(8)
   val gradientEps = max(1e-3, max(bounds.spanX, bounds.spanZ) * 1e-4)
+  val spanX = bounds.spanX
+  val spanZ = bounds.spanZ
 
   fun cellKey(cx: Int, cz: Int): Long {
     return (cx.toLong() shl 32) xor (cz.toLong() and 0xFFFF_FFFFL)
   }
 
-  fun insert(index: Int) {
-    val cx = floor(localX[index] / cellSize).toInt()
-    val cz = floor(localZ[index] / cellSize).toInt()
-    val key = cellKey(cx, cz)
-    val bucket = grid.getOrPut(key) { mutableListOf() }
-    bucket.add(index)
-  }
-
   for (index in order) {
     val budget = normalizedBudgets[index]
+    val neighborRange = max(1, ceil((budget + maxBudget) / cellSize).toInt())
     var bestScore = Double.NEGATIVE_INFINITY
     var bestX = 0.0
     var bestZ = 0.0
@@ -87,15 +81,13 @@ fun getSites(
     var bestInsideZ = 0.0
 
     for (attempt in 0 until attempts) {
-      val candidateX = bounds.minX + rng.nextDouble() * (bounds.maxX - bounds.minX)
-      val candidateZ = bounds.minZ + rng.nextDouble() * (bounds.maxZ - bounds.minZ)
-      val boundaryDistance = sdf(candidateX, candidateZ) + budget
-      val boundaryClearance = -boundaryDistance
+      val candidateX = bounds.minX + rng.nextDouble() * spanX
+      val candidateZ = bounds.minZ + rng.nextDouble() * spanZ
+      val boundaryClearance = -(sdf(candidateX, candidateZ) + budget)
 
       var neighborClearance = Double.POSITIVE_INFINITY
       val cx = floor(candidateX / cellSize).toInt()
       val cz = floor(candidateZ / cellSize).toInt()
-      val neighborRange = if (maxBudget <= 0.0) 1 else ceil((budget + maxBudget) / cellSize).toInt()
 
       for (gx in cx - neighborRange..cx + neighborRange) {
         for (gz in cz - neighborRange..cz + neighborRange) {
@@ -131,13 +123,7 @@ fun getSites(
 
     val boundaryDistance = sdf(chosenX, chosenZ) + budget
     if (boundaryDistance > 0.0) {
-      val (gx, gz) =
-          numericGradient(
-              sdf,
-              chosenX,
-              chosenZ,
-              gradientEps,
-          )
+      val (gx, gz) = numericGradient(sdf, chosenX, chosenZ, gradientEps)
       val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-6)
       chosenX -= gx / length * boundaryDistance
       chosenZ -= gz / length * boundaryDistance
@@ -145,15 +131,11 @@ fun getSites(
 
     localX[index] = chosenX
     localZ[index] = chosenZ
-    insert(index)
+    val cellX = floor(chosenX / cellSize).toInt()
+    val cellZ = floor(chosenZ / cellSize).toInt()
+    val key = cellKey(cellX, cellZ)
+    grid.getOrPut(key) { mutableListOf() }.add(index)
   }
 
-  val sites = Array(budgets.size) { Site() }
-  for (i in normalizedBudgets.indices) {
-    sites[i].x = localX[i]
-    sites[i].z = localZ[i]
-    sites[i].budget = normalizedBudgets[i]
-  }
-
-  return sites
+  return Array(budgets.size) { i -> Site(localX[i], localZ[i], normalizedBudgets[i]) }
 }

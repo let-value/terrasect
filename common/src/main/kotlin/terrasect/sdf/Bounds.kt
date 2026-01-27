@@ -1,5 +1,8 @@
 package terrasect.sdf
 
+import terrasect.utils.first
+import terrasect.utils.packPair
+import terrasect.utils.second
 import kotlin.math.*
 
 data class SdfBounds(
@@ -47,34 +50,45 @@ fun estimateBounds(
   var seedX = Double.NaN
   var seedZ = Double.NaN
 
-  run search@{
-    for (dz in -maxCells..maxCells) {
-      val z = (originCellZ + dz) * CELL_SIZE
-      for (dx in -maxCells..maxCells) {
-        val x = (originCellX + dx) * CELL_SIZE
-        val distance = sdf(x, z)
-        if (distance <= 0.0) {
-          seedX = x
-          seedZ = z
-          return@search
-        }
-        val distanceAbs = abs(distance)
-        if (distanceAbs < bestAbs) {
-          bestAbs = distanceAbs
-          bestX = x
-          bestZ = z
-        }
+  for (dz in -maxCells..maxCells) {
+    val z = (originCellZ + dz) * CELL_SIZE
+    for (dx in -maxCells..maxCells) {
+      val x = (originCellX + dx) * CELL_SIZE
+      val distance = sdf(x, z)
+      if (distance <= 0.0) {
+        seedX = x
+        seedZ = z
+        break
+      }
+      val distanceAbs = abs(distance)
+      if (distanceAbs < bestAbs) {
+        bestAbs = distanceAbs
+        bestX = x
+        bestZ = z
       }
     }
+    if (!seedX.isNaN()) break
   }
 
   if (seedX.isNaN()) {
-    val boundary = projectToBoundary(sdf, bestX, bestZ, gradientEps)
-    val (gx, gz) = numericGradient(sdf, boundary.first, boundary.second, gradientEps)
+    var x = bestX
+    var z = bestZ
+    var distance = sdf(x, z)
+    for (i in 0 until 24) {
+      val (gx, gz) = numericGradient(sdf, x, z, gradientEps)
+      val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-8)
+      val step = distance.coerceAtMost(gradientEps * 8.0)
+      x -= gx / length * step
+      z -= gz / length * step
+      distance = sdf(x, z)
+      if (abs(distance) <= gradientEps) break
+    }
+
+    val (gx, gz) = numericGradient(sdf, x, z, gradientEps)
     val length = sqrt(gx * gx + gz * gz)
 
-    seedX = boundary.first - gx / length * (CELL_SIZE * 0.5)
-    seedZ = boundary.second - gz / length * (CELL_SIZE * 0.5)
+    seedX = x - gx / length * (CELL_SIZE * 0.5)
+    seedZ = z - gz / length * (CELL_SIZE * 0.5)
   }
 
   return floodBounds(sdf, seedX, seedZ, originX, originZ)
@@ -84,30 +98,6 @@ fun numericGradient(sdf: Sdf2, x: Double, z: Double, eps: Double): Pair<Double, 
   val dx = sdf(x + eps, z) - sdf(x - eps, z)
   val dz = sdf(x, z + eps) - sdf(x, z - eps)
   return Pair(dx / (2.0 * eps), dz / (2.0 * eps))
-}
-
-fun projectToBoundary(
-    sdf: Sdf2,
-    startX: Double,
-    startZ: Double,
-    eps: Double,
-): Pair<Double, Double> {
-  var x = startX
-  var z = startZ
-  var distance = sdf(x, z)
-  if (distance <= 0.0) return Pair(x, z)
-
-  repeat(24) {
-    val (gx, gz) = numericGradient(sdf, x, z, eps)
-    val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-8)
-    val step = distance.coerceAtMost(eps * 8.0)
-    x -= gx / length * step
-    z -= gz / length * step
-    distance = sdf(x, z)
-    if (abs(distance) <= eps) return Pair(x, z)
-  }
-
-  return Pair(x, z)
 }
 
 private fun floodBounds(
@@ -126,42 +116,32 @@ private fun floodBounds(
   val queue = ArrayDeque<Long>()
   val visited = HashSet<Long>()
 
-  fun key(cx: Int, cz: Int): Long {
-    return (cx.toLong() shl 32) xor (cz.toLong() and 0xFFFF_FFFFL)
-  }
-
-  fun withinBounds(cx: Int, cz: Int): Boolean {
-    return abs(cx - originCellX) <= maxCells && abs(cz - originCellZ) <= maxCells
-  }
-
-  queue.add(key(startCellX, startCellZ))
+  queue.add(packPair(startCellX, startCellZ))
 
   var minX = Double.POSITIVE_INFINITY
   var maxX = Double.NEGATIVE_INFINITY
   var minZ = Double.POSITIVE_INFINITY
   var maxZ = Double.NEGATIVE_INFINITY
-  var any = false
 
   while (queue.isNotEmpty()) {
     val packed = queue.removeFirst()
     if (!visited.add(packed)) continue
-    val cx = (packed shr 32).toInt()
-    val cz = packed.toInt()
-    if (!withinBounds(cx, cz)) continue
+    val cx = packed.first()
+    val cz = packed.second()
+    if (abs(cx - originCellX) > maxCells || abs(cz - originCellZ) > maxCells) continue
     val x = cx * CELL_SIZE
     val z = cz * CELL_SIZE
     if (sdf(x, z) > 0.0) continue
 
-    any = true
     minX = min(minX, x)
     maxX = max(maxX, x)
     minZ = min(minZ, z)
     maxZ = max(maxZ, z)
 
-    queue.add(key(cx + 1, cz))
-    queue.add(key(cx - 1, cz))
-    queue.add(key(cx, cz + 1))
-    queue.add(key(cx, cz - 1))
+    queue.add(packPair(cx + 1, cz))
+    queue.add(packPair(cx - 1, cz))
+    queue.add(packPair(cx, cz + 1))
+    queue.add(packPair(cx, cz - 1))
   }
 
   val half = CELL_SIZE * 0.5

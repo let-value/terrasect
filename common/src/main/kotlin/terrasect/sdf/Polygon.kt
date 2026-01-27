@@ -7,10 +7,9 @@ data class Vec2(
     val z: Double,
 )
 
-data class Segment(val a: Vec2, val b: Vec2)
+private data class Segment(val a: Vec2, val b: Vec2)
 
-const val SIMPLIFY_MULTIPLIER = 0.5
-const val SIMPLIFY_TOLERANCE = CELL_SIZE * SIMPLIFY_MULTIPLIER
+private const val SIMPLIFY_TOLERANCE = CELL_SIZE * 0.5
 
 fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
   val expanded = bounds.expand(CELL_SIZE)
@@ -75,12 +74,19 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
     }
   }
   if (best.isEmpty()) return emptyList()
-  return simplifyPolygon(
-      best,
-  )
+  if (best.size < 4) return best
+
+  val closed = ArrayList<Vec2>(best.size + 1)
+  closed.addAll(best)
+  closed.add(best[0])
+
+  val simplified = rdpSimplify(closed)
+  if (simplified.size <= 3) return best
+  simplified.removeAt(simplified.size - 1)
+  return simplified
 }
 
-fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
+private fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
   if (segments.isEmpty()) return emptyList()
 
   val snap = max(1e-6, CELL_SIZE * 1e-3)
@@ -138,7 +144,7 @@ fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
   return polygons
 }
 
-fun interp(
+private fun interp(
     x0: Double,
     z0: Double,
     x1: Double,
@@ -151,20 +157,7 @@ fun interp(
   return Vec2(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t)
 }
 
-fun simplifyPolygon(polygon: List<Vec2>): List<Vec2> {
-  if (polygon.size < 4) return polygon
-
-  val reordered = ArrayList<Vec2>(polygon.size + 1)
-  reordered.addAll(polygon)
-  reordered.add(polygon[0])
-
-  val simplified = rdpSimplify(reordered)
-  if (simplified.size <= 3) return polygon
-  simplified.removeAt(simplified.size - 1)
-  return simplified
-}
-
-fun rdpSimplify(points: List<Vec2>): MutableList<Vec2> {
+private fun rdpSimplify(points: List<Vec2>): MutableList<Vec2> {
   if (points.size < 3) return points.toMutableList()
   var maxDistance = 0.0
   var index = 0
