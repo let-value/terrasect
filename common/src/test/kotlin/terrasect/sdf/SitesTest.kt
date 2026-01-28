@@ -24,7 +24,7 @@ class SitesTest {
     val radius = 100.0
     val sdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = intArrayOf(5, 10, 20, 50)
+    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
     val sites = getSites(SEED, bounds, budgets, sdf)
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -37,7 +37,7 @@ class SitesTest {
     val apothem = 100.0
     val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = intArrayOf(5, 10, 20, 50)
+    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
     val sites = getSites(SEED, bounds, budgets, sdf)
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -49,11 +49,27 @@ class SitesTest {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = intArrayOf(5, 10, 15, 8)
+    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0)
     val sites = getSites(SEED, bounds, budgets, sdf)
     drawSdf(image, sdf)
     drawSites(image, sites)
     writeSnapshotPng(SitesTest::class.java, "banana.png", image)
+  }
+
+  @Test
+  fun `should position dense sites`() {
+    val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+    val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
+    val bounds = estimateBounds(sdf)
+    val area = estimateArea(sdf, bounds)
+
+    val budgets = doubleArrayOf((area * 0.3), (area * 0.5), (area * 0.2))
+
+    val sites = getSites(SEED, bounds, budgets, sdf)
+
+    drawSdf(image, sdf)
+    drawSites(image, sites)
+    writeSnapshotPng(SitesTest::class.java, "dense.png", image)
   }
 
   private fun drawSites(image: BufferedImage, sites: Array<Site>) {

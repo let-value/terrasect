@@ -46,13 +46,13 @@ private fun cellSeed(seed: Long, siteCount: Int): Long {
 fun getSites(
     seed: Long,
     bounds: SdfBounds,
-    budgets: IntArray,
+    budgets: DoubleArray,
     sdf: Sdf2,
 ): Array<Site> {
   if (budgets.isEmpty()) return emptyArray()
 
   val normalizedBudgets =
-      DoubleArray(budgets.size) { index -> budgets[index].coerceAtLeast(0).toDouble() }
+      DoubleArray(budgets.size) { index -> sqrt(budgets[index].coerceAtLeast(0.0) / PI) }
   val order = normalizedBudgets.indices.sortedByDescending { normalizedBudgets[it] }
 
   val rng = SplitMix64(cellSeed(seed, budgets.size))
@@ -85,9 +85,17 @@ fun getSites(
     var bestInsideZ = 0.0
 
     for (attempt in 0 until attempts) {
-      val candidateX = bounds.minX + rng.nextDouble() * spanX
-      val candidateZ = bounds.minZ + rng.nextDouble() * spanZ
-      val boundaryClearance = -(sdf(candidateX, candidateZ) + budget)
+      var candidateX = bounds.minX + rng.nextDouble() * spanX
+      var candidateZ = bounds.minZ + rng.nextDouble() * spanZ
+      var boundaryClearance = -(sdf(candidateX, candidateZ) + budget)
+      if (boundaryClearance < 0.0) {
+        val (gx, gz) = numericGradient(sdf, candidateX, candidateZ, gradientEps)
+        val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-6)
+        val distance = -boundaryClearance
+        candidateX -= gx / length * distance
+        candidateZ -= gz / length * distance
+        boundaryClearance = -(sdf(candidateX, candidateZ) + budget)
+      }
       val inside = boundaryClearance >= 0.0
       val cutoff = if (inside) min(bestScore, bestInsideScore) else bestScore
 
@@ -154,8 +162,7 @@ fun getSites(
     val useInside = bestInsideScore > Double.NEGATIVE_INFINITY
     var chosenX = if (useInside) bestInsideX else bestX
     var chosenZ = if (useInside) bestInsideZ else bestZ
-    val boundaryDistance =
-        if (useInside) -bestInsideBoundaryClearance else -bestBoundaryClearance
+    val boundaryDistance = if (useInside) -bestInsideBoundaryClearance else -bestBoundaryClearance
     if (boundaryDistance > 0.0) {
       val (gx, gz) = numericGradient(sdf, chosenX, chosenZ, gradientEps)
       val length = sqrt(gx * gx + gz * gz).coerceAtLeast(1e-6)

@@ -1,10 +1,10 @@
 package terrasect.sdf
 
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.*
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -12,7 +12,7 @@ private const val CX = WIDTH / 2.0
 private const val CZ = HEIGHT / 2.0
 
 private const val APOTHEM = 40.0
-private val budgets = intArrayOf(14, 12, 10, 8, 6, 6)
+private val budgets = doubleArrayOf(14.0, 12.0, 10.0, 8.0, 6.0, 6.0)
 
 class HexTest {
 
