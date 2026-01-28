@@ -1,28 +1,28 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.*
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
 
 class HexTest {
   private val width = 240
   private val height = 240
-  private val scale = 1.0
+
   private val cellRadius = 40
   private val budgets = intArrayOf(14, 12, 10, 8, 6, 6)
 
   @Test
   fun `should render origin hex cell sdf`() {
-    renderHexSdfSnapshot("hex-origin.png", 0.0, 0.0)
+    renderHexSdfSnapshot("origin.png", 0.0, 0.0)
   }
 
   @Test
   fun `should render offset hex cell sdf`() {
     val centerX = 64.0
     val centerZ = 48.0
-    renderHexSdfSnapshot("hex-offset.png", centerX, centerZ)
+    renderHexSdfSnapshot("offset.png", centerX, centerZ)
   }
 
   private fun renderHexSdfSnapshot(
@@ -41,7 +41,7 @@ class HexTest {
     val centerPixelX = width / 2.0
     val centerPixelZ = height / 2.0
 
-    drawSdf(image, centerPixelX, centerPixelZ, scale, sdf)
+    drawSdf(image, centerPixelX, centerPixelZ, sdf)
 
     val margin = cellRadius + CELL_SIZE * 2.0
     val bounds =
@@ -65,10 +65,10 @@ class HexTest {
       val b = polygon[(i + 1) % polygon.size]
       drawLine(
           image,
-          (centerPixelX + a.x * scale).roundToInt(),
-          (centerPixelZ + a.z * scale).roundToInt(),
-          (centerPixelX + b.x * scale).roundToInt(),
-          (centerPixelZ + b.z * scale).roundToInt(),
+          (centerPixelX + a.x).roundToInt(),
+          (centerPixelZ + a.z).roundToInt(),
+          (centerPixelX + b.x).roundToInt(),
+          (centerPixelZ + b.z).roundToInt(),
       )
     }
 
@@ -79,10 +79,10 @@ class HexTest {
       val distance = sdf(site.x, site.z) + site.budget
       assertTrue(distance <= 0.5, "Expected site to stay inside SDF boundary")
 
-      val sx = (centerPixelX + site.x * scale).roundToInt()
-      val sz = (centerPixelZ + site.z * scale).roundToInt()
-      drawCircle(image, sx, sz, (site.budget * scale).roundToInt())
-      drawRing(image, sx, sz, site.budget * scale)
+      val sx = (centerPixelX + site.x).roundToInt()
+      val sz = (centerPixelZ + site.z).roundToInt()
+      drawCircle(image, sx, sz, (site.budget).roundToInt())
+      drawRing(image, sx, sz, site.budget)
     }
 
     writeSnapshotPng(HexTest::class.java, snapshotName, image)

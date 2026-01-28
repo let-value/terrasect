@@ -31,7 +31,6 @@ fun drawSdf(
     image: BufferedImage,
     centerX: Double,
     centerZ: Double,
-    scale: Double,
     sdf: Sdf2,
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
@@ -40,8 +39,8 @@ fun drawSdf(
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
-      val worldX = (x - centerX) / scale
-      val worldZ = (z - centerZ) / scale
+      val worldX = (x - centerX)
+      val worldZ = (z - centerZ)
       val distance = sdf(worldX, worldZ)
       val color = distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor)
       image.setRGB(x, z, color)
