@@ -1,11 +1,10 @@
 package terrasect.sdf
 
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import terrasect.testing.SnapshotOutputPaths
+import terrasect.testing.drawLine
+import terrasect.testing.drawSdf
+import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
-import javax.imageio.ImageIO
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -26,8 +25,6 @@ fun bananaLocalSdf(x: Double, z: Double): Double {
   return smoothMax(outer, -inner, 6.0)
 }
 
-const val LINE_COLOR = 0xFF4DD5FF.toInt()
-
 class PolygonTest {
   private val width = 200
   private val height = 200
@@ -38,23 +35,9 @@ class PolygonTest {
     val centerX = width / 2.0
     val centerZ = height / 2.0
     val scale = 2.0
-
-    for (z in 0 until height) {
-      for (x in 0 until width) {
-        val localX = (x - centerX) / scale
-        val localZ = (z - centerZ) / scale
-        val distance = bananaLocalSdf(localX, localZ)
-        val color =
-            when {
-              abs(distance) <= 0.7 -> 0xFFFFFFFF.toInt()
-              distance < 0.0 -> 0xFF202020.toInt()
-              else -> 0xFF0B0B0B.toInt()
-            }
-        image.setRGB(x, z, color)
-      }
-    }
-
     val sdf: Sdf2 = { x, z -> bananaLocalSdf(x / scale, z / scale) }
+
+    drawSdf(image, centerX, centerZ, 1.0, sdf, edgeThreshold = 0.7)
 
     val bounds = estimateBounds(sdf)
     val polygon = polygonize(sdf, bounds)
@@ -73,42 +56,6 @@ class PolygonTest {
       }
     }
 
-    val polygonFile =
-        SnapshotOutputPaths.forTestClass(PolygonTest::class.java, "banana-polygon.png")
-    polygonFile.parentFile.mkdirs()
-    val polygonWritten = ImageIO.write(image, "png", polygonFile)
-    assertTrue(polygonWritten, "Expected to write PNG snapshot to ${polygonFile.absolutePath}")
-  }
-
-  private fun drawLine(
-      image: BufferedImage,
-      x0: Int,
-      z0: Int,
-      x1: Int,
-      z1: Int,
-  ) {
-    var sx = x0
-    var sz = z0
-    val dx = abs(x1 - x0)
-    val dz = abs(z1 - z0)
-    val stepX = if (x0 < x1) 1 else -1
-    val stepZ = if (z0 < z1) 1 else -1
-    var err = dx - dz
-
-    while (true) {
-      if (sx in 0 until image.width && sz in 0 until image.height) {
-        image.setRGB(sx, sz, LINE_COLOR)
-      }
-      if (sx == x1 && sz == z1) break
-      val e2 = err * 2
-      if (e2 > -dz) {
-        err -= dz
-        sx += stepX
-      }
-      if (e2 < dx) {
-        err += dx
-        sz += stepZ
-      }
-    }
+    writeSnapshotPng(PolygonTest::class.java, "banana-polygon.png", image)
   }
 }

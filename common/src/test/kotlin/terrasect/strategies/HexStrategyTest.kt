@@ -1,11 +1,9 @@
 package terrasect.strategies
 
-import java.awt.image.BufferedImage
-import javax.imageio.ImageIO
-import kotlin.math.abs
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import terrasect.testing.SnapshotOutputPaths
+import terrasect.testing.drawDistance
+import terrasect.testing.writeSnapshotPng
+import java.awt.image.BufferedImage
 
 class HexStrategyTest {
   val size = 40
@@ -26,10 +24,7 @@ class HexStrategyTest {
       }
     }
 
-    val cellFile = SnapshotOutputPaths.forTestClass(HexStrategyTest::class.java, "cells.png")
-    cellFile.parentFile.mkdirs()
-    val cellsWritten = ImageIO.write(cellImage, "png", cellFile)
-    assertTrue(cellsWritten, "Expected to write PNG snapshot to ${cellFile.absolutePath}")
+    writeSnapshotPng(HexStrategyTest::class.java, "cells.png", cellImage)
   }
 
   private fun colorForCell(q: Int, r: Int, isGap: Boolean): Int {
@@ -45,29 +40,11 @@ class HexStrategyTest {
   fun `should render distance`() {
     val distanceImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
 
-    for (z in 0 until height) {
-      for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x.toLong(), z.toLong(), size, gap)
-
-        distanceImage.setRGB(x, z, colorForDistance(cell.distance))
-      }
+    val maxDistance = (size + gap).toDouble()
+    drawDistance(distanceImage, maxDistance) { x, z ->
+      HexStrategy.getCell(x.toLong(), z.toLong(), size, gap).distance
     }
 
-    val distanceFile =
-        SnapshotOutputPaths.forTestClass(HexStrategyTest::class.java, "cells-distance.png")
-    distanceFile.parentFile.mkdirs()
-    val distanceWritten = ImageIO.write(distanceImage, "png", distanceFile)
-    assertTrue(distanceWritten, "Expected to write PNG snapshot to ${distanceFile.absolutePath}")
-  }
-
-  private fun colorForDistance(distance: Double): Int {
-    val maxDistance = size + gap
-    val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0.0, 255.0).toInt()
-
-    return if (distance <= 0f) {
-      (0xFF shl 24) or (normalizedDistance shl 16) or (normalizedDistance shl 8) or 0xFF
-    } else {
-      (0xFF shl 24) or (0xFF shl 16) or (normalizedDistance shl 8) or normalizedDistance
-    }
+    writeSnapshotPng(HexStrategyTest::class.java, "cells-distance.png", distanceImage)
   }
 }

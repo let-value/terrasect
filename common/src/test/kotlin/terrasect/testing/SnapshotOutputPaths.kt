@@ -1,7 +1,10 @@
 package terrasect.testing
 
+import org.junit.jupiter.api.Assertions.assertTrue
+import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Path
+import javax.imageio.ImageIO
 
 object SnapshotOutputPaths {
   private const val COLLAPSED_PREFIX = "terrasect"
@@ -32,4 +35,11 @@ object SnapshotOutputPaths {
       Path.of(packageName.replace('.', File.separatorChar)).resolve(testClass.simpleName)
     }
   }
+}
+
+fun writeSnapshotPng(testClass: Class<*>, snapshotName: String, image: BufferedImage) {
+  val outputFile = SnapshotOutputPaths.forTestClass(testClass, snapshotName)
+  outputFile.parentFile.mkdirs()
+  val written = ImageIO.write(image, "png", outputFile)
+  assertTrue(written, "Expected to write PNG snapshot to ${outputFile.absolutePath}")
 }
