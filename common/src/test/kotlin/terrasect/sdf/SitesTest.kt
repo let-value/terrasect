@@ -8,6 +8,8 @@ import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -66,6 +68,7 @@ class SitesTest {
     val budgets = doubleArrayOf((area * 0.3), (area * 0.5), (area * 0.2))
 
     val sites = getSites(SEED, bounds, budgets, sdf)
+    logSiteDistances("dense", sites, sdf)
 
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -107,5 +110,114 @@ class SitesTest {
       z += safeStep
     }
     return area
+  }
+
+  private fun logSiteDistances(label: String, sites: Array<Site>, sdf: Sdf2) {
+    if (sites.isEmpty()) return
+
+    var minClearance = Double.POSITIVE_INFINITY
+    var minDistance = Double.POSITIVE_INFINITY
+    var minPairA = -1
+    var minPairB = -1
+    val overlapDetails = mutableListOf<Pair<Double, String>>()
+
+    for (i in 0 until sites.size) {
+      for (j in i + 1 until sites.size) {
+        val dx = sites[i].x - sites[j].x
+        val dz = sites[i].z - sites[j].z
+        val distance = sqrt(dx * dx + dz * dz)
+        val clearance = distance - (sites[i].budget + sites[j].budget)
+        if (clearance < minClearance) {
+          minClearance = clearance
+          minPairA = i
+          minPairB = j
+        }
+        if (distance < minDistance) {
+          minDistance = distance
+        }
+        if (clearance < 0.0) {
+          overlapDetails.add(
+              Pair(
+                  clearance,
+                  String.format(
+                      "pair %d-%d distance=%.2f clearance=%.2f",
+                      i,
+                      j,
+                      distance,
+                      clearance,
+                  ),
+              ),
+          )
+        }
+      }
+    }
+
+    var minBoundary = Double.POSITIVE_INFINITY
+    var maxBoundary = Double.NEGATIVE_INFINITY
+    var sumBoundary = 0.0
+    val perSite = mutableListOf<String>()
+
+    for (i in sites.indices) {
+      val site = sites[i]
+      val boundaryClearance = -(sdf(site.x, site.z) + site.budget)
+      minBoundary = min(minBoundary, boundaryClearance)
+      maxBoundary = max(maxBoundary, boundaryClearance)
+      sumBoundary += boundaryClearance
+
+      var nearestDistance = Double.POSITIVE_INFINITY
+      var nearestClearance = Double.POSITIVE_INFINITY
+      var nearestIndex = -1
+      for (j in sites.indices) {
+        if (i == j) continue
+        val dx = site.x - sites[j].x
+        val dz = site.z - sites[j].z
+        val distance = sqrt(dx * dx + dz * dz)
+        if (distance < nearestDistance) {
+          nearestDistance = distance
+          nearestIndex = j
+          nearestClearance = distance - (site.budget + sites[j].budget)
+        }
+      }
+
+      perSite.add(
+          String.format(
+              "site %d r=%.2f boundary=%.2f nearest=%d dist=%.2f clearance=%.2f",
+              i,
+              site.budget,
+              boundaryClearance,
+              nearestIndex,
+              nearestDistance,
+              nearestClearance,
+          ),
+      )
+    }
+
+    println("Sites debug ($label): count=${sites.size}")
+    println(
+        String.format(
+            "  min clearance=%.2f pair=%d-%d, min distance=%.2f",
+            minClearance,
+            minPairA,
+            minPairB,
+            minDistance,
+        ),
+    )
+    println(
+        String.format(
+            "  boundary clearance min=%.2f avg=%.2f max=%.2f",
+            minBoundary,
+            sumBoundary / sites.size,
+            maxBoundary,
+        ),
+    )
+    for (line in perSite) {
+      println("  $line")
+    }
+    if (overlapDetails.isNotEmpty()) {
+      println("  overlaps:")
+      for (detail in overlapDetails.sortedBy { it.first }) {
+        println("    ${detail.second}")
+      }
+    }
   }
 }
