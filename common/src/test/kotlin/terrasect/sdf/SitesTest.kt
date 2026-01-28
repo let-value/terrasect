@@ -1,47 +1,57 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.drawCircle
 import terrasect.testing.drawRing
 import terrasect.testing.drawSdf
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.ceil
-import kotlin.math.floor
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
+
+private const val WIDTH = 240
+private const val HEIGHT = 240
+private const val CX = WIDTH / 2.0
+private const val CZ = HEIGHT / 2.0
+private const val SEED = 1234L
 
 class SitesTest {
-  private val imageWidth = 240
-  private val imageHeight = 240
-  private val seed = 1234L
 
   @Test
   fun `should render sites in circle sdf`() {
     val radius = 100.0
-    val sdf: Sdf2 = { x, z -> sqrt(x * x + z * z) - radius }
+    val sdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
     val bounds = estimateBounds(sdf)
+    val area = estimateArea(sdf, bounds)
+    assertTrue(area > 0.0, "Expected circle SDF to have area")
+
     val budgets = intArrayOf(5, 10, 20, 50)
     renderSitesSnapshot("circle.png", sdf, bounds, budgets)
   }
 
   @Test
   fun `should render sites in hex sdf`() {
-    val radius = 100
-    val sdf: Sdf2 = { x, z -> hexDistance(x, z, radius) }
+    val apothem = 100.0
+    val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
     val bounds = estimateBounds(sdf)
+    val area = estimateArea(sdf, bounds)
+    assertTrue(area > 0.0, "Expected hex SDF to have area")
+
     val budgets = intArrayOf(5, 10, 20, 50)
     renderSitesSnapshot("hex.png", sdf, bounds, budgets)
   }
 
   @Test
   fun `should render sites in banana sdf`() {
-    val sdf: Sdf2 = { x, z -> bananaSdf(x, z) }
+    val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
     val bounds = estimateBounds(sdf)
     val budgets = intArrayOf(5, 10, 15, 8)
     val area = estimateArea(sdf, bounds)
     assertTrue(area > 0.0, "Expected banana SDF to have area")
+
     renderSitesSnapshot("banana.png", sdf, bounds, budgets)
   }
 
@@ -52,26 +62,21 @@ class SitesTest {
       budgets: IntArray,
   ) {
 
-    val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
-    val worldCenterX = (bounds.minX + bounds.maxX) * 0.5
-    val worldCenterZ = (bounds.minZ + bounds.maxZ) * 0.5
+    val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
 
-    val centeredSdf: Sdf2 = { x, z -> sdf(x + worldCenterX, z + worldCenterZ) }
-    val centerPixelX = imageWidth / 2.0
-    val centerPixelZ = imageHeight / 2.0
-    drawSdf(image, centerPixelX, centerPixelZ, centeredSdf)
+    drawSdf(image, sdf)
 
-    val sites = getSites(seed, bounds, budgets, sdf)
+    val sites = getSites(SEED, bounds, budgets, sdf)
 
     for (site in sites) {
-      // val distance = sdf(site.x, site.z) + site.budget
-      // assertTrue(distance <= 0.5, "Expected site to stay inside SDF boundary")
+      val distance = sdf(site.x, site.z) + site.budget
+      assertTrue(distance <= 0.5, "Expected site to stay inside SDF boundary")
 
-      val sx = (centerPixelX + (site.x - worldCenterX)).roundToInt()
-      val sz = (centerPixelZ + (site.z - worldCenterZ)).roundToInt()
+      val x = site.x.roundToInt()
+      val z = site.z.roundToInt()
 
-      drawCircle(image, sx, sz, 1)
-      drawRing(image, sx, sz, site.budget)
+      drawCircle(image, x, z, 1)
+      drawRing(image, x, z, site.budget)
     }
 
     writeSnapshotPng(SitesTest::class.java, snapshotName, image)

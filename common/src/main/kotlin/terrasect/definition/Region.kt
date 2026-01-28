@@ -2,7 +2,7 @@ package terrasect.definition
 
 class Region(
     val name: String,
-    val budget: Int,
+    val budget: Double,
     val children: Set<Region>,
     val strategy: Strategy? = null,
     val climate: ClimateSettings? = null,
@@ -15,6 +15,6 @@ class Region(
   val hasChildren = children.isNotEmpty()
 
   companion object {
-    fun empty(name: String): Region = Region(name, 10000, emptySet())
+    fun empty(name: String): Region = Region(name, 10000.0, emptySet())
   }
 }

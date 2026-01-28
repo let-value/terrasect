@@ -29,8 +29,6 @@ fun distanceColor(
 
 fun drawSdf(
     image: BufferedImage,
-    centerX: Double,
-    centerZ: Double,
     sdf: Sdf2,
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
@@ -39,9 +37,7 @@ fun drawSdf(
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
-      val worldX = (x - centerX)
-      val worldZ = (z - centerZ)
-      val distance = sdf(worldX, worldZ)
+      val distance = sdf(x.toDouble(), z.toDouble())
       val color = distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor)
       image.setRGB(x, z, color)
     }
@@ -50,13 +46,13 @@ fun drawSdf(
 
 fun drawDistance(
     image: BufferedImage,
+    sdf: Sdf2,
     maxDistance: Double,
-    distanceAt: (Int, Int) -> Double,
 ) {
   val safeMax = if (maxDistance <= 0.0) 1.0 else maxDistance
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
-      val distance = distanceAt(x, z)
+      val distance = sdf(x.toDouble(), z.toDouble())
       image.setRGB(x, z, colorForSignedDistance(distance, safeMax))
     }
   }
@@ -150,4 +146,18 @@ fun drawRing(
       image.setRGB(rx, rz, color)
     }
   }
+}
+
+fun drawRectangle(
+    image: BufferedImage,
+    minX: Int,
+    minZ: Int,
+    maxX: Int,
+    maxZ: Int,
+    color: Int = LINE_COLOR,
+) {
+  drawLine(image, minX, minZ, maxX, minZ, color) // Top
+  drawLine(image, maxX, minZ, maxX, maxZ, color) // Right
+  drawLine(image, maxX, maxZ, minX, maxZ, color) // Bottom
+  drawLine(image, minX, maxZ, minX, minZ, color) // Left
 }

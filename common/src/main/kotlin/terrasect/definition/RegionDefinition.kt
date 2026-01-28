@@ -1,12 +1,12 @@
 package terrasect.definition
 
-import kotlin.math.max
 import terrasect.definition.RegionRegistry.region
+import kotlin.math.max
 
 open class RegionDefinition(
     val name: String,
     val originAnchor: Boolean = false,
-    var budget: Int,
+    var budget: Double,
     val strategy: StrategySettings,
     var adjacentTo: Set<String>? = null,
     var parent: String? = null,
@@ -21,7 +21,7 @@ open class RegionDefinition(
 
 open class RegionBuilder(var name: String) {
   var originAnchor = false
-  var budget: Int? = null
+  var budget: Double? = null
   var strategy: StrategySettings? = null
   val adjacentToLazy = lazy { setOf<String>() }
   val adjacentTo by adjacentToLazy
@@ -41,7 +41,7 @@ open class RegionBuilder(var name: String) {
   val mobsLazyBuilder = lazy { SelectionRules.builder() }
   val mobsBuilder by mobsLazyBuilder
 
-  fun area(budget: Int) = apply { this.budget = budget * budget }
+  fun area(budget: Double) = apply { this.budget = budget * budget }
 
   fun originAnchor() = apply { originAnchor = true }
 
@@ -111,12 +111,12 @@ open class RegionBuilder(var name: String) {
   }
 
   fun build(children: Set<Region>? = null): RegionDefinition {
-    val budget = children?.sumOf { it.budget }?.let { max(this.budget ?: 0, it) }
+    val budget = children?.sumOf { it.budget }?.let { max(this.budget ?: 0.0, it) }
 
     return RegionDefinition(
         name = this.name,
         originAnchor = this.originAnchor,
-        budget = budget ?: (this.budget ?: 0),
+        budget = budget ?: (this.budget ?: 0.0),
         strategy = this.strategy ?: Strategy.template(),
         adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
         parent = this.parent,

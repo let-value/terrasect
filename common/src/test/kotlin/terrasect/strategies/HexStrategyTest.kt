@@ -1,13 +1,14 @@
 package terrasect.strategies
 
 import org.junit.jupiter.api.Test
+import terrasect.sdf.Sdf2
 import terrasect.testing.drawDistance
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 
 class HexStrategyTest {
-  val size = 40
-  val gap = 20
+  val apothem = 40.0
+  val gap = 20.0
   val width = 200
   val height = 200
 
@@ -17,7 +18,7 @@ class HexStrategyTest {
 
     for (z in 0 until height) {
       for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x.toLong(), z.toLong(), size, gap)
+        val cell = HexStrategy.getCell(x.toLong(), z.toLong(), apothem, gap)
         val color = colorForCell(cell.q.toInt(), cell.r.toInt(), cell.isGap)
 
         cellImage.setRGB(x, z, color)
@@ -40,10 +41,9 @@ class HexStrategyTest {
   fun `should render distance`() {
     val distanceImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
 
-    val maxDistance = (size + gap).toDouble()
-    drawDistance(distanceImage, maxDistance) { x, z ->
-      HexStrategy.getCell(x.toLong(), z.toLong(), size, gap).distance
-    }
+    val sdf: Sdf2 = { x, z -> HexStrategy.getCell(x.toLong(), z.toLong(), apothem, gap).distance }
+    val maxDistance = (apothem + gap)
+    drawDistance(distanceImage, sdf, maxDistance)
 
     writeSnapshotPng(HexStrategyTest::class.java, "cells-distance.png", distanceImage)
   }

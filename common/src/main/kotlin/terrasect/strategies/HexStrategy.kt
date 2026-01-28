@@ -1,12 +1,12 @@
 package terrasect.strategies
 
+import kotlin.math.*
 import terrasect.definition.*
 import terrasect.generation.Context
 import terrasect.generation.TraversalStep
 import terrasect.sdf.HexCellSdf
 import terrasect.sdf.HexGapSdf
 import terrasect.sdf.hexDistance
-import kotlin.math.*
 
 private val discriminator = StrategyId.HEX.value
 private val SQRT3 = sqrt(3.0)
@@ -22,7 +22,6 @@ data class GetCellResult(
     var isGap: Boolean = false,
     var centerX: Double = 0.0,
     var centerZ: Double = 0.0,
-    var radius: Int = 0,
 )
 
 class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strategy {
@@ -34,8 +33,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
 
     val cellRef: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
 
-    fun getCell(x: Long, z: Long, radius: Int, gap: Int = 0): GetCellResult {
-      val spacing = radius + gap.coerceAtLeast(0)
+    fun getCell(x: Long, z: Long, apothem: Double, gap: Double = 0.0): GetCellResult {
+      val spacing = apothem + gap.coerceAtLeast(0.0)
 
       val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
       val rFrac = (TWO_THIRDS * z) / spacing
@@ -61,7 +60,7 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       val localX = x - centerX
       val localZ = z - centerZ
 
-      var distance = hexDistance(localX, localZ, radius)
+      var distance = hexDistance(localX, localZ, apothem)
       val isGap = gap > 0 && distance > 0.0
       if (isGap) {
         val outerDistance = hexDistance(localX, localZ, spacing)
@@ -75,7 +74,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       cell.isGap = isGap
       cell.centerX = centerX
       cell.centerZ = centerZ
-      cell.radius = radius
 
       return cell
     }
@@ -85,9 +83,9 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
         step: TraversalStep,
         settings: HexStrategy,
     ): TraversalStep {
-      val radius = context.region.budget
-      val gap = settings.ringRegion?.budget ?: 0
-      val cell = getCell(step.x, step.z, radius, gap)
+      val apothem = context.region.budget
+      val gap = settings.ringRegion?.budget ?: 0.0
+      val cell = getCell(step.x, step.z, apothem, gap)
 
       step.id.put(discriminator)
       step.id.putLong(cell.q)
@@ -98,14 +96,14 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
         val sdf = settings.gapSdfRef.get()
         sdf.centerX = cell.centerX
         sdf.centerZ = cell.centerZ
-        sdf.radius = cell.radius
+        sdf.apothem = apothem
         sdf.gap = gap
         step.composeSdf(sdf)
       } else {
         val sdf = settings.cellSdfRef.get()
         sdf.centerX = cell.centerX
         sdf.centerZ = cell.centerZ
-        sdf.radius = cell.radius
+        sdf.apothem = apothem
         step.composeSdf(sdf)
       }
 
