@@ -14,8 +14,8 @@ private const val SIMPLIFY_TOLERANCE = CELL_SIZE * 0.5
 fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
   val expanded = bounds.expand(CELL_SIZE)
   val segments = mutableListOf<Segment>()
-  val cols = max(1, ceil(expanded.spanX / CELL_SIZE).toInt())
-  val rows = max(1, ceil(expanded.spanZ / CELL_SIZE).toInt())
+  val cols = max(1, ceil(expanded.width / CELL_SIZE).toInt())
+  val rows = max(1, ceil(expanded.height / CELL_SIZE).toInt())
 
   var z0 = expanded.minZ
   for (row in 0 until rows) {

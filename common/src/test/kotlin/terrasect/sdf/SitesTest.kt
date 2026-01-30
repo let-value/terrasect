@@ -6,12 +6,7 @@ import terrasect.testing.drawRing
 import terrasect.testing.drawSdf
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
-import kotlin.math.ceil
-import kotlin.math.floor
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.math.*
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -27,7 +22,7 @@ class SitesTest {
     val sdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
     val bounds = estimateBounds(sdf)
     val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
-    val sites = getSites(SEED, bounds, budgets, sdf)
+    val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
     writeSnapshotPng(SitesTest::class.java, "circle.png", image)
@@ -40,7 +35,7 @@ class SitesTest {
     val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
     val bounds = estimateBounds(sdf)
     val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
-    val sites = getSites(SEED, bounds, budgets, sdf)
+    val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
     writeSnapshotPng(SitesTest::class.java, "hex.png", image)
@@ -52,7 +47,7 @@ class SitesTest {
     val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
     val bounds = estimateBounds(sdf)
     val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0)
-    val sites = getSites(SEED, bounds, budgets, sdf)
+    val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
     writeSnapshotPng(SitesTest::class.java, "banana.png", image)
@@ -67,7 +62,7 @@ class SitesTest {
 
     val budgets = doubleArrayOf((area * 0.3), (area * 0.5), (area * 0.2))
 
-    val sites = getSites(SEED, bounds, budgets, sdf)
+    val sites = getSites(SEED, sdf, bounds, budgets)
     logSiteDistances("dense", sites, sdf)
 
     drawSdf(image, sdf)
@@ -75,12 +70,12 @@ class SitesTest {
     writeSnapshotPng(SitesTest::class.java, "dense.png", image)
   }
 
-  private fun drawSites(image: BufferedImage, sites: Array<Site>) {
+  private fun drawSites(image: BufferedImage, sites: List<Site>) {
     for (site in sites) {
       val x = site.x.roundToInt()
       val z = site.z.roundToInt()
       drawCircle(image, x, z, 1)
-      drawRing(image, x, z, site.budget)
+      drawRing(image, x, z, site.radius)
     }
   }
 
@@ -112,7 +107,7 @@ class SitesTest {
     return area
   }
 
-  private fun logSiteDistances(label: String, sites: Array<Site>, sdf: Sdf2) {
+  private fun logSiteDistances(label: String, sites: List<Site>, sdf: Sdf2) {
     if (sites.isEmpty()) return
 
     var minClearance = Double.POSITIVE_INFINITY
@@ -126,7 +121,7 @@ class SitesTest {
         val dx = sites[i].x - sites[j].x
         val dz = sites[i].z - sites[j].z
         val distance = sqrt(dx * dx + dz * dz)
-        val clearance = distance - (sites[i].budget + sites[j].budget)
+        val clearance = distance - (sites[i].radius + sites[j].radius)
         if (clearance < minClearance) {
           minClearance = clearance
           minPairA = i
@@ -159,7 +154,7 @@ class SitesTest {
 
     for (i in sites.indices) {
       val site = sites[i]
-      val boundaryClearance = -(sdf(site.x, site.z) + site.budget)
+      val boundaryClearance = -(sdf(site.x, site.z) + site.radius)
       minBoundary = min(minBoundary, boundaryClearance)
       maxBoundary = max(maxBoundary, boundaryClearance)
       sumBoundary += boundaryClearance
@@ -175,7 +170,7 @@ class SitesTest {
         if (distance < nearestDistance) {
           nearestDistance = distance
           nearestIndex = j
-          nearestClearance = distance - (site.budget + sites[j].budget)
+          nearestClearance = distance - (site.radius + sites[j].radius)
         }
       }
 
@@ -183,7 +178,7 @@ class SitesTest {
           String.format(
               "site %d r=%.2f boundary=%.2f nearest=%d dist=%.2f clearance=%.2f",
               i,
-              site.budget,
+              site.radius,
               boundaryClearance,
               nearestIndex,
               nearestDistance,

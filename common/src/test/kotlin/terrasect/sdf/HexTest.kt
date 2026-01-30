@@ -1,10 +1,10 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.*
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -58,17 +58,23 @@ class HexTest {
       )
     }
 
-    val sites = getSites(seed, bounds, budgets, sdf)
+    val sites =
+        getSites(
+            seed,
+            sdf,
+            bounds,
+            budgets,
+        )
     assertTrue(sites.isNotEmpty(), "Expected sites for $snapshotName")
 
     for (site in sites) {
-      val distance = sdf(site.x, site.z) + site.budget
+      val distance = sdf(site.x, site.z) + site.radius
       assertTrue(distance <= 0.5, "Expected site to stay inside SDF boundary")
 
       val sx = (site.x).roundToInt()
       val sz = (site.z).roundToInt()
       drawCircle(image, sx, sz, 2)
-      drawRing(image, sx, sz, site.budget)
+      drawRing(image, sx, sz, site.radius)
     }
 
     writeSnapshotPng(HexTest::class.java, snapshotName, image)

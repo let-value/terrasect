@@ -11,10 +11,10 @@ data class SdfBounds(
     val minZ: Double,
     val maxZ: Double,
 ) {
-  val spanX: Double
+  val width: Double
     get() = maxX - minX
 
-  val spanZ: Double
+  val height: Double
     get() = maxZ - minZ
 
   fun expand(margin: Double): SdfBounds {
