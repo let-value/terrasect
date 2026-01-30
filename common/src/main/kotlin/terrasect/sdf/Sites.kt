@@ -21,7 +21,7 @@ fun getSites(
   val sites = ArrayList<Site>(radii.size)
 
   fun compositeSdf(x: Double, z: Double): Double {
-    var minDist = Double.MIN_VALUE
+    var minDist = Double.POSITIVE_INFINITY
 
     for (site in sites) {
       val dx = x - site.x
@@ -40,53 +40,39 @@ fun getSites(
   val attempts = 30
 
   for (r in radii) {
-    var bestValidX = 0.0
-    var bestValidY = 0.0
-    var maxClearance = -1.0
-    var foundValid = false
-
-    var bestBadX = 0.0
-    var bestBadY = 0.0
-    var minPenalty = Double.POSITIVE_INFINITY
-    var foundBad = false
+    var bestX = 0.0
+    var bestY = 0.0
+    var bestPenalty = Double.POSITIVE_INFINITY
+    var bestClearance = Double.NEGATIVE_INFINITY
+    var foundAny = false
 
     for (i in 0 until attempts) {
       val x = bounds.minX + rng.nextDouble() * (bounds.maxX - bounds.minX)
       val z = bounds.minZ + rng.nextDouble() * (bounds.maxZ - bounds.minZ)
 
-      if (sdf(x, z) > 0.0) continue
+      val sdfValue = sdf(x, z)
+      if (sdfValue > 0.0) continue
+      val boundaryClearance = -sdfValue
 
-      val dist = compositeSdf(x, z)
+      val neighborClearance = compositeSdf(x, z)
+      val overlapNeighbor = (r - neighborClearance).coerceAtLeast(0.0)
+      val overlapBoundary = (r - boundaryClearance).coerceAtLeast(0.0)
+      val penalty = overlapNeighbor + overlapBoundary
+      val clearance = minOf(neighborClearance, boundaryClearance) - r
 
-      if (dist > r) {
-        val clearance = dist - r
-        if (clearance > maxClearance) {
-          maxClearance = clearance
-          bestValidX = x
-          bestValidY = z
-          foundValid = true
-        }
-      } else {
-        // Invalid: overlaps with existing sites
-        val penalty = r - dist
-        if (penalty < minPenalty) {
-          minPenalty = penalty
-          bestBadX = x
-          bestBadY = z
-          foundBad = true
-        }
+      if (penalty < bestPenalty || (penalty == bestPenalty && clearance > bestClearance)) {
+        bestPenalty = penalty
+        bestClearance = clearance
+        bestX = x
+        bestY = z
+        foundAny = true
       }
     }
 
     // Place best candidate
-    val site =
-        when {
-          foundValid -> Site(bestValidX, bestValidY, r)
-          foundBad -> Site(bestBadX, bestBadY, r)
-          else -> null
-        }
-
-    site?.let { sites.add(it) }
+    if (foundAny) {
+      sites.add(Site(bestX, bestY, r))
+    }
   }
 
   return sites
