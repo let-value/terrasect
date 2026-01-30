@@ -4,6 +4,8 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
+apply from: rootProject.file('gradle/loaders/fabric.gradle')
+
 base {
     archivesName = "${mod_id}-fabric"
 }
@@ -85,3 +87,5 @@ publishing {
         // Add repositories to publish to here
     }
 }
+
+createUnpackMinecraftTask(minecraft_version)

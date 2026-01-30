@@ -8,7 +8,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.structure.StructureSet
-import terrasect.VanillaSamplerAccessor
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
@@ -23,13 +22,10 @@ class Context(
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) {
-
-  private val vanillaSampler = sampler as VanillaSamplerAccessor
-
   fun getInfluence(x: Int, z: Int): Long {
     if (biomesClimate == null) return 0
 
-    val target = vanillaSampler.`terrasect$sampleVanilla`(x shr 2, 16, z shr 2)
+    val target = sampler.sample(x shr 2, 16, z shr 2)
 
     val biome = biomesClimate.findValue(target)
 

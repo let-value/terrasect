@@ -6,6 +6,7 @@
 build/
 out/
 run/
+minecraft/
 
 # Mac system files
 .DS_Store

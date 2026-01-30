@@ -3,6 +3,7 @@
   "package": "terrasect.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
+    "ChunkGeneratorMixin",
     "ClimateSamplerMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceMixin"
