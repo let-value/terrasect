@@ -8,8 +8,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.ChunkAccessExtender;
 import terrasect.ClimateSamplerExtender;
-import terrasect.compat.ResourceKeyCompat;
-import terrasect.generation.Context;
 import terrasect.handler.ClimateHandler;
 
 @Mixin(Climate.Sampler.class)
@@ -29,18 +27,6 @@ public class ClimateClimateSamplerMixin implements ClimateSamplerExtender {
   @Inject(method = "sample", at = @At("RETURN"))
   private void terrasect$modifyClimate(
       int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
-    if (this.terrasect$chunk == null) {
-      return;
-    }
-
-    var dimension =
-        ResourceKeyCompat.INSTANCE.getKeyId(this.terrasect$chunk.terrasect$getLevel().dimension());
-
-    var context = Context.Companion.get(dimension);
-    if (context == null) {
-      return;
-    }
-
-    ClimateHandler.INSTANCE.modifyTargetPoint(context, x, z, cir.getReturnValue());
+    ClimateHandler.INSTANCE.modifyClimate(this.terrasect$chunk, x, y, z, cir.getReturnValue());
   }
 }

@@ -29,7 +29,7 @@ public class NoiseChunkExtenderMixin implements NoiseChunkExtender {
   }
 
   @Inject(method = "cachedClimateSampler", at = @At("RETURN"))
-  private void terrasect$setSamplerChunk(
+  private void terrasect$attachChunkToSampler(
       NoiseRouter noiseRouter,
       List<Climate.ParameterPoint> spawnTarget,
       CallbackInfoReturnable<Climate.Sampler> cir) {

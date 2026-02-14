@@ -2,6 +2,8 @@ package terrasect.handler
 
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
+import terrasect.ChunkAccessExtender
+import terrasect.compat.ResourceKeyCompat.getKeyId
 import terrasect.generation.Context
 import terrasect.utils.packPair
 import kotlin.math.max
@@ -24,15 +26,15 @@ object ClimateHandler {
     return packPair(river.toRawBits(), ridge.toRawBits())
   }
 
-  fun modifyTargetPoint(
-      context: Context,
+  fun modifyClimate(
+      chunk: ChunkAccessExtender,
       x: Int,
+      y: Int,
       z: Int,
       original: Climate.TargetPoint,
-  ): Climate.TargetPoint {
-    x shl 2
-    z shl 2
-
-    return original
+  ) {
+    val level = chunk.`terrasect$getLevel`() ?: return
+    val dimension = getKeyId(level.dimension())
+    val context = Context.get(dimension) ?: return
   }
 }

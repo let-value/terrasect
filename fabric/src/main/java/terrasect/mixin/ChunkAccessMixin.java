@@ -1,9 +1,9 @@
 package terrasect.mixin;
 
 import java.util.function.Function;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainerFactory;
@@ -38,8 +38,13 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
     }
   }
 
+  @Override
+  public Level terrasect$getLevel() {
+    return this.terrasect$level;
+  }
+
   @Inject(method = "getOrCreateNoiseChunk", at = @At("RETURN"))
-  private void terrasect$attachParentChunk(
+  private void terrasect$attachToNoiseChunk(
       Function<ChunkAccess, NoiseChunk> factory, CallbackInfoReturnable<NoiseChunk> cir) {
     var noiseChunk = cir.getReturnValue();
     ((NoiseChunkExtender) noiseChunk).terrasect$setChunk(this);
@@ -48,10 +53,5 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
   @Override
   public ChunkAccess terrasect$getChunk() {
     return (ChunkAccess) (Object) this;
-  }
-
-  @Override
-  public Level terrasect$getLevel() {
-    return this.terrasect$level;
   }
 }
