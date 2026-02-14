@@ -13,21 +13,23 @@ fun hexDistance(px: Double, pz: Double, apothem: Double): Double {
   return max(d, x) - apothem
 }
 
-class HexCellSdf : Sdf2 {
-  var centerX = 0.0
-  var centerZ = 0.0
-  var apothem = 0.0
+class HexCellSdf(
+    var centerX: Double = 0.0,
+    var centerZ: Double = 0.0,
+    var apothem: Double = 0.0,
+) : Sdf2 {
 
   override fun invoke(x: Double, z: Double): Double {
     return hexDistance(x - centerX, z - centerZ, apothem)
   }
 }
 
-class HexGapSdf : Sdf2 {
-  var centerX = 0.0
-  var centerZ = 0.0
-  var apothem = 0.0
-  var gap = 0.0
+class HexGapSdf(
+    var centerX: Double = 0.0,
+    var centerZ: Double = 0.0,
+    var apothem: Double = 0.0,
+    var gap: Double = 0.0,
+) : Sdf2 {
 
   override fun invoke(x: Double, z: Double): Double {
     val dx = x - centerX
