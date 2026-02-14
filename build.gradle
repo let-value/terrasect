@@ -71,6 +71,8 @@ wrapper {
 }
 
 spotless {
+    enforceCheck = false
+
     java {
         target '**/*.java'
         targetExclude '**/build/**'

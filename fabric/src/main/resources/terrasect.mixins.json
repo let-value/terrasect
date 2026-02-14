@@ -3,7 +3,6 @@
   "package": "terrasect.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
-    "ChunkAccessAccessor",
     "ChunkAccessMixin",
     "ChunkGeneratorMixin",
     "ClimateClimateSamplerMixin",
