@@ -63,14 +63,13 @@ class SurroundStrategyTest {
   }
 
   private fun drawCells(image: BufferedImage, parentSdf: Sdf2) {
-
+    val origin = SurroundStrategy.getOrigin(parentSdf, scale)
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
         val px = x.toDouble()
         val pz = z.toDouble()
-        if (parentSdf(px, pz) > 0.0) continue
 
-        val inner = SurroundStrategy.getDistance(px, pz, parentSdf, scale)
+        val inner = SurroundStrategy.getDistance(px, pz, origin, parentSdf)
         val isCenter = inner <= 0.0
         image.setRGB(x, z, if (isCenter) CENTER_COLOR else SURROUND_COLOR)
       }

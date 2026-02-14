@@ -7,24 +7,43 @@ import kotlin.math.max
 
 private val discriminator = StrategyId.SURROUND.value
 
+data class SurroundOriginResult(
+    var centerX: Double = 0.0,
+    var centerZ: Double = 0.0,
+    var scale: Double = 1.0,
+)
+
 class SurroundStrategy(val center: Region, val surround: Region, val scale: Double) : Strategy {
   val cellSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
   companion object {
     fun builder(centerRegionName: String) = Builder(centerRegionName)
 
-    fun getDistance(x: Double, z: Double, parentSdf: Sdf2, scale: Double): Double {
+    val originRef: ThreadLocal<SurroundOriginResult> =
+        ThreadLocal.withInitial { SurroundOriginResult() }
+
+    fun getOrigin(parentSdf: Sdf2, scale: Double): SurroundOriginResult {
       val bounds = estimateBounds(parentSdf)
       val centerX = (bounds.minX + bounds.maxX) * 0.5
       val centerZ = (bounds.minZ + bounds.maxZ) * 0.5
-      return surroundInnerDistance(x, z, parentSdf, centerX, centerZ, scale)
+
+      val origin = originRef.get()
+      origin.centerX = centerX
+      origin.centerZ = centerZ
+      origin.scale = scale
+      return origin
+    }
+
+    fun getDistance(x: Double, z: Double, origin: SurroundOriginResult, parentSdf: Sdf2): Double {
+      return surroundInnerDistance(x, z, parentSdf, origin.centerX, origin.centerZ, origin.scale)
     }
 
     fun traverse(step: TraversalStep, settings: SurroundStrategy): TraversalStep {
       val x = step.x.toDouble()
       val z = step.z.toDouble()
 
-      val distance = getDistance(x, z, step.sdf, settings.scale)
+      val origin = getOrigin(step.sdf, settings.scale)
+      val distance = getDistance(x, z, origin, step.sdf)
       val isCenter = distance <= 0.0
 
       step.id.put(discriminator)

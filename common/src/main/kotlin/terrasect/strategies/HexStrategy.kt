@@ -9,7 +9,7 @@ import kotlin.math.roundToLong
 
 private val discriminator = StrategyId.HEX.value
 
-data class GetCellResult(
+data class HexCellResult(
     var q: Long = 0,
     var r: Long = 0,
     var distance: Double = 0.0,
@@ -25,9 +25,9 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   companion object {
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
 
-    val cellRef: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
+    val cellRef: ThreadLocal<HexCellResult> = ThreadLocal.withInitial { HexCellResult() }
 
-    fun getCell(x: Long, z: Long, apothem: Double, gap: Double = 0.0): GetCellResult {
+    fun getCell(x: Long, z: Long, apothem: Double, gap: Double = 0.0): HexCellResult {
       val spacing = apothem + gap.coerceAtLeast(0.0)
 
       val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
