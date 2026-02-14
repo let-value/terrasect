@@ -2,8 +2,10 @@ package terrasect
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import terrasect.definition.RegionRegistry
 
 object Terrasect {
+  val registry = RegionRegistry()
   private val LOGGER: Logger = LoggerFactory.getLogger(Constants.MOD_ID)
 
   fun init() {

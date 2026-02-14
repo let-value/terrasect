@@ -7,17 +7,17 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.structure.StructureSet
+import terrasect.Terrasect
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
-import terrasect.definition.RegionRegistry
 
 class Context(
     val dimensionId: String,
-    val seed: Long,
-    val region: Region,
+    seed: Long,
+    root: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
-) {
+) : Traverse(seed, root) {
   companion object {
     val byDimension = mutableMapOf<String, Context>()
 
@@ -31,10 +31,10 @@ class Context(
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
 
-      val root = RegionRegistry.getRoot(dimensionId) ?: return
-      val region = RegionRegistry.buildTree(root)
+      val name = Terrasect.registry.getRoot(dimensionId) ?: return
+      val root = Terrasect.registry.buildTree(name)
 
-      val context = Context(dimensionId, seed, region, sampler, biomesClimate)
+      val context = Context(dimensionId, seed, root, sampler, biomesClimate)
       byDimension[dimensionId] = context
     }
 

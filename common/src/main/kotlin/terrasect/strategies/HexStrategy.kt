@@ -1,12 +1,11 @@
 package terrasect.strategies
 
-import kotlin.math.*
 import terrasect.definition.*
-import terrasect.generation.Context
 import terrasect.generation.TraversalStep
 import terrasect.sdf.HexCellSdf
 import terrasect.sdf.HexGapSdf
 import terrasect.sdf.hexDistance
+import kotlin.math.*
 
 private val discriminator = StrategyId.HEX.value
 private val SQRT3 = sqrt(3.0)
@@ -16,12 +15,12 @@ private const val ONE_THIRD = 1.0 / 3.0
 private const val TWO_THIRDS = 2.0 / 3.0
 
 data class GetCellResult(
-  var q: Long = 0,
-  var r: Long = 0,
-  var distance: Double = 0.0,
-  var isGap: Boolean = false,
-  var centerX: Double = 0.0,
-  var centerZ: Double = 0.0,
+    var q: Long = 0,
+    var r: Long = 0,
+    var distance: Double = 0.0,
+    var isGap: Boolean = false,
+    var centerX: Double = 0.0,
+    var centerZ: Double = 0.0,
 )
 
 class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strategy {
@@ -29,6 +28,7 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
   companion object {
+
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
 
     val cellRef: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
@@ -78,8 +78,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       return cell
     }
 
-    fun traverse(context: Context, step: TraversalStep, settings: HexStrategy): TraversalStep {
-      val apothem = context.region.budget
+    fun traverse(step: TraversalStep, settings: HexStrategy): TraversalStep {
+      val apothem = step.region.budget
       val gap = settings.ringRegion?.budget ?: 0.0
       val cell = getCell(step.x, step.z, apothem, gap)
 
@@ -94,19 +94,20 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
         sdf.centerZ = cell.centerZ
         sdf.apothem = apothem
         sdf.gap = gap
-        step.composeSdf(sdf)
+        step.sdf.append(sdf)
       } else {
         val sdf = settings.cellSdfRef.get()
         sdf.centerX = cell.centerX
         sdf.centerZ = cell.centerZ
         sdf.apothem = apothem
-        step.composeSdf(sdf)
+        step.sdf.append(sdf)
       }
 
       step.distance = max(step.distance, cell.distance)
 
       step.region =
-        if (cell.isGap && settings.ringRegion != null) settings.ringRegion else settings.children
+          (if (cell.isGap && settings.ringRegion != null) settings.ringRegion
+          else settings.children)
 
       return step
     }
@@ -116,7 +117,12 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
 
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
-    override fun build(definition: RegionDefinition, children: Set<Region>) =
-      HexStrategy(children.first(), ringRegionName?.let { RegionRegistry.build(it) })
+    override fun build(definition: RegionDefinition, children: Set<Region>): HexStrategy {
+      val region = children.firstOrNull() ?: Region.empty(definition.name + "_placeholder")
+      return HexStrategy(
+          region,
+          ringRegionName?.let { definition.registry.build(it) },
+      )
+    }
   }
 }

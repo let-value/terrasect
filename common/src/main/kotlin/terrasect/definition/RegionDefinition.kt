@@ -1,25 +1,25 @@
 package terrasect.definition
 
 import kotlin.math.max
-import terrasect.definition.RegionRegistry.region
 
 open class RegionDefinition(
-  val name: String,
-  val originAnchor: Boolean = false,
-  var budget: Double,
-  val strategy: StrategySettings,
-  var adjacentTo: Set<String>? = null,
-  var parent: String? = null,
-  val children: MutableSet<String>? = null,
-  val climate: ClimateSettings? = null,
-  val height: HeightConstraints? = null,
-  val noise: NoiseConstraints? = null,
-  val biomes: SelectionRules? = null,
-  val structures: SelectionRules? = null,
-  val mobs: SelectionRules? = null,
+    val registry: RegionRegistry,
+    val name: String,
+    val originAnchor: Boolean = false,
+    var budget: Double,
+    val strategy: StrategySettings,
+    var adjacentTo: Set<String>? = null,
+    var parent: String? = null,
+    val children: MutableSet<String>? = null,
+    val climate: ClimateSettings? = null,
+    val height: HeightConstraints? = null,
+    val noise: NoiseConstraints? = null,
+    val biomes: SelectionRules? = null,
+    val structures: SelectionRules? = null,
+    val mobs: SelectionRules? = null,
 )
 
-open class RegionBuilder(var name: String) {
+open class RegionBuilder(val registry: RegionRegistry, var name: String) {
   var originAnchor = false
   var budget: Double? = null
   var strategy: StrategySettings? = null
@@ -47,12 +47,15 @@ open class RegionBuilder(var name: String) {
 
   fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
 
-  fun parent(name: String) = apply { parent = name }
+  fun parent(name: String) = apply {
+    parent = name
+    registry.region(name).children.add(this.name)
+  }
 
   fun adjacentTo(vararg regionNames: String) = apply { adjacentTo.plus(regionNames) }
 
   fun child(name: String, consumer: (RegionBuilder) -> Unit) = apply {
-    region(name).apply(consumer).parent(name)
+    this.registry.region(name).apply(consumer).parent(name)
     children.add(name)
   }
 
@@ -81,7 +84,10 @@ open class RegionBuilder(var name: String) {
   }
 
   fun copy(): RegionBuilder {
-    return RegionBuilder(this.name).also { it.inheritParent(this) }
+    return RegionBuilder(this.registry, this.name).also {
+      it.budget = this.budget
+      it.inheritParent(this)
+    }
   }
 
   fun inheritParent(parent: RegionBuilder) = apply {
@@ -114,20 +120,21 @@ open class RegionBuilder(var name: String) {
     val budget = children?.sumOf { it.budget }?.let { max(this.budget ?: 0.0, it) }
 
     return RegionDefinition(
-      name = this.name,
-      originAnchor = this.originAnchor,
-      budget = budget ?: (this.budget ?: 0.0),
-      strategy = this.strategy ?: Strategy.template(),
-      adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
-      parent = this.parent,
-      children = if (this.childrenLazy.isInitialized()) this.children else null,
-      climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
-      height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
-      noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
-      biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
-      structures =
-        if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
-      mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
+        registry = this.registry,
+        name = this.name,
+        originAnchor = this.originAnchor,
+        budget = budget ?: (this.budget ?: 0.0),
+        strategy = this.strategy ?: Strategy.template(),
+        adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
+        parent = this.parent,
+        children = if (this.childrenLazy.isInitialized()) this.children else null,
+        climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
+        height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
+        noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
+        biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
+        structures =
+            if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
+        mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
     )
   }
 }

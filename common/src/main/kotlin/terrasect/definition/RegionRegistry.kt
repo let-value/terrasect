@@ -1,10 +1,10 @@
 package terrasect.definition
 
-object RegionRegistry {
+class RegionRegistry {
   val drafts = mutableMapOf<String, RegionBuilder>()
   val dimensionRoots = mutableMapOf<String, String>()
 
-  fun region(name: String) = drafts.getOrPut(name) { RegionBuilder(name) }
+  fun region(name: String) = drafts.getOrPut(name) { RegionBuilder(this, name) }
 
   fun setRoot(dimensionId: String, name: String) = dimensionRoots.set(dimensionId, name)
 
@@ -31,21 +31,21 @@ object RegionRegistry {
     visiting.remove(name)
 
     return Region(
-      name = definition.name,
-      budget = definition.budget,
-      children = children,
-      strategy = definition.strategy.build(definition, children),
-      climate = definition.climate,
-      height = definition.height,
-      noise = definition.noise,
-      biomes = definition.biomes,
-      structures = definition.structures,
-      mobs = definition.mobs,
+        name = definition.name,
+        budget = definition.budget,
+        children = children,
+        strategy = definition.strategy.build(definition, children),
+        climate = definition.climate,
+        height = definition.height,
+        noise = definition.noise,
+        biomes = definition.biomes,
+        structures = definition.structures,
+        mobs = definition.mobs,
     )
   }
 
   fun resolveDraft(name: String): RegionBuilder {
-    val draft = drafts[name] ?: return RegionBuilder(name)
+    val draft = drafts[name] ?: return RegionBuilder(this, name)
 
     val builder = draft.copy()
     if (draft.parent != null) {
