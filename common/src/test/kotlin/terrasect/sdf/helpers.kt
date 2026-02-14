@@ -34,7 +34,7 @@ fun distanceColor(
     distance: Double,
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int = SDF_INSIDE_COLOR,
+    insideColor: Int? = SDF_INSIDE_COLOR,
     outsideColor: Int? = null,
 ): Int? {
   return when {
@@ -49,7 +49,7 @@ fun drawSdf(
     sdf: Sdf2,
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int = SDF_INSIDE_COLOR,
+    insideColor: Int? = SDF_INSIDE_COLOR,
     outsideColor: Int? = null,
 ) {
   for (z in 0 until image.height) {

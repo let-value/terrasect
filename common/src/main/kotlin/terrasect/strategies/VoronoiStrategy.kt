@@ -2,10 +2,8 @@ package terrasect.strategies
 
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
-import terrasect.sdf.Site
-import terrasect.sdf.VoronoiCellSdf
-import terrasect.sdf.estimateBounds
-import terrasect.sdf.getSites
+import terrasect.sdf.*
+import java.nio.ByteBuffer
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -18,19 +16,21 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
 
     fun builder() = Builder()
 
-    fun getSites(step: TraversalStep, settings: VoronoiStrategy): List<Site> {
-      val bounds = estimateBounds(step.sdf)
-
-      val idPos = step.id.position()
-      var seed = step.traverse.seed
+    fun getCellSeed(seed: Long, id: ByteBuffer): Long {
+      val idPos = id.position()
+      var cellSeed = seed
       for (i in 0 until idPos) {
-        seed = seed * 31 + step.id.get(i).toLong()
+        cellSeed = cellSeed * 31 + id.get(i).toLong()
       }
-
-      return getSites(seed, step.sdf, bounds, settings.budgets)
+      return cellSeed
     }
 
-    fun getClosesIndex(x: Double, z: Double, sites: List<Site>): Int {
+    fun getSites(cellSeed: Long, parentSdf: Sdf2, budgets: DoubleArray): List<Site> {
+      val bounds = estimateBounds(parentSdf)
+      return getSites(cellSeed, parentSdf, bounds, budgets)
+    }
+
+    fun getCellIndex(x: Double, z: Double, sites: List<Site>): Int {
       var closestIndex = 0
       var closestPower = Double.POSITIVE_INFINITY
 
@@ -53,21 +53,22 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
       val x = step.x.toDouble()
       val z = step.z.toDouble()
 
-      val sites = getSites(step, settings)
-      val closestIndex = getClosesIndex(x, z, sites)
+      val cellSeed = getCellSeed(step.traverse.seed, step.id)
+      val sites = getSites(cellSeed, step.sdf, settings.budgets)
+      val index = getCellIndex(x, z, sites)
 
       step.id.put(discriminator)
-      step.id.putInt(closestIndex)
+      step.id.putInt(index)
 
       val sdf = settings.cellSdfRef.get()
       sdf.sites = sites
-      sdf.index = closestIndex
+      sdf.index = index
       step.sdf.append(sdf)
 
       val dist = sdf(x, z)
 
       step.distance = max(step.distance, dist)
-      step.region = settings.children[closestIndex]
+      step.region = settings.children[index]
 
       return step
     }

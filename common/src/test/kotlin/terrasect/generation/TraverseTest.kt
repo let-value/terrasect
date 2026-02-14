@@ -40,7 +40,13 @@ class TraverseTest {
       sdf.append(step.sdf)
       sdf.append(voronoi)
 
-      val sites = VoronoiStrategy.getSites(step, step.region.strategy as VoronoiStrategy)
+      val cellSeed = VoronoiStrategy.getCellSeed(step.traverse.seed, step.id)
+      val sites =
+          VoronoiStrategy.getSites(
+              cellSeed,
+              step.sdf,
+              (step.region.strategy as VoronoiStrategy).budgets,
+          )
       voronoi.sites = sites
 
       val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
