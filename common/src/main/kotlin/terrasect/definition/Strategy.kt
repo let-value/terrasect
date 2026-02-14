@@ -1,6 +1,7 @@
 package terrasect.definition
 
 import terrasect.strategies.HexStrategy
+import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.VoronoiStrategy
 
 enum class StrategyId(val value: Byte) {
@@ -22,5 +23,7 @@ interface Strategy {
     fun hex(ringRegionName: String? = null) = HexStrategy.builder(ringRegionName)
 
     fun voronoi() = VoronoiStrategy.builder()
+
+    fun subdivision() = SubdivisionStrategy.builder()
   }
 }
