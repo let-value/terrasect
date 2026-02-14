@@ -2,17 +2,12 @@ package terrasect.strategies
 
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
-import terrasect.sdf.HexCellSdf
-import terrasect.sdf.HexGapSdf
-import terrasect.sdf.hexDistance
-import kotlin.math.*
+import terrasect.sdf.*
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.roundToLong
 
 private val discriminator = StrategyId.HEX.value
-private val SQRT3 = sqrt(3.0)
-private val SIN60 = sin(Math.toRadians(60.0))
-private val TAN30 = tan(Math.toRadians(30.0))
-private const val ONE_THIRD = 1.0 / 3.0
-private const val TWO_THIRDS = 2.0 / 3.0
 
 data class GetCellResult(
     var q: Long = 0,
@@ -28,7 +23,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
   companion object {
-
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
 
     val cellRef: ThreadLocal<GetCellResult> = ThreadLocal.withInitial { GetCellResult() }
@@ -79,8 +73,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
     }
 
     fun traverse(step: TraversalStep, settings: HexStrategy): TraversalStep {
-      val apothem = step.region.budget
-      val gap = settings.ringRegion?.budget ?: 0.0
+      val apothem = areaToApothem(step.region.budget)
+      val gap = settings.ringRegion?.let { areaToApothem(it.budget) } ?: 0.0
       val cell = getCell(step.x, step.z, apothem, gap)
 
       step.id.put(discriminator)

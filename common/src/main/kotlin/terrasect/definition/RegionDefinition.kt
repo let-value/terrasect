@@ -124,7 +124,7 @@ open class RegionBuilder(val registry: RegionRegistry, var name: String) {
         name = this.name,
         originAnchor = this.originAnchor,
         budget = budget ?: (this.budget ?: 0.0),
-        strategy = this.strategy ?: Strategy.template(),
+        strategy = this.strategy ?: Strategy.voronoi(),
         adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
         parent = this.parent,
         children = if (this.childrenLazy.isInitialized()) this.children else null,

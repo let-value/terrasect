@@ -6,9 +6,8 @@ import terrasect.sdf.Site
 import terrasect.sdf.VoronoiCellSdf
 import terrasect.sdf.estimateBounds
 import terrasect.sdf.getSites
-import kotlin.math.PI
+import kotlin.math.hypot
 import kotlin.math.max
-import kotlin.math.sqrt
 
 private val discriminator = StrategyId.VORONOI.value
 
@@ -23,12 +22,12 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
       val bounds = estimateBounds(step.sdf)
 
       val idPos = step.id.position()
-      var cellSeed = step.traverse.seed
+      var seed = step.traverse.seed
       for (i in 0 until idPos) {
-        cellSeed = cellSeed * 31 + step.id.get(i).toLong()
+        seed = seed * 31 + step.id.get(i).toLong()
       }
 
-      return getSites(cellSeed, step.sdf, bounds, settings.budgets)
+      return getSites(seed, step.sdf, bounds, settings.budgets)
     }
 
     fun getClosesIndex(x: Double, z: Double, sites: List<Site>): Int {
@@ -39,7 +38,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
         val site = sites[i]
         val dx = x - site.x
         val dz = z - site.z
-        val dist = sqrt(dx * dx + dz * dz)
+        val dist = hypot(dx, dz)
         val power = dist - site.radius
         if (power < closestPower) {
           closestPower = power
@@ -51,11 +50,10 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
     }
 
     fun traverse(step: TraversalStep, settings: VoronoiStrategy): TraversalStep {
-      val sites = getSites(step, settings)
-
       val x = step.x.toDouble()
       val z = step.z.toDouble()
 
+      val sites = getSites(step, settings)
       val closestIndex = getClosesIndex(x, z, sites)
 
       step.id.put(discriminator)
@@ -63,28 +61,12 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
 
       val sdf = settings.cellSdfRef.get()
       sdf.sites = sites
-      sdf.cellIndex = closestIndex
+      sdf.index = closestIndex
       step.sdf.append(sdf)
 
-      val cell = sites[closestIndex]
-      val cdx = x - cell.x
-      val cdz = z - cell.z
-      val cellDist = sqrt(cdx * cdx + cdz * cdz)
-      val cellPower = cellDist - cell.radius
+      val dist = sdf(x, z)
 
-      var minEdgeDist = Double.POSITIVE_INFINITY
-      for (j in sites.indices) {
-        if (j == closestIndex) continue
-        val other = sites[j]
-        val odx = x - other.x
-        val odz = z - other.z
-        val otherDist = sqrt(odx * odx + odz * odz)
-        val otherPower = otherDist - other.radius
-        val edgeDist = (otherPower - cellPower) / 2.0
-        if (edgeDist < minEdgeDist) minEdgeDist = edgeDist
-      }
-
-      step.distance = max(step.distance, -minEdgeDist)
+      step.distance = max(step.distance, dist)
       step.region = settings.children[closestIndex]
 
       return step
@@ -95,11 +77,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
 
     override fun build(definition: RegionDefinition, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
-      val budgets =
-          sortedChildren
-              .map { it.budget * it.budget * PI }
-              .sortedByDescending { it }
-              .toDoubleArray()
+      val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toDoubleArray()
       return VoronoiStrategy(sortedChildren.toTypedArray(), budgets)
     }
   }

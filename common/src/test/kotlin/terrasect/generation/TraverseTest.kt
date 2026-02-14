@@ -2,8 +2,8 @@ package terrasect.generation
 
 import org.junit.jupiter.api.Test
 import terrasect.definition.RegionRegistry
+import terrasect.definition.Strategy
 import terrasect.sdf.*
-import terrasect.strategies.HexStrategy
 import terrasect.strategies.VoronoiStrategy
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
@@ -11,46 +11,47 @@ import java.awt.image.BufferedImage
 private const val SEED = 1234L
 private const val WIDTH = 240
 private const val HEIGHT = 240
-private const val CX = WIDTH / 2.0
-private const val CZ = HEIGHT / 2.0
+private const val DX = WIDTH / 2.0
+private const val DZ = HEIGHT / 2.0
 
 class TraverseTest {
 
   @Test
   fun `traverse should iterate`() {
     val registry = RegionRegistry()
-    registry.region("hex").area(10.0).strategy(HexStrategy.builder())
-    registry.region("cell").parent("hex").strategy(VoronoiStrategy.builder())
+    registry.region("hex").area(150.0).strategy(Strategy.hex())
+    registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
-    registry.region("a").area(2.0).parent("cell")
-    registry.region("b").area(5.0).parent("cell")
-    registry.region("c").area(3.0).parent("cell")
+    registry.region("a").area(0.2 * 150.0).parent("cell")
+    registry.region("b").area(0.5 * 150.0).parent("cell")
+    registry.region("c").area(0.3 * 150.0).parent("cell")
 
     val root = registry.buildTree("hex")
 
     val traverse = Traverse(SEED, root)
-
     val step = traverse.iterate(0, 0)
     renderSnapshot("step0.png", step.sdf)
 
     step.next()
     renderSnapshot("step1.png", step.sdf)
 
-    val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
-    drawSdf(image, translate(step.sdf, CX, CZ))
+    SdfCompose().let { sdf ->
+      val voronoi = VoronoiCellSdf()
+      sdf.append(step.sdf)
+      sdf.append(voronoi)
 
-    val sites = VoronoiStrategy.getSites(step, step.region.strategy as VoronoiStrategy)
-    val voronoi = VoronoiCellSdf()
-    val voronoiInParent = SdfCompose()
-    voronoiInParent.append(step.sdf)
-    voronoiInParent.append(voronoi)
-    voronoi.sites = sites
-    for (index in sites.indices) {
-      voronoi.cellIndex = index
-      drawSdf(image, translate(voronoiInParent, CX, CZ))
+      val sites = VoronoiStrategy.getSites(step, step.region.strategy as VoronoiStrategy)
+      voronoi.sites = sites
+
+      val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+      drawSdf(image, translate(step.sdf, DX, DZ))
+      for (index in sites.indices) {
+        voronoi.index = index
+        drawSdf(image, translate(sdf, DX, DZ))
+      }
+      drawSites(image, sites.map { site -> Site(site.x + DX, site.z + DZ, site.radius) })
+      writeSnapshotPng(TraverseTest::class.java, "step1_5.png", image)
     }
-    drawSites(image, sites.map { site -> Site(site.x + CX, site.z + CZ, site.radius) })
-    writeSnapshotPng(TraverseTest::class.java, "step1.5.png", image)
 
     step.next()
     renderSnapshot("step2.png", step.sdf)
@@ -58,7 +59,7 @@ class TraverseTest {
 
   private fun renderSnapshot(name: String, sdf: Sdf2) {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
-    drawSdf(image, translate(sdf, CX, CZ))
+    drawSdf(image, translate(sdf, DX, DZ))
     writeSnapshotPng(TraverseTest::class.java, name, image)
   }
 }

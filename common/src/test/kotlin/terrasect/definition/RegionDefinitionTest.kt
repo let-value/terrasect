@@ -3,6 +3,7 @@ package terrasect.definition
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import terrasect.strategies.HexStrategy
+import terrasect.strategies.VoronoiStrategy
 
 class RegionDefinitionTest {
   val registry = RegionRegistry()
@@ -65,7 +66,7 @@ class RegionDefinitionTest {
               allowNames("minecraft:village")
               blockTags("ruins")
             }
-            .strategy(Strategy.subdivision(0.2f))
+            .strategy(Strategy.voronoi())
 
     val child =
         registry
@@ -87,8 +88,7 @@ class RegionDefinitionTest {
         { assertEquals(setOf("minecraft:old_growth_pine_taiga"), child.biomes!!.blockedNames) },
         { assertEquals(setOf("minecraft:village"), child.structures!!.allowedNames) },
         { assertEquals(setOf("ruins"), child.structures!!.blockedTags) },
-        { assertTrue(child.strategy is SubdivisionSettings.Builder) },
-        { assertEquals(0.2f, (child.strategy as SubdivisionSettings.Builder).jitter) },
+        { assertTrue(child.strategy is VoronoiStrategy.Builder) },
         { assertNull(child.noise) },
         { assertNull(child.mobs) },
     )
