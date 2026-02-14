@@ -10,10 +10,13 @@ fun surroundDistance(
     centerX: Double,
     centerZ: Double,
     scale: Double,
+    smoothing: Double = 0.0,
 ): Double {
   val scaledX = centerX + (x - centerX) / scale
   val scaledZ = centerZ + (z - centerZ) / scale
-  return parentSdf(scaledX, scaledZ) * scale
+  val dist = parentSdf(scaledX, scaledZ) * scale
+
+  return dist - smoothing
 }
 
 class CenterCellSdf : Sdf2 {
@@ -21,9 +24,10 @@ class CenterCellSdf : Sdf2 {
   var centerX: Double = 0.0
   var centerZ: Double = 0.0
   var scale: Double = 0.0
+  var smoothing: Double = 0.0
 
   override fun invoke(x: Double, z: Double): Double {
-    return surroundDistance(x, z, parent, centerX, centerZ, scale)
+    return surroundDistance(x, z, parent, centerX, centerZ, scale, smoothing)
   }
 }
 
@@ -32,10 +36,11 @@ class SurroundCellSdf : Sdf2 {
   var centerX: Double = 0.0
   var centerZ: Double = 0.0
   var scale: Double = 0.0
+  var smoothing: Double = 0.0
 
   override fun invoke(x: Double, z: Double): Double {
-    val outer = surroundDistance(x, z, parent, centerX, centerZ, 1.0)
-    val inner = surroundDistance(x, z, parent, centerX, centerZ, scale)
+    val outer = surroundDistance(x, z, parent, centerX, centerZ, 1.0, smoothing)
+    val inner = surroundDistance(x, z, parent, centerX, centerZ, scale, smoothing)
     return max(outer, -inner)
   }
 }

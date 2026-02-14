@@ -1,10 +1,10 @@
 package terrasect.strategies
 
-import java.awt.image.BufferedImage
-import kotlin.math.sqrt
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
+import java.awt.image.BufferedImage
+import kotlin.math.sqrt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -69,7 +69,7 @@ class SurroundStrategyTest {
         val px = x.toDouble()
         val pz = z.toDouble()
 
-        val inner = SurroundStrategy.getDistance(px, pz, origin, parentSdf)
+        val inner = SurroundStrategy.getDistance(px, pz, origin, parentSdf, 0.0)
         val isCenter = inner <= 0.0
         image.setRGB(x, z, if (isCenter) CENTER_COLOR else SURROUND_COLOR)
       }

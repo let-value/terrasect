@@ -14,7 +14,12 @@ data class SurroundOriginResult(
     var parent: Sdf2 = EmptySdf,
 )
 
-class SurroundStrategy(val center: Region, val surround: Region, val scale: Double) : Strategy {
+class SurroundStrategy(
+    val center: Region,
+    val surround: Region,
+    val scale: Double,
+    val smoothing: Double,
+) : Strategy {
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
@@ -36,14 +41,28 @@ class SurroundStrategy(val center: Region, val surround: Region, val scale: Doub
       return origin
     }
 
-    fun getDistance(x: Double, z: Double, origin: SurroundOriginResult, parentSdf: Sdf2): Double {
-      return surroundDistance(x, z, parentSdf, origin.centerX, origin.centerZ, origin.scale)
+    fun getDistance(
+        x: Double,
+        z: Double,
+        origin: SurroundOriginResult,
+        parentSdf: Sdf2,
+        smoothing: Double,
+    ): Double {
+      return surroundDistance(
+          x,
+          z,
+          parentSdf,
+          origin.centerX,
+          origin.centerZ,
+          origin.scale,
+          smoothing,
+      )
     }
 
     fun traverse(step: TraversalStep, settings: SurroundStrategy): TraversalStep {
 
       val origin = getOrigin(step.sdf.bake(), settings.scale)
-      val isCenter = getDistance(step.x, step.z, origin, step.sdf) <= 0.0
+      val isCenter = getDistance(step.x, step.z, origin, step.sdf, settings.smoothing) <= 0.0
 
       step.id.put(discriminator)
       step.id.putDouble(origin.centerX)
@@ -51,17 +70,19 @@ class SurroundStrategy(val center: Region, val surround: Region, val scale: Doub
 
       if (isCenter) {
         val sdf = settings.centerSdfRef.get()
+        sdf.parent = origin.parent
         sdf.centerX = origin.centerX
         sdf.centerZ = origin.centerZ
         sdf.scale = origin.scale
-        sdf.parent = origin.parent
+        sdf.smoothing = settings.smoothing
         step.sdf.append(sdf)
       } else {
         val sdf = settings.surroundSdfRef.get()
+        sdf.parent = origin.parent
         sdf.centerX = origin.centerX
         sdf.centerZ = origin.centerZ
         sdf.scale = origin.scale
-        sdf.parent = origin.parent
+        sdf.smoothing = settings.smoothing
         step.sdf.append(sdf)
       }
 
@@ -85,9 +106,11 @@ class SurroundStrategy(val center: Region, val surround: Region, val scale: Doub
 
       val surround = definition.registry.build(surroundRegionName)
 
+      val smoothing = -15.0
+
       val scale = surroundScale(center.budget, center.budget + surround.budget)
 
-      return SurroundStrategy(center, surround, scale)
+      return SurroundStrategy(center, surround, scale, smoothing)
     }
   }
 }
