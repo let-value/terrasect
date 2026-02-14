@@ -1,25 +1,25 @@
 package terrasect.strategies
 
+import kotlin.math.max
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
 import terrasect.sdf.estimateBounds
-import kotlin.math.max
 
 private val discriminator = StrategyId.SUBDIVISION.value
 
+@Suppress("ArrayInDataClass")
 data class SubdivisionSplit(
-    val axis: Int, // 0 = X, 1 = Z
-    val edges: DoubleArray, // edges.size == children + 1; edges[0] = axisMin, edges[last] = axisMax
+    var axis: Int = 0,
+    var edges: DoubleArray = doubleArrayOf(),
 )
 
 class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
   companion object {
-
-    fun builder() = Builder()
+    val splitRef: ThreadLocal<SubdivisionSplit> = ThreadLocal.withInitial { SubdivisionSplit() }
 
     fun getSplit(parentSdf: Sdf2, budgets: DoubleArray): SubdivisionSplit {
       val bounds = estimateBounds(parentSdf)
@@ -37,19 +37,22 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
         cumulative += budgets[i]
         edges[i + 1] = axisMin + axisLen * (cumulative / totalBudget)
       }
-      edges[budgets.size] = axisMax // snap last edge exactly
+      edges[budgets.size] = axisMax
 
-      return SubdivisionSplit(axis, edges)
+      val split = splitRef.get()
+      split.edges = edges
+      split.axis = axis
+
+      return split
     }
 
     fun getChildIndex(v: Double, split: SubdivisionSplit): Int {
-      // Walk edges to find the slab this coordinate falls in
       for (i in 1 until split.edges.size) {
         if (v <= split.edges[i]) {
           return i - 1
         }
       }
-      return split.edges.size - 2 // last child
+      return split.edges.size - 2
     }
 
     fun traverse(step: TraversalStep, settings: SubdivisionStrategy): TraversalStep {
@@ -74,9 +77,11 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
 
       return step
     }
+
+    fun builder() = Builder()
   }
 
-  class Builder() : StrategySettings {
+  class Builder : StrategySettings {
 
     override fun build(definition: RegionDefinition, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }

@@ -17,14 +17,14 @@ open class Traverse(
   val iterator: ThreadLocal<TraversalStep>
     get() = ThreadLocal.withInitial { TraversalStep(this) }
 
-  fun iterate(x: Long, z: Long, chunk: ChunkAccessExtender? = null): TraversalStep {
+  fun iterate(x: Double, z: Double, chunk: ChunkAccessExtender? = null): TraversalStep {
     val step = this.iterator.get()
     step.reset(x, z, chunk)
 
     return step
   }
 
-  fun traverse(x: Long, z: Long, chunk: ChunkAccessExtender? = null): TraversalStep {
+  fun traverse(x: Double, z: Double, chunk: ChunkAccessExtender? = null): TraversalStep {
     var step = this.iterate(x, z, chunk)
 
     while (step.region.hasChildren) {
@@ -41,11 +41,11 @@ class TraversalStep(val traverse: Traverse) {
 
   var chunk: ChunkAccessExtender? = null
   var region: Region = traverse.root
-  var x: Long = 0
-  var z: Long = 0
+  var x: Double = 0.0
+  var z: Double = 0.0
   var distance: Double = Double.NEGATIVE_INFINITY
 
-  fun reset(x: Long, z: Long, chunk: ChunkAccessExtender? = null) {
+  fun reset(x: Double, z: Double, chunk: ChunkAccessExtender? = null) {
     this.id.clear()
     this.sdf.reset()
 

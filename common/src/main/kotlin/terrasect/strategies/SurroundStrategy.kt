@@ -11,13 +11,14 @@ data class SurroundOriginResult(
     var centerX: Double = 0.0,
     var centerZ: Double = 0.0,
     var scale: Double = 1.0,
+    var parent: Sdf2 = EmptySdf,
 )
 
 class SurroundStrategy(val center: Region, val surround: Region, val scale: Double) : Strategy {
-  val cellSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
+  val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
+  val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
   companion object {
-    fun builder(centerRegionName: String) = Builder(centerRegionName)
 
     val originRef: ThreadLocal<SurroundOriginResult> =
         ThreadLocal.withInitial { SurroundOriginResult() }
@@ -31,49 +32,60 @@ class SurroundStrategy(val center: Region, val surround: Region, val scale: Doub
       origin.centerX = centerX
       origin.centerZ = centerZ
       origin.scale = scale
+      origin.parent = parentSdf
       return origin
     }
 
     fun getDistance(x: Double, z: Double, origin: SurroundOriginResult, parentSdf: Sdf2): Double {
-      return surroundInnerDistance(x, z, parentSdf, origin.centerX, origin.centerZ, origin.scale)
+      return surroundDistance(x, z, parentSdf, origin.centerX, origin.centerZ, origin.scale)
     }
 
     fun traverse(step: TraversalStep, settings: SurroundStrategy): TraversalStep {
-      val x = step.x.toDouble()
-      val z = step.z.toDouble()
 
-      val origin = getOrigin(step.sdf, settings.scale)
-      val distance = getDistance(x, z, origin, step.sdf)
-      val isCenter = distance <= 0.0
+      val origin = getOrigin(step.sdf.bake(), settings.scale)
+      val isCenter = getDistance(step.x, step.z, origin, step.sdf) <= 0.0
 
       step.id.put(discriminator)
-      step.id.put(if (isCenter) 0.toByte() else 1.toByte())
+      step.id.putDouble(origin.centerX)
+      step.id.putDouble(origin.centerZ)
 
-      val sdf = settings.cellSdfRef.get()
-      sdf.innerDistance = distance
-      sdf.isCenter = isCenter
-      step.sdf.append(sdf)
+      if (isCenter) {
+        val sdf = settings.centerSdfRef.get()
+        sdf.centerX = origin.centerX
+        sdf.centerZ = origin.centerZ
+        sdf.scale = origin.scale
+        sdf.parent = origin.parent
+        step.sdf.append(sdf)
+      } else {
+        val sdf = settings.surroundSdfRef.get()
+        sdf.centerX = origin.centerX
+        sdf.centerZ = origin.centerZ
+        sdf.scale = origin.scale
+        sdf.parent = origin.parent
+        step.sdf.append(sdf)
+      }
 
-      val dist = sdf(x, z)
-      step.distance = max(step.distance, dist)
+      val distance = step.sdf(step.x, step.z)
+      step.distance = max(step.distance, distance)
 
       step.region = if (isCenter) settings.center else settings.surround
 
       return step
     }
+
+    fun builder(surroundRegionName: String) = Builder(surroundRegionName)
   }
 
-  class Builder(val centerRegionName: String) : StrategySettings {
+  class Builder(val surroundRegionName: String) : StrategySettings {
 
     override fun build(definition: RegionDefinition, children: Set<Region>): SurroundStrategy {
       val center =
-          children.find { it.name == centerRegionName }
-              ?: Region.empty("${centerRegionName}_center")
-      val surround =
-          children.find { it.name != centerRegionName }
-              ?: Region.empty("${centerRegionName}_surround")
+          children.find { it.name != surroundRegionName }
+              ?: Region.empty("${surroundRegionName}_center")
 
-      val scale = surroundScale(center.budget, surround.budget)
+      val surround = definition.registry.build(surroundRegionName)
+
+      val scale = surroundScale(center.budget, center.budget + surround.budget)
 
       return SurroundStrategy(center, surround, scale)
     }

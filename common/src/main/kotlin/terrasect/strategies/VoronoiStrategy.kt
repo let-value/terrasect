@@ -13,9 +13,6 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
   companion object {
-
-    fun builder() = Builder()
-
     fun getCellSeed(seed: Long, id: ByteBuffer): Long {
       val idPos = id.position()
       var cellSeed = seed
@@ -72,9 +69,11 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
 
       return step
     }
+
+    fun builder() = Builder()
   }
 
-  class Builder() : StrategySettings {
+  class Builder : StrategySettings {
 
     override fun build(definition: RegionDefinition, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }

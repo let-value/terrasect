@@ -28,6 +28,6 @@ interface Strategy {
 
     fun subdivision() = SubdivisionStrategy.builder()
 
-    fun surround(centerRegionName: String) = SurroundStrategy.builder(centerRegionName)
+    fun surround(surroundRegionName: String) = SurroundStrategy.builder(surroundRegionName)
   }
 }

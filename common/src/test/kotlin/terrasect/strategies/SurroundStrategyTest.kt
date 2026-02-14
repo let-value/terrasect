@@ -1,10 +1,10 @@
 package terrasect.strategies
 
+import java.awt.image.BufferedImage
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.sqrt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -77,23 +77,19 @@ class SurroundStrategyTest {
   }
 
   private fun drawCellDistance(image: BufferedImage, parentSdf: Sdf2, maxDistance: Double) {
-    val bounds = estimateBounds(parentSdf)
-    val centerX = (bounds.minX + bounds.maxX) * 0.5
-    val centerZ = (bounds.minZ + bounds.maxZ) * 0.5
-    val scale = surroundScale(centerBudget, centerBudget + surroundBudget)
-
+    val origin = SurroundStrategy.getOrigin(parentSdf, scale)
     val cellSdf = SurroundCellSdf()
+
+    cellSdf.centerX = origin.centerX
+    cellSdf.centerZ = origin.centerZ
+    cellSdf.scale = origin.scale
+    cellSdf.parent = origin.parent
 
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
         val px = x.toDouble()
         val pz = z.toDouble()
         if (parentSdf(px, pz) > 0.0) continue
-
-        val inner = surroundInnerDistance(px, pz, parentSdf, centerX, centerZ, scale)
-        val isCenter = inner <= 0.0
-        cellSdf.innerDistance = inner
-        cellSdf.isCenter = isCenter
 
         val dist = cellSdf(px, pz)
         image.setRGB(x, z, colorForSignedDistance(dist, maxDistance))

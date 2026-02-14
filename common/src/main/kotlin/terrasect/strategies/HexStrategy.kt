@@ -12,7 +12,6 @@ private val discriminator = StrategyId.HEX.value
 data class HexCellResult(
     var q: Long = 0,
     var r: Long = 0,
-    var distance: Double = 0.0,
     var isGap: Boolean = false,
     var centerX: Double = 0.0,
     var centerZ: Double = 0.0,
@@ -23,11 +22,10 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
   companion object {
-    fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
 
     val cellRef: ThreadLocal<HexCellResult> = ThreadLocal.withInitial { HexCellResult() }
 
-    fun getCell(x: Long, z: Long, apothem: Double, gap: Double = 0.0): HexCellResult {
+    fun getCell(x: Double, z: Double, apothem: Double, gap: Double = 0.0): HexCellResult {
       val spacing = apothem + gap.coerceAtLeast(0.0)
 
       val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
@@ -54,17 +52,13 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       val localX = x - centerX
       val localZ = z - centerZ
 
-      var distance = hexDistance(localX, localZ, apothem)
+      val distance = hexDistance(localX, localZ, apothem)
       val isGap = gap > 0 && distance > 0.0
-      if (isGap) {
-        val outerDistance = hexDistance(localX, localZ, spacing)
-        distance = max(outerDistance, -distance)
-      }
 
       val cell = cellRef.get()
       cell.q = q
       cell.r = r
-      cell.distance = distance
+
       cell.isGap = isGap
       cell.centerX = centerX
       cell.centerZ = centerZ
@@ -96,7 +90,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
         step.sdf.append(sdf)
       }
 
-      step.distance = max(step.distance, cell.distance)
+      val distance = step.sdf(step.x, step.z)
+      step.distance = max(step.distance, distance)
 
       step.region =
           (if (cell.isGap && settings.ringRegion != null) settings.ringRegion
@@ -104,6 +99,8 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
 
       return step
     }
+
+    fun builder(ringRegionName: String? = null) = Builder(ringRegionName)
   }
 
   class Builder(var ringRegionName: String? = null) : StrategySettings {
@@ -111,11 +108,10 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
     override fun build(definition: RegionDefinition, children: Set<Region>): HexStrategy {
-      val region = children.firstOrNull() ?: Region.empty(definition.name + "_placeholder")
-      return HexStrategy(
-          region,
-          ringRegionName?.let { definition.registry.build(it) },
-      )
+      val region =
+          children.find { it.name != ringRegionName } ?: Region.empty("${definition.name}_center")
+      val ringRegion = ringRegionName?.let { definition.registry.build(it) }
+      return HexStrategy(region, ringRegion)
     }
   }
 }

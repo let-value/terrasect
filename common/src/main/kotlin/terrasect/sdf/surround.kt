@@ -1,8 +1,9 @@
 package terrasect.sdf
 
+import kotlin.math.max
 import kotlin.math.sqrt
 
-fun surroundInnerDistance(
+fun surroundDistance(
     x: Double,
     z: Double,
     parentSdf: Sdf2,
@@ -10,18 +11,32 @@ fun surroundInnerDistance(
     centerZ: Double,
     scale: Double,
 ): Double {
-  val safeScale = scale.coerceAtLeast(1e-6)
-  val scaledX = centerX + (x - centerX) / safeScale
-  val scaledZ = centerZ + (z - centerZ) / safeScale
-  return parentSdf(scaledX, scaledZ) * safeScale
+  val scaledX = centerX + (x - centerX) / scale
+  val scaledZ = centerZ + (z - centerZ) / scale
+  return parentSdf(scaledX, scaledZ) * scale
+}
+
+class CenterCellSdf : Sdf2 {
+  var parent: Sdf2 = EmptySdf
+  var centerX: Double = 0.0
+  var centerZ: Double = 0.0
+  var scale: Double = 0.0
+
+  override fun invoke(x: Double, z: Double): Double {
+    return surroundDistance(x, z, parent, centerX, centerZ, scale)
+  }
 }
 
 class SurroundCellSdf : Sdf2 {
-  var innerDistance: Double = Double.POSITIVE_INFINITY
-  var isCenter: Boolean = true
+  var parent: Sdf2 = EmptySdf
+  var centerX: Double = 0.0
+  var centerZ: Double = 0.0
+  var scale: Double = 0.0
 
   override fun invoke(x: Double, z: Double): Double {
-    return if (isCenter) innerDistance else -innerDistance
+    val outer = surroundDistance(x, z, parent, centerX, centerZ, 1.0)
+    val inner = surroundDistance(x, z, parent, centerX, centerZ, scale)
+    return max(outer, -inner)
   }
 }
 
@@ -30,5 +45,5 @@ fun surroundScale(centerBudget: Double, totalBudget: Double): Double {
     return 1.0
   }
   val centerFraction = (centerBudget / totalBudget).coerceIn(0.0, 1.0)
-  return sqrt(centerFraction)
+  return sqrt(centerFraction).coerceAtLeast(1e-6)
 }
