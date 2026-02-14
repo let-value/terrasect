@@ -6,6 +6,7 @@ import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
+import terrasect.strategies.SurroundStrategy
 import terrasect.strategies.VoronoiStrategy
 import java.nio.ByteBuffer
 
@@ -67,6 +68,7 @@ class TraversalStep(val traverse: Traverse) {
           is HexStrategy -> HexStrategy.traverse(this, region.strategy)
           is VoronoiStrategy -> VoronoiStrategy.traverse(this, region.strategy)
           is SubdivisionStrategy -> SubdivisionStrategy.traverse(this, region.strategy)
+          is SurroundStrategy -> SurroundStrategy.traverse(this, region.strategy)
           else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
         }
 
