@@ -9,10 +9,10 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
-import terrasect.MultiNoiseBiomeSourceAccessor;
+import terrasect.MultiNoiseBiomeSourceExtender;
 
 @Mixin(MultiNoiseBiomeSource.class)
-public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceAccessor {
+public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceExtender {
 
   @Accessor("parameters")
   @Override

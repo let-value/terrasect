@@ -15,14 +15,25 @@ private const val CIRCLE_RADIUS = 90.0
 class DistanceTest {
 
   @Test
-  fun `should draw sdf distance`() {
-
+  fun `should draw hex distance`() {
     val hex = HexCellSdf(CX, CZ, APOTHEM)
     renderSnapshot("hex.png", hex)
+  }
 
+  @Test
+  fun `should draw hex gap distance`() {
+    val hex = HexGapSdf(CX, CZ, APOTHEM, 10.0)
+    renderSnapshot("hex-gap.png", hex)
+  }
+
+  @Test
+  fun `should draw circle distance`() {
     val circle = translate({ x, z -> sqrt(x * x + z * z) - CIRCLE_RADIUS }, CX, CZ)
     renderSnapshot("circle.png", circle)
+  }
 
+  @Test
+  fun `should draw banana distance`() {
     val banana = translate({ x, z -> bananaSdf(x, z, 3.0) }, CX, CZ)
     renderSnapshot("banana.png", banana)
   }

@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import terrasect.MultiNoiseBiomeSourceAccessor;
+import terrasect.MultiNoiseBiomeSourceExtender;
 import terrasect.generation.Context;
 
 @Mixin(ServerLevel.class)
@@ -51,18 +51,18 @@ public class LevelMixin {
     var generator = chunkSource.getGenerator();
     var biomeSource = generator.getBiomeSource();
     var sampler = chunkSource.randomState().sampler();
-    var possibleSets = chunkSource.getGeneratorState().possibleStructureSets();
+    var structureSets = chunkSource.getGeneratorState().possibleStructureSets();
     var registry = server.registryAccess();
 
     var climateParameters =
         biomeSource instanceof MultiNoiseBiomeSource multiNoise
-            ? ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters()
+            ? ((MultiNoiseBiomeSourceExtender) multiNoise).terrasect$getParameters()
             : null;
     var climateList =
         climateParameters != null
             ? climateParameters.map(list -> list, holder -> holder.value().parameters())
             : null;
 
-    Context.Companion.register(dimension, seed, sampler, possibleSets, registry, climateList);
+    Context.Companion.register(dimension, seed, sampler, structureSets, registry, climateList);
   }
 }

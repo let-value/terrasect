@@ -6,10 +6,10 @@
     "ChunkAccessAccessor",
     "ChunkAccessMixin",
     "ChunkGeneratorMixin",
-    "ClimateSamplerAccessorMixin",
+    "ClimateClimateSamplerMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceMixin",
-    "NoiseChunkAccessorMixin"
+    "NoiseChunkExtenderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

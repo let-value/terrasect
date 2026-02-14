@@ -7,7 +7,7 @@ import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 import org.jetbrains.annotations.NotNull;
 
-public interface MultiNoiseBiomeSourceAccessor {
+public interface MultiNoiseBiomeSourceExtender {
 
   Either<
           Climate.ParameterList<@NotNull Holder<@NotNull Biome>>,
