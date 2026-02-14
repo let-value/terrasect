@@ -2,6 +2,7 @@ package terrasect.generation
 
 import terrasect.ChunkAccessExtender
 import terrasect.definition.Region
+import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.VoronoiStrategy
@@ -60,10 +61,14 @@ class TraversalStep(val traverse: Traverse) {
       return null
     }
 
-    return when (region.strategy) {
-      is HexStrategy -> HexStrategy.traverse(this, region.strategy)
-      is VoronoiStrategy -> VoronoiStrategy.traverse(this, region.strategy)
-      else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
-    }
+    val step =
+        when (region.strategy) {
+          is HexStrategy -> HexStrategy.traverse(this, region.strategy)
+          is VoronoiStrategy -> VoronoiStrategy.traverse(this, region.strategy)
+          else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
+        }
+
+    step.id.putChar(Strategy.SEPARATOR)
+    return step
   }
 }

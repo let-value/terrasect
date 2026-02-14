@@ -35,8 +35,8 @@ fun distanceColor(
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
     insideColor: Int = SDF_INSIDE_COLOR,
-    outsideColor: Int = SDF_OUTSIDE_COLOR,
-): Int {
+    outsideColor: Int? = null,
+): Int? {
   return when {
     abs(distance) <= edgeThreshold -> edgeColor
     distance < 0.0 -> insideColor
@@ -50,12 +50,13 @@ fun drawSdf(
     edgeThreshold: Double = 0.6,
     edgeColor: Int = SDF_EDGE_COLOR,
     insideColor: Int = SDF_INSIDE_COLOR,
-    outsideColor: Int = SDF_OUTSIDE_COLOR,
+    outsideColor: Int? = null,
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
       val distance = sdf(x.toDouble(), z.toDouble())
-      val color = distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor)
+      val color =
+          distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor) ?: continue
       image.setRGB(x, z, color)
     }
   }
@@ -78,6 +79,15 @@ fun colorForSignedDistance(distance: Double, maxDistance: Double): Int {
     (0xFF shl 24) or (normalizedDistance shl 16) or (normalizedDistance shl 8) or 0xFF
   } else {
     (0xFF shl 24) or (0xFF shl 16) or (normalizedDistance shl 8) or normalizedDistance
+  }
+}
+
+fun drawSites(image: BufferedImage, sites: List<Site>) {
+  for (site in sites) {
+    val x = site.x.roundToInt()
+    val z = site.z.roundToInt()
+    drawCircle(image, x, z, 1)
+    drawRing(image, x, z, site.radius)
   }
 }
 

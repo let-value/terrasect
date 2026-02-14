@@ -67,15 +67,6 @@ class SitesTest {
     writeSnapshotPng(SitesTest::class.java, "dense.png", image)
   }
 
-  private fun drawSites(image: BufferedImage, sites: List<Site>) {
-    for (site in sites) {
-      val x = site.x.roundToInt()
-      val z = site.z.roundToInt()
-      drawCircle(image, x, z, 1)
-      drawRing(image, x, z, site.radius)
-    }
-  }
-
   private fun estimateArea(sdf: Sdf2, bounds: SdfBounds, step: Double = 1.0): Double {
     val safeStep = step.coerceAtLeast(0.25)
     val minX = floor(bounds.minX)

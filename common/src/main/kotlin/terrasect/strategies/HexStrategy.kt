@@ -86,7 +86,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       step.id.put(discriminator)
       step.id.putLong(cell.q)
       step.id.putLong(cell.r)
-      step.id.putChar(Strategy.SEPARATOR)
 
       if (cell.isGap) {
         val sdf = settings.gapSdfRef.get()
