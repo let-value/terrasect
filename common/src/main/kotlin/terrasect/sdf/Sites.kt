@@ -12,12 +12,7 @@ const val goodPenaltyEps = 1e-9
 const val greatClearanceFactor = 0.25
 const val earlyStopStreak = 5
 
-fun getSites(
-    seed: Long,
-    sdf: Sdf2,
-    bounds: SdfBounds,
-    budgets: DoubleArray,
-): List<Site> {
+fun getSites(seed: Long, sdf: Sdf2, bounds: SdfBounds, budgets: DoubleArray): List<Site> {
   val rng = Random(seed)
 
   val radii = budgets.map { sqrt(it.coerceAtLeast(0.0) / PI) }.sortedDescending()

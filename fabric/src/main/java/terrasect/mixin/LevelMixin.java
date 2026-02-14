@@ -1,5 +1,7 @@
 package terrasect.mixin;
 
+import java.util.List;
+import java.util.concurrent.Executor;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -19,45 +21,48 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import terrasect.MultiNoiseBiomeSourceAccessor;
 import terrasect.generation.Context;
 
-import java.util.List;
-import java.util.concurrent.Executor;
-
 @Mixin(ServerLevel.class)
 public class LevelMixin {
-    @Inject(
-            method = "<init>",
-            at =
-            @At(
-                    value = "INVOKE",
-                    target =
-                            "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-                    ordinal = 0,
-                    shift = At.Shift.BEFORE))
-    private void terrasect$registerContext(
-            MinecraftServer server,
-            Executor executor,
-            LevelStorageSource.LevelStorageAccess storage,
-            ServerLevelData levelData,
-            ResourceKey<@NotNull Level> dimension,
-            LevelStem levelStem,
-            boolean bl,
-            long seed,
-            List<CustomSpawner> spawners,
-            boolean bl2,
-            @Nullable RandomSequences randomSequences,
-            CallbackInfo ci) {
+  @Inject(
+      method = "<init>",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
+              ordinal = 0,
+              shift = At.Shift.BEFORE))
+  private void terrasect$registerContext(
+      MinecraftServer server,
+      Executor executor,
+      LevelStorageSource.LevelStorageAccess storage,
+      ServerLevelData levelData,
+      ResourceKey<@NotNull Level> dimension,
+      LevelStem levelStem,
+      boolean bl,
+      long seed,
+      List<CustomSpawner> spawners,
+      boolean bl2,
+      @Nullable RandomSequences randomSequences,
+      CallbackInfo ci) {
 
-        var level = (ServerLevel) (Object) this;
-        var chunkSource = level.getChunkSource();
-        var generator = chunkSource.getGenerator();
-        var biomeSource = generator.getBiomeSource();
-        var sampler = chunkSource.randomState().sampler();
-        var possibleSets = chunkSource.getGeneratorState().possibleStructureSets();
-        var registry = server.registryAccess();
+    var level = (ServerLevel) (Object) this;
+    var chunkSource = level.getChunkSource();
+    var generator = chunkSource.getGenerator();
+    var biomeSource = generator.getBiomeSource();
+    var sampler = chunkSource.randomState().sampler();
+    var possibleSets = chunkSource.getGeneratorState().possibleStructureSets();
+    var registry = server.registryAccess();
 
-        var climateParameters = biomeSource instanceof MultiNoiseBiomeSource multiNoise ? ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters() : null;
-        var climateList = climateParameters != null ? climateParameters.map(list -> list, holder -> holder.value().parameters()) : null;
+    var climateParameters =
+        biomeSource instanceof MultiNoiseBiomeSource multiNoise
+            ? ((MultiNoiseBiomeSourceAccessor) multiNoise).terrasect$getParameters()
+            : null;
+    var climateList =
+        climateParameters != null
+            ? climateParameters.map(list -> list, holder -> holder.value().parameters())
+            : null;
 
-        Context.Companion.register(dimension, seed, sampler, possibleSets, registry, climateList);
-    }
+    Context.Companion.register(dimension, seed, sampler, possibleSets, registry, climateList);
+  }
 }

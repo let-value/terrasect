@@ -1,12 +1,12 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.*
 import org.junit.jupiter.api.Test
 import terrasect.testing.drawCircle
 import terrasect.testing.drawRing
 import terrasect.testing.drawSdf
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.*
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -79,11 +79,7 @@ class SitesTest {
     }
   }
 
-  private fun estimateArea(
-      sdf: Sdf2,
-      bounds: SdfBounds,
-      step: Double = 1.0,
-  ): Double {
+  private fun estimateArea(sdf: Sdf2, bounds: SdfBounds, step: Double = 1.0): Double {
     val safeStep = step.coerceAtLeast(0.25)
     val minX = floor(bounds.minX)
     val maxX = ceil(bounds.maxX)
@@ -132,16 +128,10 @@ class SitesTest {
         }
         if (clearance < 0.0) {
           overlapDetails.add(
-              Pair(
-                  clearance,
-                  String.format(
-                      "pair %d-%d distance=%.2f clearance=%.2f",
-                      i,
-                      j,
-                      distance,
-                      clearance,
-                  ),
-              ),
+            Pair(
+              clearance,
+              String.format("pair %d-%d distance=%.2f clearance=%.2f", i, j, distance, clearance),
+            )
           )
         }
       }
@@ -175,35 +165,35 @@ class SitesTest {
       }
 
       perSite.add(
-          String.format(
-              "site %d r=%.2f boundary=%.2f nearest=%d dist=%.2f clearance=%.2f",
-              i,
-              site.radius,
-              boundaryClearance,
-              nearestIndex,
-              nearestDistance,
-              nearestClearance,
-          ),
+        String.format(
+          "site %d r=%.2f boundary=%.2f nearest=%d dist=%.2f clearance=%.2f",
+          i,
+          site.radius,
+          boundaryClearance,
+          nearestIndex,
+          nearestDistance,
+          nearestClearance,
+        )
       )
     }
 
     println("Sites debug ($label): count=${sites.size}")
     println(
-        String.format(
-            "  min clearance=%.2f pair=%d-%d, min distance=%.2f",
-            minClearance,
-            minPairA,
-            minPairB,
-            minDistance,
-        ),
+      String.format(
+        "  min clearance=%.2f pair=%d-%d, min distance=%.2f",
+        minClearance,
+        minPairA,
+        minPairB,
+        minDistance,
+      )
     )
     println(
-        String.format(
-            "  boundary clearance min=%.2f avg=%.2f max=%.2f",
-            minBoundary,
-            sumBoundary / sites.size,
-            maxBoundary,
-        ),
+      String.format(
+        "  boundary clearance min=%.2f avg=%.2f max=%.2f",
+        minBoundary,
+        sumBoundary / sites.size,
+        maxBoundary,
+      )
     )
     for (line in perSite) {
       println("  $line")

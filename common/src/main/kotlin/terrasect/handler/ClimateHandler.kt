@@ -5,13 +5,13 @@ import terrasect.generation.Context
 
 object ClimateHandler {
   fun modifyTargetPoint(
-      context: Context,
-      x: Int,
-      z: Int,
-      original: Climate.TargetPoint,
+    context: Context,
+    x: Int,
+    z: Int,
+    original: Climate.TargetPoint,
   ): Climate.TargetPoint {
-      x shl 2
-      z shl 2
+    x shl 2
+    z shl 2
 
     return original
   }

@@ -16,12 +16,12 @@ private const val ONE_THIRD = 1.0 / 3.0
 private const val TWO_THIRDS = 2.0 / 3.0
 
 data class GetCellResult(
-    var q: Long = 0,
-    var r: Long = 0,
-    var distance: Double = 0.0,
-    var isGap: Boolean = false,
-    var centerX: Double = 0.0,
-    var centerZ: Double = 0.0,
+  var q: Long = 0,
+  var r: Long = 0,
+  var distance: Double = 0.0,
+  var isGap: Boolean = false,
+  var centerX: Double = 0.0,
+  var centerZ: Double = 0.0,
 )
 
 class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strategy {
@@ -78,11 +78,7 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       return cell
     }
 
-    fun traverse(
-        context: Context,
-        step: TraversalStep,
-        settings: HexStrategy,
-    ): TraversalStep {
+    fun traverse(context: Context, step: TraversalStep, settings: HexStrategy): TraversalStep {
       val apothem = context.region.budget
       val gap = settings.ringRegion?.budget ?: 0.0
       val cell = getCell(step.x, step.z, apothem, gap)
@@ -110,7 +106,7 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       step.distance = max(step.distance, cell.distance)
 
       step.region =
-          if (cell.isGap && settings.ringRegion != null) settings.ringRegion else settings.children
+        if (cell.isGap && settings.ringRegion != null) settings.ringRegion else settings.children
 
       return step
     }
@@ -121,6 +117,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
     override fun build(definition: RegionDefinition, children: Set<Region>) =
-        HexStrategy(children.first(), ringRegionName?.let { RegionRegistry.build(it) })
+      HexStrategy(children.first(), ringRegionName?.let { RegionRegistry.build(it) })
   }
 }

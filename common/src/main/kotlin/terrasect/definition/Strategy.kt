@@ -27,7 +27,7 @@ class VoronoiSettings(val relaxationIterations: Int) : Strategy {
     }
 
     override fun build(definition: RegionDefinition, children: Set<Region>) =
-        VoronoiSettings(max(0, min(20, relaxationIterations)))
+      VoronoiSettings(max(0, min(20, relaxationIterations)))
   }
 }
 
@@ -42,7 +42,7 @@ class SubdivisionSettings(val jitter: Float) : Strategy {
     fun jitter(jitter: Float) = apply { this.jitter = jitter }
 
     override fun build(definition: RegionDefinition, children: Set<Region>) =
-        SubdivisionSettings(max(0f, min(0.5f, jitter)))
+      SubdivisionSettings(max(0f, min(0.5f, jitter)))
   }
 }
 
@@ -69,7 +69,7 @@ class TemplateSettings(val type: TemplateType, centerRegionName: String? = null)
     }
 
     override fun build(definition: RegionDefinition, children: Set<Region>) =
-        TemplateSettings(type, centerRegionName)
+      TemplateSettings(type, centerRegionName)
   }
 }
 
@@ -91,6 +91,6 @@ interface Strategy {
     fun template(type: TemplateType) = TemplateSettings.builder(type)
 
     fun centerSurround(centerRegionName: String) =
-        TemplateSettings.builder(TemplateType.CENTER_SURROUND).centerRegionName(centerRegionName)
+      TemplateSettings.builder(TemplateType.CENTER_SURROUND).centerRegionName(centerRegionName)
   }
 }

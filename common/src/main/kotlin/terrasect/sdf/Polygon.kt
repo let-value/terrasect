@@ -2,10 +2,7 @@ package terrasect.sdf
 
 import kotlin.math.*
 
-data class Vec2(
-    val x: Double,
-    val z: Double,
-)
+data class Vec2(val x: Double, val z: Double)
 
 private data class Segment(val a: Vec2, val b: Vec2)
 
@@ -175,14 +172,7 @@ private fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
   return polygons
 }
 
-private fun interp(
-    x0: Double,
-    z0: Double,
-    x1: Double,
-    z1: Double,
-    v0: Double,
-    v1: Double,
-): Vec2 {
+private fun interp(x0: Double, z0: Double, x1: Double, z1: Double, v0: Double, v1: Double): Vec2 {
   val denom = v1 - v0
   val t = if (abs(denom) < 1e-12) 0.5 else (-v0 / denom).coerceIn(0.0, 1.0)
   return Vec2(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t)

@@ -1,5 +1,7 @@
 package terrasect.generation
 
+import kotlin.math.max
+import kotlin.math.min
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.ResourceKey
@@ -12,15 +14,13 @@ import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
 import terrasect.utils.packPair
-import kotlin.math.max
-import kotlin.math.min
 
 class Context(
-    val dimensionId: String,
-    val seed: Long,
-    val region: Region,
-    val sampler: Climate.Sampler,
-    val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
+  val dimensionId: String,
+  val seed: Long,
+  val region: Region,
+  val sampler: Climate.Sampler,
+  val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) {
   fun getInfluence(x: Int, z: Int): Long {
     if (biomesClimate == null) return 0
@@ -43,12 +43,12 @@ class Context(
     val bySampler = mutableMapOf<Climate.Sampler, Context>()
 
     fun register(
-        dimension: ResourceKey<Level>,
-        seed: Long,
-        sampler: Climate.Sampler,
-        possibleSets: MutableList<Holder<StructureSet>>,
-        registry: RegistryAccess.Frozen,
-        biomesClimate: Climate.ParameterList<Holder<Biome>>?,
+      dimension: ResourceKey<Level>,
+      seed: Long,
+      sampler: Climate.Sampler,
+      possibleSets: MutableList<Holder<StructureSet>>,
+      registry: RegistryAccess.Frozen,
+      biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
 

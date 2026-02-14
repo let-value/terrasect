@@ -1,11 +1,11 @@
 package terrasect.testing
 
-import terrasect.sdf.Sdf2
 import java.awt.image.BufferedImage
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import terrasect.sdf.Sdf2
 
 const val LINE_COLOR = 0xFF4DD5FF.toInt()
 const val SITE_AREA_COLOR = 0xFFFF4D4D.toInt()
@@ -14,11 +14,11 @@ const val SDF_INSIDE_COLOR = 0xFF202020.toInt()
 const val SDF_OUTSIDE_COLOR = 0xFF0B0B0B.toInt()
 
 fun distanceColor(
-    distance: Double,
-    edgeThreshold: Double = 0.6,
-    edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int = SDF_INSIDE_COLOR,
-    outsideColor: Int = SDF_OUTSIDE_COLOR,
+  distance: Double,
+  edgeThreshold: Double = 0.6,
+  edgeColor: Int = SDF_EDGE_COLOR,
+  insideColor: Int = SDF_INSIDE_COLOR,
+  outsideColor: Int = SDF_OUTSIDE_COLOR,
 ): Int {
   return when {
     abs(distance) <= edgeThreshold -> edgeColor
@@ -28,12 +28,12 @@ fun distanceColor(
 }
 
 fun drawSdf(
-    image: BufferedImage,
-    sdf: Sdf2,
-    edgeThreshold: Double = 0.6,
-    edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int = SDF_INSIDE_COLOR,
-    outsideColor: Int = SDF_OUTSIDE_COLOR,
+  image: BufferedImage,
+  sdf: Sdf2,
+  edgeThreshold: Double = 0.6,
+  edgeColor: Int = SDF_EDGE_COLOR,
+  insideColor: Int = SDF_INSIDE_COLOR,
+  outsideColor: Int = SDF_OUTSIDE_COLOR,
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
@@ -44,11 +44,7 @@ fun drawSdf(
   }
 }
 
-fun drawDistance(
-    image: BufferedImage,
-    sdf: Sdf2,
-    maxDistance: Double,
-) {
+fun drawDistance(image: BufferedImage, sdf: Sdf2, maxDistance: Double) {
   val safeMax = if (maxDistance <= 0.0) 1.0 else maxDistance
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
@@ -68,14 +64,7 @@ fun colorForSignedDistance(distance: Double, maxDistance: Double): Int {
   }
 }
 
-fun drawLine(
-    image: BufferedImage,
-    x0: Int,
-    z0: Int,
-    x1: Int,
-    z1: Int,
-    color: Int = LINE_COLOR,
-) {
+fun drawLine(image: BufferedImage, x0: Int, z0: Int, x1: Int, z1: Int, color: Int = LINE_COLOR) {
   var sx = x0
   var sz = z0
   val dx = abs(x1 - x0)
@@ -102,11 +91,11 @@ fun drawLine(
 }
 
 fun drawCircle(
-    image: BufferedImage,
-    centerX: Int,
-    centerZ: Int,
-    radius: Int,
-    color: Int = SITE_AREA_COLOR,
+  image: BufferedImage,
+  centerX: Int,
+  centerZ: Int,
+  radius: Int,
+  color: Int = SITE_AREA_COLOR,
 ) {
   if (radius <= 0) return
 
@@ -128,12 +117,12 @@ fun drawCircle(
 }
 
 fun drawRing(
-    image: BufferedImage,
-    centerX: Int,
-    centerZ: Int,
-    radius: Double,
-    steps: Int = 64,
-    color: Int = LINE_COLOR,
+  image: BufferedImage,
+  centerX: Int,
+  centerZ: Int,
+  radius: Double,
+  steps: Int = 64,
+  color: Int = LINE_COLOR,
 ) {
   if (radius <= 0.0 || steps <= 0) return
 
@@ -149,12 +138,12 @@ fun drawRing(
 }
 
 fun drawRectangle(
-    image: BufferedImage,
-    minX: Int,
-    minZ: Int,
-    maxX: Int,
-    maxZ: Int,
-    color: Int = LINE_COLOR,
+  image: BufferedImage,
+  minX: Int,
+  minZ: Int,
+  maxX: Int,
+  maxZ: Int,
+  color: Int = LINE_COLOR,
 ) {
   drawLine(image, minX, minZ, maxX, minZ, color) // Top
   drawLine(image, maxX, minZ, maxX, maxZ, color) // Right

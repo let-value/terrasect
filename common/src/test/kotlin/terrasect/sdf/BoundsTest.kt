@@ -1,13 +1,13 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import terrasect.testing.drawRectangle
 import terrasect.testing.drawSdf
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -36,11 +36,11 @@ class BoundsTest {
 
     drawSdf(image, sdf)
     drawRectangle(
-        image,
-        bounds.minX.roundToInt(),
-        bounds.minZ.roundToInt(),
-        bounds.maxX.roundToInt(),
-        bounds.maxZ.roundToInt(),
+      image,
+      bounds.minX.roundToInt(),
+      bounds.minZ.roundToInt(),
+      bounds.maxX.roundToInt(),
+      bounds.maxZ.roundToInt(),
     )
 
     writeSnapshotPng(BoundsTest::class.java, "circle.png", image)
@@ -61,11 +61,11 @@ class BoundsTest {
 
     drawSdf(image, sdf)
     drawRectangle(
-        image,
-        bounds.minX.roundToInt(),
-        bounds.minZ.roundToInt(),
-        bounds.maxX.roundToInt(),
-        bounds.maxZ.roundToInt(),
+      image,
+      bounds.minX.roundToInt(),
+      bounds.minZ.roundToInt(),
+      bounds.maxX.roundToInt(),
+      bounds.maxZ.roundToInt(),
     )
 
     writeSnapshotPng(BoundsTest::class.java, "hex.png", image)
@@ -85,11 +85,11 @@ class BoundsTest {
 
     drawSdf(image, sdf)
     drawRectangle(
-        image,
-        bounds.minX.roundToInt(),
-        bounds.minZ.roundToInt(),
-        bounds.maxX.roundToInt(),
-        bounds.maxZ.roundToInt(),
+      image,
+      bounds.minX.roundToInt(),
+      bounds.minZ.roundToInt(),
+      bounds.maxX.roundToInt(),
+      bounds.maxZ.roundToInt(),
     )
     writeSnapshotPng(BoundsTest::class.java, "banana.png", image)
 

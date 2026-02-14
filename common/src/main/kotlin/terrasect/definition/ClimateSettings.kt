@@ -19,14 +19,14 @@ class ClimateRange(val min: Float, val max: Float) {
 }
 
 data class ClimateSettings(
-    val temperature: ClimateRange? = null,
-    val humidity: ClimateRange? = null,
-    val continentalness: ClimateRange? = null,
-    val erosion: ClimateRange? = null,
-    val depth: ClimateRange? = null,
-    val weirdness: ClimateRange? = null,
-    val precipitation: String? = null,
-    val climatePreset: String? = null,
+  val temperature: ClimateRange? = null,
+  val humidity: ClimateRange? = null,
+  val continentalness: ClimateRange? = null,
+  val erosion: ClimateRange? = null,
+  val depth: ClimateRange? = null,
+  val weirdness: ClimateRange? = null,
+  val precipitation: String? = null,
+  val climatePreset: String? = null,
 ) {
 
   companion object {
@@ -87,15 +87,15 @@ data class ClimateSettings(
     }
 
     fun build(): ClimateSettings =
-        ClimateSettings(
-            temperature = temperature,
-            humidity = humidity,
-            continentalness = continentalness,
-            erosion = erosion,
-            depth = depth,
-            weirdness = weirdness,
-            precipitation = precipitation,
-            climatePreset = climatePreset,
-        )
+      ClimateSettings(
+        temperature = temperature,
+        humidity = humidity,
+        continentalness = continentalness,
+        erosion = erosion,
+        depth = depth,
+        weirdness = weirdness,
+        precipitation = precipitation,
+        climatePreset = climatePreset,
+      )
   }
 }

@@ -1,16 +1,11 @@
 package terrasect.sdf
 
+import kotlin.math.*
 import terrasect.utils.first
 import terrasect.utils.packPair
 import terrasect.utils.second
-import kotlin.math.*
 
-data class SdfBounds(
-    val minX: Double,
-    val maxX: Double,
-    val minZ: Double,
-    val maxZ: Double,
-) {
+data class SdfBounds(val minX: Double, val maxX: Double, val minZ: Double, val maxZ: Double) {
   val width: Double
     get() = maxX - minX
 
@@ -18,20 +13,11 @@ data class SdfBounds(
     get() = maxZ - minZ
 
   fun expand(margin: Double): SdfBounds {
-    return SdfBounds(
-        minX - margin,
-        maxX + margin,
-        minZ - margin,
-        maxZ + margin,
-    )
+    return SdfBounds(minX - margin, maxX + margin, minZ - margin, maxZ + margin)
   }
 }
 
-fun estimateBounds(
-    sdf: Sdf2,
-    originX: Double = 0.0,
-    originZ: Double = 0.0,
-): SdfBounds {
+fun estimateBounds(sdf: Sdf2, originX: Double = 0.0, originZ: Double = 0.0): SdfBounds {
 
   val maxCells = max(1, ceil(MAX_RADIUS / CELL_SIZE).toInt())
   val originCellX = floor(originX / CELL_SIZE).toInt()
@@ -102,11 +88,11 @@ fun numericGradient(sdf: Sdf2, x: Double, z: Double, eps: Double): Pair<Double, 
 }
 
 private fun floodBounds(
-    sdf: Sdf2,
-    seedX: Double,
-    seedZ: Double,
-    originX: Double,
-    originZ: Double,
+  sdf: Sdf2,
+  seedX: Double,
+  seedZ: Double,
+  originX: Double,
+  originZ: Double,
 ): SdfBounds {
 
   val maxCells = max(1, ceil(MAX_RADIUS / CELL_SIZE).toInt())

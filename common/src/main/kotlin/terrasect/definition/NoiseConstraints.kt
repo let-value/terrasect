@@ -3,8 +3,8 @@ package terrasect.definition
 import terrasect.helpers.NoiseTransform
 
 class NoiseConstraints(
-    val noises: Map<String, NoiseTransform>,
-    val densityFunctions: Map<String, NoiseTransform>,
+  val noises: Map<String, NoiseTransform>,
+  val densityFunctions: Map<String, NoiseTransform>,
 ) {
   companion object {
     fun builder() = Builder()

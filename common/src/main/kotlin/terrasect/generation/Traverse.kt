@@ -1,10 +1,10 @@
 package terrasect.generation
 
+import java.nio.ByteBuffer
+import kotlin.math.max
 import terrasect.definition.Region
 import terrasect.sdf.Sdf2
 import terrasect.strategies.HexStrategy
-import java.nio.ByteBuffer
-import kotlin.math.max
 
 private object EmptySdf : Sdf2 {
   override fun invoke(x: Double, z: Double): Double = Double.NEGATIVE_INFINITY
@@ -30,20 +30,20 @@ class TraversalStep(val context: Context) {
 
   fun composeSdf(bound: Sdf2) {
     sdf =
-        if (sdf === EmptySdf) {
-          bound
-        } else {
-          if (composeCount == composePool.size) {
-            composePool =
-                Array(composePool.size * 2) { index ->
-                  if (index < composePool.size) composePool[index] else SdfCompose()
-                }
-          }
-          val node = composePool[composeCount++]
-          node.left = sdf
-          node.right = bound
-          node
+      if (sdf === EmptySdf) {
+        bound
+      } else {
+        if (composeCount == composePool.size) {
+          composePool =
+            Array(composePool.size * 2) { index ->
+              if (index < composePool.size) composePool[index] else SdfCompose()
+            }
         }
+        val node = composePool[composeCount++]
+        node.left = sdf
+        node.right = bound
+        node
+      }
   }
 
   fun reset(x: Long, z: Long) {

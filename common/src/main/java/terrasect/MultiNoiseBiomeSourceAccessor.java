@@ -9,5 +9,8 @@ import org.jetbrains.annotations.NotNull;
 
 public interface MultiNoiseBiomeSourceAccessor {
 
-    Either<Climate.ParameterList<@NotNull Holder<@NotNull Biome>>, Holder<@NotNull MultiNoiseBiomeSourceParameterList>> terrasect$getParameters();
+  Either<
+          Climate.ParameterList<@NotNull Holder<@NotNull Biome>>,
+          Holder<@NotNull MultiNoiseBiomeSourceParameterList>>
+      terrasect$getParameters();
 }

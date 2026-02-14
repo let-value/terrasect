@@ -1,12 +1,12 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Test
 import terrasect.testing.drawLine
 import terrasect.testing.drawSdf
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 fun smoothMin(a: Double, b: Double, k: Double): Double {
   val h = (0.5 + 0.5 * (b - a) / k).coerceIn(0.0, 1.0)

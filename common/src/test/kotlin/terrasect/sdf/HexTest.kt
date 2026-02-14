@@ -29,10 +29,10 @@ class HexTest {
   }
 
   private fun renderHexSdfSnapshot(
-      seed: Long,
-      snapshotName: String,
-      centerX: Double,
-      centerZ: Double,
+    seed: Long,
+    snapshotName: String,
+    centerX: Double,
+    centerZ: Double,
   ) {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     val sdf = HexCellSdf()
@@ -50,21 +50,15 @@ class HexTest {
       val a = polygon[i]
       val b = polygon[(i + 1) % polygon.size]
       drawLine(
-          image,
-          (a.x).roundToInt(),
-          (a.z).roundToInt(),
-          (b.x).roundToInt(),
-          (b.z).roundToInt(),
+        image,
+        (a.x).roundToInt(),
+        (a.z).roundToInt(),
+        (b.x).roundToInt(),
+        (b.z).roundToInt(),
       )
     }
 
-    val sites =
-        getSites(
-            seed,
-            sdf,
-            bounds,
-            budgets,
-        )
+    val sites = getSites(seed, sdf, bounds, budgets)
     assertTrue(sites.isNotEmpty(), "Expected sites for $snapshotName")
 
     for (site in sites) {

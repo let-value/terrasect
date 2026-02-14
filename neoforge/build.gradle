@@ -52,10 +52,10 @@ neoForge {
         data {
             clientData()
             programArguments.addAll(
-                '--mod', mod_id,
-                '--all',
-                '--output', file('src/generated/resources/').absolutePath,
-                '--existing', file('src/main/resources/').absolutePath
+                    '--mod', mod_id,
+                    '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath
             )
         }
 
@@ -87,20 +87,20 @@ dependencies {
 
 def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
     def replaceProperties = [
-        'minecraft_version'                 : minecraft_version,
-        'neoforge_minecraft_version_range'  : neoforge_minecraft_version_range,
-        'neoforge_loader_version'           : neoforge_loader_version,
-        'neoforge_version_range'            : neoforge_version_range,
-        'neoforge_kotlin_version'           : neoforge_kotlin_version,
-        'neoforge_kotlin_version_range'     : neoforge_kotlin_version_range,
-        'neoforge_loader_version_range'     : neoforge_loader_version_range,
-        'java_version'                      : java_version,
-        'mod_id'                            : mod_id,
-        'mod_name'                          : mod_name,
-        'mod_license'                       : mod_license,
-        'mod_version'                       : mod_version,
-        'mod_authors'                       : mod_authors,
-        'mod_description'                   : mod_description
+            'minecraft_version'               : minecraft_version,
+            'neoforge_minecraft_version_range': neoforge_minecraft_version_range,
+            'neoforge_loader_version'         : neoforge_loader_version,
+            'neoforge_version_range'          : neoforge_version_range,
+            'neoforge_kotlin_version'         : neoforge_kotlin_version,
+            'neoforge_kotlin_version_range'   : neoforge_kotlin_version_range,
+            'neoforge_loader_version_range'   : neoforge_loader_version_range,
+            'java_version'                    : java_version,
+            'mod_id'                          : mod_id,
+            'mod_name'                        : mod_name,
+            'mod_license'                     : mod_license,
+            'mod_version'                     : mod_version,
+            'mod_authors'                     : mod_authors,
+            'mod_description'                 : mod_description
     ]
 
     inputs.properties replaceProperties

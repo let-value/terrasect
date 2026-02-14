@@ -1,12 +1,21 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id 'java'
     id 'idea'
+    id 'com.diffplug.spotless' version '8.2.1'
     id 'org.jetbrains.kotlin.jvm' version "$kotlin_version" apply false
 }
 
 allprojects {
     group = mod_group_id
     version = mod_version
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
 }
 
 subprojects {
@@ -25,9 +34,9 @@ subprojects {
         options.release = javaVersion
     }
 
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    tasks.withType(KotlinCompile).configureEach {
         compilerOptions {
-            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(javaVersion.toString())
+            jvmTarget = JvmTarget.fromTarget(javaVersion.toString())
         }
     }
 
@@ -45,9 +54,9 @@ subprojects {
         def value = updateProp.toString().trim()
         updateSnapshots =
                 value.isEmpty() ||
-                value.equalsIgnoreCase('true') ||
-                value == '1' ||
-                value.equalsIgnoreCase('yes')
+                        value.equalsIgnoreCase('true') ||
+                        value == '1' ||
+                        value.equalsIgnoreCase('yes')
     }
 
     test {
@@ -59,4 +68,23 @@ subprojects {
 
 wrapper {
     distributionType = Wrapper.DistributionType.BIN
+}
+
+spotless {
+    java {
+        target '**/*.java'
+        targetExclude '**/build/**'
+        googleJavaFormat()
+    }
+
+    kotlin {
+        target '**/*.kt'
+        targetExclude '**/build/**'
+        ktfmt().googleStyle()
+    }
+
+    kotlinGradle {
+        target '**/*.gradle.kts'
+        ktfmt()
+    }
 }

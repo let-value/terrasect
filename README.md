@@ -54,7 +54,8 @@ To build specific modules:
 
 ### Adding Shared Code
 
-Add your shared code to the `common` module under `common/src/main/kotlin/`. This code will be included in both Fabric and NeoForge builds.
+Add your shared code to the `common` module under `common/src/main/kotlin/`. This code will be included in both Fabric
+and NeoForge builds.
 
 ### Loader-Specific Code
 

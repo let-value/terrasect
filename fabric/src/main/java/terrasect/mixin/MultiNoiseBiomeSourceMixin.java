@@ -14,7 +14,10 @@ import terrasect.MultiNoiseBiomeSourceAccessor;
 @Mixin(MultiNoiseBiomeSource.class)
 public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceAccessor {
 
-    @Accessor("parameters")
-    @Override
-    Either<Climate.ParameterList<@NotNull Holder<@NotNull Biome>>, Holder<@NotNull MultiNoiseBiomeSourceParameterList>> terrasect$getParameters();
+  @Accessor("parameters")
+  @Override
+  Either<
+          Climate.ParameterList<@NotNull Holder<@NotNull Biome>>,
+          Holder<@NotNull MultiNoiseBiomeSourceParameterList>>
+      terrasect$getParameters();
 }

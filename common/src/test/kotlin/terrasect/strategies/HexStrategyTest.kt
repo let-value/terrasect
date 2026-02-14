@@ -1,10 +1,10 @@
 package terrasect.strategies
 
+import java.awt.image.BufferedImage
 import org.junit.jupiter.api.Test
 import terrasect.sdf.Sdf2
 import terrasect.testing.drawDistance
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
 
 class HexStrategyTest {
   val apothem = 40.0

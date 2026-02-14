@@ -1,10 +1,10 @@
 package terrasect.testing
 
-import org.junit.jupiter.api.Assertions.assertTrue
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import org.junit.jupiter.api.Assertions.assertTrue
 
 object SnapshotOutputPaths {
   private const val COLLAPSED_PREFIX = "terrasect"

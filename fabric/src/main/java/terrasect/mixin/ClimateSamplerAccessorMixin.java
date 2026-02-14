@@ -13,29 +13,28 @@ import terrasect.handler.ClimateHandler;
 
 @Mixin(Climate.Sampler.class)
 public class ClimateSamplerAccessorMixin implements SamplerAccessor {
-    @Unique
-    private ChunkAccess terrasect$parentChunk;
+  @Unique private ChunkAccess terrasect$parentChunk;
 
-    @Override
-    public void terrasect$setChunkAccess(ChunkAccess chunkAccess) {
-        this.terrasect$parentChunk = chunkAccess;
+  @Override
+  public void terrasect$setChunkAccess(ChunkAccess chunkAccess) {
+    this.terrasect$parentChunk = chunkAccess;
+  }
+
+  @Override
+  public ChunkAccess terrasect$chunkAccess() {
+    return this.terrasect$parentChunk;
+  }
+
+  @Inject(method = "sample", at = @At("RETURN"))
+  private void terrasect$modifyClimate(
+      int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
+    var self = (Climate.Sampler) (Object) this;
+
+    var context = Context.Companion.get(self);
+    if (context == null) {
+      return;
     }
 
-    @Override
-    public ChunkAccess terrasect$chunkAccess() {
-        return this.terrasect$parentChunk;
-    }
-
-    @Inject(method = "sample", at = @At("RETURN"))
-    private void terrasect$modifyClimate(
-            int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
-        var self = (Climate.Sampler) (Object) this;
-
-        var context = Context.Companion.get(self);
-        if (context == null) {
-            return;
-        }
-
-        ClimateHandler.INSTANCE.modifyTargetPoint(context, x, z, cir.getReturnValue());
-    }
+    ClimateHandler.INSTANCE.modifyTargetPoint(context, x, z, cir.getReturnValue());
+  }
 }

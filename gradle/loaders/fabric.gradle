@@ -15,8 +15,8 @@ ext {
         def sourcesJars = []
 
         def cacheLocations = [
-            new File(gradle.gradleUserHomeDir, 'caches/fabric-loom/minecraftMaven/net/minecraft'),
-            rootProject.file('.gradle/loom-cache/minecraftMaven/net/minecraft')
+                new File(gradle.gradleUserHomeDir, 'caches/fabric-loom/minecraftMaven/net/minecraft'),
+                rootProject.file('.gradle/loom-cache/minecraftMaven/net/minecraft')
         ]
 
         def artifactPrefixes = ['minecraft-merged', 'minecraft-common', 'minecraft-clientOnly']
