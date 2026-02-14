@@ -1,7 +1,6 @@
 package terrasect.sdf
 
 import org.junit.jupiter.api.Test
-import terrasect.testing.drawDistance
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.sqrt

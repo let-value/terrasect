@@ -1,17 +1,34 @@
-package terrasect.testing
+package terrasect.sdf
 
-import terrasect.sdf.Sdf2
 import java.awt.image.BufferedImage
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.roundToInt
-import kotlin.math.sin
+import kotlin.math.*
 
 const val LINE_COLOR = 0xFF4DD5FF.toInt()
 const val SITE_AREA_COLOR = 0xFFFF4D4D.toInt()
 const val SDF_EDGE_COLOR = 0xFFFFFFFF.toInt()
 const val SDF_INSIDE_COLOR = 0xFF202020.toInt()
 const val SDF_OUTSIDE_COLOR = 0xFF0B0B0B.toInt()
+
+fun smoothMin(a: Double, b: Double, k: Double): Double {
+  val h = (0.5 + 0.5 * (b - a) / k).coerceIn(0.0, 1.0)
+  return a * h + b * (1.0 - h) - k * h * (1.0 - h)
+}
+
+fun smoothMax(a: Double, b: Double, k: Double): Double {
+  return -smoothMin(-a, -b, k)
+}
+
+fun bananaLocalSdf(x: Double, z: Double): Double {
+  val outer = sqrt(x * x + z * z) - 34.0
+  val innerX = x - 18.0
+  val innerZ = z + 6.0
+  val inner = sqrt(innerX * innerX + innerZ * innerZ) - 30.0
+  return smoothMax(outer, -inner, 6.0)
+}
+
+fun bananaSdf(x: Double, z: Double, scale: Double = 2.0): Double {
+  return bananaLocalSdf(x / scale, z / scale) * scale
+}
 
 fun distanceColor(
     distance: Double,
