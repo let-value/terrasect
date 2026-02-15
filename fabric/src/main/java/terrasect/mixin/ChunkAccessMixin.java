@@ -17,11 +17,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.ChunkAccessExtender;
 import terrasect.NoiseChunkExtender;
+import terrasect.cache.Cache;
 
 @Mixin(ChunkAccess.class)
 public class ChunkAccessMixin implements ChunkAccessExtender {
+  @Unique private Cache terrasect$Cache;
   @Unique private Level terrasect$level;
-  @Unique private Integer terrasect$worldgenCache;
+
+  @Override
+  public Cache terrasect$getCache() {
+    return this.terrasect$Cache;
+  }
+
+  @Override
+  public Level terrasect$getLevel() {
+    return this.terrasect$level;
+  }
 
   @Inject(method = "<init>", at = @At("RETURN"))
   private void terrasect$captureLevel(
@@ -33,14 +44,11 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       LevelChunkSection[] sections,
       BlendingData blendingData,
       CallbackInfo ci) {
+    terrasect$Cache = new Cache();
+
     if (levelHeightAccessor instanceof Level level) {
       this.terrasect$level = level;
     }
-  }
-
-  @Override
-  public Level terrasect$getLevel() {
-    return this.terrasect$level;
   }
 
   @Inject(method = "getOrCreateNoiseChunk", at = @At("RETURN"))

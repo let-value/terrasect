@@ -23,11 +23,36 @@ class SurroundStrategy(
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
-  override fun traverse(step: TraversalStep): TraversalStep {
-    val origin = getOrigin(step.sdf.bake(), scale)
-    val isCenter = getDistance(step.x, step.z, origin, step.sdf, smoothing) <= 0.0
+  fun getCachedOrigin(step: TraversalStep): SurroundOriginResult {
+    val cache = step.cache ?: return getOrigin(step.sdf.bake(), scale)
 
+    val key = cache.getKey(step.id)
+    val cached = cache.surround.getIfPresent(key)
+    if (cached != null) {
+      return cached
+    }
+
+    val origin = getOrigin(step.sdf.bake(), scale)
+    cache.surround.put(key, origin)
+
+    return origin
+  }
+
+  override fun traverse(step: TraversalStep): TraversalStep {
     step.id.put(discriminator)
+
+    val origin = getCachedOrigin(step)
+    val isCenter =
+        surroundDistance(
+            step.x,
+            step.z,
+            origin.parent,
+            origin.centerX,
+            origin.centerZ,
+            origin.scale,
+            smoothing,
+        ) <= 0.0
+
     step.id.putDouble(origin.centerX)
     step.id.putDouble(origin.centerZ)
 
@@ -59,38 +84,17 @@ class SurroundStrategy(
 
   companion object {
 
-    val originRef: ThreadLocal<SurroundOriginResult> =
-        ThreadLocal.withInitial { SurroundOriginResult() }
-
     fun getOrigin(parentSdf: Sdf2, scale: Double): SurroundOriginResult {
       val bounds = estimateBounds(parentSdf)
       val centerX = (bounds.minX + bounds.maxX) * 0.5
       val centerZ = (bounds.minZ + bounds.maxZ) * 0.5
 
-      val origin = originRef.get()
+      val origin = SurroundOriginResult()
       origin.centerX = centerX
       origin.centerZ = centerZ
       origin.scale = scale
       origin.parent = parentSdf
       return origin
-    }
-
-    fun getDistance(
-        x: Double,
-        z: Double,
-        origin: SurroundOriginResult,
-        parentSdf: Sdf2,
-        smoothing: Double,
-    ): Double {
-      return surroundDistance(
-          x,
-          z,
-          parentSdf,
-          origin.centerX,
-          origin.centerZ,
-          origin.scale,
-          smoothing,
-      )
     }
 
     fun builder(surroundRegionName: String) = Builder(surroundRegionName)

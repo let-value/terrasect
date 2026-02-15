@@ -1,6 +1,8 @@
 package terrasect.generation
 
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import terrasect.cache.Cache
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
 import terrasect.sdf.*
@@ -15,25 +17,31 @@ private const val DX = WIDTH / 2.0
 private const val DZ = HEIGHT / 2.0
 
 class TraverseTest {
+  companion object {
+    val registry = RegionRegistry()
+
+    @BeforeAll
+    @JvmStatic
+    fun setup() {
+      registry.region("hex").area(150.0).strategy(Strategy.hex().tiling())
+      registry.region("cell").parent("hex").strategy(Strategy.voronoi())
+
+      registry.region("voronoi1").area(0.2 * 150.0).parent("cell")
+      registry.region("voronoi2").area(0.3 * 150.0).parent("cell")
+
+      registry
+          .region("voronoi3")
+          .area(0.5 * 150.0)
+          .parent("cell")
+          .strategy(Strategy.surround("surround"))
+
+      registry.region("surround").area(50.0)
+      registry.region("center").parent("voronoi3").area(100.0)
+    }
+  }
 
   @Test
-  fun `traverse should iterate`() {
-    val registry = RegionRegistry()
-    registry.region("hex").area(150.0).strategy(Strategy.hex())
-    registry.region("cell").parent("hex").strategy(Strategy.voronoi())
-
-    registry.region("voronoi1").area(0.2 * 150.0).parent("cell")
-    registry.region("voronoi2").area(0.3 * 150.0).parent("cell")
-
-    registry
-        .region("voronoi3")
-        .area(0.5 * 150.0)
-        .parent("cell")
-        .strategy(Strategy.surround("surround"))
-
-    registry.region("surround").area(50.0)
-    registry.region("center").parent("voronoi3").area(100.0)
-
+  fun `should iterate`() {
     val root = registry.buildTree("hex")
 
     val traverse = Traverse(SEED, root)
@@ -72,6 +80,27 @@ class TraverseTest {
 
     step.next()
     renderSnapshot("step3.png", step.sdf)
+  }
+
+  @Test
+  fun `should iterate with cache`() {
+    val root = registry.buildTree("hex")
+    val cache = Cache()
+    val traverse = Traverse(SEED, root)
+
+    val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+
+    for (x in 0 until image.width) {
+      for (z in 0 until image.height) {
+        val step = traverse.traverse(x - DX, z - DZ, cache)
+        val color = distanceColor(step.distance)
+        if (color != null) {
+          image.setRGB(x, z, color)
+        }
+      }
+    }
+
+    writeSnapshotPng(TraverseTest::class.java, "cached.png", image)
   }
 
   private fun renderSnapshot(name: String, sdf: Sdf2) {

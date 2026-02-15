@@ -1,6 +1,6 @@
 package terrasect.generation
 
-import terrasect.ChunkAccessExtender
+import terrasect.cache.Cache
 import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
@@ -13,15 +13,15 @@ open class Traverse(
   val iterator: ThreadLocal<TraversalStep>
     get() = ThreadLocal.withInitial { TraversalStep(this) }
 
-  fun iterate(x: Double, z: Double, chunk: ChunkAccessExtender? = null): TraversalStep {
+  fun iterate(x: Double, z: Double, cache: Cache? = null): TraversalStep {
     val step = this.iterator.get()
-    step.reset(x, z, chunk)
+    step.reset(x, z, cache)
 
     return step
   }
 
-  fun traverse(x: Double, z: Double, chunk: ChunkAccessExtender? = null): TraversalStep {
-    var step = this.iterate(x, z, chunk)
+  fun traverse(x: Double, z: Double, cache: Cache? = null): TraversalStep {
+    var step = this.iterate(x, z, cache)
 
     while (step.region.hasChildren) {
       step = step.next() ?: break
@@ -35,17 +35,17 @@ class TraversalStep(val traverse: Traverse) {
   val id: ByteBuffer = ByteBuffer.allocate(256)
   val sdf = SdfCompose()
 
-  var chunk: ChunkAccessExtender? = null
+  var cache: Cache? = null
   var region: Region = traverse.root
   var x: Double = 0.0
   var z: Double = 0.0
   var distance: Double = Double.NEGATIVE_INFINITY
 
-  fun reset(x: Double, z: Double, chunk: ChunkAccessExtender? = null) {
+  fun reset(x: Double, z: Double, cache: Cache? = null) {
     this.id.clear()
     this.sdf.reset()
 
-    this.chunk = chunk
+    this.cache = cache
     this.region = traverse.root
     this.x = x
     this.z = z

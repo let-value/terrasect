@@ -1,16 +1,16 @@
 package terrasect.strategies
 
+import java.awt.image.BufferedImage
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.sqrt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
 private const val CX = WIDTH / 2.0
 private const val CZ = HEIGHT / 2.0
-private const val SEED = 1234L
+private const val SEED = 1234
 
 class VoronoiStrategyTest {
 

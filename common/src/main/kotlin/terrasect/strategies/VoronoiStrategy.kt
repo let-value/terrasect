@@ -12,15 +12,33 @@ private val discriminator = StrategyId.VORONOI.value
 class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
+  fun getCachedSites(seed: Int, step: TraversalStep): List<Site> {
+    val cache = step.cache ?: return getSites(seed, step.sdf, budgets)
+
+    val key = cache.getKey(step.id)
+    val cached = cache.voronoi.getIfPresent(key)
+    if (cached != null) {
+      return cached
+    }
+
+    val sites = getSites(seed, step.sdf, budgets)
+    cache.voronoi.put(key, sites)
+
+    return sites
+  }
+
   override fun traverse(step: TraversalStep): TraversalStep {
     val x = step.x
     val z = step.z
 
-    val cellSeed = getCellSeed(step.traverse.seed, step.id)
-    val sites = getSites(cellSeed, step.sdf, budgets)
+    step.id.put(discriminator)
+
+    val seed = getCellSeed(step.traverse.seed, step.id)
+    step.id.putInt(seed)
+
+    val sites = getCachedSites(seed, step)
     val index = getCellIndex(x, z, sites)
 
-    step.id.put(discriminator)
     step.id.putInt(index)
 
     val sdf = cellSdfRef.get()
@@ -37,18 +55,18 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
   }
 
   companion object {
-    fun getCellSeed(seed: Long, id: ByteBuffer): Long {
+    fun getCellSeed(seed: Long, id: ByteBuffer): Int {
       val idPos = id.position()
       var cellSeed = seed
       for (i in 0 until idPos) {
         cellSeed = cellSeed * 31 + id.get(i).toLong()
       }
-      return cellSeed
+      return cellSeed.toInt()
     }
 
-    fun getSites(cellSeed: Long, parentSdf: Sdf2, budgets: DoubleArray): List<Site> {
+    fun getSites(cellSeed: Int, parentSdf: Sdf2, budgets: DoubleArray): List<Site> {
       val bounds = estimateBounds(parentSdf)
-      return getSites(cellSeed, parentSdf, bounds, budgets)
+      return getSites(cellSeed.toLong(), parentSdf, bounds, budgets)
     }
 
     fun getCellIndex(x: Double, z: Double, sites: List<Site>): Int {

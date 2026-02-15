@@ -69,7 +69,8 @@ class SurroundStrategyTest {
         val px = x.toDouble()
         val pz = z.toDouble()
 
-        val inner = SurroundStrategy.getDistance(px, pz, origin, parentSdf, 0.0)
+        val inner =
+            surroundDistance(px, pz, parentSdf, origin.centerX, origin.centerZ, origin.scale)
         val isCenter = inner <= 0.0
         image.setRGB(x, z, if (isCenter) CENTER_COLOR else SURROUND_COLOR)
       }

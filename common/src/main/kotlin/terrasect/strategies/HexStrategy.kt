@@ -17,16 +17,41 @@ data class HexCellResult(
     var centerZ: Double = 0.0,
 )
 
-class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strategy {
+class HexStrategy(
+    val tiling: Boolean,
+    val children: Region,
+    val ringRegion: Region? = null,
+) : Strategy {
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
+  fun getCachedCell(step: TraversalStep, apothem: Double, gap: Double): HexCellResult {
+    val skipCache = tiling || step.cache == null
+    if (skipCache) {
+      return getCell(step.x, step.z, apothem, gap)
+    }
+
+    val cache = step.cache!!
+    val key = cache.getKey(step.id)
+
+    val cached = cache.hex.getIfPresent(key)
+    if (cached != null) {
+      return cached
+    }
+
+    val cell = getCell(step.x, step.z, apothem, gap)
+    cache.hex.put(key, cell)
+
+    return cell
+  }
+
   override fun traverse(step: TraversalStep): TraversalStep {
     val apothem = areaToApothem(step.region.budget)
-    val gap = ringRegion?.let { areaToApothem(it.budget) } ?: 0.0
-    val cell = getCell(step.x, step.z, apothem, gap)
+    val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0.0
 
     step.id.put(discriminator)
+    val cell = getCachedCell(step, apothem, gap)
+
     step.id.putLong(cell.q)
     step.id.putLong(cell.r)
 
@@ -54,8 +79,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   }
 
   companion object {
-
-    val cellRef: ThreadLocal<HexCellResult> = ThreadLocal.withInitial { HexCellResult() }
 
     fun getCell(x: Double, z: Double, apothem: Double, gap: Double = 0.0): HexCellResult {
       val spacing = apothem + gap.coerceAtLeast(0.0)
@@ -87,10 +110,9 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       val distance = hexDistance(localX, localZ, apothem)
       val isGap = gap > 0 && distance > 0.0
 
-      val cell = cellRef.get()
+      val cell = HexCellResult()
       cell.q = q
       cell.r = r
-
       cell.isGap = isGap
       cell.centerX = centerX
       cell.centerZ = centerZ
@@ -102,14 +124,17 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   }
 
   class Builder(var ringRegionName: String? = null) : StrategySettings {
+    var tiling = true
 
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
+
+    fun tiling(value: Boolean = true) = apply { this.tiling = value }
 
     override fun build(definition: RegionDefinition, children: Set<Region>): HexStrategy {
       val region =
           children.find { it.name != ringRegionName } ?: Region.empty("${definition.name}_center")
       val ringRegion = ringRegionName?.let { definition.registry.build(it) }
-      return HexStrategy(region, ringRegion)
+      return HexStrategy(tiling, region, ringRegion)
     }
   }
 }

@@ -18,13 +18,28 @@ data class SubdivisionSplit(
 class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
-  override fun traverse(step: TraversalStep): TraversalStep {
-    val split = getSplit(step.sdf, budgets)
+  fun getCachedSplit(step: TraversalStep): SubdivisionSplit {
+    val cache = step.cache ?: return getSplit(step.sdf, budgets)
 
+    val key = cache.getKey(step.id)
+    val cached = cache.subdivision.getIfPresent(key)
+    if (cached != null) {
+      return cached
+    }
+
+    val split = getSplit(step.sdf, budgets)
+    cache.subdivision.put(key, split)
+
+    return split
+  }
+
+  override fun traverse(step: TraversalStep): TraversalStep {
+    step.id.put(discriminator)
+
+    val split = getCachedSplit(step)
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
-    step.id.put(discriminator)
     step.id.putInt(index)
 
     val sdf = cellSdfRef.get()
@@ -42,7 +57,6 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
   }
 
   companion object {
-    val splitRef: ThreadLocal<SubdivisionSplit> = ThreadLocal.withInitial { SubdivisionSplit() }
 
     fun getSplit(parentSdf: Sdf2, budgets: DoubleArray): SubdivisionSplit {
       val bounds = estimateBounds(parentSdf)
@@ -62,7 +76,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
       }
       edges[budgets.size] = axisMax
 
-      val split = splitRef.get()
+      val split = SubdivisionSplit()
       split.edges = edges
       split.axis = axis
 

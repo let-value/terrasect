@@ -24,8 +24,10 @@ neoForge {
 }
 
 dependencies {
+    implementation("it.unimi.dsi:fastutil-core:8.5.18")
+    implementation("net.openhft:zero-allocation-hashing:0.27ea1")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
-    
+
     testImplementation(platform("org.junit:junit-bom:5.11.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("de.skuzzle.test:snapshot-tests-junit5:${snapshot_tests_version}")
