@@ -15,7 +15,7 @@ enum class StrategyId(val value: Byte) {
 }
 
 interface StrategySettings {
-  fun build(definition: RegionDefinition, children: Set<Region>): Strategy
+  fun build(builder: RegionBuilder, children: Set<Region>): Strategy
 }
 
 interface Strategy {

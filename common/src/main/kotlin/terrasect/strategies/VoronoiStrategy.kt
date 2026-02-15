@@ -1,11 +1,11 @@
 package terrasect.strategies
 
-import java.nio.ByteBuffer
-import kotlin.math.hypot
-import kotlin.math.max
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
+import java.nio.ByteBuffer
+import kotlin.math.hypot
+import kotlin.math.max
 
 private val discriminator = StrategyId.VORONOI.value
 
@@ -92,7 +92,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
   }
 
   class Builder : StrategySettings {
-    override fun build(definition: RegionDefinition, children: Set<Region>): VoronoiStrategy {
+    override fun build(builder: RegionBuilder, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toDoubleArray()
       return VoronoiStrategy(sortedChildren.toTypedArray(), budgets)

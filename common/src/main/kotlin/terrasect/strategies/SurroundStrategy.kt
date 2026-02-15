@@ -102,12 +102,12 @@ class SurroundStrategy(
 
   class Builder(val surroundRegionName: String) : StrategySettings {
 
-    override fun build(definition: RegionDefinition, children: Set<Region>): SurroundStrategy {
+    override fun build(builder: RegionBuilder, children: Set<Region>): SurroundStrategy {
       val center =
           children.find { it.name != surroundRegionName }
               ?: Region.empty("${surroundRegionName}_center")
 
-      val surround = definition.registry.build(surroundRegionName)
+      val surround = builder.registry.buildTree(surroundRegionName)
 
       val smoothing = -15.0
 

@@ -130,10 +130,10 @@ class HexStrategy(
 
     fun tiling(value: Boolean = true) = apply { this.tiling = value }
 
-    override fun build(definition: RegionDefinition, children: Set<Region>): HexStrategy {
+    override fun build(builder: RegionBuilder, children: Set<Region>): HexStrategy {
       val region =
-          children.find { it.name != ringRegionName } ?: Region.empty("${definition.name}_center")
-      val ringRegion = ringRegionName?.let { definition.registry.build(it) }
+          children.find { it.name != ringRegionName } ?: Region.empty("${builder.name}_center")
+      val ringRegion = ringRegionName?.let { builder.registry.buildTree(it) }
       return HexStrategy(tiling, region, ringRegion)
     }
   }

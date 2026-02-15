@@ -96,7 +96,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
   }
 
   class Builder : StrategySettings {
-    override fun build(definition: RegionDefinition, children: Set<Region>): SubdivisionStrategy {
+    override fun build(builder: RegionBuilder, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.toDoubleArray()
       return SubdivisionStrategy(sortedChildren.toTypedArray(), budgets)

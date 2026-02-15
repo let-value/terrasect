@@ -21,15 +21,7 @@ object Terrasect {
 
     registry.region("voronoi1").area(0.2 * 150.0).parent("cell")
     registry.region("voronoi2").area(0.3 * 150.0).parent("cell")
-
-    registry
-        .region("voronoi3")
-        .area(0.5 * 150.0)
-        .parent("cell")
-        .strategy(Strategy.surround("surround"))
-
-    registry.region("surround").area(50.0)
-    registry.region("center").parent("voronoi3").area(100.0)
+    registry.region("voronoi3").area(0.5 * 150.0).parent("cell")
 
     LOGGER.info("Initializing ${Constants.MOD_NAME} common...")
   }

@@ -34,7 +34,7 @@ class RegionRegistry {
         name = definition.name,
         budget = definition.budget,
         children = children,
-        strategy = definition.strategy.build(definition, children),
+        strategy = definition.strategy.build(builder, children),
         climate = definition.climate,
         height = definition.height,
         noise = definition.noise,
