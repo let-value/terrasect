@@ -10,6 +10,7 @@ import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.Terrasect
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
+import java.util.concurrent.ConcurrentHashMap
 
 class Context(
     val dimensionId: String,
@@ -19,7 +20,7 @@ class Context(
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) : Traverse(seed, root) {
   companion object {
-    val byDimension = mutableMapOf<String, Context>()
+    val byDimension = ConcurrentHashMap<String, Context>()
 
     fun register(
         dimension: ResourceKey<Level>,

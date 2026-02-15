@@ -2,10 +2,10 @@ package terrasect;
 
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import terrasect.cache.Cache;
+import terrasect.cache.ChunkCache;
 
 public interface ChunkAccessExtender {
-  Cache terrasect$getCache();
+  ChunkCache terrasect$getCache();
 
   ChunkAccess terrasect$getChunk();
 

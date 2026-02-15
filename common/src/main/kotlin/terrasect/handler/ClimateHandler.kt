@@ -27,12 +27,15 @@ object ClimateHandler {
   }
 
   fun modifyClimate(
-      chunk: ChunkAccessExtender,
+      chunk: ChunkAccessExtender?,
       x: Int,
       y: Int,
       z: Int,
       original: Climate.TargetPoint,
   ) {
+    if (chunk == null) {
+      return
+    }
     val level = chunk.`terrasect$getLevel`() ?: return
     val dimension = getKeyId(level.dimension())
     val context = Context.get(dimension) ?: return

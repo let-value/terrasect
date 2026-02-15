@@ -17,15 +17,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.ChunkAccessExtender;
 import terrasect.NoiseChunkExtender;
-import terrasect.cache.Cache;
+import terrasect.cache.ChunkCache;
 
 @Mixin(ChunkAccess.class)
 public class ChunkAccessMixin implements ChunkAccessExtender {
-  @Unique private Cache terrasect$Cache;
+  @Unique private ChunkCache terrasect$Cache;
   @Unique private Level terrasect$level;
 
   @Override
-  public Cache terrasect$getCache() {
+  public ChunkCache terrasect$getCache() {
     return this.terrasect$Cache;
   }
 
@@ -44,7 +44,6 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       LevelChunkSection[] sections,
       BlendingData blendingData,
       CallbackInfo ci) {
-    terrasect$Cache = new Cache();
 
     if (levelHeightAccessor instanceof Level level) {
       this.terrasect$level = level;
@@ -54,6 +53,8 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
   @Inject(method = "getOrCreateNoiseChunk", at = @At("RETURN"))
   private void terrasect$attachToNoiseChunk(
       Function<ChunkAccess, NoiseChunk> factory, CallbackInfoReturnable<NoiseChunk> cir) {
+    terrasect$Cache = new ChunkCache(this);
+
     var noiseChunk = cir.getReturnValue();
     ((NoiseChunkExtender) noiseChunk).terrasect$setChunk(this);
   }

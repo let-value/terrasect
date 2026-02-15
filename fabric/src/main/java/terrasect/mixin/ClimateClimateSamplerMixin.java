@@ -27,6 +27,10 @@ public class ClimateClimateSamplerMixin implements ClimateSamplerExtender {
   @Inject(method = "sample", at = @At("RETURN"))
   private void terrasect$modifyClimate(
       int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
-    ClimateHandler.INSTANCE.modifyClimate(this.terrasect$chunk, x, y, z, cir.getReturnValue());
+    if (this.terrasect$chunk == null) {
+      return;
+    }
+    var targetPoint = cir.getReturnValue();
+    ClimateHandler.INSTANCE.modifyClimate(this.terrasect$chunk, x, y, z, targetPoint);
   }
 }

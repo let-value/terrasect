@@ -24,7 +24,7 @@ neoForge {
 }
 
 dependencies {
-    implementation("it.unimi.dsi:fastutil-core:8.5.18")
+    //implementation("it.unimi.dsi:fastutil-core:8.5.18") included by minecraft
     implementation("net.openhft:zero-allocation-hashing:0.27ea1")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
 
