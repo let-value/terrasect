@@ -1,16 +1,40 @@
 package terrasect.strategies
 
-import terrasect.definition.*
-import terrasect.generation.TraversalStep
-import terrasect.sdf.*
 import java.nio.ByteBuffer
 import kotlin.math.hypot
 import kotlin.math.max
+import terrasect.definition.*
+import terrasect.generation.TraversalStep
+import terrasect.sdf.*
 
 private val discriminator = StrategyId.VORONOI.value
 
 class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
+
+  override fun traverse(step: TraversalStep): TraversalStep {
+    val x = step.x
+    val z = step.z
+
+    val cellSeed = getCellSeed(step.traverse.seed, step.id)
+    val sites = getSites(cellSeed, step.sdf, budgets)
+    val index = getCellIndex(x, z, sites)
+
+    step.id.put(discriminator)
+    step.id.putInt(index)
+
+    val sdf = cellSdfRef.get()
+    sdf.sites = sites
+    sdf.index = index
+    step.sdf.append(sdf)
+
+    val dist = sdf(x, z)
+
+    step.distance = max(step.distance, dist)
+    step.region = children[index]
+
+    return step
+  }
 
   companion object {
     fun getCellSeed(seed: Long, id: ByteBuffer): Long {
@@ -46,35 +70,10 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
       return closestIndex
     }
 
-    fun traverse(step: TraversalStep, settings: VoronoiStrategy): TraversalStep {
-      val x = step.x.toDouble()
-      val z = step.z.toDouble()
-
-      val cellSeed = getCellSeed(step.traverse.seed, step.id)
-      val sites = getSites(cellSeed, step.sdf, settings.budgets)
-      val index = getCellIndex(x, z, sites)
-
-      step.id.put(discriminator)
-      step.id.putInt(index)
-
-      val sdf = settings.cellSdfRef.get()
-      sdf.sites = sites
-      sdf.index = index
-      step.sdf.append(sdf)
-
-      val dist = sdf(x, z)
-
-      step.distance = max(step.distance, dist)
-      step.region = settings.children[index]
-
-      return step
-    }
-
     fun builder() = Builder()
   }
 
   class Builder : StrategySettings {
-
     override fun build(definition: RegionDefinition, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toDoubleArray()

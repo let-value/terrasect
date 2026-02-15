@@ -1,5 +1,6 @@
 package terrasect.definition
 
+import terrasect.generation.TraversalStep
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
@@ -18,6 +19,7 @@ interface StrategySettings {
 }
 
 interface Strategy {
+  fun traverse(step: TraversalStep): TraversalStep
 
   companion object {
     const val SEPARATOR: Char = ','

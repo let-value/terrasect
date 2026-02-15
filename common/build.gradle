@@ -24,6 +24,8 @@ neoForge {
 }
 
 dependencies {
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    
     testImplementation(platform("org.junit:junit-bom:5.11.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("de.skuzzle.test:snapshot-tests-junit5:${snapshot_tests_version}")

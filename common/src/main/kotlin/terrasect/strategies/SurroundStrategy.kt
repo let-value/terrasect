@@ -23,6 +23,40 @@ class SurroundStrategy(
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
+  override fun traverse(step: TraversalStep): TraversalStep {
+    val origin = getOrigin(step.sdf.bake(), scale)
+    val isCenter = getDistance(step.x, step.z, origin, step.sdf, smoothing) <= 0.0
+
+    step.id.put(discriminator)
+    step.id.putDouble(origin.centerX)
+    step.id.putDouble(origin.centerZ)
+
+    if (isCenter) {
+      val sdf = centerSdfRef.get()
+      sdf.parent = origin.parent
+      sdf.centerX = origin.centerX
+      sdf.centerZ = origin.centerZ
+      sdf.scale = origin.scale
+      sdf.smoothing = smoothing
+      step.sdf.append(sdf)
+    } else {
+      val sdf = surroundSdfRef.get()
+      sdf.parent = origin.parent
+      sdf.centerX = origin.centerX
+      sdf.centerZ = origin.centerZ
+      sdf.scale = origin.scale
+      sdf.smoothing = smoothing
+      step.sdf.append(sdf)
+    }
+
+    val distance = step.sdf(step.x, step.z)
+    step.distance = max(step.distance, distance)
+
+    step.region = if (isCenter) center else surround
+
+    return step
+  }
+
   companion object {
 
     val originRef: ThreadLocal<SurroundOriginResult> =
@@ -57,41 +91,6 @@ class SurroundStrategy(
           origin.scale,
           smoothing,
       )
-    }
-
-    fun traverse(step: TraversalStep, settings: SurroundStrategy): TraversalStep {
-
-      val origin = getOrigin(step.sdf.bake(), settings.scale)
-      val isCenter = getDistance(step.x, step.z, origin, step.sdf, settings.smoothing) <= 0.0
-
-      step.id.put(discriminator)
-      step.id.putDouble(origin.centerX)
-      step.id.putDouble(origin.centerZ)
-
-      if (isCenter) {
-        val sdf = settings.centerSdfRef.get()
-        sdf.parent = origin.parent
-        sdf.centerX = origin.centerX
-        sdf.centerZ = origin.centerZ
-        sdf.scale = origin.scale
-        sdf.smoothing = settings.smoothing
-        step.sdf.append(sdf)
-      } else {
-        val sdf = settings.surroundSdfRef.get()
-        sdf.parent = origin.parent
-        sdf.centerX = origin.centerX
-        sdf.centerZ = origin.centerZ
-        sdf.scale = origin.scale
-        sdf.smoothing = settings.smoothing
-        step.sdf.append(sdf)
-      }
-
-      val distance = step.sdf(step.x, step.z)
-      step.distance = max(step.distance, distance)
-
-      step.region = if (isCenter) settings.center else settings.surround
-
-      return step
     }
 
     fun builder(surroundRegionName: String) = Builder(surroundRegionName)

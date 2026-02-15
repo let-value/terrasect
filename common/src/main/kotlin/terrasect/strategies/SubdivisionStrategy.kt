@@ -1,11 +1,11 @@
 package terrasect.strategies
 
-import kotlin.math.max
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
 import terrasect.sdf.estimateBounds
+import kotlin.math.max
 
 private val discriminator = StrategyId.SUBDIVISION.value
 
@@ -17,6 +17,29 @@ data class SubdivisionSplit(
 
 class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
+
+  override fun traverse(step: TraversalStep): TraversalStep {
+    val split = getSplit(step.sdf, budgets)
+
+    val v = if (split.axis == 0) step.x else step.z
+    val index = getChildIndex(v, split)
+
+    step.id.put(discriminator)
+    step.id.putInt(index)
+
+    val sdf = cellSdfRef.get()
+    sdf.axis = split.axis
+    sdf.lo = split.edges[index]
+    sdf.hi = split.edges[index + 1]
+    step.sdf.append(sdf)
+
+    val dist = sdf(step.x, step.z)
+    step.distance = max(step.distance, dist)
+
+    step.region = children[index]
+
+    return step
+  }
 
   companion object {
     val splitRef: ThreadLocal<SubdivisionSplit> = ThreadLocal.withInitial { SubdivisionSplit() }
@@ -55,34 +78,10 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
       return split.edges.size - 2
     }
 
-    fun traverse(step: TraversalStep, settings: SubdivisionStrategy): TraversalStep {
-      val split = getSplit(step.sdf, settings.budgets)
-
-      val v = if (split.axis == 0) step.x.toDouble() else step.z.toDouble()
-      val index = getChildIndex(v, split)
-
-      step.id.put(discriminator)
-      step.id.putInt(index)
-
-      val sdf = settings.cellSdfRef.get()
-      sdf.axis = split.axis
-      sdf.lo = split.edges[index]
-      sdf.hi = split.edges[index + 1]
-      step.sdf.append(sdf)
-
-      val dist = sdf(step.x.toDouble(), step.z.toDouble())
-      step.distance = max(step.distance, dist)
-
-      step.region = settings.children[index]
-
-      return step
-    }
-
     fun builder() = Builder()
   }
 
   class Builder : StrategySettings {
-
     override fun build(definition: RegionDefinition, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.toDoubleArray()

@@ -21,6 +21,38 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
+  override fun traverse(step: TraversalStep): TraversalStep {
+    val apothem = areaToApothem(step.region.budget)
+    val gap = ringRegion?.let { areaToApothem(it.budget) } ?: 0.0
+    val cell = getCell(step.x, step.z, apothem, gap)
+
+    step.id.put(discriminator)
+    step.id.putLong(cell.q)
+    step.id.putLong(cell.r)
+
+    if (cell.isGap) {
+      val sdf = gapSdfRef.get()
+      sdf.centerX = cell.centerX
+      sdf.centerZ = cell.centerZ
+      sdf.apothem = apothem
+      sdf.gap = gap
+      step.sdf.append(sdf)
+    } else {
+      val sdf = cellSdfRef.get()
+      sdf.centerX = cell.centerX
+      sdf.centerZ = cell.centerZ
+      sdf.apothem = apothem
+      step.sdf.append(sdf)
+    }
+
+    val distance = step.sdf(step.x, step.z)
+    step.distance = max(step.distance, distance)
+
+    step.region = (if (cell.isGap && ringRegion != null) ringRegion else children)
+
+    return step
+  }
+
   companion object {
 
     val cellRef: ThreadLocal<HexCellResult> = ThreadLocal.withInitial { HexCellResult() }
@@ -64,40 +96,6 @@ class HexStrategy(val children: Region, val ringRegion: Region? = null) : Strate
       cell.centerZ = centerZ
 
       return cell
-    }
-
-    fun traverse(step: TraversalStep, settings: HexStrategy): TraversalStep {
-      val apothem = areaToApothem(step.region.budget)
-      val gap = settings.ringRegion?.let { areaToApothem(it.budget) } ?: 0.0
-      val cell = getCell(step.x, step.z, apothem, gap)
-
-      step.id.put(discriminator)
-      step.id.putLong(cell.q)
-      step.id.putLong(cell.r)
-
-      if (cell.isGap) {
-        val sdf = settings.gapSdfRef.get()
-        sdf.centerX = cell.centerX
-        sdf.centerZ = cell.centerZ
-        sdf.apothem = apothem
-        sdf.gap = gap
-        step.sdf.append(sdf)
-      } else {
-        val sdf = settings.cellSdfRef.get()
-        sdf.centerX = cell.centerX
-        sdf.centerZ = cell.centerZ
-        sdf.apothem = apothem
-        step.sdf.append(sdf)
-      }
-
-      val distance = step.sdf(step.x, step.z)
-      step.distance = max(step.distance, distance)
-
-      step.region =
-          (if (cell.isGap && settings.ringRegion != null) settings.ringRegion
-          else settings.children)
-
-      return step
     }
 
     fun builder(ringRegionName: String? = null) = Builder(ringRegionName)

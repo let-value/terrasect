@@ -4,10 +4,6 @@ import terrasect.ChunkAccessExtender
 import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
-import terrasect.strategies.HexStrategy
-import terrasect.strategies.SubdivisionStrategy
-import terrasect.strategies.SurroundStrategy
-import terrasect.strategies.VoronoiStrategy
 import java.nio.ByteBuffer
 
 open class Traverse(
@@ -63,14 +59,7 @@ class TraversalStep(val traverse: Traverse) {
       return null
     }
 
-    val step =
-        when (region.strategy) {
-          is HexStrategy -> HexStrategy.traverse(this, region.strategy)
-          is VoronoiStrategy -> VoronoiStrategy.traverse(this, region.strategy)
-          is SubdivisionStrategy -> SubdivisionStrategy.traverse(this, region.strategy)
-          is SurroundStrategy -> SurroundStrategy.traverse(this, region.strategy)
-          else -> throw IllegalArgumentException("Unknown generation strategy: ${region.strategy}")
-        }
+    val step = region.strategy?.traverse(this) ?: return null
 
     step.id.putChar(Strategy.SEPARATOR)
     return step
