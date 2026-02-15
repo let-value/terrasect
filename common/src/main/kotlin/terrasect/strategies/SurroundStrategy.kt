@@ -8,17 +8,17 @@ import kotlin.math.max
 private val discriminator = StrategyId.SURROUND.value
 
 data class SurroundOriginResult(
-    var centerX: Double = 0.0,
-    var centerZ: Double = 0.0,
-    var scale: Double = 1.0,
+    var centerX: Int = 0,
+    var centerZ: Int = 0,
+    var scale: Float = 1f,
     var parent: Sdf2 = EmptySdf,
 )
 
 class SurroundStrategy(
     val center: Region,
     val surround: Region,
-    val scale: Double,
-    val smoothing: Double,
+    val scale: Float,
+    val smoothing: Float,
 ) : Strategy {
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
@@ -53,8 +53,8 @@ class SurroundStrategy(
             smoothing,
         ) <= 0.0
 
-    step.id.putDouble(origin.centerX)
-    step.id.putDouble(origin.centerZ)
+    step.id.putInt(origin.centerX)
+    step.id.putInt(origin.centerZ)
 
     if (isCenter) {
       val sdf = centerSdfRef.get()
@@ -84,10 +84,10 @@ class SurroundStrategy(
 
   companion object {
 
-    fun getOrigin(parentSdf: Sdf2, scale: Double): SurroundOriginResult {
+    fun getOrigin(parentSdf: Sdf2, scale: Float): SurroundOriginResult {
       val bounds = estimateBounds(parentSdf)
-      val centerX = (bounds.minX + bounds.maxX) * 0.5
-      val centerZ = (bounds.minZ + bounds.maxZ) * 0.5
+      val centerX = (bounds.minX + bounds.maxX) / 2
+      val centerZ = (bounds.minZ + bounds.maxZ) / 2
 
       val origin = SurroundOriginResult()
       origin.centerX = centerX
@@ -109,7 +109,7 @@ class SurroundStrategy(
 
       val surround = builder.registry.buildTree(surroundRegionName)
 
-      val smoothing = -15.0
+      val smoothing = -15f
 
       val scale = surroundScale(center.budget, center.budget + surround.budget)
 

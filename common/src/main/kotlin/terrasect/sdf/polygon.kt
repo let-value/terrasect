@@ -1,18 +1,21 @@
 package terrasect.sdf
 
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.hypot
+import kotlin.math.max
 
-data class Vec2(val x: Double, val z: Double)
+data class Vec2(val x: Float, val z: Float)
 
 private data class Segment(val a: Vec2, val b: Vec2)
 
-private const val SIMPLIFY_TOLERANCE = CELL_SIZE * 0.5
+private const val SIMPLIFY_TOLERANCE = CELL_SIZE / 2
 
 fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
   val expanded = bounds.expand(CELL_SIZE)
   val segments = mutableListOf<Segment>()
-  val cols = max(1, ceil(expanded.width / CELL_SIZE).toInt())
-  val rows = max(1, ceil(expanded.height / CELL_SIZE).toInt())
+  val cols = max(1, expanded.width / CELL_SIZE)
+  val rows = max(1, expanded.height / CELL_SIZE)
 
   var z0 = expanded.minZ
   for (row in 0 until rows) {
@@ -26,10 +29,10 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
       val v2 = sdf(x1, z1)
       val v3 = sdf(x0, z1)
 
-      val e0 = v0 <= 0.0
-      val e1 = v1 <= 0.0
-      val e2 = v2 <= 0.0
-      val e3 = v3 <= 0.0
+      val e0 = v0 <= 0f
+      val e1 = v1 <= 0f
+      val e2 = v2 <= 0f
+      val e3 = v3 <= 0f
 
       var p0: Vec2? = null
       var p1: Vec2? = null
@@ -67,7 +70,7 @@ fun polygonize(sdf: Sdf2, bounds: SdfBounds): List<Vec2> {
       if (count == 2) {
         segments.add(Segment(first!!, second!!))
       } else if (count == 4) {
-        val centerValue = sdf((x0 + x1) * 0.5, (z0 + z1) * 0.5)
+        val centerValue = sdf((x0 + x1) / 2, (z0 + z1) / 2)
         if (centerValue <= 0.0) {
           segments.add(Segment(p0!!, p1!!))
           segments.add(Segment(p2!!, p3!!))
@@ -172,15 +175,15 @@ private fun stitchSegments(segments: List<Segment>): List<List<Vec2>> {
   return polygons
 }
 
-private fun interp(x0: Double, z0: Double, x1: Double, z1: Double, v0: Double, v1: Double): Vec2 {
+private fun interp(x0: Int, z0: Int, x1: Int, z1: Int, v0: Float, v1: Float): Vec2 {
   val denom = v1 - v0
-  val t = if (abs(denom) < 1e-12) 0.5 else (-v0 / denom).coerceIn(0.0, 1.0)
+  val t = if (abs(denom) < 1e-12f) 0.5f else (-v0 / denom).coerceIn(0.0f, 1.0f)
   return Vec2(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t)
 }
 
 private fun rdpSimplify(points: List<Vec2>): MutableList<Vec2> {
   if (points.size < 3) return points.toMutableList()
-  var maxDistance = 0.0
+  var maxDistance = 0f
   var index = 0
   val start = points.first()
   val end = points.last()
@@ -202,19 +205,19 @@ private fun rdpSimplify(points: List<Vec2>): MutableList<Vec2> {
   }
 }
 
-private fun distanceToSegment(point: Vec2, a: Vec2, b: Vec2): Double {
+private fun distanceToSegment(point: Vec2, a: Vec2, b: Vec2): Float {
   val abX = b.x - a.x
   val abZ = b.z - a.z
   val apX = point.x - a.x
   val apZ = point.z - a.z
   val abLengthSquared = abX * abX + abZ * abZ
   if (abLengthSquared <= 1e-12) {
-    return sqrt(apX * apX + apZ * apZ)
+    return hypot(apX, apZ)
   }
-  val t = ((apX * abX + apZ * abZ) / abLengthSquared).coerceIn(0.0, 1.0)
+  val t = ((apX * abX + apZ * abZ) / abLengthSquared).coerceIn(0f, 1f)
   val closestX = a.x + abX * t
   val closestZ = a.z + abZ * t
   val dx = point.x - closestX
   val dz = point.z - closestZ
-  return sqrt(dx * dx + dz * dz)
+  return hypot(dx, dz)
 }

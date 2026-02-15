@@ -9,7 +9,7 @@ import kotlin.math.max
 
 private val discriminator = StrategyId.VORONOI.value
 
-class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
+class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Strategy {
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
   fun getCachedSites(seed: Int, step: TraversalStep): List<Site> {
@@ -64,20 +64,20 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
       return cellSeed.toInt()
     }
 
-    fun getSites(cellSeed: Int, parentSdf: Sdf2, budgets: DoubleArray): List<Site> {
+    fun getSites(cellSeed: Int, parentSdf: Sdf2, budgets: LongArray): List<Site> {
       val bounds = estimateBounds(parentSdf)
       return getSites(cellSeed.toLong(), parentSdf, bounds, budgets)
     }
 
-    fun getCellIndex(x: Double, z: Double, sites: List<Site>): Int {
+    fun getCellIndex(x: Int, z: Int, sites: List<Site>): Int {
       var closestIndex = 0
-      var closestPower = Double.POSITIVE_INFINITY
+      var closestPower = Float.POSITIVE_INFINITY
 
       for (i in sites.indices) {
         val site = sites[i]
         val dx = x - site.x
         val dz = z - site.z
-        val dist = hypot(dx, dz)
+        val dist = hypot(dx.toDouble(), dz.toDouble()).toFloat()
         val power = dist - site.radius
         if (power < closestPower) {
           closestPower = power
@@ -94,7 +94,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: DoubleArray) : S
   class Builder : StrategySettings {
     override fun build(builder: RegionBuilder, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
-      val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toDoubleArray()
+      val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toLongArray()
       return VoronoiStrategy(sortedChildren.toTypedArray(), budgets)
     }
   }

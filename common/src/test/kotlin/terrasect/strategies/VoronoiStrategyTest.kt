@@ -1,24 +1,24 @@
 package terrasect.strategies
 
 import java.awt.image.BufferedImage
-import kotlin.math.sqrt
+import kotlin.math.hypot
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
-private const val CX = WIDTH / 2.0
-private const val CZ = HEIGHT / 2.0
+private const val CX = WIDTH / 2
+private const val CZ = HEIGHT / 2
 private const val SEED = 1234
 
 class VoronoiStrategyTest {
 
   @Test
   fun `should render voronoi cells in circle`() {
-    val radius = 100.0
-    val sdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
-    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
+    val radius = 100f
+    val sdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
+    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -30,9 +30,9 @@ class VoronoiStrategyTest {
 
   @Test
   fun `should render voronoi distance in circle`() {
-    val radius = 100.0
-    val sdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
-    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
+    val radius = 100f
+    val sdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
+    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -40,15 +40,13 @@ class VoronoiStrategyTest {
 
     for (z in 0 until HEIGHT) {
       for (x in 0 until WIDTH) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
 
-        if (sdf(px, pz) > 0.0) continue
+        if (sdf(x, z) > 0f) continue
 
-        val cellIndex = VoronoiStrategy.getCellIndex(px, pz, sites)
+        val cellIndex = VoronoiStrategy.getCellIndex(x, z, sites)
         voronoiSdf.sites = sites
         voronoiSdf.index = cellIndex
-        val dist = voronoiSdf(px, pz)
+        val dist = voronoiSdf(x, z)
         image.setRGB(x, z, colorForSignedDistance(dist, radius))
       }
     }
@@ -58,9 +56,9 @@ class VoronoiStrategyTest {
 
   @Test
   fun `should render voronoi cells in hex`() {
-    val apothem = 100.0
+    val apothem = 100f
     val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
-    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0, 5000.0, 3000.0)
+    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -74,7 +72,7 @@ class VoronoiStrategyTest {
   fun `should render voronoi cells in banana`() {
     val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
 
-    val budgets = doubleArrayOf(500.0, 100.0, 200.0, 300.0, 1000.0)
+    val budgets = longArrayOf(500, 100, 200, 300, 1000)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -87,9 +85,8 @@ class VoronoiStrategyTest {
   private fun drawCells(image: BufferedImage, sites: List<Site>) {
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
-        val cellIndex = VoronoiStrategy.getCellIndex(px, pz, sites)
+
+        val cellIndex = VoronoiStrategy.getCellIndex(x, z, sites)
         val color = colorForCell(cellIndex)
         image.setRGB(x, z, color)
       }

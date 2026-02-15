@@ -5,8 +5,8 @@ import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 
 class HexStrategyTest {
-  val apothem = 40.0
-  val gap = 20.0
+  val apothem = 40f
+  val gap = 20f
   val width = 200
   val height = 200
 
@@ -16,8 +16,8 @@ class HexStrategyTest {
 
     for (z in 0 until height) {
       for (x in 0 until width) {
-        val cell = HexStrategy.getCell(x.toDouble(), z.toDouble(), apothem, gap)
-        val color = colorForCell(cell.q.toInt(), cell.r.toInt(), cell.isGap)
+        val cell = HexStrategy.getCell(x, z, apothem, gap)
+        val color = colorForCell(cell.q, cell.r, cell.isGap)
 
         image.setRGB(x, z, color)
       }

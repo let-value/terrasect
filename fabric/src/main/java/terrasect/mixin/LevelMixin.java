@@ -12,7 +12,6 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.ServerLevelData;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,7 +36,7 @@ public class LevelMixin {
       Executor executor,
       LevelStorageSource.LevelStorageAccess storage,
       ServerLevelData levelData,
-      ResourceKey<@NotNull Level> dimension,
+      ResourceKey<Level> dimension,
       LevelStem levelStem,
       boolean bl,
       long seed,

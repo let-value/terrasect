@@ -14,8 +14,8 @@ class RegionDefinitionTest {
         registry
             .region("whispering_pines")
             .climate {
-              temperature(-0.3f, 0.2f)
-              humidity(0.6f)
+              temperature(-300, 200)
+              humidity(600)
               precipitation("snow")
             }
             .height { range(80, 160) }
@@ -28,10 +28,10 @@ class RegionDefinitionTest {
 
     assertAll(
         { assertNotNull(region.climate) },
-        { assertEquals(-0.3f, region.climate!!.temperature!!.min) },
-        { assertEquals(0.2f, region.climate!!.temperature!!.max) },
-        { assertEquals(0.6f, region.climate!!.humidity!!.min) },
-        { assertEquals(0.6f, region.climate!!.humidity!!.max) },
+        { assertEquals(-300, region.climate!!.temperature!!.min) },
+        { assertEquals(200, region.climate!!.temperature!!.max) },
+        { assertEquals(600, region.climate!!.humidity!!.min) },
+        { assertEquals(600, region.climate!!.humidity!!.max) },
         { assertEquals("snow", region.climate!!.precipitation) },
         { assertEquals(80, region.height!!.minY) },
         { assertEquals(160, region.height!!.maxY) },
@@ -56,8 +56,8 @@ class RegionDefinitionTest {
         registry
             .region("parent")
             .climate {
-              temperature(-0.6f, -0.2f)
-              humidity(0.7f, 0.9f)
+              temperature(-600, -200)
+              humidity(700, 900)
               precipitation("snow")
             }
             .height { range(48, 96) }
@@ -71,16 +71,16 @@ class RegionDefinitionTest {
     val child =
         registry
             .region("child")
-            .climate { temperature(-0.1f) }
+            .climate { temperature(100) }
             .biomes { blockNames("minecraft:old_growth_pine_taiga") }
             .inheritParent(worldDefaults)
             .build()
 
     assertAll(
-        { assertEquals(-0.1f, child.climate!!.temperature!!.min) },
-        { assertEquals(-0.1f, child.climate!!.temperature!!.max) },
-        { assertEquals(0.7f, child.climate!!.humidity!!.min) },
-        { assertEquals(0.9f, child.climate!!.humidity!!.max) },
+        { assertEquals(100, child.climate!!.temperature!!.min) },
+        { assertEquals(100, child.climate!!.temperature!!.max) },
+        { assertEquals(700, child.climate!!.humidity!!.min) },
+        { assertEquals(900, child.climate!!.humidity!!.max) },
         { assertEquals("snow", child.climate!!.precipitation) },
         { assertEquals(48, child.height!!.minY) },
         { assertEquals(96, child.height!!.maxY) },

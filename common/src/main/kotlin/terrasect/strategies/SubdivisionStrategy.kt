@@ -12,10 +12,10 @@ private val discriminator = StrategyId.SUBDIVISION.value
 @Suppress("ArrayInDataClass")
 data class SubdivisionSplit(
     var axis: Int = 0,
-    var edges: DoubleArray = doubleArrayOf(),
+    var edges: FloatArray = floatArrayOf(),
 )
 
-class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray) : Strategy {
+class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
   fun getCachedSplit(step: TraversalStep): SubdivisionSplit {
@@ -58,7 +58,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
 
   companion object {
 
-    fun getSplit(parentSdf: Sdf2, budgets: DoubleArray): SubdivisionSplit {
+    fun getSplit(parentSdf: Sdf2, budgets: LongArray): SubdivisionSplit {
       val bounds = estimateBounds(parentSdf)
       val splitX = bounds.width >= bounds.height
       val axis = if (splitX) 0 else 1
@@ -67,14 +67,14 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
       val axisLen = axisMax - axisMin
       val totalBudget = budgets.sum()
 
-      val edges = DoubleArray(budgets.size + 1)
-      edges[0] = axisMin
-      var cumulative = 0.0
+      val edges = FloatArray(budgets.size + 1)
+      edges[0] = axisMin.toFloat()
+      var cumulative = 0f
       for (i in budgets.indices) {
         cumulative += budgets[i]
         edges[i + 1] = axisMin + axisLen * (cumulative / totalBudget)
       }
-      edges[budgets.size] = axisMax
+      edges[budgets.size] = axisMax.toFloat()
 
       val split = SubdivisionSplit()
       split.edges = edges
@@ -83,7 +83,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
       return split
     }
 
-    fun getChildIndex(v: Double, split: SubdivisionSplit): Int {
+    fun getChildIndex(v: Int, split: SubdivisionSplit): Int {
       for (i in 1 until split.edges.size) {
         if (v <= split.edges[i]) {
           return i - 1
@@ -98,7 +98,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: DoubleArray)
   class Builder : StrategySettings {
     override fun build(builder: RegionBuilder, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
-      val budgets = sortedChildren.map { it.budget }.toDoubleArray()
+      val budgets = sortedChildren.map { it.budget }.toLongArray()
       return SubdivisionStrategy(sortedChildren.toTypedArray(), budgets)
     }
   }

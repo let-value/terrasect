@@ -4,51 +4,52 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 fun surroundDistance(
-    x: Double,
-    z: Double,
+    x: Int,
+    z: Int,
     parentSdf: Sdf2,
-    centerX: Double,
-    centerZ: Double,
-    scale: Double,
-    smoothing: Double = 0.0,
-): Double {
+    centerX: Int,
+    centerZ: Int,
+    scale: Float,
+    smoothing: Float = 0f,
+): Float {
   val scaledX = centerX + (x - centerX) / scale
   val scaledZ = centerZ + (z - centerZ) / scale
-  val dist = parentSdf(scaledX, scaledZ) * scale
+
+  val dist = parentSdf(scaledX.toInt(), scaledZ.toInt()) * scale
 
   return dist - smoothing
 }
 
 class CenterCellSdf : Sdf2 {
   var parent: Sdf2 = EmptySdf
-  var centerX: Double = 0.0
-  var centerZ: Double = 0.0
-  var scale: Double = 0.0
-  var smoothing: Double = 0.0
+  var centerX: Int = 0
+  var centerZ: Int = 0
+  var scale: Float = 0f
+  var smoothing: Float = 0f
 
-  override fun invoke(x: Double, z: Double): Double {
+  override fun invoke(x: Int, z: Int): Float {
     return surroundDistance(x, z, parent, centerX, centerZ, scale, smoothing)
   }
 }
 
 class SurroundCellSdf : Sdf2 {
   var parent: Sdf2 = EmptySdf
-  var centerX: Double = 0.0
-  var centerZ: Double = 0.0
-  var scale: Double = 0.0
-  var smoothing: Double = 0.0
+  var centerX: Int = 0
+  var centerZ: Int = 0
+  var scale: Float = 0f
+  var smoothing: Float = 0f
 
-  override fun invoke(x: Double, z: Double): Double {
-    val outer = surroundDistance(x, z, parent, centerX, centerZ, 1.0, smoothing)
+  override fun invoke(x: Int, z: Int): Float {
+    val outer = surroundDistance(x, z, parent, centerX, centerZ, 1f, smoothing)
     val inner = surroundDistance(x, z, parent, centerX, centerZ, scale, smoothing)
     return max(outer, -inner)
   }
 }
 
-fun surroundScale(centerBudget: Double, totalBudget: Double): Double {
-  if (totalBudget <= 0.0) {
-    return 1.0
+fun surroundScale(centerBudget: Long, totalBudget: Long): Float {
+  if (totalBudget <= 0) {
+    return 1f
   }
-  val centerFraction = (centerBudget / totalBudget).coerceIn(0.0, 1.0)
-  return sqrt(centerFraction).coerceAtLeast(1e-6)
+  val centerFraction = (centerBudget / totalBudget).coerceIn(0, 1)
+  return sqrt(centerFraction.toDouble()).coerceAtLeast(1e-6).toFloat()
 }

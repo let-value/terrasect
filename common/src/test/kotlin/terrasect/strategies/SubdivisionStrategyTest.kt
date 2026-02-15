@@ -4,21 +4,21 @@ import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
-import kotlin.math.sqrt
+import kotlin.math.hypot
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
-private const val CX = WIDTH / 2.0
-private const val CZ = HEIGHT / 2.0
+private const val CX = WIDTH / 2
+private const val CZ = HEIGHT / 2
 
 class SubdivisionStrategyTest {
 
-  private val budgets = doubleArrayOf(1000.0, 500.0, 300.0, 200.0, 100.0)
+  private val budgets = longArrayOf(1000, 500, 300, 200, 100)
 
   @Test
   fun `should render subdivision cells in circle`() {
-    val radius = 100.0
-    val parentSdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
+    val radius = 100f
+    val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawCells(image, parentSdf)
@@ -28,8 +28,8 @@ class SubdivisionStrategyTest {
 
   @Test
   fun `should render subdivision distance in circle`() {
-    val radius = 100.0
-    val parentSdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
+    val radius = 100f
+    val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawCellDistance(image, parentSdf, radius)
@@ -38,7 +38,7 @@ class SubdivisionStrategyTest {
 
   @Test
   fun `should render subdivision cells in hex`() {
-    val apothem = 100.0
+    val apothem = 100f
     val parentSdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -61,34 +61,32 @@ class SubdivisionStrategyTest {
     val split = SubdivisionStrategy.getSplit(parentSdf, budgets)
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
-        if (parentSdf(px, pz) > 0.0) continue
 
-        val v = if (split.axis == 0) px else pz
+        if (parentSdf(x, z) > 0.0) continue
+
+        val v = if (split.axis == 0) x else z
         val index = SubdivisionStrategy.getChildIndex(v, split)
         image.setRGB(x, z, colorForCell(index))
       }
     }
   }
 
-  private fun drawCellDistance(image: BufferedImage, parentSdf: Sdf2, maxDistance: Double) {
+  private fun drawCellDistance(image: BufferedImage, parentSdf: Sdf2, maxDistance: Float) {
     val split = SubdivisionStrategy.getSplit(parentSdf, budgets)
     val cellSdf = SubdivisionCellSdf()
 
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
-        if (parentSdf(px, pz) > 0.0) continue
 
-        val v = if (split.axis == 0) px else pz
+        if (parentSdf(x, z) > 0.0) continue
+
+        val v = if (split.axis == 0) x else z
         val index = SubdivisionStrategy.getChildIndex(v, split)
 
         cellSdf.axis = split.axis
         cellSdf.lo = split.edges[index]
         cellSdf.hi = split.edges[index + 1]
-        val dist = cellSdf(px, pz)
+        val dist = cellSdf(x, z)
         image.setRGB(x, z, colorForSignedDistance(dist, maxDistance))
       }
     }

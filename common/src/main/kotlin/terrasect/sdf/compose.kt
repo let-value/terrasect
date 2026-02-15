@@ -3,7 +3,7 @@ package terrasect.sdf
 import kotlin.math.max
 
 object EmptySdf : Sdf2 {
-  override fun invoke(x: Double, z: Double): Double = Double.NEGATIVE_INFINITY
+  override fun invoke(x: Int, z: Int): Float = Float.NEGATIVE_INFINITY
 }
 
 class SdfCompose : Sdf2 {
@@ -20,8 +20,8 @@ class SdfCompose : Sdf2 {
     }
   }
 
-  override fun invoke(x: Double, z: Double): Double {
-    var result = Double.NEGATIVE_INFINITY
+  override fun invoke(x: Int, z: Int): Float {
+    var result = Float.NEGATIVE_INFINITY
     for (i in 0..count) {
       val value = layers[i](x, z)
       result = max(result, value)
@@ -32,8 +32,8 @@ class SdfCompose : Sdf2 {
   fun bake(): Sdf2 {
     val layers = this.layers.copyOfRange(0, count + 1)
     return object : Sdf2 {
-      override fun invoke(x: Double, z: Double): Double {
-        var result = Double.NEGATIVE_INFINITY
+      override fun invoke(x: Int, z: Int): Float {
+        var result = Float.NEGATIVE_INFINITY
         for (sdf in layers) {
           val value = sdf(x, z)
           result = max(result, value)

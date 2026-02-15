@@ -6,7 +6,6 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
-import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import terrasect.MultiNoiseBiomeSourceExtender;
@@ -16,8 +15,6 @@ public interface MultiNoiseBiomeSourceMixin extends MultiNoiseBiomeSourceExtende
 
   @Accessor("parameters")
   @Override
-  Either<
-          Climate.ParameterList<@NotNull Holder<@NotNull Biome>>,
-          Holder<@NotNull MultiNoiseBiomeSourceParameterList>>
+  Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>>
       terrasect$getParameters();
 }

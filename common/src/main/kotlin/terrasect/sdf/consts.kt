@@ -1,17 +1,17 @@
 package terrasect.sdf
 
-const val CELL_SIZE = 16.0
-const val MAX_RADIUS = 2048.0
+const val CELL_SIZE = 16
+const val MAX_RADIUS = 2048
 
-typealias Sdf2 = (Double, Double) -> Double
+typealias Sdf2 = (Int, Int) -> Float
 
-fun smoothMin(a: Double, b: Double, k: Double): Double {
-  val h = (0.5 + 0.5 * (b - a) / k).coerceIn(0.0, 1.0)
-  return a * h + b * (1.0 - h) - k * h * (1.0 - h)
+fun smoothMin(a: Float, b: Float, k: Float): Float {
+  val h = (0.5f + 0.5f * (b - a) / k).coerceIn(0.0f, 1.0f)
+  return a * h + b * (1.0f - h) - k * h * (1.0f - h)
 }
 
-fun smoothMax(a: Double, b: Double, k: Double): Double {
+fun smoothMax(a: Float, b: Float, k: Float): Float {
   return -smoothMin(-a, -b, k)
 }
 
-fun translate(sdf: Sdf2, dx: Double, dz: Double): Sdf2 = { x, z -> sdf(x - dx, z - dz) }
+fun translate(sdf: Sdf2, dx: Int, dz: Int): Sdf2 = { x, z -> sdf(x - dx, z - dz) }

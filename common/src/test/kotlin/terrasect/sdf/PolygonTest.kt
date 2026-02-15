@@ -1,14 +1,14 @@
 package terrasect.sdf
 
-import org.junit.jupiter.api.Test
-import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
+import org.junit.jupiter.api.Test
+import terrasect.testing.writeSnapshotPng
 
 private const val WIDTH = 200
 private const val HEIGHT = 200
-private const val CX = WIDTH / 2.0
-private const val CZ = HEIGHT / 2.0
+private const val CX = WIDTH / 2
+private const val CZ = HEIGHT / 2
 
 class PolygonTest {
 

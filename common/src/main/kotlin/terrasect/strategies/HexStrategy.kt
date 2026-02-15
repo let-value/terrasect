@@ -5,16 +5,16 @@ import terrasect.generation.TraversalStep
 import terrasect.sdf.*
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.roundToLong
+import kotlin.math.roundToInt
 
 private val discriminator = StrategyId.HEX.value
 
 data class HexCellResult(
-    var q: Long = 0,
-    var r: Long = 0,
+    var q: Int = 0,
+    var r: Int = 0,
     var isGap: Boolean = false,
-    var centerX: Double = 0.0,
-    var centerZ: Double = 0.0,
+    var centerX: Int = 0,
+    var centerZ: Int = 0,
 )
 
 class HexStrategy(
@@ -25,7 +25,7 @@ class HexStrategy(
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
-  fun getCachedCell(step: TraversalStep, apothem: Double, gap: Double): HexCellResult {
+  fun getCachedCell(step: TraversalStep, apothem: Float, gap: Float): HexCellResult {
     val skipCache = tiling || step.cache == null
     if (skipCache) {
       return getCell(step.x, step.z, apothem, gap)
@@ -47,13 +47,13 @@ class HexStrategy(
 
   override fun traverse(step: TraversalStep): TraversalStep {
     val apothem = areaToApothem(step.region.budget)
-    val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0.0
+    val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0f
 
     step.id.put(discriminator)
     val cell = getCachedCell(step, apothem, gap)
 
-    step.id.putLong(cell.q)
-    step.id.putLong(cell.r)
+    step.id.putInt(cell.q)
+    step.id.putInt(cell.r)
 
     if (cell.isGap) {
       val sdf = gapSdfRef.get()
@@ -80,16 +80,16 @@ class HexStrategy(
 
   companion object {
 
-    fun getCell(x: Double, z: Double, apothem: Double, gap: Double = 0.0): HexCellResult {
-      val spacing = apothem + gap.coerceAtLeast(0.0)
+    fun getCell(x: Int, z: Int, apothem: Float, gap: Float = 0f): HexCellResult {
+      val spacing = apothem + gap.coerceAtLeast(0f)
 
       val qFrac = (TAN30 * x - ONE_THIRD * z) / spacing
       val rFrac = (TWO_THIRDS * z) / spacing
       val sFrac = -qFrac - rFrac
 
-      var q = qFrac.roundToLong()
-      var r = rFrac.roundToLong()
-      val s = sFrac.roundToLong()
+      var q = qFrac.roundToInt()
+      var r = rFrac.roundToInt()
+      val s = sFrac.roundToInt()
 
       val qDiff = abs(q - qFrac)
       val rDiff = abs(r - rFrac)
@@ -101,8 +101,8 @@ class HexStrategy(
         r = -q - s
       }
 
-      val centerX = (SQRT3 * q + SIN60 * r) * spacing
-      val centerZ = (1.5 * r) * spacing
+      val centerX = ((SQRT3 * q + SIN60 * r) * spacing).toInt()
+      val centerZ = ((1.5 * r) * spacing).toInt()
 
       val localX = x - centerX
       val localZ = z - centerZ

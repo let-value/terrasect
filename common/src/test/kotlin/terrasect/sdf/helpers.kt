@@ -9,21 +9,21 @@ const val SDF_EDGE_COLOR = 0xFFFFFFFF.toInt()
 const val SDF_INSIDE_COLOR = 0xFF202020.toInt()
 const val SDF_OUTSIDE_COLOR = 0xFF0B0B0B.toInt()
 
-fun bananaLocalSdf(x: Double, z: Double): Double {
-  val outer = sqrt(x * x + z * z) - 34.0
-  val innerX = x - 18.0
-  val innerZ = z + 6.0
-  val inner = sqrt(innerX * innerX + innerZ * innerZ) - 30.0
-  return smoothMax(outer, -inner, 6.0)
+fun bananaLocalSdf(x: Float, z: Float): Float {
+  val outer = hypot(x, z) - 34f
+  val innerX = x - 18f
+  val innerZ = z + 6f
+  val inner = sqrt(innerX * innerX + innerZ * innerZ) - 30f
+  return smoothMax(outer, -inner, 6f)
 }
 
-fun bananaSdf(x: Double, z: Double, scale: Double = 2.0): Double {
+fun bananaSdf(x: Int, z: Int, scale: Float = 2f): Float {
   return bananaLocalSdf(x / scale, z / scale) * scale
 }
 
 fun distanceColor(
-    distance: Double,
-    edgeThreshold: Double = 0.6,
+    distance: Float,
+    edgeThreshold: Float = 0.6f,
     edgeColor: Int = SDF_EDGE_COLOR,
     insideColor: Int? = SDF_INSIDE_COLOR,
     outsideColor: Int? = null,
@@ -38,14 +38,14 @@ fun distanceColor(
 fun drawSdf(
     image: BufferedImage,
     sdf: Sdf2,
-    edgeThreshold: Double = 0.6,
+    edgeThreshold: Float = 0.6f,
     edgeColor: Int = SDF_EDGE_COLOR,
     insideColor: Int? = SDF_INSIDE_COLOR,
     outsideColor: Int? = null,
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
-      val distance = sdf(x.toDouble(), z.toDouble())
+      val distance = sdf(x, z)
       val color =
           distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor) ?: continue
       image.setRGB(x, z, color)
@@ -53,18 +53,18 @@ fun drawSdf(
   }
 }
 
-fun drawDistance(image: BufferedImage, sdf: Sdf2, maxDistance: Double = Double.MAX_VALUE) {
-  val safeMax = if (maxDistance <= 0.0) 1.0 else maxDistance
+fun drawDistance(image: BufferedImage, sdf: Sdf2, maxDistance: Float = Float.MAX_VALUE) {
+  val safeMax = if (maxDistance <= 0f) 1f else maxDistance
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
-      val distance = sdf(x.toDouble(), z.toDouble())
+      val distance = sdf(x, z)
       image.setRGB(x, z, colorForSignedDistance(distance, safeMax))
     }
   }
 }
 
-fun colorForSignedDistance(distance: Double, maxDistance: Double): Int {
-  val normalizedDistance = (abs(distance) / maxDistance * 255.0).coerceIn(0.0, 255.0).toInt()
+fun colorForSignedDistance(distance: Float, maxDistance: Float): Int {
+  val normalizedDistance = (abs(distance) / maxDistance * 255f).coerceIn(0f, 255f).toInt()
 
   return if (distance <= 0.0) {
     (0xFF shl 24) or (normalizedDistance shl 16) or (normalizedDistance shl 8) or 0xFF
@@ -75,10 +75,9 @@ fun colorForSignedDistance(distance: Double, maxDistance: Double): Int {
 
 fun drawSites(image: BufferedImage, sites: List<Site>) {
   for (site in sites) {
-    val x = site.x.roundToInt()
-    val z = site.z.roundToInt()
-    drawCircle(image, x, z, 1)
-    drawRing(image, x, z, site.radius)
+
+    drawCircle(image, site.x, site.z, 1)
+    drawRing(image, site.x, site.z, site.radius)
   }
 }
 
@@ -138,7 +137,7 @@ fun drawRing(
     image: BufferedImage,
     centerX: Int,
     centerZ: Int,
-    radius: Double,
+    radius: Float,
     steps: Int = 64,
     color: Int = LINE_COLOR,
 ) {

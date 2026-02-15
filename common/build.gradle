@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'org.jetbrains.kotlin.jvm'
     id 'net.neoforged.moddev'
+    id 'io.github.gmazzo.dependencies.embedded'
 }
 
 base {
@@ -25,8 +26,10 @@ neoForge {
 
 dependencies {
     //implementation("it.unimi.dsi:fastutil-core:8.5.18") included by minecraft
-    implementation("net.openhft:zero-allocation-hashing:0.27ea1")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
+    
+    embedded("net.openhft:zero-allocation-hashing:0.27ea1")
+    embedded("com.github.ben-manes.caffeine:caffeine:3.2.3")
 
     testImplementation(platform("org.junit:junit-bom:5.11.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")

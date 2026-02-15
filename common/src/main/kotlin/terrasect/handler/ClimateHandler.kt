@@ -34,14 +34,11 @@ object ClimateHandler {
       quadZ: Int,
       original: Climate.TargetPoint,
   ) {
-    val grid =
-        chunk.`terrasect$getCache`()?.grid
-            ?: throw IllegalStateException("Chunk is not attached to a level")
+    val grid = chunk.`terrasect$getCache`()?.grid ?: return
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
-    val region =
-        grid.get(blockX, blockZ) ?: throw IllegalStateException("Chunk is not attached to a level")
-    val climate = region.climate ?: throw IllegalStateException("No climate")
+    val region = grid.get(blockX, blockZ) ?: return
+    val climate = region.climate ?: return
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = original as ClimateTargetPointExtender
 

@@ -2,40 +2,40 @@ package terrasect.sdf
 
 import kotlin.math.*
 
-val SIN60 = sin(Math.toRadians(60.0))
-val SQRT3 = sqrt(3.0)
-val TAN30 = tan(Math.toRadians(30.0))
-const val ONE_THIRD = 1.0 / 3.0
-const val TWO_THIRDS = 2.0 / 3.0
+val SIN60 = sin(Math.toRadians(60.0).toFloat())
+val SQRT3 = sqrt(3f)
+val TAN30 = tan(Math.toRadians(30.0).toFloat())
+const val ONE_THIRD = 1f / 3f
+const val TWO_THIRDS = 2f / 3f
 
-fun areaToApothem(area: Double): Double = sqrt(area / (2.0 * SQRT3))
+fun areaToApothem(area: Long): Float = sqrt(area / (2f * SQRT3))
 
-fun hexDistance(px: Double, pz: Double, apothem: Double): Double {
-  val x = abs(px)
+fun hexDistance(px: Int, pz: Int, apothem: Float): Float {
+  val x = abs(px).toFloat()
   val z = abs(pz)
-  val d = x * 0.5 + z * SIN60
+  val d = (x * 0.5f + z * SIN60)
   return max(d, x) - apothem
 }
 
 class HexCellSdf(
-    var centerX: Double = 0.0,
-    var centerZ: Double = 0.0,
-    var apothem: Double = 0.0,
+    var centerX: Int = 0,
+    var centerZ: Int = 0,
+    var apothem: Float = 0f,
 ) : Sdf2 {
 
-  override fun invoke(x: Double, z: Double): Double {
+  override fun invoke(x: Int, z: Int): Float {
     return hexDistance(x - centerX, z - centerZ, apothem)
   }
 }
 
 class HexGapSdf(
-    var centerX: Double = 0.0,
-    var centerZ: Double = 0.0,
-    var apothem: Double = 0.0,
-    var gap: Double = 0.0,
+    var centerX: Int = 0,
+    var centerZ: Int = 0,
+    var apothem: Float = 0f,
+    var gap: Float = 0f,
 ) : Sdf2 {
 
-  override fun invoke(x: Double, z: Double): Double {
+  override fun invoke(x: Int, z: Int): Float {
     val dx = x - centerX
     val dz = z - centerZ
     val outer = hexDistance(dx, dz, apothem + gap)

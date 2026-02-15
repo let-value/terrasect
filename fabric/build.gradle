@@ -2,6 +2,15 @@ plugins {
     id 'fabric-loom'
     id 'maven-publish'
     id 'org.jetbrains.kotlin.jvm'
+    id 'io.github.gmazzo.dependencies.embedded'
+}
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
 }
 
 apply from: rootProject.file('gradle/loaders/fabric.gradle')
@@ -27,6 +36,10 @@ fabricApi {
     }
 }
 
+remapJar {
+    addNestedDependencies = true
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.officialMojangMappings()
@@ -34,6 +47,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     modImplementation "net.fabricmc:fabric-language-kotlin:${fabric_kotlin_version}"
+
+    //modImplementation "maven.modrinth:c2me-fabric:0.3.7+alpha.0.7+1.21.11"
+    modImplementation "maven.modrinth:distanthorizons:2.4.5-b-1.21.11"
 
     implementation project(':common')
 }

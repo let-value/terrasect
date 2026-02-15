@@ -13,8 +13,8 @@ import java.awt.image.BufferedImage
 private const val SEED = 1234L
 private const val WIDTH = 240
 private const val HEIGHT = 240
-private const val DX = WIDTH / 2.0
-private const val DZ = HEIGHT / 2.0
+private const val DX = WIDTH / 2
+private const val DZ = HEIGHT / 2
 
 class TraverseTest {
   companion object {
@@ -23,20 +23,16 @@ class TraverseTest {
     @BeforeAll
     @JvmStatic
     fun setup() {
-      registry.region("hex").area(150.0).strategy(Strategy.hex().tiling())
+      registry.region("hex").area(150).strategy(Strategy.hex().tiling())
       registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
-      registry.region("voronoi1").area(0.2 * 150.0).parent("cell")
-      registry.region("voronoi2").area(0.3 * 150.0).parent("cell")
+      registry.region("voronoi1").area(30).parent("cell")
+      registry.region("voronoi2").area(45).parent("cell")
 
-      registry
-          .region("voronoi3")
-          .area(0.5 * 150.0)
-          .parent("cell")
-          .strategy(Strategy.surround("surround"))
+      registry.region("voronoi3").area(75).parent("cell").strategy(Strategy.surround("surround"))
 
-      registry.region("surround").area(50.0)
-      registry.region("center").parent("voronoi3").area(100.0)
+      registry.region("surround").area(50)
+      registry.region("center").parent("voronoi3").area(100)
     }
   }
 
@@ -45,7 +41,7 @@ class TraverseTest {
     val root = registry.buildTree("hex")
 
     val traverse = Traverse(SEED, root)
-    val step = traverse.iterate(0.0, 0.0)
+    val step = traverse.iterate(0, 0)
     renderSnapshot("step0.png", step.sdf)
 
     step.next()

@@ -4,26 +4,26 @@ import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
-import kotlin.math.sqrt
+import kotlin.math.hypot
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
-private const val CX = WIDTH / 2.0
-private const val CZ = HEIGHT / 2.0
+private const val CX = WIDTH / 2
+private const val CZ = HEIGHT / 2
 
 private const val CENTER_COLOR = 0xFF3A6B8C.toInt()
 private const val SURROUND_COLOR = 0xFF8C5A3A.toInt()
 
 class SurroundStrategyTest {
 
-  private val centerBudget = 3000.0
-  private val surroundBudget = 1000.0
+  private val centerBudget = 3000L
+  private val surroundBudget = 1000L
   private val scale = surroundScale(centerBudget, centerBudget + surroundBudget)
 
   @Test
   fun `should render surround cells in circle`() {
-    val radius = 100.0
-    val parentSdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
+    val radius = 100f
+    val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawCells(image, parentSdf)
@@ -33,8 +33,8 @@ class SurroundStrategyTest {
 
   @Test
   fun `should render surround distance in circle`() {
-    val radius = 100.0
-    val parentSdf: Sdf2 = translate({ x, z -> sqrt(x * x + z * z) - radius }, CX, CZ)
+    val radius = 100f
+    val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawCellDistance(image, parentSdf, radius)
@@ -43,7 +43,7 @@ class SurroundStrategyTest {
 
   @Test
   fun `should render surround cells in hex`() {
-    val apothem = 100.0
+    val apothem = 100f
     val parentSdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -66,18 +66,15 @@ class SurroundStrategyTest {
     val origin = SurroundStrategy.getOrigin(parentSdf, scale)
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
 
-        val inner =
-            surroundDistance(px, pz, parentSdf, origin.centerX, origin.centerZ, origin.scale)
+        val inner = surroundDistance(x, z, parentSdf, origin.centerX, origin.centerZ, origin.scale)
         val isCenter = inner <= 0.0
         image.setRGB(x, z, if (isCenter) CENTER_COLOR else SURROUND_COLOR)
       }
     }
   }
 
-  private fun drawCellDistance(image: BufferedImage, parentSdf: Sdf2, maxDistance: Double) {
+  private fun drawCellDistance(image: BufferedImage, parentSdf: Sdf2, maxDistance: Float) {
     val origin = SurroundStrategy.getOrigin(parentSdf, scale)
     val cellSdf = SurroundCellSdf()
 
@@ -88,11 +85,9 @@ class SurroundStrategyTest {
 
     for (z in 0 until image.height) {
       for (x in 0 until image.width) {
-        val px = x.toDouble()
-        val pz = z.toDouble()
-        if (parentSdf(px, pz) > 0.0) continue
+        if (parentSdf(x, z) > 0f) continue
 
-        val dist = cellSdf(px, pz)
+        val dist = cellSdf(x, z)
         image.setRGB(x, z, colorForSignedDistance(dist, maxDistance))
       }
     }

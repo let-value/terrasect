@@ -31,7 +31,7 @@ class ChunkCache {
 
     for (x in position.minBlockX until position.maxBlockX) {
       for (z in position.minBlockZ until position.maxBlockZ) {
-        val step = context.traverse(x.toDouble(), z.toDouble(), Terrasect.cache)
+        val step = context.traverse(x, z, Terrasect.cache)
         this.grid!!.add(x, z, step.region)
       }
     }

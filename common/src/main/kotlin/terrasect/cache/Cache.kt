@@ -11,13 +11,14 @@ import terrasect.strategies.SubdivisionSplit
 import terrasect.strategies.SurroundOriginResult
 import java.nio.ByteBuffer
 
-val HASH: LongHashFunction = LongHashFunction.xx()
+val hasher: LongHashFunction = LongHashFunction.xx()
 
 class CacheKey(val hash: Long)
 
 class Cache {
-  val map = Long2ObjectOpenHashMap<CacheKey>()
+  private val map = Long2ObjectOpenHashMap<CacheKey>()
   val keys: Long2ObjectMap<CacheKey> = Long2ObjectMaps.synchronize(map)
+
   val hex = Caffeine.newBuilder().maximumSize(200_000).build<CacheKey, HexCellResult>()
   val voronoi = Caffeine.newBuilder().maximumSize(200_000).build<CacheKey, List<Site>>()
   val subdivision = Caffeine.newBuilder().maximumSize(200_000).build<CacheKey, SubdivisionSplit>()
@@ -25,7 +26,7 @@ class Cache {
 
   fun getKey(id: ByteBuffer): CacheKey {
     val len = id.position()
-    val hash = HASH.hashBytes(id, 0, len)
+    val hash = hasher.hashBytes(id, 0, len)
     keys.get(hash)?.let {
       return it
     }
