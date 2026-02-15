@@ -3,7 +3,8 @@ package terrasect.handler
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
 import terrasect.ChunkAccessExtender
-import terrasect.compat.ResourceKeyCompat.getKeyId
+import terrasect.ClimateTargetPointExtender
+import terrasect.definition.ClimateRange
 import terrasect.generation.Context
 import terrasect.utils.packPair
 import kotlin.math.max
@@ -27,17 +28,33 @@ object ClimateHandler {
   }
 
   fun modifyClimate(
-      chunk: ChunkAccessExtender?,
-      x: Int,
-      y: Int,
-      z: Int,
+      chunk: ChunkAccessExtender,
+      quadX: Int,
+      quadY: Int,
+      quadZ: Int,
       original: Climate.TargetPoint,
   ) {
-    if (chunk == null) {
-      return
+    val grid = chunk.`terrasect$getCache`()?.grid ?: return
+    val blockX = quadX shl 2
+    val blockZ = quadZ shl 2
+    val region = grid.get(blockX, blockZ) ?: return
+    val climate = region.climate ?: return
+
+    @Suppress("CAST_NEVER_SUCCEEDS") val extender = original as ClimateTargetPointExtender
+
+    climate.temperature?.let {
+      extender.`terrasect$setTemperature`(mapToRange(it, original.temperature))
     }
-    val level = chunk.`terrasect$getLevel`() ?: return
-    val dimension = getKeyId(level.dimension())
-    val context = Context.get(dimension) ?: return
+    climate.humidity?.let { extender.`terrasect$setHumidity`(mapToRange(it, original.humidity)) }
+    climate.continentalness?.let {
+      extender.`terrasect$setContinentalness`(mapToRange(it, original.continentalness))
+    }
+    climate.erosion?.let { extender.`terrasect$setErosion`(mapToRange(it, original.erosion)) }
+    climate.depth?.let { extender.`terrasect$setDepth`(mapToRange(it, original.depth)) }
+    climate.weirdness?.let { extender.`terrasect$setWeirdness`(mapToRange(it, original.weirdness)) }
+  }
+
+  private fun mapToRange(range: ClimateRange, original: Long): Long {
+    return original.coerceIn(range.min, range.max)
   }
 }

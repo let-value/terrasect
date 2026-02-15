@@ -6,6 +6,7 @@
     "ChunkAccessMixin",
     "ChunkGeneratorMixin",
     "ClimateClimateSamplerMixin",
+    "ClimateTargetPointMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceMixin",
     "NoiseChunkExtenderMixin"

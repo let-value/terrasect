@@ -15,7 +15,9 @@ object Terrasect {
   fun init() {
     registry.setRoot("minecraft:overworld", "hex")
     registry.region("hex").area(150.0).strategy(Strategy.hex().tiling())
-    registry.region("cell").parent("hex").strategy(Strategy.voronoi())
+    registry.region("cell").parent("hex").strategy(Strategy.voronoi()).climate {
+      temperature(10000).humidity(5000)
+    }
 
     registry.region("voronoi1").area(0.2 * 150.0).parent("cell")
     registry.region("voronoi2").area(0.3 * 150.0).parent("cell")
