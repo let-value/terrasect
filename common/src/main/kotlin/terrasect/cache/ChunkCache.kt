@@ -8,7 +8,6 @@ import terrasect.definition.Region
 import terrasect.generation.Context
 
 class ChunkCache {
-  var cache: Cache? = null
   var grid: GridCache<Region>? = null
 
   constructor(chunk: ChunkAccessExtender) {
@@ -19,20 +18,21 @@ class ChunkCache {
     val dimension = getKeyId(level.dimension())
     val context = Context.get(dimension) ?: return
 
-    // TODO: not used
-    this.cache = Cache()
-    this.grid =
-        GridCache(
-            position.maxBlockX - position.minBlockX,
-            position.maxBlockZ - position.minBlockZ,
-            position.minBlockX,
-            position.minBlockZ,
-        )
+    val baseWidth = position.maxBlockX - position.minBlockX
+    val baseHeight = position.maxBlockZ - position.minBlockZ
+    val originX = position.minBlockX - baseWidth
+    val originZ = position.minBlockZ - baseHeight
+    val width = baseWidth * 3
+    val height = baseHeight * 3
 
-    for (x in position.minBlockX until position.maxBlockX) {
-      for (z in position.minBlockZ until position.maxBlockZ) {
-        val step = context.traverse(x, z, Terrasect.cache)
-        this.grid!!.add(x, z, step.region)
+    this.grid = GridCache(width, height, originX, originZ)
+
+    for (x in 0 until width) {
+      for (z in 0 until height) {
+        val blockX = originX + x
+        val blockZ = originZ + z
+        val step = context.traverse(blockX, blockZ, Terrasect.cache)
+        this.grid!!.add(blockX, blockZ, step.region)
       }
     }
   }

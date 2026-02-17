@@ -11,12 +11,12 @@ open class RegionDefinition(
     var adjacentTo: Set<String>? = null,
     var parent: String? = null,
     val children: MutableSet<String>? = null,
-    val climate: ClimateSettings? = null,
+    val climate: ClimateConstraints? = null,
     val height: HeightConstraints? = null,
     val noise: NoiseConstraints? = null,
-    val biomes: SelectionRules? = null,
-    val structures: SelectionRules? = null,
-    val mobs: SelectionRules? = null,
+    val biomes: SelectionConstraints? = null,
+    val structures: SelectionConstraints? = null,
+    val mobs: SelectionConstraints? = null,
 )
 
 open class RegionBuilder(val registry: RegionRegistry, var name: String) {
@@ -28,17 +28,17 @@ open class RegionBuilder(val registry: RegionRegistry, var name: String) {
   var parent: String? = null
   val childrenLazy = lazy { mutableSetOf<String>() }
   val children by childrenLazy
-  val climateLazyBuilder = lazy { ClimateSettings.builder() }
+  val climateLazyBuilder = lazy { ClimateConstraints.builder() }
   val climateBuilder by climateLazyBuilder
   val heightLazyBuilder = lazy { HeightConstraints.builder() }
   val heightBuilder by heightLazyBuilder
   val noiseLazyBuilder = lazy { NoiseConstraints.builder() }
   val noiseBuilder by noiseLazyBuilder
-  val biomesLazyBuilder = lazy { SelectionRules.builder() }
+  val biomesLazyBuilder = lazy { SelectionConstraints.builder() }
   val biomesBuilder by biomesLazyBuilder
-  val structuresLazyBuilder = lazy { SelectionRules.builder() }
+  val structuresLazyBuilder = lazy { SelectionConstraints.builder() }
   val structuresBuilder by structuresLazyBuilder
-  val mobsLazyBuilder = lazy { SelectionRules.builder() }
+  val mobsLazyBuilder = lazy { SelectionConstraints.builder() }
   val mobsBuilder by mobsLazyBuilder
 
   fun area(budget: Long) = apply { this.budget = budget * budget }
@@ -59,7 +59,7 @@ open class RegionBuilder(val registry: RegionRegistry, var name: String) {
     children.add(name)
   }
 
-  inline fun climate(consumer: ClimateSettings.Builder.() -> Unit) = apply {
+  inline fun climate(consumer: ClimateConstraints.Builder.() -> Unit) = apply {
     climateBuilder.apply(consumer)
   }
 
@@ -71,15 +71,15 @@ open class RegionBuilder(val registry: RegionRegistry, var name: String) {
     noiseBuilder.apply(consumer)
   }
 
-  inline fun biomes(consumer: SelectionRules.Builder.() -> Unit) = apply {
+  inline fun biomes(consumer: SelectionConstraints.Builder.() -> Unit) = apply {
     biomesBuilder.apply(consumer)
   }
 
-  inline fun structures(consumer: SelectionRules.Builder.() -> Unit) = apply {
+  inline fun structures(consumer: SelectionConstraints.Builder.() -> Unit) = apply {
     structuresBuilder.apply(consumer)
   }
 
-  inline fun mobs(consumer: SelectionRules.Builder.() -> Unit) = apply {
+  inline fun mobs(consumer: SelectionConstraints.Builder.() -> Unit) = apply {
     mobsBuilder.apply(consumer)
   }
 

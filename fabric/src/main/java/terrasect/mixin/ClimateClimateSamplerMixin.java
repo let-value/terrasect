@@ -31,6 +31,7 @@ public class ClimateClimateSamplerMixin implements ClimateSamplerExtender {
       return;
     }
     var targetPoint = cir.getReturnValue();
-    ClimateHandler.INSTANCE.modifyClimate(this.terrasect$chunk, x, y, z, targetPoint);
+    var cache = this.terrasect$chunk.terrasect$getCache();
+    ClimateHandler.INSTANCE.modifyClimate(x, y, z, targetPoint, cache);
   }
 }

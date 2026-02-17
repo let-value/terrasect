@@ -5,12 +5,12 @@ class Region(
     val budget: Long,
     val children: Set<Region>,
     val strategy: Strategy? = null,
-    val climate: ClimateSettings? = null,
+    val climate: ClimateConstraints? = null,
     val height: HeightConstraints? = null,
     val noise: NoiseConstraints? = null,
-    val biomes: SelectionRules? = null,
-    val structures: SelectionRules? = null,
-    val mobs: SelectionRules? = null,
+    val biomes: SelectionConstraints? = null,
+    val structures: SelectionConstraints? = null,
+    val mobs: SelectionConstraints? = null,
 ) {
   val hasChildren = children.isNotEmpty()
 

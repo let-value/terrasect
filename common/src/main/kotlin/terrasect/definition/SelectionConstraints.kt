@@ -1,12 +1,12 @@
 package terrasect.definition
 
-class SelectionRules(
-  val allowedMods: Set<String>?,
-  val allowedTags: Set<String>?,
-  val allowedNames: Set<String>?,
-  val blockedMods: Set<String>?,
-  val blockedTags: Set<String>?,
-  val blockedNames: Set<String>?,
+class SelectionConstraints(
+    val allowedMods: Set<String>?,
+    val allowedTags: Set<String>?,
+    val allowedNames: Set<String>?,
+    val blockedMods: Set<String>?,
+    val blockedTags: Set<String>?,
+    val blockedNames: Set<String>?,
 ) {
   fun evaluate(resourceId: String?, tags: Set<String>?): Boolean {
     if (blockedNames?.contains(resourceId) == true) return false
@@ -67,14 +67,14 @@ class SelectionRules(
       blockedNames.addAll(parent.blockedNames)
     }
 
-    fun build(): SelectionRules {
-      return SelectionRules(
-        allowedMods = HashSet(allowedMods),
-        allowedTags = HashSet(allowedTags),
-        allowedNames = HashSet(allowedNames),
-        blockedMods = HashSet(blockedMods),
-        blockedTags = HashSet(blockedTags),
-        blockedNames = HashSet(blockedNames),
+    fun build(): SelectionConstraints {
+      return SelectionConstraints(
+          allowedMods = HashSet(allowedMods),
+          allowedTags = HashSet(allowedTags),
+          allowedNames = HashSet(allowedNames),
+          blockedMods = HashSet(blockedMods),
+          blockedTags = HashSet(blockedTags),
+          blockedNames = HashSet(blockedNames),
       )
     }
   }

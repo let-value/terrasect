@@ -18,7 +18,7 @@ class ClimateRange(val min: Long, val max: Long) {
   fun size() = max - min
 }
 
-data class ClimateSettings(
+data class ClimateConstraints(
     val temperature: ClimateRange? = null,
     val humidity: ClimateRange? = null,
     val continentalness: ClimateRange? = null,
@@ -86,8 +86,8 @@ data class ClimateSettings(
       this.climatePreset = this.climatePreset ?: parent.climatePreset
     }
 
-    fun build(): ClimateSettings =
-        ClimateSettings(
+    fun build(): ClimateConstraints =
+        ClimateConstraints(
             temperature = temperature,
             humidity = humidity,
             continentalness = continentalness,

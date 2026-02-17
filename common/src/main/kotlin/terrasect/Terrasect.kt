@@ -14,14 +14,16 @@ object Terrasect {
 
   fun init() {
     registry.setRoot("minecraft:overworld", "hex")
-    registry.region("hex").area(1000).strategy(Strategy.hex("border").tiling(false))
-    registry.region("cell").parent("hex").strategy(Strategy.voronoi()).climate {
-      temperature(10000).humidity(5000)
-    }
+    registry.region("hex").area(150).strategy(Strategy.hex().tiling(true))
+    registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
-    registry.region("voronoi1").area(30).parent("cell")
-    registry.region("voronoi2").area(45).parent("cell")
-    registry.region("voronoi3").area(75).parent("cell")
+    registry.region("voronoi1").area(30).parent("cell").climate {
+      temperature(10000).humidity(-5000)
+    }
+    registry.region("voronoi2").area(45).parent("cell").climate { temperature(0).humidity(0) }
+    registry.region("voronoi3").area(75).parent("cell").climate {
+      temperature(-10000).humidity(5000)
+    }
 
     registry.region("border").area(500)
 

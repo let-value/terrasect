@@ -37,11 +37,11 @@ class GridCache<T>(
     cells[cell] = paletteIndex(value)
   }
 
-  fun get(x: Int, z: Int): T {
+  fun get(x: Int, z: Int): T? {
     val cell = idx(x, z)
     val pi = cells[cell]
     if (pi == -1) {
-      throw NoSuchElementException("No value found for coordinates ($x, $z)")
+      return null
     }
     return palette[pi]
   }

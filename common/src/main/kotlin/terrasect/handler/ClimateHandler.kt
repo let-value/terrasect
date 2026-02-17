@@ -2,17 +2,15 @@ package terrasect.handler
 
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
-import terrasect.ChunkAccessExtender
 import terrasect.ClimateTargetPointExtender
-import terrasect.definition.ClimateRange
+import terrasect.cache.ChunkCache
 import terrasect.generation.Context
-import terrasect.utils.packPair
 import kotlin.math.max
 import kotlin.math.min
 
 object ClimateHandler {
-  fun getInfluence(context: Context, x: Int, z: Int): Long {
-    if (context.biomesClimate == null) return 0
+  fun getInfluence(context: Context, x: Int, z: Int): Pair<Float, Float> {
+    if (context.biomesClimate == null) return 0f to 0f
 
     val target = context.sampler.sample(x shr 2, 16, z shr 2)
 
@@ -24,37 +22,43 @@ object ClimateHandler {
     val normalized = (weirdness + 10000.0f) / 20000.0f
     val ridge = max(0.0f, min(1.0f, normalized))
 
-    return packPair(river.toRawBits(), ridge.toRawBits())
+    return Pair(river, ridge)
   }
 
   fun modifyClimate(
-      chunk: ChunkAccessExtender,
       quadX: Int,
       quadY: Int,
       quadZ: Int,
-      original: Climate.TargetPoint,
+      climate: Climate.TargetPoint,
+      cache: ChunkCache,
   ) {
-    val grid = chunk.`terrasect$getCache`()?.grid ?: return
+    val grid = cache.grid ?: return
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
     val region = grid.get(blockX, blockZ) ?: return
-    val climate = region.climate ?: return
+    val constraints = region.climate ?: return
 
-    @Suppress("CAST_NEVER_SUCCEEDS") val extender = original as ClimateTargetPointExtender
+    @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender
 
-    climate.temperature?.let {
-      extender.`terrasect$setTemperature`(mapToRange(it, original.temperature))
+    constraints.temperature?.let { range ->
+      extender.`terrasect$setTemperature`(climate.temperature.coerceIn(range.min, range.max))
     }
-    climate.humidity?.let { extender.`terrasect$setHumidity`(mapToRange(it, original.humidity)) }
-    climate.continentalness?.let {
-      extender.`terrasect$setContinentalness`(mapToRange(it, original.continentalness))
+    constraints.humidity?.let { range ->
+      extender.`terrasect$setHumidity`(climate.humidity.coerceIn(range.min, range.max))
     }
-    climate.erosion?.let { extender.`terrasect$setErosion`(mapToRange(it, original.erosion)) }
-    climate.depth?.let { extender.`terrasect$setDepth`(mapToRange(it, original.depth)) }
-    climate.weirdness?.let { extender.`terrasect$setWeirdness`(mapToRange(it, original.weirdness)) }
-  }
-
-  private fun mapToRange(range: ClimateRange, original: Long): Long {
-    return original.coerceIn(range.min, range.max)
+    constraints.continentalness?.let { range ->
+      extender.`terrasect$setContinentalness`(
+          climate.continentalness.coerceIn(range.min, range.max)
+      )
+    }
+    constraints.erosion?.let { range ->
+      extender.`terrasect$setErosion`(climate.erosion.coerceIn(range.min, range.max))
+    }
+    constraints.depth?.let { range ->
+      extender.`terrasect$setDepth`(climate.depth.coerceIn(range.min, range.max))
+    }
+    constraints.weirdness?.let { range ->
+      extender.`terrasect$setWeirdness`(climate.weirdness.coerceIn(range.min, range.max))
+    }
   }
 }
