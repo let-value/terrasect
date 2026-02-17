@@ -32,6 +32,12 @@
         "value": "terrasect.TerrasectFabricDataGenerator",
         "adapter": "kotlin"
       }
+    ],
+    "fabric-client-gametest": [
+      {
+        "value": "terrasect.TerrasectFabricClientGameTest",
+        "adapter": "kotlin"
+      }
     ]
   },
   "mixins": [

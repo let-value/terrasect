@@ -34,6 +34,14 @@ fabricApi {
     configureDataGeneration {
         client = true
     }
+
+    configureTests {
+        createSourceSet = true
+        modId = "${mod_id}-tests"
+        enableClientGameTests = true
+        eula = true
+        clearRunDirectory = true
+    }
 }
 
 remapJar {
@@ -49,7 +57,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${fabric_kotlin_version}"
 
     //modImplementation "maven.modrinth:c2me-fabric:0.3.7+alpha.0.7+1.21.11"
-    modImplementation "maven.modrinth:distanthorizons:2.4.5-b-1.21.11"
+    //modImplementation "maven.modrinth:distanthorizons:2.4.5-b-1.21.11"
 
     implementation project(':common')
 }
