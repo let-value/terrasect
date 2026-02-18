@@ -34,6 +34,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
+    step.id.putChar(Strategy.ID)
     step.id.put(discriminator)
 
     val split = getCachedSplit(step)

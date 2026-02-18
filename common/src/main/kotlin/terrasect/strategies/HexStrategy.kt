@@ -49,6 +49,7 @@ class HexStrategy(
     val apothem = areaToApothem(step.region.budget)
     val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0f
 
+    step.id.putChar(Strategy.ID)
     step.id.put(discriminator)
     val cell = getCachedCell(step, apothem, gap)
 

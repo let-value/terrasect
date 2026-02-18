@@ -3,6 +3,7 @@ package terrasect.generation
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import terrasect.cache.Cache
+import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
 import terrasect.sdf.*
@@ -16,6 +17,8 @@ private const val HEIGHT = 240
 private const val DX = WIDTH / 2
 private const val DZ = HEIGHT / 2
 
+class Mock(override val seed: Long, override val root: Region) : Traverse, Locate
+
 class TraverseTest {
   companion object {
     val registry = RegionRegistry()
@@ -23,7 +26,7 @@ class TraverseTest {
     @BeforeAll
     @JvmStatic
     fun setup() {
-      registry.region("hex").area(150).strategy(Strategy.hex().tiling())
+      registry.region("hex").area(150).strategy(Strategy.hex())
       registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
       registry.region("voronoi1").area(30).parent("cell")
@@ -40,7 +43,7 @@ class TraverseTest {
   fun `should iterate`() {
     val root = registry.buildTree("hex")
 
-    val traverse = Traverse(SEED, root)
+    val traverse = Mock(SEED, root)
     val step = traverse.iterate(0, 0)
     renderSnapshot("step0.png", step.sdf)
 
@@ -82,7 +85,7 @@ class TraverseTest {
   fun `should iterate with cache`() {
     val root = registry.buildTree("hex")
     val cache = Cache()
-    val traverse = Traverse(SEED, root)
+    val traverse = Mock(SEED, root)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
 
@@ -97,6 +100,17 @@ class TraverseTest {
     }
 
     writeSnapshotPng(TraverseTest::class.java, "cached.png", image)
+  }
+
+  @Test
+  fun `should traverse`() {
+    val root = registry.buildTree("hex")
+    val traverse = Mock(SEED, root)
+
+    val step = traverse.traverse(0, 0)
+    renderSnapshot("traverse1.png", step.sdf)
+
+    val id = traverse.serialize(step.id)
   }
 
   private fun renderSnapshot(name: String, sdf: Sdf2) {

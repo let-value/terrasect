@@ -12,6 +12,7 @@ class Region(
     val structures: SelectionConstraints? = null,
     val mobs: SelectionConstraints? = null,
 ) {
+  val bytes = name.toByteArray()
   val hasChildren = children.isNotEmpty()
 
   companion object {

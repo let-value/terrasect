@@ -14,11 +14,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 class Context(
     val dimensionId: String,
-    seed: Long,
-    root: Region,
+    override val seed: Long,
+    override val root: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
-) : Traverse(seed, root) {
+) : Traverse, Locate {
   companion object {
     val byDimension = ConcurrentHashMap<String, Context>()
 

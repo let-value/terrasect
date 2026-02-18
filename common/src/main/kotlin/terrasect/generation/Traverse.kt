@@ -1,15 +1,15 @@
 package terrasect.generation
 
-import java.nio.ByteBuffer
 import terrasect.cache.Cache
 import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
+import java.nio.ByteBuffer
 
-open class Traverse(
-    val seed: Long,
-    val root: Region,
-) {
+interface Traverse {
+  val seed: Long
+  val root: Region
+
   val iterator: ThreadLocal<TraversalStep>
     get() = ThreadLocal.withInitial { TraversalStep(this) }
 
@@ -61,7 +61,10 @@ class TraversalStep(val traverse: Traverse) {
 
     val step = region.strategy?.traverse(this) ?: return null
 
+    step.id.putChar(Strategy.REGION)
+    step.id.put(step.region.bytes)
     step.id.putChar(Strategy.SEPARATOR)
+
     return step
   }
 }

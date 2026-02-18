@@ -39,6 +39,7 @@ class SurroundStrategy(
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
+    step.id.putChar(Strategy.ID)
     step.id.put(discriminator)
 
     val origin = getCachedOrigin(step)

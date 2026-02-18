@@ -28,16 +28,14 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    val x = step.x
-    val z = step.z
-
+    step.id.putChar(Strategy.ID)
     step.id.put(discriminator)
 
     val seed = getCellSeed(step.traverse.seed, step.id)
     step.id.putInt(seed)
 
     val sites = getCachedSites(seed, step)
-    val index = getCellIndex(x, z, sites)
+    val index = getCellIndex(step.x, step.z, sites)
 
     step.id.putInt(index)
 
@@ -46,7 +44,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
     sdf.index = index
     step.sdf.append(sdf)
 
-    val dist = sdf(x, z)
+    val dist = sdf(step.x, step.z)
 
     step.distance = max(step.distance, dist)
     step.region = children[index]

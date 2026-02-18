@@ -12,10 +12,10 @@
       "projectName": "common",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\common\\build\\moddev\\clientRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\common\\build\\moddev\\clientRunVmArgs.txt",
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\clientRunVmArgs.txt",
         "-Dfml.modFolders\u003d"
       ],
       "cwd": "${workspaceFolder}\\common\\run",
@@ -34,10 +34,10 @@
       "projectName": "common",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverRunVmArgs.txt",
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\serverRunVmArgs.txt",
         "-Dfml.modFolders\u003d"
       ],
       "cwd": "${workspaceFolder}\\common\\run",
@@ -56,10 +56,10 @@
       "projectName": "common",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverDataRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\serverDataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\common\\build\\moddev\\serverDataRunVmArgs.txt",
+        "@D:\\repos\\terrasect\\common\\build\\moddev\\serverDataRunVmArgs.txt",
         "-Dfml.modFolders\u003d"
       ],
       "cwd": "${workspaceFolder}\\common\\run",
@@ -78,11 +78,11 @@
       "projectName": "neoforge",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\repos\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\repos\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
@@ -100,11 +100,11 @@
       "projectName": "neoforge",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\dataRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\dataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\dataRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\repos\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\repos\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
@@ -122,11 +122,11 @@
       "projectName": "neoforge",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\repos\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\repos\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
@@ -144,11 +144,11 @@
       "projectName": "neoforge",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@D:\\terrasect\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dterrasect%%D:\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\terrasect\\common\\bin\\main"
+        "@D:\\repos\\terrasect\\neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dterrasect%%D:\\repos\\terrasect\\neoforge\\bin\\main;terrasect%%D:\\repos\\terrasect\\common\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\neoforge\\run",
       "env": {},
