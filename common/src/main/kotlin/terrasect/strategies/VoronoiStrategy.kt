@@ -28,7 +28,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    step.id.putChar(Strategy.ID)
+    step.id.put(Strategy.ID)
     step.id.put(discriminator)
 
     val seed = getCellSeed(step.traverse.seed, step.id)

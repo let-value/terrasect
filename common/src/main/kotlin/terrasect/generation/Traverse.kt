@@ -61,9 +61,9 @@ class TraversalStep(val traverse: Traverse) {
 
     val step = region.strategy?.traverse(this) ?: return null
 
-    step.id.putChar(Strategy.REGION)
+    step.id.put(Strategy.REGION)
     step.id.put(step.region.bytes)
-    step.id.putChar(Strategy.SEPARATOR)
+    step.id.put(Strategy.SEPARATOR)
 
     return step
   }

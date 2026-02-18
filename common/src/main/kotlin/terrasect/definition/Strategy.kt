@@ -22,9 +22,9 @@ interface Strategy {
   fun traverse(step: TraversalStep): TraversalStep
 
   companion object {
-    const val ID: Char = '#'
-    const val REGION: Char = '.'
-    const val SEPARATOR: Char = ' '
+    const val ID: Byte = '#'.code.toByte()
+    const val REGION: Byte = '.'.code.toByte()
+    const val SEPARATOR: Byte = ' '.code.toByte()
 
     fun hex(ringRegionName: String? = null) = HexStrategy.builder(ringRegionName)
 

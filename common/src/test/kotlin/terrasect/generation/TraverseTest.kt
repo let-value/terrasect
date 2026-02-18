@@ -17,7 +17,7 @@ private const val HEIGHT = 240
 private const val DX = WIDTH / 2
 private const val DZ = HEIGHT / 2
 
-class Mock(override val seed: Long, override val root: Region) : Traverse, Locate
+class Mock(override val seed: Long, override val root: Region) : Traverse, Address
 
 class TraverseTest {
   companion object {

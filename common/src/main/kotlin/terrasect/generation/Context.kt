@@ -18,7 +18,7 @@ class Context(
     override val root: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
-) : Traverse, Locate {
+) : Traverse, Address {
   companion object {
     val byDimension = ConcurrentHashMap<String, Context>()
 
