@@ -2,16 +2,11 @@ package terrasect.generation
 
 import terrasect.cache.Cache
 import terrasect.definition.Region
-import terrasect.definition.Strategy
 import terrasect.sdf.SdfCompose
 import java.nio.ByteBuffer
 
-interface Traverse {
-  val seed: Long
-  val root: Region
-
-  val iterator: ThreadLocal<TraversalStep>
-    get() = ThreadLocal.withInitial { TraversalStep(this) }
+class Traverser(val seed: Long, val root: Region) {
+  val iterator: ThreadLocal<TraversalStep> = ThreadLocal.withInitial { TraversalStep(this) }
 
   fun iterate(x: Int, z: Int, cache: Cache? = null): TraversalStep {
     val step = this.iterator.get()
@@ -31,12 +26,12 @@ interface Traverse {
   }
 }
 
-class TraversalStep(val traverse: Traverse) {
+class TraversalStep(val traverser: Traverser) {
   val id: ByteBuffer = ByteBuffer.allocate(256)
   val sdf = SdfCompose()
 
   var cache: Cache? = null
-  var region: Region = traverse.root
+  var region: Region = traverser.root
   var x: Int = 0
   var z: Int = 0
   var distance: Float = Float.NEGATIVE_INFINITY
@@ -46,7 +41,7 @@ class TraversalStep(val traverse: Traverse) {
     this.sdf.reset()
 
     this.cache = cache
-    this.region = traverse.root
+    this.region = traverser.root
     this.x = x
     this.z = z
     this.distance = Float.NEGATIVE_INFINITY
@@ -59,12 +54,6 @@ class TraversalStep(val traverse: Traverse) {
       return null
     }
 
-    val step = region.strategy?.traverse(this) ?: return null
-
-    step.id.put(Strategy.REGION)
-    step.id.put(step.region.bytes)
-    step.id.put(Strategy.SEPARATOR)
-
-    return step
+    return region.strategy?.traverse(this)
   }
 }

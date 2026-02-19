@@ -3,7 +3,6 @@ package terrasect.generation
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import terrasect.cache.Cache
-import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
 import terrasect.sdf.*
@@ -17,9 +16,7 @@ private const val HEIGHT = 240
 private const val DX = WIDTH / 2
 private const val DZ = HEIGHT / 2
 
-class Mock(override val seed: Long, override val root: Region) : Traverse, Address
-
-class TraverseTest {
+class TraverserTest {
   companion object {
     val registry = RegionRegistry()
 
@@ -43,7 +40,7 @@ class TraverseTest {
   fun `should iterate`() {
     val root = registry.buildTree("hex")
 
-    val traverse = Mock(SEED, root)
+    val traverse = Traverser(SEED, root)
     val step = traverse.iterate(0, 0)
     renderSnapshot("step0.png", step.sdf)
 
@@ -55,7 +52,7 @@ class TraverseTest {
       sdf.append(step.sdf)
       sdf.append(voronoi)
 
-      val cellSeed = VoronoiStrategy.getCellSeed(step.traverse.seed, step.id)
+      val cellSeed = VoronoiStrategy.getCellSeed(step.traverser.seed, step.id)
       val sites =
           VoronoiStrategy.getSites(
               cellSeed,
@@ -71,7 +68,7 @@ class TraverseTest {
         drawSdf(image, translate(sdf, DX, DZ))
       }
       drawSites(image, sites.map { site -> Site(site.x + DX, site.z + DZ, site.radius) })
-      writeSnapshotPng(TraverseTest::class.java, "step1_5.png", image)
+      writeSnapshotPng(TraverserTest::class.java, "step1_5.png", image)
     }
 
     step.next()
@@ -85,7 +82,7 @@ class TraverseTest {
   fun `should iterate with cache`() {
     val root = registry.buildTree("hex")
     val cache = Cache()
-    val traverse = Mock(SEED, root)
+    val traverse = Traverser(SEED, root)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
 
@@ -99,23 +96,21 @@ class TraverseTest {
       }
     }
 
-    writeSnapshotPng(TraverseTest::class.java, "cached.png", image)
+    writeSnapshotPng(TraverserTest::class.java, "cached.png", image)
   }
 
   @Test
   fun `should traverse`() {
     val root = registry.buildTree("hex")
-    val traverse = Mock(SEED, root)
+    val traverse = Traverser(SEED, root)
 
     val step = traverse.traverse(0, 0)
-    renderSnapshot("traverse1.png", step.sdf)
-
-    val id = traverse.serialize(step.id)
+    renderSnapshot("traverse.png", step.sdf)
   }
 
   private fun renderSnapshot(name: String, sdf: Sdf2) {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawSdf(image, translate(sdf, DX, DZ))
-    writeSnapshotPng(TraverseTest::class.java, name, image)
+    writeSnapshotPng(TraverserTest::class.java, name, image)
   }
 }

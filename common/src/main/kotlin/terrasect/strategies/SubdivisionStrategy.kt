@@ -1,11 +1,11 @@
 package terrasect.strategies
 
-import kotlin.math.max
 import terrasect.definition.*
 import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
 import terrasect.sdf.estimateBounds
+import kotlin.math.max
 
 private val discriminator = StrategyId.SUBDIVISION.value
 
@@ -34,13 +34,12 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
-
     val split = getCachedSplit(step)
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
+    step.id.put(Strategy.ID)
+    step.id.put(discriminator)
     step.id.putInt(index)
 
     val sdf = cellSdfRef.get()

@@ -31,7 +31,7 @@ class ChunkCache {
       for (z in 0 until height) {
         val blockX = originX + x
         val blockZ = originZ + z
-        val step = context.traverse(blockX, blockZ, Terrasect.cache)
+        val step = context.traverser.traverse(blockX, blockZ, Terrasect.cache)
         this.grid!!.add(blockX, blockZ, step.region)
       }
     }

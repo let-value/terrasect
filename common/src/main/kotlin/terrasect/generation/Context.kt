@@ -14,13 +14,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 class Context(
     val dimensionId: String,
-    override val seed: Long,
-    override val root: Region,
+    val seed: Long,
+    val root: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
-) : Traverse, Address {
+) {
+  val traverser = Traverser(seed, root)
+  val locator = Locator(seed, root)
+
   companion object {
-    val byDimension = ConcurrentHashMap<String, Context>()
+    val map = ConcurrentHashMap<String, Context>()
 
     fun register(
         dimension: ResourceKey<Level>,
@@ -36,9 +39,9 @@ class Context(
       val root = Terrasect.registry.buildTree(name)
 
       val context = Context(dimensionId, seed, root, sampler, biomesClimate)
-      byDimension[dimensionId] = context
+      map[dimensionId] = context
     }
 
-    fun get(dimensionId: String): Context? = byDimension[dimensionId]
+    fun get(dimensionId: String): Context? = map[dimensionId]
   }
 }

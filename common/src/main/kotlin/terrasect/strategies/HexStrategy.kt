@@ -49,10 +49,10 @@ class HexStrategy(
     val apothem = areaToApothem(step.region.budget)
     val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0f
 
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
     val cell = getCachedCell(step, apothem, gap)
 
+    step.id.put(Strategy.ID)
+    step.id.put(discriminator)
     step.id.putInt(cell.q)
     step.id.putInt(cell.r)
 
@@ -73,8 +73,7 @@ class HexStrategy(
 
     val distance = step.sdf(step.x, step.z)
     step.distance = max(step.distance, distance)
-
-    step.region = (if (cell.isGap && ringRegion != null) ringRegion else children)
+    step.region = if (cell.isGap && ringRegion != null) ringRegion else children
 
     return step
   }

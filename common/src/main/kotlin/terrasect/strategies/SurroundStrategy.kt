@@ -39,9 +39,6 @@ class SurroundStrategy(
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
-
     val origin = getCachedOrigin(step)
     val isCenter =
         surroundDistance(
@@ -54,6 +51,8 @@ class SurroundStrategy(
             smoothing,
         ) <= 0.0
 
+    step.id.put(Strategy.ID)
+    step.id.put(discriminator)
     step.id.putInt(origin.centerX)
     step.id.putInt(origin.centerZ)
 
