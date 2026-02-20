@@ -27,9 +27,10 @@ neoForge {
 dependencies {
     //implementation("it.unimi.dsi:fastutil-core:8.5.18") included by minecraft
     testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
-    
-    embedded("net.openhft:zero-allocation-hashing:0.27ea1")
-    embedded("com.github.ben-manes.caffeine:caffeine:3.2.3")
+
+    implementation("net.openhft:zero-allocation-hashing:0.27ea1")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    implementation("com.github.komputing:kbase58:0.4")
 
     testImplementation(platform("org.junit:junit-bom:5.11.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")

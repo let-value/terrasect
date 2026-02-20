@@ -16,6 +16,7 @@ data class SubdivisionSplit(
 )
 
 class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) : Strategy {
+  val id = Strategy.SEQUENCE++
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
   fun getCachedSplit(step: TraversalStep): SubdivisionSplit {
@@ -38,8 +39,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
+    step.id.put(id)
     step.id.putInt(index)
 
     val sdf = cellSdfRef.get()

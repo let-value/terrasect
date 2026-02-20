@@ -5,12 +5,11 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
-import org.jetbrains.annotations.NotNull;
 
 public interface MultiNoiseBiomeSourceExtender {
 
   Either<
-          Climate.ParameterList<@NotNull Holder<@NotNull Biome>>,
-          Holder<@NotNull MultiNoiseBiomeSourceParameterList>>
+          Climate.ParameterList<Holder<Biome>>,
+          Holder<MultiNoiseBiomeSourceParameterList>>
       terrasect$getParameters();
 }

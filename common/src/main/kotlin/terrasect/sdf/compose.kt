@@ -18,6 +18,7 @@ class SdfCompose : Sdf2 {
     for (i in 0..count) {
       layers[i] = EmptySdf
     }
+    count = 0
   }
 
   override fun invoke(x: Int, z: Int): Float {

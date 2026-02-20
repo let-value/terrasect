@@ -1,6 +1,8 @@
 package terrasect.generation
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import terrasect.generation.TraverserTest.Companion.registry
 import java.nio.ByteBuffer
 
 class AddressTest {
@@ -33,6 +35,58 @@ class AddressTest {
     buffer.put("surround".toByteArray())
     buffer.put(' '.code.toByte())
 
-    val str = Address.serialize(buffer)
+    val actual = Address.serialize(buffer)
+    assertEquals(
+        "wyv8SyjznNZnLVeABWfKHrHbnWN5LGXSgtN5Qgh6CifvHBY7rSX3HhRJHbfvc2rTvzmkAiBmjsHh",
+        actual,
+    )
+  }
+
+  @Test
+  fun `should serialize traverse step`() {
+    val root = registry.buildTree("hex")
+    val traverse = Traverser(1234L, root)
+
+    val step = traverse.iterate(0, 0)
+    assertEquals("", Address.serialize(step.id))
+
+    step.next()
+    assertEquals("2ifcHuzaRTb8s", Address.serialize(step.id))
+
+    step.next()
+    assertEquals("6bmNjQVMQ4mPVdAT7YY3uquR1", Address.serialize(step.id))
+
+    step.next()
+    assertEquals("KFGBU6iK4Ez6dyTNw1avoSsFadpyCe262MbrX", Address.serialize(step.id))
+  }
+
+  @Test
+  fun `should deserialize traverse step`() {
+    val root = registry.buildTree("hex")
+    val traverse = Traverser(1234L, root)
+
+    val step = traverse.iterate(0, 0)
+    var actual = Address.deserialize(Address.serialize(step.id))
+    for (i in 0..<step.id.position()) {
+      assertEquals(step.id[i], actual[i])
+    }
+
+    step.next()
+    actual = Address.deserialize(Address.serialize(step.id))
+    for (i in 0..<step.id.position()) {
+      assertEquals(step.id[i], actual[i])
+    }
+
+    step.next()
+    actual = Address.deserialize(Address.serialize(step.id))
+    for (i in 0..<step.id.position()) {
+      assertEquals(step.id[i], actual[i])
+    }
+
+    step.next()
+    actual = Address.deserialize(Address.serialize(step.id))
+    for (i in 0..<step.id.position()) {
+      assertEquals(step.id[i], actual[i])
+    }
   }
 }

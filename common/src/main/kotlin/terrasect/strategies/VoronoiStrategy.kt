@@ -10,6 +10,7 @@ import kotlin.math.max
 private val discriminator = StrategyId.VORONOI.value
 
 class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Strategy {
+  val id = Strategy.SEQUENCE++
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
   fun getCachedSites(seed: Int, step: TraversalStep): List<Site> {
@@ -32,8 +33,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
     val sites = getCachedSites(seed, step)
     val index = getCellIndex(step.x, step.z, sites)
 
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
+    step.id.put(id)
     step.id.putInt(seed)
     step.id.putInt(index)
 

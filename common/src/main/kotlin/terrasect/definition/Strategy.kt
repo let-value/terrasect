@@ -19,9 +19,12 @@ interface StrategySettings {
 }
 
 interface Strategy {
+
   fun traverse(step: TraversalStep): TraversalStep
 
   companion object {
+    var SEQUENCE: Byte = Byte.MIN_VALUE
+
     const val ID: Byte = '#'.code.toByte()
     const val REGION: Byte = '.'.code.toByte()
     const val SEPARATOR: Byte = ' '.code.toByte()

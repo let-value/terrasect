@@ -1,6 +1,5 @@
 package terrasect.generation
 
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import terrasect.cache.Cache
 import terrasect.definition.RegionRegistry
@@ -20,9 +19,7 @@ class TraverserTest {
   companion object {
     val registry = RegionRegistry()
 
-    @BeforeAll
-    @JvmStatic
-    fun setup() {
+    init {
       registry.region("hex").area(150).strategy(Strategy.hex())
       registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 

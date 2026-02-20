@@ -1,16 +1,15 @@
 package terrasect.generation
 
+import org.komputing.kbase58.decodeBase58
+import org.komputing.kbase58.encodeToBase58String
 import java.nio.ByteBuffer
 
 object Address {
   fun serialize(buffer: ByteBuffer): String {
-    val length = buffer.position()
-    val sb = StringBuilder(length)
+    return buffer.array().slice(0..<buffer.position()).toByteArray().encodeToBase58String()
+  }
 
-    for (i in 0 until length) {
-      sb.append(buffer.get(i).toInt().toChar())
-    }
-
-    return sb.toString()
+  fun deserialize(address: String): ByteBuffer {
+    return ByteBuffer.wrap(address.decodeBase58())
   }
 }

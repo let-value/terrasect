@@ -20,6 +20,7 @@ class SurroundStrategy(
     val scale: Float,
     val smoothing: Float,
 ) : Strategy {
+  val id = Strategy.SEQUENCE++
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
@@ -51,8 +52,7 @@ class SurroundStrategy(
             smoothing,
         ) <= 0.0
 
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
+    step.id.put(id)
     step.id.putInt(origin.centerX)
     step.id.putInt(origin.centerZ)
 

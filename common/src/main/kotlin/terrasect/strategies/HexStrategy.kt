@@ -22,6 +22,7 @@ class HexStrategy(
     val children: Region,
     val ringRegion: Region? = null,
 ) : Strategy {
+  val id = Strategy.SEQUENCE++
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
@@ -51,8 +52,7 @@ class HexStrategy(
 
     val cell = getCachedCell(step, apothem, gap)
 
-    step.id.put(Strategy.ID)
-    step.id.put(discriminator)
+    step.id.put(id)
     step.id.putInt(cell.q)
     step.id.putInt(cell.r)
 
