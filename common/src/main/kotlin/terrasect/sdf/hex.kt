@@ -13,7 +13,7 @@ const val TWO_THIRDS = 2f / 3f
 
 fun areaToApothem(area: Long): Float = sqrt(area / (2f * SQRT3))
 
-fun hexSpacing(apothem: Float, gap: Float = 0f): Float = apothem + gap.coerceAtLeast(0f)
+fun hexSpacing(apothem: Float, gap: Float = 0f): Float = (apothem + gap.coerceAtLeast(0f)) / SIN60
 
 fun hexCenterX(q: Int, r: Int, spacing: Float): Int = ((SQRT3 * q + SIN60 * r) * spacing).toInt()
 

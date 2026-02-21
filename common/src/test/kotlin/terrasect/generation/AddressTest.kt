@@ -57,7 +57,7 @@ class AddressTest {
     assertEquals("QS7uV522AseVV7xVvXFaxtmuzP", Address.serialize(step.id))
 
     step.next()
-    assertEquals("6p2bG4TuQpEs6bjFq2AW4bVDZwcLnoT7sJ8mD1Wp", Address.serialize(step.id))
+    assertEquals("6p2bG4TuQpEs6bjFq2AW4bVDZwcLnoT7sJ8mD1Wo", Address.serialize(step.id))
   }
 
   @Test

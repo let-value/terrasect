@@ -52,7 +52,7 @@ class VoronoiStrategy(
     sdf.index = index
     step.sdf.append(sdf)
 
-    val dist = sdf(step.x, step.z)
+    val dist = step.sdf(step.x, step.z)
 
     step.distance = max(step.distance, dist)
     step.region = children[index]

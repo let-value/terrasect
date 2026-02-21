@@ -1,12 +1,16 @@
 package terrasect.generation
 
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.cache.Cache
+import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
 import terrasect.sdf.*
 import terrasect.strategies.VoronoiStrategy
 import terrasect.testing.writeSnapshotPng
+import java.awt.Color
 import java.awt.image.BufferedImage
 
 private const val SEED = 1234L
@@ -81,19 +85,56 @@ class TraverserTest {
     val cache = Cache()
     val traverse = Traverser(SEED, root)
 
-    val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+    val borders = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+    val distances = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
+    val regions = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
 
-    for (x in 0 until image.width) {
-      for (z in 0 until image.height) {
+    for (x in 0 until borders.width) {
+      for (z in 0 until borders.height) {
         val step = traverse.traverse(x - DX, z - DZ, cache)
-        val color = distanceColor(step.distance)
-        if (color != null) {
-          image.setRGB(x, z, color)
-        }
+        val borderColor = distanceColor(step.distance)
+        assertNotNull(borderColor, "$x, $z: ${step.distance}")
+        val pathColor = traversalPathColor(traversalIdHash(step.id))
+
+        borders.setRGB(x, z, borderColor!!)
+        distances.setRGB(x, z, colorForSignedDistance(step.distance, 20f))
+        regions.setRGB(x, z, pathColor)
       }
     }
 
-    writeSnapshotPng(TraverserTest::class.java, "cached.png", image)
+    writeSnapshotPng(TraverserTest::class.java, "borders.png", borders)
+    writeSnapshotPng(TraverserTest::class.java, "distances.png", distances)
+    writeSnapshotPng(TraverserTest::class.java, "regions.png", regions)
+  }
+
+  @Test
+  fun `should keep nested traversal inside parent bounds with cache`() {
+    val root = registry.buildTree("hex")
+    val cache = Cache()
+    val traverser = Traverser(SEED, root)
+    val maxDepth = maxStrategyDepth(root)
+
+    var parentDistances: Array<FloatArray>? = null
+    val epsilon = 1e-4f
+
+    for (depth in 1..maxDepth) {
+      val currentDistances = Array(WIDTH) { FloatArray(HEIGHT) }
+
+      for (x in 0 until WIDTH) {
+        for (z in 0 until HEIGHT) {
+          val step = traverser.iterate(x - DX, z - DZ, cache)
+          traverseToDepth(step, depth)
+          currentDistances[x][z] = step.distance
+          val parentDistance = parentDistances?.get(x)?.get(z) ?: continue
+          assertTrue(
+              step.distance + epsilon >= parentDistance,
+              "distance violated parent bounds at $x,$z depth=$depth parent=$parentDistance child=${step.distance}",
+          )
+        }
+      }
+
+      parentDistances = currentDistances
+    }
   }
 
   @Test
@@ -109,5 +150,45 @@ class TraverserTest {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     drawSdf(image, translate(sdf, DX, DZ))
     writeSnapshotPng(TraverserTest::class.java, name, image)
+  }
+
+  private fun traverseToDepth(step: TraversalStep, depth: Int): TraversalStep {
+    var current = step
+    repeat(depth) {
+      val next = current.next() ?: return current
+      current = next
+    }
+    return current
+  }
+
+  private fun maxStrategyDepth(region: Region): Int {
+    if (!region.hasChildren) {
+      return 0
+    }
+    return 1 + region.children.maxOf { maxStrategyDepth(it) }
+  }
+
+  private fun traversalIdHash(id: java.nio.ByteBuffer): Int {
+    val len = id.position()
+    var hash = 1
+    for (i in 0 until len) {
+      hash = 31 * hash + id[i]
+    }
+    return hash
+  }
+
+  private fun traversalPathColor(idHash: Int): Int {
+    var h = idHash
+    h = h xor (h ushr 16)
+    h *= 0x7feb352d
+    h = h xor (h ushr 15)
+    h *= 0x846ca68b.toInt()
+    h = h xor (h ushr 16)
+
+    val hue = ((h ushr 1) and 0x3FF) / 1024f
+    val saturation = 0.62f + (((h ushr 11) and 0x1F) / 255f)
+    val brightness = 0.58f + (((h ushr 16) and 0x3F) / 255f)
+
+    return Color.HSBtoRGB(hue, saturation.coerceIn(0f, 1f), brightness.coerceIn(0f, 1f))
   }
 }
