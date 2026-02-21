@@ -51,13 +51,13 @@ class AddressTest {
     assertEquals("", Address.serialize(step.id))
 
     step.next()
-    assertEquals("2ifcHuzaRTb8s", Address.serialize(step.id))
+    assertEquals("8C6SYbeQ2LQTpB", Address.serialize(step.id))
 
     step.next()
-    assertEquals("6bmNjQVMQ4mPVdAT7YY3uquR1", Address.serialize(step.id))
+    assertEquals("QS7uV522AseVV7xVvXFaxtmuzP", Address.serialize(step.id))
 
     step.next()
-    assertEquals("KFGBU6iK4Ez6dyTNw1avoSsFadpyCe262MbrX", Address.serialize(step.id))
+    assertEquals("6p2bG4TuQpEs6bjFq2AW4bVDZwcLnoT7sJ8mD1Wp", Address.serialize(step.id))
   }
 
   @Test

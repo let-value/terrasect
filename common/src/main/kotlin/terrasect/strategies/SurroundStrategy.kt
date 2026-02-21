@@ -1,59 +1,63 @@
 package terrasect.strategies
 
+import java.nio.ByteBuffer
+import kotlin.math.max
+import terrasect.cache.Cache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
 import terrasect.definition.StrategySettings
+import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
-import java.nio.ByteBuffer
-import kotlin.math.max
 
 data class SurroundOriginResult(
     var centerX: Int = 0,
     var centerZ: Int = 0,
+    var isCenter: Boolean = false,
     var parent: Sdf2 = EmptySdf,
 )
 
 class SurroundStrategy(
+    override val id: Byte,
     val center: Region,
     val surround: Region,
     val scale: Float,
     val smoothing: Float,
 ) : Strategy {
-  val id = Strategy.SEQUENCE++
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
-  fun getCachedOrigin(step: TraversalStep): SurroundOriginResult {
-    val cache = step.cache ?: return getOrigin(step.sdf.bake())
+  fun getCachedOrigin(id: ByteBuffer, parentSdf: SdfCompose, cache: Cache?): SurroundOriginResult {
+    if (cache == null) {
+      return getOrigin(parentSdf.bake())
+    }
 
-    val key = cache.getKey(step.id)
+    val key = cache.getKey(id)
     val cached = cache.surround.getIfPresent(key)
     if (cached != null) {
       return cached
     }
 
-    val origin = getOrigin(step.sdf.bake())
+    val origin = getOrigin(parentSdf.bake())
     cache.surround.put(key, origin)
-
     return origin
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    val origin = getCachedOrigin(step)
+    val origin = getCachedOrigin(step.id, step.sdf, step.cache)
     val isCenter =
         surroundDistance(
             step.x,
             step.z,
-            step.sdf,
+            origin.parent,
             origin.centerX,
             origin.centerZ,
             scale,
             smoothing,
         ) <= 0.0
 
-    writeId(step.id, origin)
+    writeId(step.id, origin, isCenter)
 
     if (isCenter) {
       val sdf = centerSdfRef.get()
@@ -81,10 +85,40 @@ class SurroundStrategy(
     return step
   }
 
-  fun writeId(buffer: ByteBuffer, origin: SurroundOriginResult) {
+  override fun locate(step: LocateStep): LocateStep? {
+    val origin = readId(step.id) ?: return null
+    val parent = step.sdf.bake()
+
+    if (origin.isCenter) {
+      val sdf = CenterCellSdf()
+      sdf.parent = parent
+      sdf.centerX = origin.centerX
+      sdf.centerZ = origin.centerZ
+      sdf.scale = scale
+      sdf.smoothing = smoothing
+      step.sdf.append(sdf)
+    } else {
+      val sdf = SurroundCellSdf()
+      sdf.parent = parent
+      sdf.centerX = origin.centerX
+      sdf.centerZ = origin.centerZ
+      sdf.scale = scale
+      sdf.smoothing = smoothing
+      step.sdf.append(sdf)
+    }
+
+    step.centerX = origin.centerX
+    step.centerZ = origin.centerZ
+    step.region = if (origin.isCenter) center else surround
+
+    return step
+  }
+
+  fun writeId(buffer: ByteBuffer, origin: SurroundOriginResult, isCenter: Boolean) {
     buffer.put(id)
     buffer.putInt(origin.centerX)
     buffer.putInt(origin.centerZ)
+    buffer.put(if (isCenter) 0.toByte() else 1.toByte())
   }
 
   fun readId(buffer: ByteBuffer): SurroundOriginResult? {
@@ -96,8 +130,9 @@ class SurroundStrategy(
 
       val centerX = buffer.getInt()
       val centerZ = buffer.getInt()
+      val isCenter = buffer.get() == 0.toByte()
 
-      return SurroundOriginResult(centerX, centerZ)
+      return SurroundOriginResult(centerX, centerZ, isCenter)
     } catch (_: Exception) {
       return null
     }
@@ -113,6 +148,7 @@ class SurroundStrategy(
       val origin = SurroundOriginResult()
       origin.centerX = centerX
       origin.centerZ = centerZ
+      origin.parent = parentSdf
       return origin
     }
 
@@ -132,7 +168,7 @@ class SurroundStrategy(
 
       val scale = surroundScale(center.budget, center.budget + surround.budget)
 
-      return SurroundStrategy(center, surround, scale, smoothing)
+      return SurroundStrategy(builder.id, center, surround, scale, smoothing)
     }
   }
 }

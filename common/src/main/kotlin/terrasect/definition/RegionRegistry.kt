@@ -3,8 +3,9 @@ package terrasect.definition
 class RegionRegistry {
   val drafts = mutableMapOf<String, RegionBuilder>()
   val dimensionRoots = mutableMapOf<String, String>()
+  private var sequence: Byte = Byte.MIN_VALUE
 
-  fun region(name: String) = drafts.getOrPut(name) { RegionBuilder(this, name) }
+  fun region(name: String) = drafts.getOrPut(name) { RegionBuilder(nextStrategyId(), this, name) }
 
   fun setRoot(dimensionId: String, name: String) = dimensionRoots.set(dimensionId, name)
 
@@ -45,7 +46,7 @@ class RegionRegistry {
   }
 
   fun resolveDraft(name: String): RegionBuilder {
-    val draft = drafts[name] ?: return RegionBuilder(this, name)
+    val draft = drafts[name] ?: return RegionBuilder(nextStrategyId(), this, name)
 
     val builder = draft.copy()
     if (draft.parent != null) {
@@ -60,5 +61,13 @@ class RegionRegistry {
     val draft = resolveDraft(name)
 
     return buildTree(name, draft)
+  }
+
+  private fun nextStrategyId(): Byte {
+    if (sequence >= Byte.MAX_VALUE) {
+      error("Too many regions with strategies registered. Max supported is 256.")
+    }
+
+    return sequence++
   }
 }

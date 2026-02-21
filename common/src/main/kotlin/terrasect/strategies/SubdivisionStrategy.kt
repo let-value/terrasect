@@ -1,9 +1,11 @@
 package terrasect.strategies
 
+import terrasect.cache.Cache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
 import terrasect.definition.StrategySettings
+import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
@@ -17,27 +19,32 @@ data class SubdivisionSplit(
     var edges: FloatArray = floatArrayOf(),
 )
 
-class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) : Strategy {
-  val id = Strategy.SEQUENCE++
+class SubdivisionStrategy(
+    override val id: Byte,
+    val children: Array<Region>,
+    val budgets: LongArray,
+) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
-  fun getCachedSplit(step: TraversalStep): SubdivisionSplit {
-    val cache = step.cache ?: return getSplit(step.sdf, budgets)
+  private fun getCachedSplit(id: ByteBuffer, parentSdf: Sdf2, cache: Cache?): SubdivisionSplit {
+    if (cache == null) {
+      return getSplit(parentSdf, budgets)
+    }
 
-    val key = cache.getKey(step.id)
+    val key = cache.getKey(id)
     val cached = cache.subdivision.getIfPresent(key)
     if (cached != null) {
       return cached
     }
 
-    val split = getSplit(step.sdf, budgets)
+    val split = getSplit(parentSdf, budgets)
     cache.subdivision.put(key, split)
 
     return split
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    val split = getCachedSplit(step)
+    val split = getCachedSplit(step.id, step.sdf, step.cache)
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
@@ -57,9 +64,41 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
     return step
   }
 
-  fun writeId(id: ByteBuffer, index: Int) {
-    id.put(id)
-    id.putInt(index)
+  override fun locate(step: LocateStep): LocateStep? {
+    val originalPosition = step.id.position()
+    val index = readId(step.id) ?: return null
+    if (index !in children.indices) {
+      return null
+    }
+
+    val newPosition = step.id.position()
+    step.id.position(originalPosition)
+    val split = getCachedSplit(step.id, step.sdf, step.cache)
+    step.id.position(newPosition)
+
+    val sdf = SubdivisionCellSdf()
+    sdf.axis = split.axis
+    sdf.lo = split.edges[index]
+    sdf.hi = split.edges[index + 1]
+    step.sdf.append(sdf)
+
+    val bounds = estimateBounds(step.sdf)
+    if (split.axis == 0) {
+      step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
+      step.centerZ = (bounds.minZ + bounds.maxZ) / 2
+    } else {
+      step.centerX = (bounds.minX + bounds.maxX) / 2
+      step.centerZ = ((sdf.lo + sdf.hi) / 2f).toInt()
+    }
+
+    step.region = children[index]
+
+    return step
+  }
+
+  fun writeId(buffer: ByteBuffer, index: Int) {
+    buffer.put(id)
+    buffer.putInt(index)
   }
 
   fun readId(buffer: ByteBuffer): Int? {
@@ -119,7 +158,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
     override fun build(builder: RegionBuilder, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.toLongArray()
-      return SubdivisionStrategy(sortedChildren.toTypedArray(), budgets)
+      return SubdivisionStrategy(builder.id, sortedChildren.toTypedArray(), budgets)
     }
   }
 }

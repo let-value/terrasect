@@ -19,7 +19,11 @@ open class RegionDefinition(
     val mobs: SelectionConstraints? = null,
 )
 
-open class RegionBuilder(val registry: RegionRegistry, var name: String) {
+open class RegionBuilder(
+    val id: Byte,
+    val registry: RegionRegistry,
+    var name: String,
+) {
   var originAnchor = false
   var budget: Long? = null
   var strategy: StrategySettings? = null
@@ -84,7 +88,7 @@ open class RegionBuilder(val registry: RegionRegistry, var name: String) {
   }
 
   fun copy(): RegionBuilder {
-    return RegionBuilder(this.registry, this.name).also {
+    return RegionBuilder(this.id, this.registry, this.name).also {
       it.budget = this.budget
       it.inheritParent(this)
     }
