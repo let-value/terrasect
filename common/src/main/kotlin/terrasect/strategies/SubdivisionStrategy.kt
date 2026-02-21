@@ -1,13 +1,15 @@
 package terrasect.strategies
 
-import terrasect.definition.*
+import terrasect.definition.Region
+import terrasect.definition.RegionBuilder
+import terrasect.definition.Strategy
+import terrasect.definition.StrategySettings
 import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
 import terrasect.sdf.estimateBounds
+import java.nio.ByteBuffer
 import kotlin.math.max
-
-private val discriminator = StrategyId.SUBDIVISION.value
 
 @Suppress("ArrayInDataClass")
 data class SubdivisionSplit(
@@ -39,8 +41,7 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
-    step.id.put(id)
-    step.id.putInt(index)
+    writeId(step.id, index)
 
     val sdf = cellSdfRef.get()
     sdf.axis = split.axis
@@ -54,6 +55,25 @@ class SubdivisionStrategy(val children: Array<Region>, val budgets: LongArray) :
     step.region = children[index]
 
     return step
+  }
+
+  fun writeId(id: ByteBuffer, index: Int) {
+    id.put(id)
+    id.putInt(index)
+  }
+
+  fun readId(buffer: ByteBuffer): Int? {
+    try {
+      val strategyId = buffer.get()
+      if (strategyId != id) {
+        return null
+      }
+
+      val index = buffer.getInt()
+      return index
+    } catch (_: Exception) {
+      return null
+    }
   }
 
   companion object {

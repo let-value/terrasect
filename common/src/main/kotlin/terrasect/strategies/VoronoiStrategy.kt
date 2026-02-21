@@ -33,9 +33,7 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
     val sites = getCachedSites(seed, step)
     val index = getCellIndex(step.x, step.z, sites)
 
-    step.id.put(id)
-    step.id.putInt(seed)
-    step.id.putInt(index)
+    writeId(step.id, seed, index)
 
     val sdf = cellSdfRef.get()
     sdf.sites = sites
@@ -48,6 +46,28 @@ class VoronoiStrategy(val children: Array<Region>, val budgets: LongArray) : Str
     step.region = children[index]
 
     return step
+  }
+
+  fun writeId(buffer: ByteBuffer, seed: Int, index: Int) {
+    buffer.put(id)
+    buffer.putInt(seed)
+    buffer.putInt(index)
+  }
+
+  fun readId(buffer: ByteBuffer): Pair<Int, Int>? {
+    try {
+      val strategyId = buffer.get()
+      if (strategyId != id) {
+        return null
+      }
+
+      val seed = buffer.getInt()
+      val index = buffer.getInt()
+
+      return seed to index
+    } catch (_: Exception) {
+      return null
+    }
   }
 
   companion object {

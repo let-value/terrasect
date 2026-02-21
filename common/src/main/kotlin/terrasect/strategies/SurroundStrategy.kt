@@ -1,16 +1,17 @@
 package terrasect.strategies
 
-import terrasect.definition.*
+import terrasect.definition.Region
+import terrasect.definition.RegionBuilder
+import terrasect.definition.Strategy
+import terrasect.definition.StrategySettings
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
+import java.nio.ByteBuffer
 import kotlin.math.max
-
-private val discriminator = StrategyId.SURROUND.value
 
 data class SurroundOriginResult(
     var centerX: Int = 0,
     var centerZ: Int = 0,
-    var scale: Float = 1f,
     var parent: Sdf2 = EmptySdf,
 )
 
@@ -25,7 +26,7 @@ class SurroundStrategy(
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
   fun getCachedOrigin(step: TraversalStep): SurroundOriginResult {
-    val cache = step.cache ?: return getOrigin(step.sdf.bake(), scale)
+    val cache = step.cache ?: return getOrigin(step.sdf.bake())
 
     val key = cache.getKey(step.id)
     val cached = cache.surround.getIfPresent(key)
@@ -33,7 +34,7 @@ class SurroundStrategy(
       return cached
     }
 
-    val origin = getOrigin(step.sdf.bake(), scale)
+    val origin = getOrigin(step.sdf.bake())
     cache.surround.put(key, origin)
 
     return origin
@@ -45,23 +46,21 @@ class SurroundStrategy(
         surroundDistance(
             step.x,
             step.z,
-            origin.parent,
+            step.sdf,
             origin.centerX,
             origin.centerZ,
-            origin.scale,
+            scale,
             smoothing,
         ) <= 0.0
 
-    step.id.put(id)
-    step.id.putInt(origin.centerX)
-    step.id.putInt(origin.centerZ)
+    writeId(step.id, origin)
 
     if (isCenter) {
       val sdf = centerSdfRef.get()
       sdf.parent = origin.parent
       sdf.centerX = origin.centerX
       sdf.centerZ = origin.centerZ
-      sdf.scale = origin.scale
+      sdf.scale = scale
       sdf.smoothing = smoothing
       step.sdf.append(sdf)
     } else {
@@ -69,7 +68,7 @@ class SurroundStrategy(
       sdf.parent = origin.parent
       sdf.centerX = origin.centerX
       sdf.centerZ = origin.centerZ
-      sdf.scale = origin.scale
+      sdf.scale = scale
       sdf.smoothing = smoothing
       step.sdf.append(sdf)
     }
@@ -82,9 +81,31 @@ class SurroundStrategy(
     return step
   }
 
+  fun writeId(buffer: ByteBuffer, origin: SurroundOriginResult) {
+    buffer.put(id)
+    buffer.putInt(origin.centerX)
+    buffer.putInt(origin.centerZ)
+  }
+
+  fun readId(buffer: ByteBuffer): SurroundOriginResult? {
+    try {
+      val strategyId = buffer.get()
+      if (strategyId != id) {
+        return null
+      }
+
+      val centerX = buffer.getInt()
+      val centerZ = buffer.getInt()
+
+      return SurroundOriginResult(centerX, centerZ)
+    } catch (_: Exception) {
+      return null
+    }
+  }
+
   companion object {
 
-    fun getOrigin(parentSdf: Sdf2, scale: Float): SurroundOriginResult {
+    fun getOrigin(parentSdf: Sdf2): SurroundOriginResult {
       val bounds = estimateBounds(parentSdf)
       val centerX = (bounds.minX + bounds.maxX) / 2
       val centerZ = (bounds.minZ + bounds.maxZ) / 2
@@ -92,8 +113,6 @@ class SurroundStrategy(
       val origin = SurroundOriginResult()
       origin.centerX = centerX
       origin.centerZ = centerZ
-      origin.scale = scale
-      origin.parent = parentSdf
       return origin
     }
 

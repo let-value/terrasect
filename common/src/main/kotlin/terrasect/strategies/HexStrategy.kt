@@ -1,13 +1,15 @@
 package terrasect.strategies
 
-import terrasect.definition.*
+import terrasect.definition.Region
+import terrasect.definition.RegionBuilder
+import terrasect.definition.Strategy
+import terrasect.definition.StrategySettings
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
+import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
-
-private val discriminator = StrategyId.HEX.value
 
 data class HexCellResult(
     var q: Int = 0,
@@ -52,9 +54,7 @@ class HexStrategy(
 
     val cell = getCachedCell(step, apothem, gap)
 
-    step.id.put(id)
-    step.id.putInt(cell.q)
-    step.id.putInt(cell.r)
+    writeId(step.id, cell)
 
     if (cell.isGap) {
       val sdf = gapSdfRef.get()
@@ -76,6 +76,30 @@ class HexStrategy(
     step.region = if (cell.isGap && ringRegion != null) ringRegion else children
 
     return step
+  }
+
+  fun writeId(buffer: ByteBuffer, cell: HexCellResult) {
+    buffer.put(id)
+    buffer.putInt(cell.q)
+    buffer.putInt(cell.r)
+    buffer.put(if (cell.isGap) 1.toByte() else 0.toByte())
+  }
+
+  fun readId(buffer: ByteBuffer): HexCellResult? {
+    try {
+      val strategyId = buffer.get()
+      if (strategyId != id) {
+        return null
+      }
+
+      val q = buffer.getInt()
+      val r = buffer.getInt()
+      val isGap = buffer.get() == 1.toByte()
+
+      return HexCellResult(q, r, isGap)
+    } catch (_: Exception) {
+      return null
+    }
   }
 
   companion object {
