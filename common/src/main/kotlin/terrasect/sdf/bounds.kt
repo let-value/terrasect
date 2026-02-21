@@ -55,7 +55,7 @@ fun estimateBounds(sdf: Sdf2, originX: Int = 0, originZ: Int = 0): SdfBounds {
   }
 
   if (seedX == null) {
-    val gradientEps = max(Int.MIN_VALUE, CELL_SIZE / 4)
+    val gradientEps = max(1, CELL_SIZE / 4)
     var x = bestX
     var z = bestZ
     var distance = sdf(x, z)
@@ -129,6 +129,40 @@ private fun floodBounds(
     queue.add(Pair(cx, cz - 1))
   }
 
+  if (minX == Int.MAX_VALUE || maxX == Int.MIN_VALUE || minZ == Int.MAX_VALUE || maxZ == Int.MIN_VALUE) {
+    return fallbackBounds(sdf, seedX, seedZ, originX, originZ)
+  }
+
   val half = CELL_SIZE / 2
-  return SdfBounds(minX - half, maxX + half, minZ - half, maxZ + half)
+  return SdfBounds(
+      saturatingAdd(minX, -half),
+      saturatingAdd(maxX, half),
+      saturatingAdd(minZ, -half),
+      saturatingAdd(maxZ, half),
+  )
+}
+
+private fun fallbackBounds(sdf: Sdf2, seedX: Int, seedZ: Int, originX: Int, originZ: Int): SdfBounds {
+  val seedDistance = abs(sdf(seedX, seedZ))
+  val originDistance = abs(sdf(originX, originZ))
+  return if (seedDistance <= originDistance) {
+    boundsAroundPoint(seedX, seedZ)
+  } else {
+    boundsAroundPoint(originX, originZ)
+  }
+}
+
+private fun boundsAroundPoint(x: Int, z: Int): SdfBounds {
+  val half = CELL_SIZE / 2
+  return SdfBounds(
+      saturatingAdd(x, -half),
+      saturatingAdd(x, half),
+      saturatingAdd(z, -half),
+      saturatingAdd(z, half),
+  )
+}
+
+private fun saturatingAdd(value: Int, delta: Int): Int {
+  val sum = value.toLong() + delta.toLong()
+  return sum.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 }

@@ -18,19 +18,15 @@ object Terrasect {
     registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
     registry.region("voronoi1").area(30).parent("cell").climate {
-      temperature(10000).humidity(-5000)
+      temperature(-10000).humidity(5000)
     }
     registry.region("voronoi2").area(45).parent("cell").climate { temperature(0).humidity(0) }
     registry.region("voronoi3").area(75).parent("cell").climate {
-      temperature(-10000).humidity(5000)
+      temperature(10000).humidity(-5000)
     }
 
     registry.region("border").area(500)
 
     LOGGER.info("Initializing ${Constants.MOD_NAME} common...")
-  }
-
-  fun initClient() {
-    LOGGER.info("Initializing ${Constants.MOD_NAME} client...")
   }
 }

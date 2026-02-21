@@ -1,5 +1,7 @@
 package terrasect.sdf
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
@@ -71,6 +73,19 @@ class SitesTest {
     drawSdf(image, sdf)
     drawSites(image, sites)
     writeSnapshotPng(SitesTest::class.java, "dense.png", image)
+  }
+
+  @Test
+  fun `should place sites when sdf has no interior`() {
+    val sdf: Sdf2 = { _, _ -> 1f }
+    val bounds = estimateBounds(sdf)
+    val budgets = longArrayOf(500, 100, 200)
+
+    val sites = getSites(SEED, sdf, bounds, budgets)
+
+    assertEquals(budgets.size, sites.size)
+    assertTrue(sites.all { it.x in bounds.minX until bounds.maxX })
+    assertTrue(sites.all { it.z in bounds.minZ until bounds.maxZ })
   }
 
   private fun estimateArea(sdf: Sdf2, bounds: SdfBounds, step: Int = 1): Long {

@@ -44,9 +44,6 @@ class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
   private fun clientSetup(event: FMLClientSetupEvent) {
     LOGGER.info("${Constants.MOD_NAME} client setup")
     LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
-
-    // Initialize common client code
-    Terrasect.initClient()
   }
 
   @SubscribeEvent

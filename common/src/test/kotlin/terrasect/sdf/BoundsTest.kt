@@ -1,6 +1,7 @@
 package terrasect.sdf
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
@@ -76,5 +77,19 @@ class BoundsTest {
     assertEquals(152, bounds.maxX)
     assertEquals(56, bounds.minZ)
     assertEquals(184, bounds.maxZ)
+  }
+
+  @Test
+  fun `should return finite bounds when sdf has no interior`() {
+    val sdf: Sdf2 = { _, _ -> 1f }
+
+    val bounds = estimateBounds(sdf)
+
+    assertEquals(-8, bounds.minX)
+    assertEquals(8, bounds.maxX)
+    assertEquals(-8, bounds.minZ)
+    assertEquals(8, bounds.maxZ)
+    assertTrue(bounds.width > 0)
+    assertTrue(bounds.height > 0)
   }
 }
