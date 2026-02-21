@@ -32,15 +32,7 @@ class SubdivisionStrategy(
     }
 
     val key = cache.getKey(id)
-    val cached = cache.subdivision.getIfPresent(key)
-    if (cached != null) {
-      return cached
-    }
-
-    val split = getSplit(parentSdf, budgets)
-    cache.subdivision.put(key, split)
-
-    return split
+    return cache.subdivision.getOrCompute(key) { getSplit(parentSdf, budgets) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {

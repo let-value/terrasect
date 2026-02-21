@@ -8,7 +8,7 @@ import terrasect.definition.Strategy
 
 object Terrasect {
   val registry = RegionRegistry()
-  val cache = Cache()
+  val cache = Cache(100)
 
   private val LOGGER: Logger = LoggerFactory.getLogger(Constants.MOD_ID)
 

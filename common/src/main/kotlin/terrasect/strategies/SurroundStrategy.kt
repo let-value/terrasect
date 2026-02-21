@@ -34,14 +34,7 @@ class SurroundStrategy(
     }
 
     val key = cache.getKey(id)
-    val cached = cache.surround.getIfPresent(key)
-    if (cached != null) {
-      return cached
-    }
-
-    val origin = getOrigin(parentSdf.bake())
-    cache.surround.put(key, origin)
-    return origin
+    return cache.surround.getOrCompute(key) { getOrigin(parentSdf.bake()) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {

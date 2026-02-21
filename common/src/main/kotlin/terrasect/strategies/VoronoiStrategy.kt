@@ -30,14 +30,7 @@ class VoronoiStrategy(
     }
 
     val key = cache.getKey(id)
-    val cached = cache.voronoi.getIfPresent(key)
-    if (cached != null) {
-      return cached
-    }
-
-    val sites = getSites(seed, parentSdf, budgets)
-    cache.voronoi.put(key, sites)
-    return sites
+    return cache.voronoi.getOrCompute(key) { getSites(seed, parentSdf, budgets) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {

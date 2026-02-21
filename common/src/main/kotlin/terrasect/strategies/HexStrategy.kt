@@ -35,16 +35,7 @@ class HexStrategy(
 
     val cache = step.cache!!
     val key = cache.getKey(step.id)
-
-    val cached = cache.hex.getIfPresent(key)
-    if (cached != null) {
-      return cached
-    }
-
-    val cell = getCell(step.x, step.z, apothem, gap)
-    cache.hex.put(key, cell)
-
-    return cell
+    return cache.hex.getOrCompute(key) { getCell(step.x, step.z, apothem, gap) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
