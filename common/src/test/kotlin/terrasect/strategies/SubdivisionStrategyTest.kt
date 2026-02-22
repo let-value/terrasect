@@ -1,10 +1,13 @@
 package terrasect.strategies
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
+import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.max
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -55,6 +58,43 @@ class SubdivisionStrategyTest {
     drawCells(image, parentSdf)
     drawSdf(image, parentSdf, insideColor = null)
     writeSnapshotPng(SubdivisionStrategyTest::class.java, "banana-cells.png", image)
+  }
+
+  @Test
+  fun `should allocate subdivision area by budget in rectangle sdf`() {
+    val halfWidth = 120
+    val halfHeight = 80
+    val parentSdf: Sdf2 = { x, z ->
+      val dx = kotlin.math.abs(x - CX) - halfWidth
+      val dz = kotlin.math.abs(z - CZ) - halfHeight
+      max(dx, dz).toFloat()
+    }
+
+    val bounds = estimateBounds(parentSdf)
+    val split = SubdivisionStrategy.getSplit(parentSdf, budgets)
+    val cellSdf = SubdivisionCellSdf()
+    val safeParentArea = estimateArea(parentSdf, bounds).coerceAtLeast(1L).toDouble()
+    val totalBudget = budgets.sum().toDouble().coerceAtLeast(1.0)
+
+    var realizedTotal = 0.0
+    for (i in budgets.indices) {
+      cellSdf.axis = split.axis
+      cellSdf.lo = split.edges[i]
+      cellSdf.hi = split.edges[i + 1]
+
+      val childSdf: Sdf2 = { x, z -> max(parentSdf(x, z), cellSdf(x, z)) }
+      val childArea = estimateArea(childSdf, bounds)
+      val realizedFraction = childArea / safeParentArea
+      val expectedFraction = budgets[i] / totalBudget
+      realizedTotal += realizedFraction
+
+      assertTrue(
+          abs(realizedFraction - expectedFraction) <= 0.08,
+          "subdivision child $i expected=$expectedFraction realized=$realizedFraction area=$childArea budget=${budgets[i]}",
+      )
+    }
+
+    assertTrue(abs(realizedTotal - 1.0) <= 0.03, "realized total area fraction=$realizedTotal")
   }
 
   private fun drawCells(image: BufferedImage, parentSdf: Sdf2) {

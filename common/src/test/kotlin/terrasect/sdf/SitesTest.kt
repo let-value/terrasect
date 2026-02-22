@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 private const val WIDTH = 240
@@ -86,29 +85,5 @@ class SitesTest {
     assertEquals(budgets.size, sites.size)
     assertTrue(sites.all { it.x in bounds.minX until bounds.maxX })
     assertTrue(sites.all { it.z in bounds.minZ until bounds.maxZ })
-  }
-
-  private fun estimateArea(sdf: Sdf2, bounds: SdfBounds, step: Int = 1): Long {
-    val safeStep = step.coerceAtLeast(1)
-    val minX = bounds.minX
-    val maxX = bounds.maxX
-    val minZ = bounds.minZ
-    val maxZ = bounds.maxZ
-    val cellArea = safeStep * safeStep
-    var area = 0L
-    var z = minZ
-    while (z < maxZ) {
-      var x = minX
-      while (x < maxX) {
-        val sampleX = (x + safeStep * 0.5f).roundToInt()
-        val sampleZ = (z + safeStep * 0.5f).roundToInt()
-        if (sdf(sampleX, sampleZ) <= 0.0) {
-          area += cellArea
-        }
-        x += safeStep
-      }
-      z += safeStep
-    }
-    return area
   }
 }

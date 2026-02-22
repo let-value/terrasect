@@ -1,7 +1,6 @@
 package terrasect.generation
 
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import terrasect.cache.Cache
 import terrasect.definition.Region
@@ -12,6 +11,7 @@ import terrasect.strategies.VoronoiStrategy
 import terrasect.testing.writeSnapshotPng
 import java.awt.Color
 import java.awt.image.BufferedImage
+import kotlin.math.abs
 
 private const val SEED = 1234L
 private const val WIDTH = 240
@@ -24,16 +24,16 @@ class TraverserTest {
     val registry = RegionRegistry()
 
     init {
-      registry.region("hex").area(150).strategy(Strategy.hex())
+      registry.region("hex").radius(150).strategy(Strategy.hex())
       registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
-      registry.region("voronoi1").area(30).parent("cell")
-      registry.region("voronoi2").area(45).parent("cell")
+      registry.region("voronoi1").radius(30).parent("cell")
+      registry.region("voronoi2").radius(45).parent("cell")
 
-      registry.region("voronoi3").area(75).parent("cell").strategy(Strategy.surround("surround"))
+      registry.region("voronoi3").radius(75).parent("cell").strategy(Strategy.surround("surround"))
 
-      registry.region("surround").area(50)
-      registry.region("center").parent("voronoi3").area(100)
+      registry.region("surround").radius(50)
+      registry.region("center").parent("voronoi3").radius(100)
     }
   }
 
@@ -138,6 +138,41 @@ class TraverserTest {
   }
 
   @Test
+  fun `should match resolved region budgets across unique palettes by depth`() {
+    val root = registry.buildTree("hex")
+    val cache = Cache()
+    val traverser = Traverser(SEED, root)
+    val maxResolvedDepth = (maxStrategyDepth(root) - 1).coerceAtLeast(0)
+
+    val palette = LinkedHashMap<String, Pair<String, Double>>()
+
+    for (x in 0 until WIDTH) {
+      for (z in 0 until HEIGHT) {
+        for (depth in 1..maxResolvedDepth) {
+          val step = traverser.iterate(x - DX, z - DZ, cache)
+          traverseToDepth(step, depth)
+
+          val key = Address.serialize(step.id)
+          if (palette.containsKey(key)) {
+            continue
+          }
+
+          val bounds = estimateBounds(step.sdf, step.x, step.z)
+          val area = estimateArea(step.sdf, bounds).toDouble()
+          val budget = step.region.budget.toDouble()
+          val absError = abs(area - budget)
+
+          palette[key] = step.region.name to absError
+        }
+      }
+    }
+
+    for ((address, value) in palette) {
+      println("key=$address region=${value.first} absError=${value.second}")
+    }
+  }
+
+  @Test
   fun `should traverse`() {
     val root = registry.buildTree("hex")
     val traverse = Traverser(SEED, root)
@@ -191,4 +226,5 @@ class TraverserTest {
 
     return Color.HSBtoRGB(hue, saturation.coerceIn(0f, 1f), brightness.coerceIn(0f, 1f))
   }
+
 }

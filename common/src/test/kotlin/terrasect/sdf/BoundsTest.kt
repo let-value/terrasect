@@ -37,10 +37,10 @@ class BoundsTest {
 
     writeSnapshotPng(BoundsTest::class.java, "circle.png", image)
 
-    assertEquals(24, bounds.minX)
-    assertEquals(216, bounds.maxX)
-    assertEquals(24, bounds.minZ)
-    assertEquals(216, bounds.maxZ)
+    assertEquals(16, bounds.minX)
+    assertEquals(224, bounds.maxX)
+    assertEquals(16, bounds.minZ)
+    assertEquals(224, bounds.maxZ)
   }
 
   @Test
@@ -56,10 +56,10 @@ class BoundsTest {
 
     writeSnapshotPng(BoundsTest::class.java, "hex.png", image)
 
-    assertEquals(24, bounds.minX)
-    assertEquals(216, bounds.maxX)
-    assertEquals(8, bounds.minZ)
-    assertEquals(232, bounds.maxZ)
+    assertEquals(16, bounds.minX)
+    assertEquals(224, bounds.maxX)
+    assertEquals(0, bounds.minZ)
+    assertEquals(240, bounds.maxZ)
   }
 
   @Test
@@ -73,10 +73,10 @@ class BoundsTest {
     drawRectangle(image, bounds.minX, bounds.minZ, bounds.maxX, bounds.maxZ)
     writeSnapshotPng(BoundsTest::class.java, "banana.png", image)
 
-    assertEquals(56, bounds.minX)
-    assertEquals(152, bounds.maxX)
-    assertEquals(56, bounds.minZ)
-    assertEquals(184, bounds.maxZ)
+    assertEquals(48, bounds.minX)
+    assertEquals(160, bounds.maxX)
+    assertEquals(48, bounds.minZ)
+    assertEquals(192, bounds.maxZ)
   }
 
   @Test

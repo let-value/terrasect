@@ -19,8 +19,8 @@ data class SdfBounds(val minX: Int, val maxX: Int, val minZ: Int, val maxZ: Int)
 
 fun estimateBounds(sdf: Sdf2, originX: Int = 0, originZ: Int = 0): SdfBounds {
   val maxCells = max(1, MAX_RADIUS / CELL_SIZE)
-  val originCellX = originX / CELL_SIZE
-  val originCellZ = originZ / CELL_SIZE
+  val originCellX = toCell(originX)
+  val originCellZ = toCell(originZ)
 
   val originDistance = sdf(originX, originZ)
   var bestX = originX
@@ -35,9 +35,9 @@ fun estimateBounds(sdf: Sdf2, originX: Int = 0, originZ: Int = 0): SdfBounds {
   var seedZ: Int? = null
 
   for (dz in -maxCells..maxCells) {
-    val z = (originCellZ + dz) * CELL_SIZE
+    val z = cellCenter(originCellZ + dz)
     for (dx in -maxCells..maxCells) {
-      val x = (originCellX + dx) * CELL_SIZE
+      val x = cellCenter(originCellX + dx)
       val distance = sdf(x, z)
       if (distance <= 0.0) {
         seedX = x
@@ -95,10 +95,10 @@ private fun floodBounds(
 ): SdfBounds {
 
   val maxCells = max(1, MAX_RADIUS / CELL_SIZE)
-  val originCellX = originX / CELL_SIZE
-  val originCellZ = originZ / CELL_SIZE
-  val startCellX = seedX / CELL_SIZE
-  val startCellZ = seedZ / CELL_SIZE
+  val originCellX = toCell(originX)
+  val originCellZ = toCell(originZ)
+  val startCellX = toCell(seedX)
+  val startCellZ = toCell(seedZ)
   val queue = ArrayDeque<Pair<Int, Int>>()
   val visited = HashSet<Pair<Int, Int>>()
 
@@ -114,9 +114,10 @@ private fun floodBounds(
     if (!visited.add(packed)) continue
     val (cx, cz) = packed
     if (abs(cx - originCellX) > maxCells || abs(cz - originCellZ) > maxCells) continue
-    val x = cx * CELL_SIZE
-    val z = cz * CELL_SIZE
-    if (sdf(x, z) > 0.0f) continue
+    val x = cellCenter(cx)
+    val z = cellCenter(cz)
+    val startCellInside = cx == startCellX && cz == startCellZ && sdf(seedX, seedZ) <= 0.0f
+    if (!startCellInside && sdf(x, z) > 0.0f) continue
 
     minX = min(minX, x)
     maxX = max(maxX, x)
@@ -166,3 +167,7 @@ private fun saturatingAdd(value: Int, delta: Int): Int {
   val sum = value.toLong() + delta.toLong()
   return sum.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 }
+
+private fun toCell(value: Int): Int = Math.floorDiv(value, CELL_SIZE)
+
+private fun cellCenter(cell: Int): Int = cell * CELL_SIZE + CELL_SIZE / 2

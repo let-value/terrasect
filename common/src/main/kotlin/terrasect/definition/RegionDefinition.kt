@@ -45,7 +45,9 @@ open class RegionBuilder(
   val mobsLazyBuilder = lazy { SelectionConstraints.builder() }
   val mobsBuilder by mobsLazyBuilder
 
-  fun area(budget: Long) = apply { this.budget = budget * budget }
+  fun radius(radius: Long) = apply { this.budget = radius * radius }
+
+  fun budget(budget: Long) = apply { this.budget = budget }
 
   fun originAnchor() = apply { originAnchor = true }
 

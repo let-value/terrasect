@@ -12,12 +12,12 @@ class LocatorTest {
     val registry = RegionRegistry()
 
     init {
-      registry.region("hex").area(150).strategy(Strategy.hex())
+      registry.region("hex").radius(150).strategy(Strategy.hex())
       registry.region("cell").parent("hex").strategy(Strategy.voronoi())
 
-      registry.region("voronoi1").area(30).parent("cell")
-      registry.region("voronoi2").area(45).parent("cell")
-      registry.region("voronoi3").area(75).parent("cell")
+      registry.region("voronoi1").radius(30).parent("cell")
+      registry.region("voronoi2").radius(45).parent("cell")
+      registry.region("voronoi3").radius(75).parent("cell")
     }
   }
 

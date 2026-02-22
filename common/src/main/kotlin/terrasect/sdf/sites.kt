@@ -2,16 +2,20 @@ package terrasect.sdf
 
 import kotlin.math.PI
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
 
 data class Site(val x: Int, val z: Int, val radius: Float)
 
 const val attempts = 30
-const val outsidePenaltyWeight = 25f
+const val outsidePenaltyWeight = 200f
 const val goodPenaltyEps = 1e-9f
 const val greatClearanceFactor = 0.25f
 const val earlyStopStreak = 5
+const val relaxationPasses = 2
+const val relaxationStep = 4
+const val relaxationMove = 0.6f
 
 fun getSites(seed: Long, sdf: Sdf2, bounds: SdfBounds, budgets: LongArray): List<Site> {
   val rng = Random(seed)
@@ -77,5 +81,80 @@ fun getSites(seed: Long, sdf: Sdf2, bounds: SdfBounds, budgets: LongArray): List
     sites.add(Site(bestX, bestY, radius))
   }
 
+  if (sites.size > 1) {
+    relaxSites(sites, sdf, bounds)
+  }
+
   return sites
+}
+
+private fun relaxSites(sites: MutableList<Site>, sdf: Sdf2, bounds: SdfBounds) {
+  val count = sites.size
+  if (count <= 1) {
+    return
+  }
+
+  repeat(relaxationPasses) {
+    val sumX = FloatArray(count)
+    val sumZ = FloatArray(count)
+    val samples = IntArray(count)
+
+    var z = bounds.minZ
+    while (z < bounds.maxZ) {
+      var x = bounds.minX
+      while (x < bounds.maxX) {
+        if (sdf(x, z) <= 0f) {
+          val cellIndex = nearestPowerSiteIndex(x, z, sites)
+          sumX[cellIndex] += x
+          sumZ[cellIndex] += z
+          samples[cellIndex] += 1
+        }
+        x += relaxationStep
+      }
+      z += relaxationStep
+    }
+
+    var moved = false
+    for (i in 0 until count) {
+      val sampleCount = samples[i]
+      if (sampleCount == 0) {
+        continue
+      }
+
+      val site = sites[i]
+      val targetX = (sumX[i] / sampleCount).roundToInt()
+      val targetZ = (sumZ[i] / sampleCount).roundToInt()
+      val nextX = (site.x + (targetX - site.x) * relaxationMove).roundToInt()
+      val nextZ = (site.z + (targetZ - site.z) * relaxationMove).roundToInt()
+      val clampedX = nextX.coerceIn(bounds.minX, bounds.maxX - 1)
+      val clampedZ = nextZ.coerceIn(bounds.minZ, bounds.maxZ - 1)
+      if (sdf(clampedX, clampedZ) <= 0f && (clampedX != site.x || clampedZ != site.z)) {
+        sites[i] = Site(clampedX, clampedZ, site.radius)
+        moved = true
+      }
+    }
+
+    if (!moved) {
+      return
+    }
+  }
+}
+
+private fun nearestPowerSiteIndex(x: Int, z: Int, sites: List<Site>): Int {
+  var bestIndex = 0
+  var bestPower = Float.POSITIVE_INFINITY
+
+  for (i in sites.indices) {
+    val site = sites[i]
+    val dx = x - site.x
+    val dz = z - site.z
+    val dist = hypot(dx.toDouble(), dz.toDouble()).toFloat()
+    val power = dist - site.radius
+    if (power < bestPower) {
+      bestPower = power
+      bestIndex = i
+    }
+  }
+
+  return bestIndex
 }

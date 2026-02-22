@@ -1,10 +1,13 @@
 package terrasect.strategies
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.sdf.*
 import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
+import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.max
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -60,6 +63,53 @@ class SurroundStrategyTest {
     drawCells(image, parentSdf)
     drawSdf(image, parentSdf, insideColor = null)
     writeSnapshotPng(SurroundStrategyTest::class.java, "banana-cells.png", image)
+  }
+
+  @Test
+  fun `should allocate surround area by budgets`() {
+    val radius = 100f
+    val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
+    val bounds = estimateBounds(parentSdf)
+    val origin = SurroundStrategy.getOrigin(parentSdf)
+    val safeParentArea = estimateArea(parentSdf, bounds).coerceAtLeast(1L).toDouble()
+    val totalBudget = (centerBudget + surroundBudget).toDouble().coerceAtLeast(1.0)
+
+    val centerSdf =
+        CenterCellSdf().apply {
+          parent = parentSdf
+          centerX = origin.centerX
+          centerZ = origin.centerZ
+          this.scale = this@SurroundStrategyTest.scale
+        }
+
+    val surroundSdf =
+        SurroundCellSdf().apply {
+          parent = parentSdf
+          centerX = origin.centerX
+          centerZ = origin.centerZ
+          this.scale = this@SurroundStrategyTest.scale
+        }
+
+    val centerArea = estimateArea({ x, z -> max(parentSdf(x, z), centerSdf(x, z)) }, bounds)
+    val surroundArea = estimateArea({ x, z -> max(parentSdf(x, z), surroundSdf(x, z)) }, bounds)
+
+    val centerFraction = centerArea / safeParentArea
+    val surroundFraction = surroundArea / safeParentArea
+    val expectedCenterFraction = centerBudget / totalBudget
+    val expectedSurroundFraction = surroundBudget / totalBudget
+
+    assertTrue(
+        abs(centerFraction - expectedCenterFraction) <= 0.07,
+        "center expected=$expectedCenterFraction realized=$centerFraction area=$centerArea",
+    )
+    assertTrue(
+        abs(surroundFraction - expectedSurroundFraction) <= 0.07,
+        "surround expected=$expectedSurroundFraction realized=$surroundFraction area=$surroundArea",
+    )
+    assertTrue(
+        abs((centerFraction + surroundFraction) - 1.0) <= 0.03,
+        "realized total area fraction=${centerFraction + surroundFraction}",
+    )
   }
 
   private fun drawCells(image: BufferedImage, parentSdf: Sdf2) {
