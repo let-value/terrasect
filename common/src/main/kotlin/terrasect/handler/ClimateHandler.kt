@@ -32,10 +32,9 @@ object ClimateHandler {
       climate: Climate.TargetPoint,
       cache: ChunkCache,
   ) {
-    val grid = cache.grid ?: return
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
-    val region = grid.get(blockX, blockZ) ?: return
+    val region = cache.regions?.get(blockX, blockZ) ?: return
     val constraints = region.climate ?: return
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender

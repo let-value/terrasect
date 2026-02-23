@@ -39,6 +39,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+configurations {
+    testImplementation.extendsFrom(configurations.getByName("modDevCompileDependencies"))
+    testRuntimeOnly.extendsFrom(configurations.getByName("modDevRuntimeDependencies"))
+}
+
 test {
     useJUnitPlatform()
 }

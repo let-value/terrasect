@@ -9,7 +9,8 @@
     "ClimateTargetPointMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceMixin",
-    "NoiseChunkExtenderMixin"
+    "NoiseChunkExtenderMixin",
+    "NoiseChunkWrapMixin"
   ],
   "injectors": {
     "defaultRequire": 1
