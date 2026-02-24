@@ -20,7 +20,9 @@ class ChunkCache {
   internal constructor()
 
   fun idx(x: Int, z: Int): Int {
-    return x * height + z
+    val localX = x - originX
+    val localZ = z - originZ
+    return localX * height + localZ
   }
 
   constructor(chunk: ChunkAccessExtender) {
