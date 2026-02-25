@@ -12,6 +12,8 @@ base {
 neoForge {
     neoFormVersion = neoforge_neoform_version
 
+    accessTransformers.from 'src/main/resources/META-INF/accesstransformer.cfg'
+
     parchment {
         mappingsVersion = parchment_mappings_version
         minecraftVersion = parchment_minecraft_version

@@ -1,6 +1,6 @@
 package terrasect.strategies
 
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
@@ -23,7 +23,7 @@ class VoronoiStrategy(
       seed: Int,
       id: ByteBuffer,
       parentSdf: Sdf2,
-      cache: Cache?,
+      cache: RegionsCache?,
   ): List<Site> {
     if (cache == null) {
       return getSites(seed, parentSdf, budgets)

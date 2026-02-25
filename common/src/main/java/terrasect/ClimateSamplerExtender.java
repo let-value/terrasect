@@ -1,7 +1,7 @@
 package terrasect;
 
 public interface ClimateSamplerExtender {
-  void terrasect$setChunk(ChunkAccessExtender chunkAccess);
+  void terrasect$setNoiseChunk(NoiseChunkExtender noiseChunk);
 
-  ChunkAccessExtender terrasect$getChunk();
+  NoiseChunkExtender terrasect$getNoiseChunk();
 }

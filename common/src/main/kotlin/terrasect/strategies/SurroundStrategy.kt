@@ -1,8 +1,6 @@
 package terrasect.strategies
 
-import java.nio.ByteBuffer
-import kotlin.math.max
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
@@ -10,6 +8,8 @@ import terrasect.definition.StrategySettings
 import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
+import java.nio.ByteBuffer
+import kotlin.math.max
 
 data class SurroundOriginResult(
     var centerX: Int = 0,
@@ -28,7 +28,11 @@ class SurroundStrategy(
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
-  fun getCachedOrigin(id: ByteBuffer, parentSdf: SdfCompose, cache: Cache?): SurroundOriginResult {
+  fun getCachedOrigin(
+      id: ByteBuffer,
+      parentSdf: SdfCompose,
+      cache: RegionsCache?,
+  ): SurroundOriginResult {
     if (cache == null) {
       return getOrigin(parentSdf.bake())
     }

@@ -1,6 +1,6 @@
 package terrasect.generation
 
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.Sdf2
@@ -22,17 +22,17 @@ class Locator(val seed: Long, val root: Region) {
   private val strategyLookup: Map<Byte, StrategyNode> = buildLookup()
   val iterator: ThreadLocal<LocateStep> = ThreadLocal.withInitial { LocateStep(this) }
 
-  fun iterate(id: ByteBuffer, cache: Cache? = null): LocateStep {
+  fun iterate(id: ByteBuffer, cache: RegionsCache? = null): LocateStep {
     val step = iterator.get()
     step.reset(normalized(id), cache)
     return step
   }
 
-  fun locate(address: String, cache: Cache? = null): LocatorResult? {
+  fun locate(address: String, cache: RegionsCache? = null): LocatorResult? {
     return locate(Address.deserialize(address), cache)
   }
 
-  fun locate(id: ByteBuffer, cache: Cache? = null): LocatorResult? {
+  fun locate(id: ByteBuffer, cache: RegionsCache? = null): LocatorResult? {
     var step = iterate(id, cache)
     while (step.id.hasRemaining()) {
       step = step.next() ?: return null
@@ -79,13 +79,13 @@ class LocateStep(val locator: Locator) {
   val sdf = SdfCompose()
 
   lateinit var id: ByteBuffer
-  var cache: Cache? = null
+  var cache: RegionsCache? = null
   var region: Region = locator.root
   var centerX: Int = 0
   var centerZ: Int = 0
   var ambiguous: Boolean = false
 
-  fun reset(id: ByteBuffer, cache: Cache? = null) {
+  fun reset(id: ByteBuffer, cache: RegionsCache? = null) {
     this.id = id
     this.cache = cache
     this.sdf.reset()

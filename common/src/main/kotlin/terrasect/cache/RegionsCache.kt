@@ -16,7 +16,7 @@ val hasher: LongHashFunction = LongHashFunction.xx()
 
 data class CacheKey(val hash: Long)
 
-class Cache(val maximumSize: Long = 10, shared: Cache? = null) {
+class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
   private val owner = shared ?: this
   private val stripes = Array(KEY_STRIPES) { Long2ObjectOpenHashMap<CacheKey>() }
   private val locks = Array(KEY_STRIPES) { ReentrantLock() }

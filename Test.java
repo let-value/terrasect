@@ -1,0 +1,1 @@
+package terrasect.mixin; import net.minecraft.world.level.levelgen.DensityFunction; import net.minecraft.world.level.levelgen.DensityFunctions; import net.minecraft.core.Holder; import net.minecraft.resources.ResourceKey; import net.minecraft.world.level.levelgen.synth.NormalNoise; public class Test { public static ResourceKey<?> extractKey(DensityFunction df) { return null; } }

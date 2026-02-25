@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
+import terrasect.generation.ChunkContext
 import terrasect.lookup.CompiledNoiseRegistry
 
 class NoiseConstraintCacheTest {
@@ -19,18 +20,18 @@ class NoiseConstraintCacheTest {
       width: Int = 4,
       height: Int = 4,
   ): NoiseConstraintCache {
-    val chunkCache = ChunkCache()
-    val g = GridCache<Region>(width, height, 0, 0)
+    val chunkContext = ChunkContext()
+    val g = PalettedGrid<Region>(width, height, 0, 0)
     val d = FloatArray(width * height) { distance }
     for (x in 0 until width) {
       for (z in 0 until height) {
         g.add(x, z, region)
       }
     }
-    chunkCache.regions = g
-    chunkCache.distances = d
-    chunkCache.noiseConstraintCache = NoiseConstraintCache(chunkCache, registry)
-    return chunkCache.noiseConstraintCache!!
+    chunkContext.regions = g
+    chunkContext.distances = d
+    chunkContext.noiseConstraintCache = NoiseConstraintCache(chunkContext, registry)
+    return chunkContext.noiseConstraintCache!!
   }
 
   @Test
@@ -53,13 +54,13 @@ class NoiseConstraintCacheTest {
 
     val registry = CompiledNoiseRegistry.build(constrained)!!
 
-    val chunkCache = ChunkCache()
-    val g = GridCache<Region>(4, 4, 0, 0)
+    val chunkContext = ChunkContext()
+    val g = PalettedGrid<Region>(4, 4, 0, 0)
     val d = FloatArray(16) { -100f }
     for (x in 0 until 4) for (z in 0 until 4) g.add(x, z, unconstrained)
-    chunkCache.regions = g
-    chunkCache.distances = d
-    val cache = NoiseConstraintCache(chunkCache, registry)
+    chunkContext.regions = g
+    chunkContext.distances = d
+    val cache = NoiseConstraintCache(chunkContext, registry)
 
     assertNull(cache.getConstraints(0, 0))
   }
