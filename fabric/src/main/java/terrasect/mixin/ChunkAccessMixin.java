@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.ChunkAccessExtender;
 import terrasect.NoiseChunkExtender;
 import terrasect.generation.ChunkContext;
+import terrasect.handler.NoiseHandler;
 
 @Mixin(ChunkAccess.class)
 public class ChunkAccessMixin implements ChunkAccessExtender {
@@ -44,7 +45,7 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       LevelChunkSection[] sections,
       BlendingData blendingData,
       CallbackInfo ci) {
-
+        
     if (levelHeightAccessor instanceof Level level) {
       this.terrasect$level = level;
     }
