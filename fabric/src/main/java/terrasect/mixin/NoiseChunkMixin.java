@@ -3,12 +3,10 @@ package terrasect.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.List;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,9 +19,6 @@ import terrasect.handler.NoiseHandler;
 
 @Mixin(NoiseChunk.class)
 public class NoiseChunkMixin implements NoiseChunkExtender {
-
-  @Shadow final int firstNoiseX = 0;
-  @Shadow final int firstNoiseZ = 0;
 
   @Unique private ChunkAccessExtender terrasect$chunk;
 
@@ -39,7 +34,7 @@ public class NoiseChunkMixin implements NoiseChunkExtender {
       Aquifer.FluidPicker fluidPicker,
       Blender blender,
       CallbackInfo ci) {
-    this.terrasect$chunk = NoiseHandler.pendingChunks.get(ChunkPos.asLong(j >> 4, k >> 4));
+    this.terrasect$chunk = NoiseHandler.pendingChunk.get();
   }
 
   @Override
@@ -62,8 +57,6 @@ public class NoiseChunkMixin implements NoiseChunkExtender {
   private NoiseRouter terrasect$attachChunkToDensityFunctions(
       NoiseRouter router, DensityFunction.Visitor visitor, Operation<NoiseRouter> original) {
     var result = original.call(router, visitor);
-    this.terrasect$chunk = NoiseHandler.pendingChunks.get(
-        ChunkPos.asLong(this.firstNoiseX >> 2, this.firstNoiseZ >> 2));
     return NoiseHandler.wrapNoiseRouter(result, this);
   }
 

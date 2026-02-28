@@ -1,5 +1,6 @@
 package terrasect.generation
 
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import terrasect.ChunkAccessExtender
 import terrasect.Terrasect
@@ -26,20 +27,20 @@ class ChunkContext {
     return localX * height + localZ
   }
 
-  constructor(chunk: ChunkAccessExtender) {
-    val position = chunk.`terrasect$getChunk`().pos
+  constructor(chunk: ChunkAccessExtender, position: ChunkPos) {
     val level: Level =
         chunk.`terrasect$getLevel`()
             ?: throw IllegalStateException("Chunk is not attached to a level")
     val dimension = ResourceKeyCompat.getKeyId(level.dimension())
     this.context = Context.get(dimension) ?: return
 
-    val baseWidth = position.maxBlockX - position.minBlockX
-    val baseHeight = position.maxBlockZ - position.minBlockZ
-    this.originX = position.minBlockX - baseWidth
-    this.originZ = position.minBlockZ - baseHeight
-    this.width = baseWidth * 3
-    this.height = baseHeight * 3
+    val baseWidth = position.maxBlockX - position.minBlockX + 1  
+    val baseHeight = position.maxBlockZ - position.minBlockZ + 1
+    val padding = baseWidth * 1 
+    this.originX = position.minBlockX - padding
+    this.originZ = position.minBlockZ - padding
+    this.width   = baseWidth  + padding * 2
+    this.height  = baseHeight + padding * 2
 
     this.cache = RegionsCache(64, Terrasect.cache)
     this.regions = PalettedGrid(width, height, originX, originZ)

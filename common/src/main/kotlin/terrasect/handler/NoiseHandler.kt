@@ -1,6 +1,5 @@
 package terrasect.handler
 
-import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.world.level.levelgen.NoiseRouter
 import terrasect.ChunkAccessExtender
 import terrasect.NoiseChunkExtender
@@ -8,7 +7,7 @@ import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
 
 object NoiseHandler {
-  @JvmField val pendingChunks: ConcurrentHashMap<Long, ChunkAccessExtender> = ConcurrentHashMap()
+  @JvmField val pendingChunk: ThreadLocal<ChunkAccessExtender?> = ThreadLocal()
 
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, noiseChunk: NoiseChunkExtender): NoiseRouter {
@@ -19,8 +18,18 @@ object NoiseHandler {
                 "fluidLevelFloodednessNoise",
                 noiseChunk,
             ),
-            ChunkDensityFunction(router.fluidLevelSpreadNoise, "fluidLevelSpreadNoise", noiseChunk),
-            ChunkDensityFunction(router.lavaNoise, "lavaNoise", noiseChunk),
+            ChunkDensityFunction(
+                router.fluidLevelSpreadNoise,
+                "fluidLevelSpreadNoise",
+                noiseChunk,
+                scale = 16, // sampled at floorDiv(x,16)
+            ),
+            ChunkDensityFunction(
+                router.lavaNoise,
+                "lavaNoise",
+                noiseChunk,
+                scale = 64, // sampled at floorDiv(x,64)
+            ),
             ChunkDensityFunction(router.temperature, "temperature", noiseChunk),
             ChunkDensityFunction(router.vegetation, "vegetation", noiseChunk),
             ChunkDensityFunction(router.continents, "continents", noiseChunk),

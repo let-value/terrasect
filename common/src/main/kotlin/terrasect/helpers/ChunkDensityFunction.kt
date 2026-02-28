@@ -9,15 +9,17 @@ class ChunkDensityFunction(
     val wrapped: DensityFunction,
     val key: String,
     val noiseChunk: NoiseChunkExtender,
+    val scale: Int = 1,
 ) : DensityFunction {
   override fun compute(context: DensityFunction.FunctionContext): Double {
     val original = wrapped.compute(context)
+    val chunk = noiseChunk.`terrasect$getChunk`()?.`terrasect$getCache`() ?: return original
     return NoiseHandler.modifyDensityValue(
         key,
         original,
-        context.blockX(),
-        context.blockZ(),
-        noiseChunk.`terrasect$getChunk`().`terrasect$getCache`(),
+        context.blockX() * scale,
+        context.blockZ() * scale,
+        chunk,
     ) ?: original
   }
 
@@ -26,7 +28,7 @@ class ChunkDensityFunction(
   }
 
   override fun mapAll(visitor: DensityFunction.Visitor): DensityFunction {
-    return ChunkDensityFunction(wrapped.mapAll(visitor), key, noiseChunk)
+    return ChunkDensityFunction(wrapped.mapAll(visitor), key, noiseChunk, scale)
   }
 
   override fun minValue(): Double {

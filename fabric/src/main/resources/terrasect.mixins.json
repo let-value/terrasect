@@ -5,6 +5,7 @@
   "mixins": [
     "ChunkAccessMixin",
     "ChunkGeneratorMixin",
+    "NoiseBasedChunkGeneratorMixin",
     "ClimateClimateSamplerMixin",
     "ClimateTargetPointMixin",
     "DensityFunctionHolderMixin",
