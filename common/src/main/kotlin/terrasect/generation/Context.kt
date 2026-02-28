@@ -10,6 +10,7 @@ import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.Terrasect
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
+import terrasect.lookup.CompiledNoiseRegistry
 import java.util.concurrent.ConcurrentHashMap
 
 class Context(
@@ -21,6 +22,8 @@ class Context(
 ) {
   val traverser = Traverser(seed, root)
   val locator = Locator(seed, root)
+
+  val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
 
   companion object {
     val map = ConcurrentHashMap<String, Context>()

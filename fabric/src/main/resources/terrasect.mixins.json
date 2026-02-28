@@ -5,11 +5,13 @@
   "mixins": [
     "ChunkAccessMixin",
     "ChunkGeneratorMixin",
+    "NoiseBasedChunkGeneratorMixin",
     "ClimateClimateSamplerMixin",
     "ClimateTargetPointMixin",
+    "DensityFunctionHolderMixin",
     "LevelMixin",
     "MultiNoiseBiomeSourceMixin",
-    "NoiseChunkExtenderMixin"
+    "NoiseChunkMixin"
   ],
   "injectors": {
     "defaultRequire": 1

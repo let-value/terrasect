@@ -1,6 +1,6 @@
 package terrasect.strategies
 
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
@@ -26,7 +26,11 @@ class SubdivisionStrategy(
 ) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
-  private fun getCachedSplit(id: ByteBuffer, parentSdf: Sdf2, cache: Cache?): SubdivisionSplit {
+  private fun getCachedSplit(
+      id: ByteBuffer,
+      parentSdf: Sdf2,
+      cache: RegionsCache?,
+  ): SubdivisionSplit {
     if (cache == null) {
       return getSplit(parentSdf, budgets)
     }

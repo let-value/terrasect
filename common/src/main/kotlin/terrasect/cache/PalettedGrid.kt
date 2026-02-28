@@ -1,6 +1,6 @@
 package terrasect.cache
 
-class GridCache<T>(
+class PalettedGrid<T>(
     val width: Int = 16,
     val height: Int = 16,
     val originX: Int = 0,

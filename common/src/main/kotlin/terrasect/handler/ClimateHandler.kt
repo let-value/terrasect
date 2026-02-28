@@ -3,7 +3,7 @@ package terrasect.handler
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
 import terrasect.ClimateTargetPointExtender
-import terrasect.cache.ChunkCache
+import terrasect.generation.ChunkContext
 import terrasect.generation.Context
 import kotlin.math.max
 import kotlin.math.min
@@ -30,12 +30,11 @@ object ClimateHandler {
       quadY: Int,
       quadZ: Int,
       climate: Climate.TargetPoint,
-      cache: ChunkCache,
+      cache: ChunkContext,
   ) {
-    val grid = cache.grid ?: return
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
-    val region = grid.get(blockX, blockZ) ?: return
+    val region = cache.regions?.get(blockX, blockZ) ?: return
     val constraints = region.climate ?: return
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender

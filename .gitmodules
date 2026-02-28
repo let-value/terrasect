@@ -1,0 +1,3 @@
+[submodule "compat/c2me"]
+	path = compat/c2me
+	url = https://github.com/RelativityMC/C2ME-fabric.git

@@ -2,13 +2,13 @@ package terrasect
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
 
 object Terrasect {
   val registry = RegionRegistry()
-  val cache = Cache(100)
+  val cache = RegionsCache(100)
 
   private val LOGGER: Logger = LoggerFactory.getLogger(Constants.MOD_ID)
 

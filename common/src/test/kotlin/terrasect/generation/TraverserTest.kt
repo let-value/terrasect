@@ -1,8 +1,9 @@
 package terrasect.generation
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import terrasect.cache.Cache
+import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionRegistry
 import terrasect.definition.Strategy
@@ -82,7 +83,7 @@ class TraverserTest {
   @Test
   fun `should iterate with cache`() {
     val root = registry.buildTree("hex")
-    val cache = Cache()
+    val cache = RegionsCache()
     val traverse = Traverser(SEED, root)
 
     val borders = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -110,7 +111,7 @@ class TraverserTest {
   @Test
   fun `should keep nested traversal inside parent bounds with cache`() {
     val root = registry.buildTree("hex")
-    val cache = Cache()
+    val cache = RegionsCache()
     val traverser = Traverser(SEED, root)
     val maxDepth = maxStrategyDepth(root)
 
@@ -140,7 +141,7 @@ class TraverserTest {
   @Test
   fun `should match resolved region budgets across unique palettes by depth`() {
     val root = registry.buildTree("hex")
-    val cache = Cache()
+    val cache = RegionsCache()
     val traverser = Traverser(SEED, root)
     val maxResolvedDepth = (maxStrategyDepth(root) - 1).coerceAtLeast(0)
 
@@ -226,5 +227,4 @@ class TraverserTest {
 
     return Color.HSBtoRGB(hue, saturation.coerceIn(0f, 1f), brightness.coerceIn(0f, 1f))
   }
-
 }
