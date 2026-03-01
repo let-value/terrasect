@@ -41,7 +41,9 @@ authors = "${mod_authors}" #optional
 # The description text for the mod (multi line!)
 description = '''${mod_description}'''
 
-# The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
+[[mixins]]
+config = "common.mixins.json"
+
 [[mixins]]
 config = "terrasect.mixins.json"
 
@@ -66,3 +68,4 @@ type = "required"
 versionRange = "${neoforge_kotlin_version_range}"
 ordering = "NONE"
 side = "BOTH"
+

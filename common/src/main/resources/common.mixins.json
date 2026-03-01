@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "package": "terrasect.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ChunkAccessMixin",
+    "ChunkGeneratorMixin",
+    "NoiseBasedChunkGeneratorMixin",
+    "ClimateClimateSamplerMixin",
+    "ClimateTargetPointMixin",
+    "DensityFunctionHolderMixin",
+    "LevelMixin",
+    "MultiNoiseBiomeSourceMixin",
+    "NoiseChunkMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

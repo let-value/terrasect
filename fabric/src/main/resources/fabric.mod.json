@@ -41,7 +41,7 @@
     ]
   },
   "mixins": [
-    "terrasect.mixins.json",
+    "common.mixins.json",
     {
       "config": "terrasect.client.mixins.json",
       "environment": "client"
@@ -55,3 +55,4 @@
     "fabric-language-kotlin": ">=${fabric_kotlin_version}"
   }
 }
+
