@@ -36,7 +36,7 @@ class ChunkContext {
 
     val baseWidth = position.maxBlockX - position.minBlockX + 1  
     val baseHeight = position.maxBlockZ - position.minBlockZ + 1
-    val padding = baseWidth * 1 
+    val padding = baseWidth * 1
     this.originX = position.minBlockX - padding
     this.originZ = position.minBlockZ - padding
     this.width   = baseWidth  + padding * 2
@@ -58,6 +58,24 @@ class ChunkContext {
   }
 
   fun getDistance(blockX: Int, blockZ: Int): Float {
-    return distances?.get(idx(blockX, blockZ)) ?: return Float.NEGATIVE_INFINITY
+    if (distances != null && inBounds(blockX, blockZ)) {
+      return distances!![idx(blockX, blockZ)]
+    }
+    val ctx = context ?: return Float.NEGATIVE_INFINITY
+    return ctx.traverser.traverse(blockX, blockZ, cache).distance
+  }
+
+  private fun inBounds(blockX: Int, blockZ: Int): Boolean {
+    val localX = blockX - originX
+    val localZ = blockZ - originZ
+    return localX >= 0 && localX < width && localZ >= 0 && localZ < height
+  }
+
+  fun getRegion(blockX: Int, blockZ: Int): Region? {
+    val ctx = context ?: return null
+    if (regions != null && inBounds(blockX, blockZ)) {
+      return regions!!.get(blockX, blockZ)
+    }
+    return ctx.traverser.traverse(blockX, blockZ, cache).region
   }
 }
