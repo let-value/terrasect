@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "terrasect.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CreateWorldScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

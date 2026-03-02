@@ -1,4 +1,4 @@
-package terrasect;
+package terrasect.extender;
 
 import org.jspecify.annotations.Nullable;
 

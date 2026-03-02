@@ -1,4 +1,4 @@
-package terrasect;
+package terrasect.extender;
 
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;

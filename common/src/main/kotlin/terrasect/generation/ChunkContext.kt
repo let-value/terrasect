@@ -2,19 +2,18 @@ package terrasect.generation
 
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
-import terrasect.ChunkAccessExtender
-import terrasect.Terrasect
 import terrasect.cache.PalettedGrid
 import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
+import terrasect.extender.ChunkAccessExtender
 
 class ChunkContext {
   var height: Int = 0
   var width: Int = 0
   var originZ: Int = 0
   var originX: Int = 0
-  var context: Context? = null
+  var dimensionContext: DimensionContext? = null
   var cache: RegionsCache? = null
   var regions: PalettedGrid<Region>? = null
   var distances: FloatArray? = null
@@ -32,17 +31,17 @@ class ChunkContext {
         chunk.`terrasect$getLevel`()
             ?: throw IllegalStateException("Chunk is not attached to a level")
     val dimension = ResourceKeyCompat.getKeyId(level.dimension())
-    this.context = Context.get(dimension) ?: return
+    this.dimensionContext = DimensionContext.get(dimension) ?: return
 
-    val baseWidth = position.maxBlockX - position.minBlockX + 1  
+    val baseWidth = position.maxBlockX - position.minBlockX + 1
     val baseHeight = position.maxBlockZ - position.minBlockZ + 1
     val padding = baseWidth * 1
     this.originX = position.minBlockX - padding
     this.originZ = position.minBlockZ - padding
-    this.width   = baseWidth  + padding * 2
-    this.height  = baseHeight + padding * 2
+    this.width = baseWidth + padding * 2
+    this.height = baseHeight + padding * 2
 
-    this.cache = RegionsCache(64, Terrasect.cache)
+    this.cache = RegionsCache(6, dimensionContext!!.cache)
     this.regions = PalettedGrid(width, height, originX, originZ)
     this.distances = FloatArray(width * height)
 
@@ -50,7 +49,7 @@ class ChunkContext {
       for (z in 0 until height) {
         val blockX = originX + x
         val blockZ = originZ + z
-        val step = context!!.traverser.traverse(blockX, blockZ, cache)
+        val step = dimensionContext!!.traverser.traverse(blockX, blockZ, cache)
         this.regions!!.add(blockX, blockZ, step.region)
         this.distances!![idx(blockX, blockZ)] = step.distance
       }
@@ -61,7 +60,7 @@ class ChunkContext {
     if (distances != null && inBounds(blockX, blockZ)) {
       return distances!![idx(blockX, blockZ)]
     }
-    val ctx = context ?: return Float.NEGATIVE_INFINITY
+    val ctx = dimensionContext ?: return Float.NEGATIVE_INFINITY
     return ctx.traverser.traverse(blockX, blockZ, cache).distance
   }
 
@@ -72,7 +71,7 @@ class ChunkContext {
   }
 
   fun getRegion(blockX: Int, blockZ: Int): Region? {
-    val ctx = context ?: return null
+    val ctx = dimensionContext ?: return null
     if (regions != null && inBounds(blockX, blockZ)) {
       return regions!!.get(blockX, blockZ)
     }

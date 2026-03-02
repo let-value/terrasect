@@ -45,7 +45,7 @@ description = '''${mod_description}'''
 config = "common.mixins.json"
 
 [[mixins]]
-config = "terrasect.mixins.json"
+config = "common.client.mixins.json"
 
 # A dependency - use the . to indicate dependency for a specific modid
 [[dependencies.${ mod_id }]] #optional

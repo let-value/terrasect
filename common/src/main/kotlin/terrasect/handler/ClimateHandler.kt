@@ -2,19 +2,19 @@ package terrasect.handler
 
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
-import terrasect.ClimateTargetPointExtender
+import terrasect.extender.ClimateTargetPointExtender
 import terrasect.generation.ChunkContext
-import terrasect.generation.Context
+import terrasect.generation.DimensionContext
 import kotlin.math.max
 import kotlin.math.min
 
 object ClimateHandler {
-  fun getInfluence(context: Context, x: Int, z: Int): Pair<Float, Float> {
-    if (context.biomesClimate == null) return 0f to 0f
+  fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
+    if (dimensionContext.biomesClimate == null) return 0f to 0f
 
-    val target = context.sampler.sample(x shr 2, 16, z shr 2)
+    val target = dimensionContext.sampler.sample(x shr 2, 16, z shr 2)
 
-    val biome = context.biomesClimate.findValue(target)
+    val biome = dimensionContext.biomesClimate.findValue(target)
 
     val river = if (biome.`is`(BiomeTags.IS_RIVER)) 1.0f else 0.0f
 

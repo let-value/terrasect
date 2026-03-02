@@ -6,8 +6,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import terrasect.ClimateSamplerExtender;
-import terrasect.NoiseChunkExtender;
+import terrasect.extender.ClimateSamplerExtender;
+import terrasect.extender.NoiseChunkExtender;
 import terrasect.handler.ClimateHandler;
 
 @Mixin(Climate.Sampler.class)

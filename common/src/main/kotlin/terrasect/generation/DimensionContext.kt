@@ -8,43 +8,49 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.Terrasect
+import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.lookup.CompiledNoiseRegistry
 import java.util.concurrent.ConcurrentHashMap
 
-class Context(
+class DimensionContext(
+    val presetId: String?,
     val dimensionId: String,
     val seed: Long,
     val root: Region,
     val sampler: Climate.Sampler,
     val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) {
+  val cache = RegionsCache(200, Terrasect.cache)
   val traverser = Traverser(seed, root)
   val locator = Locator(seed, root)
 
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
 
   companion object {
-    val map = ConcurrentHashMap<String, Context>()
+    val map = ConcurrentHashMap<String, DimensionContext>()
 
+    @JvmStatic
     fun register(
+        presetId: String?,
         dimension: ResourceKey<Level>,
-        seed: Long,
-        sampler: Climate.Sampler,
         structureSets: MutableList<Holder<StructureSet>>,
         registry: RegistryAccess.Frozen,
+        seed: Long,
+        sampler: Climate.Sampler,
         biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
+      val registry = Terrasect.presets.resolve(presetId)
+      val name = registry.getRoot(dimensionId) ?: return
+      val root = registry.buildTree(name)
 
-      val name = Terrasect.registry.getRoot(dimensionId) ?: return
-      val root = Terrasect.registry.buildTree(name)
-
-      val context = Context(dimensionId, seed, root, sampler, biomesClimate)
-      map[dimensionId] = context
+      val dimensionContext =
+          DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
+      map[dimensionId] = dimensionContext
     }
 
-    fun get(dimensionId: String): Context? = map[dimensionId]
+    fun get(dimensionId: String): DimensionContext? = map[dimensionId]
   }
 }

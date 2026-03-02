@@ -12,9 +12,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import terrasect.ChunkAccessExtender;
-import terrasect.ClimateSamplerExtender;
-import terrasect.NoiseChunkExtender;
+import terrasect.extender.ChunkAccessExtender;
+import terrasect.extender.ClimateSamplerExtender;
+import terrasect.extender.NoiseChunkExtender;
 import terrasect.handler.NoiseHandler;
 
 @Mixin(NoiseChunk.class)

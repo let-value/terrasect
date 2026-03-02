@@ -6,9 +6,8 @@ import net.minecraft.client.gui.components.debug.DebugScreenDisplayer
 import net.minecraft.client.gui.components.debug.DebugScreenEntry
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunk
-import terrasect.Terrasect
 import terrasect.compat.ResourceKeyCompat
-import terrasect.generation.Context
+import terrasect.generation.DimensionContext
 
 class RegionDebugEntry : DebugScreenEntry {
   override fun display(
@@ -21,14 +20,14 @@ class RegionDebugEntry : DebugScreenEntry {
     val mc = Minecraft.getInstance()
     val cameraEntity = mc.cameraEntity ?: return
 
-    val context: Context = Context.get(ResourceKeyCompat.getKeyId(dimension)) ?: return
+    val context = DimensionContext.get(ResourceKeyCompat.getKeyId(dimension)) ?: return
 
     val blockX = cameraEntity.blockX
     val blockZ = cameraEntity.blockZ
 
     val sb = StringBuilder("Regions: ")
 
-    val step = context.traverser.iterate(blockX, blockZ, Terrasect.cache) ?: return
+    val step = context.traverser.iterate(blockX, blockZ, context.cache)
 
     var depth = 0
     do {

@@ -27,12 +27,6 @@
         "adapter": "kotlin"
       }
     ],
-    "fabric-datagen": [
-      {
-        "value": "terrasect.TerrasectFabricDataGenerator",
-        "adapter": "kotlin"
-      }
-    ],
     "fabric-client-gametest": [
       {
         "value": "terrasect.TerrasectFabricClientGameTest",
@@ -43,7 +37,7 @@
   "mixins": [
     "common.mixins.json",
     {
-      "config": "terrasect.client.mixins.json",
+      "config": "common.client.mixins.json",
       "environment": "client"
     }
   ],

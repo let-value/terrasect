@@ -1,4 +1,4 @@
-package terrasect;
+package terrasect.extender;
 
 public interface ClimateTargetPointExtender {
   void terrasect$setTemperature(long temperature);

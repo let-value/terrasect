@@ -9,6 +9,10 @@ base {
     archivesName = "${mod_id}-common"
 }
 
+test {
+    useJUnitPlatform()
+}
+
 neoForge {
     neoFormVersion = neoforge_neoform_version
 
@@ -22,8 +26,9 @@ neoForge {
     runs {
         client { client() }
         server { server() }
-        serverData { serverData() }
     }
+
+    addModdingDependenciesTo sourceSets.test
 }
 
 dependencies {
@@ -43,13 +48,4 @@ dependencies {
     testImplementation("de.skuzzle.test:snapshot-tests-junit5:${snapshot_tests_version}")
     testImplementation("com.github.spullara.mustache.java:compiler:0.9.10")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-configurations {
-    testImplementation.extendsFrom(configurations.getByName("modDevCompileDependencies"))
-    testRuntimeOnly.extendsFrom(configurations.getByName("modDevRuntimeDependencies"))
-}
-
-test {
-    useJUnitPlatform()
 }

@@ -2,7 +2,7 @@ package terrasect.helpers
 
 import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.levelgen.DensityFunction
-import terrasect.NoiseChunkExtender
+import terrasect.extender.NoiseChunkExtender
 import terrasect.handler.NoiseHandler
 
 class ChunkDensityFunction(
