@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.preset;
 
 import net.minecraft.core.Registry;
 import net.minecraft.server.Main;

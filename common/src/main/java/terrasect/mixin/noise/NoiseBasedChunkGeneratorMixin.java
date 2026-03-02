@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.noise;
 
 import java.util.OptionalInt;
 import java.util.function.Predicate;

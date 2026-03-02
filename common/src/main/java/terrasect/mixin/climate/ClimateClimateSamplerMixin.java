@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.climate;
 
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,7 +31,7 @@ public class ClimateClimateSamplerMixin implements ClimateSamplerExtender {
       return;
     }
     var targetPoint = cir.getReturnValue();
-    var cache = this.terrasect$getNoiseChunk().terrasect$getChunk().terrasect$getCache();
-    ClimateHandler.INSTANCE.modifyClimate(x, y, z, targetPoint, cache);
+    var context = this.terrasect$getNoiseChunk().terrasect$getChunk().terrasect$getContext();
+    ClimateHandler.INSTANCE.modifyClimate(x, y, z, targetPoint, context);
   }
 }

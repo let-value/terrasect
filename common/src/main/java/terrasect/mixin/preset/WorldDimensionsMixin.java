@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.preset;
 
 import net.minecraft.world.level.levelgen.WorldDimensions;
 import org.jetbrains.annotations.Nullable;

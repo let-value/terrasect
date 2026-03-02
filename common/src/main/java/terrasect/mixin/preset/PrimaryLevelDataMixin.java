@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.preset;
 
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;

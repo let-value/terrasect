@@ -10,14 +10,16 @@ class PresetRegistry {
 
   fun preset(id: String) = presets.getOrPut(id) { RegionRegistry() }
 
-  fun resolve(requestedPresetId: String?): RegionRegistry {
+  fun resolve(requestedPresetId: String?): RegionRegistry? {
     forcePresetId?.let {
-      return this.preset(it)
+      return presets[it]
     }
+
     requestedPresetId?.let {
-      return this.preset(it)
+      return presets[it]
     }
-    return this.preset(NORMAL)
+
+    return null
   }
 
   companion object {

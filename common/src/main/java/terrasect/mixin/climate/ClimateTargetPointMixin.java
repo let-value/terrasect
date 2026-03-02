@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.climate;
 
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;

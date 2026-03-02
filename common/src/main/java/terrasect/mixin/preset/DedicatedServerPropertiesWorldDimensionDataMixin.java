@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.preset;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;

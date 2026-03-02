@@ -2,18 +2,18 @@ package terrasect.helpers
 
 import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.levelgen.DensityFunction
-import terrasect.extender.NoiseChunkExtender
+import terrasect.generation.ChunkContext
 import terrasect.handler.NoiseHandler
 
 class ChunkDensityFunction(
     val wrapped: DensityFunction,
     val key: String,
-    val noiseChunk: NoiseChunkExtender,
+    val chunk: ChunkContext,
     val scale: Int = 1,
 ) : DensityFunction {
   override fun compute(context: DensityFunction.FunctionContext): Double {
     val original = wrapped.compute(context)
-    val chunk = noiseChunk.`terrasect$getChunk`()?.`terrasect$getCache`() ?: return original
+
     return NoiseHandler.modifyDensityValue(
         key,
         original,
@@ -28,7 +28,7 @@ class ChunkDensityFunction(
   }
 
   override fun mapAll(visitor: DensityFunction.Visitor): DensityFunction {
-    return ChunkDensityFunction(wrapped.mapAll(visitor), key, noiseChunk, scale)
+    return ChunkDensityFunction(wrapped.mapAll(visitor), key, chunk, scale)
   }
 
   override fun minValue(): Double {

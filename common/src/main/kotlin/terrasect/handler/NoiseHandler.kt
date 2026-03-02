@@ -2,7 +2,6 @@ package terrasect.handler
 
 import net.minecraft.world.level.levelgen.NoiseRouter
 import terrasect.extender.ChunkAccessExtender
-import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
 
@@ -10,41 +9,41 @@ object NoiseHandler {
   @JvmField val pendingChunk: ThreadLocal<ChunkAccessExtender?> = ThreadLocal()
 
   @JvmStatic
-  fun wrapNoiseRouter(router: NoiseRouter, noiseChunk: NoiseChunkExtender): NoiseRouter {
+  fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext): NoiseRouter {
     return NoiseRouter(
-        ChunkDensityFunction(router.barrierNoise, "barrierNoise", noiseChunk),
+        ChunkDensityFunction(router.barrierNoise, "barrierNoise", chunk),
         ChunkDensityFunction(
             router.fluidLevelFloodednessNoise,
             "fluidLevelFloodednessNoise",
-            noiseChunk,
+            chunk,
         ),
         ChunkDensityFunction(
             router.fluidLevelSpreadNoise,
             "fluidLevelSpreadNoise",
-            noiseChunk,
+            chunk,
             scale = 16, // sampled at floorDiv(x,16)
         ),
         ChunkDensityFunction(
             router.lavaNoise,
             "lavaNoise",
-            noiseChunk,
+            chunk,
             scale = 64, // sampled at floorDiv(x,64)
         ),
-        ChunkDensityFunction(router.temperature, "temperature", noiseChunk),
-        ChunkDensityFunction(router.vegetation, "vegetation", noiseChunk),
-        ChunkDensityFunction(router.continents, "continents", noiseChunk),
-        ChunkDensityFunction(router.erosion, "erosion", noiseChunk),
-        ChunkDensityFunction(router.depth, "depth", noiseChunk),
-        ChunkDensityFunction(router.ridges, "ridges", noiseChunk),
+        ChunkDensityFunction(router.temperature, "temperature", chunk),
+        ChunkDensityFunction(router.vegetation, "vegetation", chunk),
+        ChunkDensityFunction(router.continents, "continents", chunk),
+        ChunkDensityFunction(router.erosion, "erosion", chunk),
+        ChunkDensityFunction(router.depth, "depth", chunk),
+        ChunkDensityFunction(router.ridges, "ridges", chunk),
         ChunkDensityFunction(
             router.preliminarySurfaceLevel,
             "preliminarySurfaceLevel",
-            noiseChunk,
+            chunk,
         ),
-        ChunkDensityFunction(router.finalDensity, "finalDensity", noiseChunk),
-        ChunkDensityFunction(router.veinToggle, "veinToggle", noiseChunk),
-        ChunkDensityFunction(router.veinRidged, "veinRidged", noiseChunk),
-        ChunkDensityFunction(router.veinGap, "veinGap", noiseChunk),
+        ChunkDensityFunction(router.finalDensity, "finalDensity", chunk),
+        ChunkDensityFunction(router.veinToggle, "veinToggle", chunk),
+        ChunkDensityFunction(router.veinRidged, "veinRidged", chunk),
+        ChunkDensityFunction(router.veinGap, "veinGap", chunk),
     )
   }
 

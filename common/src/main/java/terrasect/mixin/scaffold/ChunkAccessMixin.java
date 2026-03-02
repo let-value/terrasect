@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.scaffold;
 
 import java.util.function.Function;
 import net.minecraft.world.level.ChunkPos;
@@ -21,12 +21,12 @@ import terrasect.handler.NoiseHandler;
 
 @Mixin(ChunkAccess.class)
 public class ChunkAccessMixin implements ChunkAccessExtender {
-  @Unique private ChunkContext terrasect$Cache;
+  @Unique private ChunkContext terrasect$context;
   @Unique private Level terrasect$level;
 
   @Override
-  public ChunkContext terrasect$getCache() {
-    return this.terrasect$Cache;
+  public ChunkContext terrasect$getContext() {
+    return this.terrasect$context;
   }
 
   @Override
@@ -49,7 +49,7 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       this.terrasect$level = level;
     }
 
-    terrasect$Cache = new ChunkContext(this, chunkPos);
+    terrasect$context = new ChunkContext(this, chunkPos);
   }
 
   @Inject(method = "getOrCreateNoiseChunk", at = @At("HEAD"))

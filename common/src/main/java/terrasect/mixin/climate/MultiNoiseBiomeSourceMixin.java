@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.climate;
 
 import com.mojang.datafixers.util.Either;
 import net.minecraft.core.Holder;

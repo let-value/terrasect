@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.scaffold;
 
 import java.util.List;
 import java.util.concurrent.Executor;

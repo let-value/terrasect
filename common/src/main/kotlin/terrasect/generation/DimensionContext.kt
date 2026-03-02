@@ -1,5 +1,6 @@
 package terrasect.generation
 
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.ResourceKey
@@ -12,7 +13,6 @@ import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.lookup.CompiledNoiseRegistry
-import java.util.concurrent.ConcurrentHashMap
 
 class DimensionContext(
     val presetId: String?,
@@ -42,7 +42,7 @@ class DimensionContext(
         biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
-      val registry = Terrasect.presets.resolve(presetId)
+      val registry = Terrasect.presets.resolve(presetId) ?: return
       val name = registry.getRoot(dimensionId) ?: return
       val root = registry.buildTree(name)
 

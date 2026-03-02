@@ -5,7 +5,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import terrasect.generation.ChunkContext;
 
 public interface ChunkAccessExtender {
-  ChunkContext terrasect$getCache();
+  ChunkContext terrasect$getContext();
 
   ChunkAccess terrasect$getChunk();
 

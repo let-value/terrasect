@@ -14,7 +14,7 @@ object Terrasect {
 
   fun init() {
 
-    presets.preset("minecraft:normal").let {
+    presets.preset(PresetRegistry.NORMAL).let {
       it.setRoot("minecraft:overworld", "hex")
       it.region("hex").radius(150).strategy(Strategy.hex().tiling(true))
       it.region("cell").parent("hex").strategy(Strategy.voronoi())

@@ -1,4 +1,4 @@
-package terrasect.mixin;
+package terrasect.mixin.noise;
 
 import net.minecraft.world.level.levelgen.DensityFunction;
 import org.spongepowered.asm.mixin.Mixin;
