@@ -43,9 +43,9 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
     implementation("com.github.komputing:kbase58:0.4")
 
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation(platform("org.junit:junit-bom:5.11.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("de.skuzzle.test:snapshot-tests-junit5:${snapshot_tests_version}")
     testImplementation("com.github.spullara.mustache.java:compiler:0.9.10")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

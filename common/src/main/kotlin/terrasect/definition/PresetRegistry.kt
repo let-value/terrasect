@@ -2,11 +2,13 @@ package terrasect.definition
 
 import net.minecraft.world.level.levelgen.presets.WorldPresets
 import terrasect.compat.ResourceKeyCompat
+import terrasect.presets.CLIMATE_DEBUG
+import terrasect.presets.Presets
 
-class PresetRegistry {
-
+object PresetRegistry {
+  val NORMAL = ResourceKeyCompat.getKeyId(WorldPresets.NORMAL)
   var forcePresetId: String? = null
-  val presets = mutableMapOf<String, RegionRegistry>()
+  val presets = mutableMapOf(Presets.CLIMATE_DEBUG.toString() to CLIMATE_DEBUG)
 
   fun preset(id: String) = presets.getOrPut(id) { RegionRegistry() }
 
@@ -20,9 +22,5 @@ class PresetRegistry {
     }
 
     return null
-  }
-
-  companion object {
-    val NORMAL = ResourceKeyCompat.getKeyId(WorldPresets.NORMAL)
   }
 }

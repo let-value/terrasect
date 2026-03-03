@@ -7,6 +7,8 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 @Suppress("UnstableApiUsage")
 object TerrasectFabricClientGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+
     val game =
         context
             .worldBuilder()

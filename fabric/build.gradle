@@ -62,6 +62,11 @@ dependencies {
     //modImplementation "maven.modrinth:distanthorizons:2.4.5-b-1.21.11"
 
     implementation project(':common')
+    testImplementation project(':common')
+    
+    gametestImplementation("org.junit.platform:junit-platform-launcher")
+    gametestImplementation(platform("org.junit:junit-bom:5.11.0"))
+    gametestImplementation("org.junit.jupiter:junit-jupiter")
 }
 
 def props = [
@@ -115,3 +120,12 @@ publishing {
 }
 
 createUnpackMinecraftTask(minecraft_version)
+
+// Forward the -Ptest=<name> Gradle property as a JVM system property
+tasks.configureEach {
+    if (name == 'runClientGameTest' && it.hasProperty('systemProperty')) {
+        if (project.hasProperty('test')) {
+            it.systemProperty('test', project.property('test'))
+        }
+    }
+}
