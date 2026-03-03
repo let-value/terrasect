@@ -19,7 +19,6 @@ src/generated/
 
 # Compiled files
 *.class
-*.jar
 
 # Logs
 *.log

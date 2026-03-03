@@ -63,10 +63,11 @@ dependencies {
 
     implementation project(':common')
     testImplementation project(':common')
-    
+
     gametestImplementation("org.junit.platform:junit-platform-launcher")
     gametestImplementation(platform("org.junit:junit-bom:5.11.0"))
     gametestImplementation("org.junit.jupiter:junit-jupiter")
+    gametestImplementation("de.skuzzle.test:snapshot-tests-junit5:${snapshot_tests_version}")
 }
 
 def props = [
@@ -121,11 +122,17 @@ publishing {
 
 createUnpackMinecraftTask(minecraft_version)
 
-// Forward the -Ptest=<name> Gradle property as a JVM system property
+// Forward the -Ptest=<name> and -PupdateSnapshots Gradle properties as JVM system properties
 tasks.configureEach {
-    if (name == 'runClientGameTest' && it.hasProperty('systemProperty')) {
-        if (project.hasProperty('test')) {
-            it.systemProperty('test', project.property('test'))
+    if (name == 'runClientGameTest' && it instanceof JavaExec) {
+        it.systemProperty('fabric.client.gametest.disableNetworkSynchronizer', 'true')
+
+        def args = project.gradle.startParameter.projectProperties
+        if (args.containsKey('test')) {
+            it.systemProperty('test', args['test'])
+        }
+        if (args.containsKey('updateSnapshots')) {
+            it.systemProperty('updateSnapshots', 'true')
         }
     }
 }

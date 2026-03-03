@@ -1,5 +1,7 @@
 package terrasect
 
+import de.skuzzle.test.snapshots.SnapshotFile
+import de.skuzzle.test.snapshots.SnapshotFile.SnapshotHeader
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
@@ -8,18 +10,14 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.function.FailableConsumer
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.presets.Presets
 import java.nio.file.Path
-import java.nio.file.Paths
-import java.security.MessageDigest
 
 private val LOGGER = LoggerFactory.getLogger("WorldDigestGameTest")
 
 private const val SEED = "seed"
-private const val SNAPSHOT = "82d24077c936b73562c54fe4934fbdb0da5af54f549b11bbad94ac4d4a81e8f9"
 
 private val PROBE_LOCATIONS =
     listOf(
@@ -29,16 +27,166 @@ private val PROBE_LOCATIONS =
         512 to 512,
     )
 
-private val GAME_TEST_SNAPSHOT_BASE: Path by lazy {
-  Paths.get("").toAbsolutePath().parent.parent.resolve("test-snapshots")
+private val GAME_TEST_MODULE_DIR: Path by lazy {
+  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
+  classesRoot.parent.parent.parent.parent.also { LOGGER.info("[WorldDigest] module dir = {}", it) }
+}
+
+private val GAME_TEST_SCREENSHOTS_BASE: Path by lazy {
+  GAME_TEST_MODULE_DIR.resolve("build/gametest-screenshots")
+}
+
+private val GAME_TEST_RESOURCES_BASE: Path by lazy {
+  GAME_TEST_MODULE_DIR.resolve("src/gametest/resources/terrasect")
+}
+
+private fun snapshotPath(testSimpleName: String): Path =
+    GAME_TEST_RESOURCES_BASE.resolve("${testSimpleName}_snapshots/columns.snapshot")
+
+private fun parseColumnsSnapshot(path: Path): Map<String, Pair<Int, Int>> {
+  val text = SnapshotFile.fromSnapshotFile(path).snapshot()
+  return text
+      .lineSequence()
+      .drop(1) // header row: x,z,ocean_floor,world_surface
+      .filter { it.isNotBlank() }
+      .associate { line ->
+        val parts = line.split(",")
+        "${parts[0]},${parts[1]}" to (parts[2].toInt() to parts[3].toInt())
+      }
+}
+
+private fun diffAgainstVanilla(terrasectSimpleName: String) {
+  val vanillaPath = snapshotPath(VanillaWorldDigestTest::class.simpleName!!)
+  val terrasectPath = snapshotPath(terrasectSimpleName)
+
+  if (!vanillaPath.toFile().exists()) {
+    LOGGER.warn("[WorldDigest] Vanilla snapshot not found at {} — skipping diff", vanillaPath)
+    return
+  }
+
+  val vanilla = parseColumnsSnapshot(vanillaPath)
+  val terrasect = parseColumnsSnapshot(terrasectPath)
+
+  val diffText = buildString {
+    append("x,z,vanilla_floor,vanilla_surface,terrasect_floor,terrasect_surface\n")
+    for ((key, tVal) in terrasect) {
+      val vVal = vanilla[key]
+      if (vVal != tVal) {
+        append("$key,${vVal?.first ?: -1},${vVal?.second ?: -1},${tVal.first},${tVal.second}\n")
+      }
+    }
+  }
+
+  val diffLines = diffText.lines().count { it.isNotBlank() } - 1 // subtract header
+  if (diffLines <= 0) {
+    LOGGER.warn(
+        "[WorldDigest] Terrasect produced NO terrain differences vs vanilla — is the preset active?"
+    )
+  } else {
+    LOGGER.info("[WorldDigest] {} column(s) differ vs vanilla", diffLines)
+  }
+
+  val diffSnapshotPath =
+      GAME_TEST_RESOURCES_BASE.resolve("${terrasectSimpleName}_snapshots/diff_vs_vanilla.snapshot")
+  val header =
+      SnapshotHeader.fromMap(
+          mapOf(
+              SnapshotHeader.TEST_CLASS to TerrasectWorldDigestTest::class.qualifiedName!!,
+              SnapshotHeader.TEST_METHOD to "runTest",
+              SnapshotHeader.SNAPSHOT_NUMBER to "1",
+              SnapshotHeader.SNAPSHOT_NAME to "diff_vs_vanilla",
+              SnapshotHeader.DYNAMIC_DIRECTORY to "true",
+          )
+      )
+  SnapshotFile.of(header, diffText).writeTo(diffSnapshotPath)
+  LOGGER.info("[WorldDigest] Diff snapshot written to {}", diffSnapshotPath)
+}
+
+private fun snapshotColumns(
+    columns: Map<String, Pair<Int, Int>>,
+    snapshotDir: Path,
+    testClassName: String,
+) {
+  val text = buildString {
+    append("x,z,ocean_floor,world_surface\n")
+    for ((key, value) in columns) {
+      append("$key,${value.first},${value.second}\n")
+    }
+  }
+
+  val snapshotFile = snapshotDir.resolve("columns.snapshot")
+  val update = System.getProperty("updateSnapshots") != null
+
+  if (update || !snapshotFile.toFile().exists()) {
+    snapshotDir.toFile().mkdirs()
+    val header =
+        SnapshotHeader.fromMap(
+            mapOf(
+                SnapshotHeader.TEST_CLASS to testClassName,
+                SnapshotHeader.TEST_METHOD to "runTest",
+                SnapshotHeader.SNAPSHOT_NUMBER to "0",
+                SnapshotHeader.SNAPSHOT_NAME to "columns",
+                SnapshotHeader.DYNAMIC_DIRECTORY to "true",
+            )
+        )
+    SnapshotFile.of(header, text).writeTo(snapshotFile)
+    val verb = if (update) "updated" else "created initially — commit it to SCM"
+    LOGGER.info("[WorldDigest] Snapshot {} at {}", verb, snapshotFile)
+  } else {
+    val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
+    if (stored != text) {
+      throw AssertionError(
+          "Column snapshot mismatch at $snapshotFile\n" +
+              "Rerun with -PupdateSnapshots to accept the new terrain, or investigate the diff:\n" +
+              buildUnifiedDiff(stored, text)
+      )
+    }
+    LOGGER.info("[WorldDigest] Snapshot matches: {}", snapshotFile)
+  }
+}
+
+private fun buildUnifiedDiff(expected: String, actual: String): String {
+  val exp = expected.lines()
+  val act = actual.lines()
+  val sb = StringBuilder()
+  var matches = 0
+  var diffs = 0
+  for (i in 0 until maxOf(exp.size, act.size)) {
+    val e = exp.getOrNull(i)
+    val a = act.getOrNull(i)
+    when {
+      e == null -> {
+        diffs++
+        if (diffs <= 50) sb.appendLine("+ $a")
+      }
+      a == null -> {
+        diffs++
+        if (diffs <= 50) sb.appendLine("- $e")
+      }
+      e != a -> {
+        diffs++
+        if (diffs <= 50) {
+          sb.appendLine("- $e")
+          sb.appendLine("+ $a")
+        }
+      }
+      else -> matches++
+    }
+  }
+  if (diffs > 50) sb.appendLine("... (${diffs - 50} more differing lines)")
+  sb.appendLine("Summary: $diffs differing line(s), $matches matching line(s)")
+  return sb.toString()
 }
 
 @Suppress("UnstableApiUsage")
 private fun computeWorldDigest(
     context: ClientGameTestContext,
     label: String,
-    screenshotsDir: Path,
+    testSimpleName: String,
+    testClassName: String,
 ) {
+  val screenshotsDir = GAME_TEST_SCREENSHOTS_BASE.resolve(testSimpleName)
+  val snapshotDir = GAME_TEST_RESOURCES_BASE.resolve("${testSimpleName}_snapshots")
   val game =
       context
           .worldBuilder()
@@ -73,7 +221,7 @@ private fun computeWorldDigest(
 
     game.clientWorld.waitForChunksRender()
 
-    val digest = MessageDigest.getInstance("SHA-256")
+    val allColumns = LinkedHashMap<String, Pair<Int, Int>>()
 
     for ((x, z) in PROBE_LOCATIONS) {
       game.server.runOnServer(
@@ -86,7 +234,6 @@ private fun computeWorldDigest(
       game.clientWorld.waitForChunksDownload()
       game.clientWorld.waitForChunksRender()
 
-      val entries = mutableListOf<String>()
       game.server.runOnServer(
           FailableConsumer<MinecraftServer, Exception> { server ->
             val level = server.overworld()
@@ -94,29 +241,19 @@ private fun computeWorldDigest(
               for (bz in z until z + 16) {
                 val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
                 val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
-                entries.add("$bx,$bz,$oceanFloor,$worldSurface")
+                allColumns["$bx,$bz"] = oceanFloor to worldSurface
               }
             }
           }
       )
-
-      for (entry in entries) {
-        digest.update(entry.toByteArray(Charsets.UTF_8))
-      }
 
       context.takeScreenshot(
           TestScreenshotOptions.of("probe_${x}_${z}").withDestinationDir(screenshotsDir)
       )
     }
 
-    val hex = digest.digest().joinToString("") { "%02x".format(it) }
-    LOGGER.info("[WorldDigest] {} digest: {}", label, hex)
-
-    assertEquals(
-        SNAPSHOT,
-        hex,
-        "World digest does not match expected snapshot. This may indicate unintended changes to terrain generation; investigate probe screenshots for details.",
-    )
+    snapshotColumns(allColumns, snapshotDir, testClassName)
+    LOGGER.info("[WorldDigest] {} complete", label)
   } finally {
     game.close()
   }
@@ -132,7 +269,8 @@ object VanillaWorldDigestTest : FabricClientGameTest {
       computeWorldDigest(
           context,
           "vanilla",
-          GAME_TEST_SNAPSHOT_BASE.resolve(this::class.simpleName!!),
+          testSimpleName = this::class.simpleName!!,
+          testClassName = this::class.qualifiedName!!,
       )
     } finally {
       PresetRegistry.forcePresetId = null
@@ -150,8 +288,10 @@ object TerrasectWorldDigestTest : FabricClientGameTest {
       computeWorldDigest(
           context,
           "terrasect",
-          GAME_TEST_SNAPSHOT_BASE.resolve(this::class.simpleName!!),
+          testSimpleName = this::class.simpleName!!,
+          testClassName = this::class.qualifiedName!!,
       )
+      diffAgainstVanilla(this::class.simpleName!!)
     } finally {
       PresetRegistry.forcePresetId = null
     }
