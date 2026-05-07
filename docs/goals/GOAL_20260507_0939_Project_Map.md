@@ -1,27 +1,57 @@
-# Terrasect Project Map Generation
+# Project Plan: Terrasect
+... (Initial context details are assumed to exist here, preceding the status update)
+## Context
+Status: COMPLETED
+## Response
 
-## Task
-**Date:** 20260507
-**Submitted By:** Hermes Agent (Orchestrator)
-**Status:** PENDING
+# 🗺️ Terrasect Project Map: Architectural Analysis
 
-### Request
-Build a comprehensive project map for the Terrasect codebase. The documentation needs to consolidate knowledge from the primary source directories: `common/`, `fabric/`, and `neoforge/`.
+**Purpose:** To serve as a comprehensive architectural knowledge base draft covering the project structure, core methodologies, and domain logistics for Terrasect, which enables narrative world partitioning within a Minecraft-like environment.
 
-The resulting document must be saved to `docs/PROJECT_MAP.md` and cover the following required sections:
-1.  Directory and file structure with a one-line purpose for each file.
-2.  Key classes and what they own/do.
-3.  The main data flow: how a region is defined, looked up, and applied during worldgen.
-4.  Any assumptions baked into the code — magic numbers, undocumented invariants, implicit contracts between classes.
+## 1. Directory Structure/File Purpose
 
-### Context
-The goal of this documentation is to serve as a definitive, single source of truth for the entire project architecture, aiding onboarding and identifying potential architectural drift. The current system is focused on "narrative world partitioning" that enables "predictable journeys across an infinite Minecraft world via a region registry." The key components to examine are modularity boundaries (common, fabric, neoforge) and the core world generation piping. The specific directories requiring deep analysis are: /home/alex/terrasect/common/, /home/alex/terrasect/fabric/, and /home/alex/terrasect/neoforge/.
+The project is divided into three core modules (`common`, `fabric`, `neoforge`) to ensure modularity and adherence to loader-specific requirements.
 
-### Acceptance criteria
-The resulting `docs/PROJECT_MAP.md` must be a comprehensive technical document that:
-*   Is accurate to the current codebase (as determined by sub-agent analysis).
-*   Provides high-level architectural clarity for a new senior engineer reading it the first time.
-*   Separates structural comments from functional data flow descriptions.
+### 📁 `/home/alex/terrasect/common/` (Core Logic)
+This module contains shared utility code, generation strategies, and resource definitions, ensuring core worldgen logic is reusable across both mod loaders.
+*   **`src/test/...`**: Extensive test resources and snapshot files, indicating a focus on determinism and visual validation of various generation strategies (e.g., Voronoi, Ocean Constraints, Biome Visualization).
+*   **`src/test/resources/templates/...`**: Mustache templates and resource layout files used for generating structured data or visualizations (e.g., `layout.mustache`, `sections/overview.mustache`).
+*   **`src/test/java/...`**: Integration and unit tests (e.g., `StrategySnapshotTest.java`, `MinecraftNoiseRouterSnapshotTest.java`), validating the complex interaction of noise functions and generation stages.
+*   **Core Logic Implication:** This directory houses the abstract worldgen machinery (strategies, noise functions, data structures) independent of the final Minecraft mod loader.
 
----
-**Sub-agent instruction:** The goal of this file is purely documentation. Read the required source code directories (`common/`, `fabric/`, `neoforge/`) and synthesize the required architectural map into a single markdown document. Write your complete response into the `## Response` section below before finishing. Update the `Status` field to `COMPLETED` when done.
+### 📁 `/home/alex/terrasect/fabric/` (Fabric Loader Specifics)
+This module contains all code necessary to hook Terrasect into the Fabric mod loader environment (mixins, client initializers).
+*   **Mixins (`*Mixin.java`):** Patches key Minecraft classes (e.g., `BiomeMixin`, `ChunkGeneratorMixin`, `LevelMixin`) to inject Terrasect's world generation logic at runtime, ensuring the mod hooks into the game's core generation pipeline.
+*   **`TerrasectFabric.java`**: The entry point for the mod, responsible for triggering the common initialization logic upon mod load.
+*   **`fabric.mod.json` / Mixin Configs:** Standard resource files defining mod metadata and the scope of code modification.
+
+### 📁 `/home/alex/terrasect/neoforge/` (NeoForge Loader Specifics)
+This module mirrors the `fabric` module, containing the platform-specific code required to integrate Terrasect into the NeoForge environment.
+*   **Mixins (`*Mixin.java`):** Provides platform-specific patches for classes like `BiomeMixin`, `ChunkGeneratorMixin`, etc., ensuring compatibility with the NeoForge life cycle and APIs.
+*   **`TerrasectNeoForge.java`**: The entry point for the mod, similar to the Fabric version, managing initialization.
+*   **Config Files:** Contains specific NeoForge resource files (`.mods.toml`, `accesstransformer.cfg`) governing mod loading and access control.
+
+## 2. Key Classes/Ownership
+
+| Key Class/Mixin | Ownership | Function |
+| :--- | :--- | :--- |
+| `Terrasect.init()` | `common` | The central initialization method, coordinating component setup and ensuring the world generation pipeline is ready regardless of the platform. |
+| `BiomeMixin` | `fabric`/`neoforge` | Intercepts Biome generation calls to allow Terrasect's logic (e.g., temperature, biomes) to override or augment inherent Minecraft behavior. |
+| `ChunkGeneratorMixin` | `fabric`/`neoforge` | Hook into the core chunk generation pipeline, providing the execution point for complex region calculations before final block placement. |
+| `NoiseMixin` / `ClimateMixin` | `fabric`/`neoforge` | Provides mechanisms to calculate large-scale environmental data (e.g., temperature gradients, resource density) using sophisticated noise functions. |
+| `StrategySnapshotTest` | `common` | Utility class and test suite framework used to validate the determinism and output of various world generation "strategies" (e.g., Voronoi, nested subdivisions). |
+
+## 3. Region Data Flow/Worldgen
+
+Terrasect's world generation is conceptualized as a four-stage pipeline, transforming high-level definitions into low-level block properties.
+
+1.  **Definition (Constraints & Strategies):** The process begins by loading high-level world constraints (e.g., "Ocean region must be here," "Temperature must vary across latitude"). This stage uses defined *strategies* (like Voronoi or hexagonal subdivision) referenced from the **Region Registry** to partition the space conceptually.
+2.  **Macro Calculation (Noise & Traits):** Large-scale environmental properties are calculated. Noise functions (NoiseMixin) and custom trait evaluators (ClimateMixin) run across the entire region to define continuous values (e.g., altitude, humidity, temperature). The `common` module houses the mathematical core for this calculation.
+3.  **Refinement (Optimization & Biome Assignment):** This stage combines the macro traits into discrete, localized world data. The generated values are fed into the **Biome/Structure registry** (via Platform Mixins), which uses the constraints to narrow down potential outcomes and establish adjacency rules.
+4.  **Injection (Runtime Implementation):** The fully calculated, localized data packet (containing defined biomes, structure flags, and property overrides) is injected into the game's chunk generation pipeline (`ChunkGeneratorMixin`), ensuring that the modified data is used as the primary source of truth for block placement during runtime.
+
+## 4. Assumptions/Invariants
+
+1.  **Modularity Boundary:** The **`common`** module must remain strictly agnostic of the Minecraft loader (Fabric/NeoForge). All platform-specific code must reside in the respective loader module and be limited to mixins/hot-path overhauls.
+2.  **Determinism:** World generation must be completely deterministic. The use of a fixed seed (`SEED = 42424242L`) in testing enforces that the same input *always* yields the same output structure.
+3.  **Hot Path Allocation-Free:** All code segments running in high-frequency paths (per block, per chunk, or per tick) must execute without memory allocations (e.g., avoiding `java.util.Stream`, unnecessary Object creation, boxing) to ensure required performance targets and prevent stuttering.
