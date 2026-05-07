@@ -15,7 +15,7 @@ The resulting document must be saved to `docs/PROJECT_MAP.md` and cover the foll
 4.  Any assumptions baked into the code — magic numbers, undocumented invariants, implicit contracts between classes.
 
 ### Context
-The goal of this documentation is to serve as a definitive, single source of truth for the entire project architecture, aiding onboarding and identifying potential architectural drift. The current system is focused on "narrative world partitioning" that enables "predictable journeys across an infinite Minecraft world via a region registry." The key components to examine are modularity boundaries (common, fabric, neoforge) and the core world generation piping.
+The goal of this documentation is to serve as a definitive, single source of truth for the entire project architecture, aiding onboarding and identifying potential architectural drift. The current system is focused on "narrative world partitioning" that enables "predictable journeys across an infinite Minecraft world via a region registry." The key components to examine are modularity boundaries (common, fabric, neoforge) and the core world generation piping. The specific directories requiring deep analysis are: /home/alex/terrasect/common/, /home/alex/terrasect/fabric/, and /home/alex/terrasect/neoforge/.
 
 ### Acceptance criteria
 The resulting `docs/PROJECT_MAP.md` must be a comprehensive technical document that:

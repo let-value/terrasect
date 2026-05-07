@@ -11,6 +11,7 @@ Every task starts with a goal file. Goal files live in `docs/goals/`.
 **The goal file is the single source of truth for the task.** It must be fully self-contained — a sub-agent handed only this file must be able to understand the task completely and execute it without needing clarification from the orchestrator. This means the orchestrator must embed all necessary context directly in the file at creation time:
 
 - The full user request (unmodified)
+- **The absolute path to the workspace root** (e.g. `/home/alex/terrasect`) — sub-agents run in isolated terminal sessions with no knowledge of the project location
 - Background context required to understand the task (relevant prior decisions, constraints, affected files, related goals)
 - Acceptance criteria or expected output shape
 - Any constraints the sub-agent must respect
@@ -46,10 +47,27 @@ Be exhaustive — nothing relevant should live only in the orchestrator's memory
 [Response content]
 ```
 
-**Delegation message (what the orchestrator sends to the sub-agent):**
-> Read `docs/goals/GOAL_[name].md` in full and write your complete response into that file. Refer to `docs/KNOWLEDGE_BASE.md` if you need broader protocol context.
+**Delegation goal (what the orchestrator passes as the `goal` parameter to `delegate_task`):**
 
-Nothing else needs to be said. The file is the brief.
+```
+Read docs/goals/GOAL_[name].md in full. Perform the work described in it.
+Then use patch or write_file to write your complete response into that file
+under the ## Response section. Set Status: COMPLETED when done.
+Do NOT return the response as a summary message — write it to the file.
+Your only reply to me should be: "Written to goal file."
+```
+
+**Why this exact wording matters:** `delegate_task` sub-agents have a hardcoded system prompt that says "provide a clear, concise summary — your response is returned to the parent as a summary." That default instruction overrides any file-write intent unless the goal explicitly commands a write_file/patch call. Sub-agents DO have file-write tools (`file` toolset = `write_file`, `patch`). The instruction above overrides the default behavior.
+
+**After delegation — mandatory verification:**
+
+The orchestrator MUST verify the file was actually written:
+
+1. **Read the goal file** after the sub-agent returns.
+2. **If `Status` is `COMPLETED` and `## Response` is populated** → success. Proceed to close the TODO item.
+3. **If the response came back inline** (goal file unchanged) → the orchestrator must use `write_file` or `patch` to copy the inline response into the `## Response` section of the goal file, then set `Status: COMPLETED`.
+4. **Never assume the file was updated.** Always verify by reading it.
+5. **Never mark a task done based on what the sub-agent said in chat.** The goal file is the source of truth — if the file does not say `COMPLETED`, the task is not done.
 
 ---
 
