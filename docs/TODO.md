@@ -13,8 +13,3 @@ Do not mark items done here — just delete them when the goal is completed.
 
 ---
 
-- Add Sub-Agent Contract section to KNOWLEDGE_BASE.md (what every sub-agent must do regardless of who invoked it)
-- Add state machine transition rules to KNOWLEDGE_BASE.md (PENDING → CLAIMED → IN_PROGRESS → COMPLETED/FAILED)
-- Add concurrency guard rule to KNOWLEDGE_BASE.md (agent must check status is PENDING before claiming a ticket)
-- Fix KNOWLEDGE_BASE.md section numbering (Section 2 header missing, Usage Reporting buried in Section 1)
-- Update GOAL_20260507_0939_Workflow_Review.md — embed full KNOWLEDGE_BASE content into Context section (currently just references the file)
