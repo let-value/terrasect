@@ -7,6 +7,7 @@ This folder stores durable goal files used by the Terrasect orchestration workfl
 ### `GOAL_20260508_202347_Reborn_Documentation_Recovery.md`
 - Status: `COMPLETED`
 - Outcome: Recovered orchestration/process content from stale `feature/automate-git-workflow`; closed stale PR #45 (targeted `main`); recreated `docs/KNOWLEDGE_BASE.md`, `docs/PROJECT_MAP.md`, `docs/TODO.md`, and this README against the verified `reborn` codebase.
+- Fresh PR: https://github.com/let-value/terrasect/pull/46
 - Executed by: Claude Code (claude-sonnet-4-6), 2026-05-08.
 
 ## Historical goals (from stale `main` branch — for process context only)

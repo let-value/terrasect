@@ -181,7 +181,8 @@ If you are a later provider in the chain, read any `## Handoff` blocks in this f
 
 **Completed by:** Claude Code — claude-sonnet-4-6  
 **Date:** 2026-05-08  
-**Branch:** `docs/reborn-development-context`
+**Branch:** `docs/reborn-development-context`  
+**Fresh PR:** https://github.com/let-value/terrasect/pull/46
 
 ---
 
@@ -192,6 +193,13 @@ PR #45 (`Feat: Initialize README structure for the project.`, base `main`, head 
 - Comment added: "Closing this PR: it targets the stale `main` branch and was based on outdated code and documentation. Documentation is being recreated from scratch against the active `reborn` branch on a new branch: `docs/reborn-development-context`."
 - Closed via: `gh pr close 45`
 - Result: `✓ Closed pull request let-value/terrasect#45`
+
+Fresh replacement PR opened after orchestrator verification:
+
+- PR #46: https://github.com/let-value/terrasect/pull/46
+- Base: `reborn`
+- Head: `docs/reborn-development-context`
+- Reason: the recovery branch satisfied the acceptance criteria and is ready for review against the active branch.
 
 ---
 
