@@ -225,156 +225,18 @@ If the user explicitly specifies a provider (e.g., "Use Copilot for this", "Only
 
 ---
 
-## Section 7 — Terrasect Development Context
+## Section 7 — Terrasect Project Facts
 
-Durable technical facts about the Terrasect `reborn` codebase. Derived from full exploration on 2026-05-08. Update this section when the build system or module layout changes.
+Basic project facts for the `reborn` codebase. For detailed architecture, module layout, generation pipeline, and development context, see [`docs/PROJECT_MAP.md`](PROJECT_MAP.md).
 
-**Important:** This section describes the `reborn` branch. Previous documentation based on `main` is stale and should not be used as a reference.
+**Note:** This section describes the `reborn` branch. Previous documentation based on `main` is stale.
 
-### Module layout
-
-| Module | Responsibility |
-|--------|---------------|
-| `common` | All shared logic: region registry and tree, generation strategies, SDF library, generation pipeline (Locator, Traverser, ChunkContext, DimensionContext), climate/noise handlers, preset registry, caching layer, extender interfaces, mixin implementations |
-| `fabric` | Fabric mod entry point (`TerrasectFabric`), Fabric client entry point (`TerrasectFabricClient`), game test integration (`WorldDigestGameTest`, `TerrasectFabricClientGameTest`) |
-| `neoforge` | NeoForge mod entry point (`TerrasectNeoForge`) |
-| `compat/c2me` | Git submodule — C2ME-fabric performance compat (read-only reference) |
-
-There is **no `versions/` directory** in `reborn`. The multi-version versioned-module system from the stale `main` branch does not exist here.
-
-### Java / Kotlin versions
-
-| Setting | Value |
-|---------|-------|
-| Java | 21 (all modules) |
+| Property | Value |
+|----------|-------|
+| Branch | `reborn` |
+| Minecraft | 1.21.11 |
+| Java | 21 |
 | Kotlin | 2.3.0 |
 | JVM target | 21 |
-
-### Mixin architecture
-
-All mixins live in `common/src/main/java/terrasect/mixin/`. The loader-specific modules (`fabric/`, `neoforge/`) contain **no mixin implementations**. Mixin configs:
-
-- `common.mixins.json` — 16 main-thread mixins across 4 groups:
-  - `climate`: `ClimateClimateSamplerMixin`, `ClimateTargetPointMixin`, `MultiNoiseBiomeSourceMixin`, `NoiseChunkClimateSamplerMixin`
-  - `noise`: `DensityFunctionHolderMixin`, `NoiseBasedChunkGeneratorMixin`, `NoiseChunkFunctionsMixin`
-  - `preset`: `DedicatedServerPropertiesMixin`, `DedicatedServerPropertiesWorldDimensionDataMixin`, `DerivedLevelDataMixin`, `MainMixin`, `PrimaryLevelDataMixin`, `WorldDimensionsMixin`
-  - `scaffold`: `ChunkAccessMixin`, `LevelMixin`, `NoiseChunkMixin`
-- `common.client.mixins.json` — 1 client mixin: `CreateWorldScreenMixin`
-
-### Extender interfaces (common/src/main/java/terrasect/extender/)
-
-Extenders are Java interfaces used as cross-cast targets in mixins:
-
-| Interface | Purpose |
-|-----------|---------|
-| `ChunkAccessExtender` | Access level reference from a chunk |
-| `ClimateSamplerExtender` | Read/write sampler region data |
-| `ClimateTargetPointExtender` | Mutable setters for climate values |
-| `DensityFunctionHolderExtender` | Expose density function chunk context |
-| `MultiNoiseBiomeSourceExtender` | Access biome source parameters |
-| `NoiseChunkExtender` | Expose noise chunk context |
-| `PresetIdHolder` | Store/retrieve preset ID |
-
-### SDF library (common/src/main/kotlin/terrasect/sdf/)
-
-The SDF (Signed Distance Field) library provides the geometric core for region boundary computation:
-
-| File | Content |
-|------|---------|
-| `voronoi.kt` | Weighted Voronoi cell SDF |
-| `hex.kt` | Hexagonal grid geometry (apothem, spacing, center calculations) |
-| `polygon.kt` | Polygon SDF |
-| `sites.kt` | `Site` data type (position + radius) |
-| `subdivision.kt` | Subdivision region SDF |
-| `surround.kt` | Surrounding-ring region SDF |
-| `compose.kt` | `SdfCompose` — composable SDF accumulator |
-| `bounds.kt` | Bounding box helpers |
-| `area.kt` | Area calculations |
-| `consts.kt` | Shared constants |
-
-### Generation pipeline
-
-Region resolution for a block coordinate follows this path:
-
-```
-(x, z) → Traverser.traverse(x, z)
-              └→ TraversalStep.next() [per Region hierarchy level]
-                     └→ Strategy.traverse(step) [SDF lookup + cache]
-                           └→ TraversalStep{region, distance, id}
-```
-
-For chunk-level batch resolution: `ChunkContext(chunk, chunkPos)` pre-populates a `PalettedGrid<Region>` and a `FloatArray` of distances for all blocks in the chunk (with padding). Handlers (`ClimateHandler`, `NoiseHandler`) read from the `ChunkContext` on the hot path.
-
-`DimensionContext` holds the per-dimension seed, region tree root, `Traverser`, `Locator`, and `CompiledNoiseRegistry`. It is registered on world load and retrieved by dimension key.
-
-### Strategies (common/src/main/kotlin/terrasect/strategies/)
-
-| Strategy | Class | Description |
-|----------|-------|-------------|
-| Voronoi | `VoronoiStrategy` | Partitions space into weighted Voronoi cells |
-| Hex | `HexStrategy` | Hexagonal grid tiling |
-| Subdivision | `SubdivisionStrategy` | Recursive area subdivision |
-| Surround | `SurroundStrategy` | Ring/surround region around a parent |
-
-Strategies implement `Strategy.traverse(step)` and `Strategy.locate(step)`.
-
-### Region data model (common/src/main/kotlin/terrasect/definition/)
-
-| Class/File | Purpose |
-|------------|---------|
-| `Region` | Immutable node: name, budget, children, strategy, constraints |
-| `RegionDefinition` | DSL builder for constructing regions |
-| `RegionRegistry` | Holds the region tree by name; builds the tree from definitions |
-| `ClimateConstraints` | Min/max ranges for temperature, humidity, continentalness, erosion, weirdness, depth |
-| `HeightConstraints` | Min/max height range |
-| `NoiseConstraints` | Noise modifier ranges + blendWidth |
-| `SelectionConstraints` | Biome/structure/mob selection overrides |
-| `Strategy` | Sealed interface for layout algorithm |
-| `PresetRegistry` | Maps preset IDs (e.g. `climate_debug`) to `RegionRegistry` instances |
-
-### Caching layer (common/src/main/kotlin/terrasect/cache/)
-
-- `RegionsCache` — Caffeine-backed per-strategy caches (hex, voronoi, subdivision, surround) with a two-level architecture (local + shared parent). Keyed by `CacheKey` (xxHash64 of address bytes). Uses striped locking for key interning.
-- `PalettedGrid<T>` — Compact paletted grid for storing region references by (x, z) block coordinate within a chunk context.
-
-### Key build tasks
-
-| Task | Purpose |
-|------|---------|
-| `./gradlew :common:test` | All unit + snapshot tests |
-| `./gradlew :common:test -PupdateSnapshots` | Same + regenerate snapshot reference files |
-| `./gradlew build` | Compile + test all modules |
-| `./gradlew spotlessApply` | Apply Google Java Format + ktfmt (run before committing) |
-| `./gradlew spotlessCheck` | Verify formatting (enforced by CI) |
-| `./gradlew :fabric:runClient` / `runServer` | Launch Fabric dev game |
-| `./gradlew :neoforge:runClient` / `runServer` | Launch NeoForge dev game |
-
-Snapshot update flags accepted: `-PupdateSnapshots`, `-PupdateSnapshots=true`, `-PsnapshotUpdate`.
-
-### Spotless configuration
-
-- Java: `googleJavaFormat()` — `enforceCheck = false` (CI calls `spotlessCheck` separately)
-- Kotlin: `ktfmt().googleStyle()`
-- Kotlin Gradle: `ktfmt()`
-
-### Presets
-
-The only shipped preset as of 2026-05-08 is `CLIMATE_DEBUG` (`climate_debug`). It defines a hex→voronoi hierarchy with three climate-constrained child regions. Presets are registered in `PresetRegistry` and can be forced via `PresetRegistry.forcePresetId` for test/debug scenarios.
-
-### Snapshot tests
-
-Snapshot tests use `de.skuzzle.test:snapshot-tests-junit5`. Test classes are all Kotlin. Test coverage includes:
-- `sdf/` geometry (bounds, distance, hex, polygon, compose, sites)
-- `strategies/` (Hex, Voronoi, Subdivision, Surround)
-- `generation/` (Address, Locator, Traverser)
-- `definition/RegionDefinitionTest`
-- `helpers/NoiseTransformSnapshotTest`
-- `lookup/CompiledNoiseConstraintsTest`
-- `testing/SnapshotLibraryTest`
-
-### Known open questions (as of 2026-05-08)
-
-- `docs/PROJECT_MAP.md` has been rewritten from scratch against `reborn` code but warrants review if the architecture evolves.
-- No JMH benchmarks exist for hot-path code despite allocation-free being a design constraint.
-- NeoForge module has no test source set.
-- `c2me` submodule is present but empty/uninitialized in the current working tree checkout.
+| Fabric Loader | 0.18.4 |
+| NeoForge Loader | 21.11.36-beta |

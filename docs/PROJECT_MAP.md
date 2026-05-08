@@ -160,3 +160,37 @@ Test coverage areas:
 - `settings.gradle` includes `common`, `fabric`, `neoforge` only.
 - `gradle.properties` contains all version pins. No Windows-specific paths are present.
 - Spotless `enforceCheck = false` in root — CI explicitly calls `spotlessCheck`. Always run `./gradlew spotlessApply` before committing.
+- Spotless rules: Java → `googleJavaFormat()`, Kotlin → `ktfmt().googleStyle()`, Kotlin Gradle → `ktfmt()`.
+- Snapshot update flags accepted: `-PupdateSnapshots`, `-PupdateSnapshots=true`, `-PsnapshotUpdate`.
+
+### Key version pins (from `gradle.properties`)
+
+| Property | Value |
+|----------|-------|
+| Minecraft | 1.21.11 |
+| Java | 21 |
+| Kotlin | 2.3.0 |
+| JVM target | 21 |
+| Fabric Loader | 0.18.4 |
+| NeoForge Loader | 21.11.36-beta |
+| Kotlin for Forge | 6.0.0 |
+
+### Key Gradle tasks
+
+| Task | Purpose |
+|------|---------|
+| `./gradlew build` | Compile + test all modules |
+| `./gradlew :common:test` | All unit + snapshot tests |
+| `./gradlew :common:test -PupdateSnapshots` | Same, regenerating snapshot reference files |
+| `./gradlew spotlessApply` | Apply Google Java Format + ktfmt |
+| `./gradlew spotlessCheck` | Verify formatting (enforced by CI) |
+| `./gradlew :fabric:runClient` / `runServer` | Launch Fabric dev game |
+| `./gradlew :neoforge:runClient` / `runServer` | Launch NeoForge dev game |
+
+---
+
+## 8. Known Open Questions (as of 2026-05-08)
+
+- No JMH benchmarks exist for hot-path code despite allocation-free being a design constraint.
+- NeoForge module has no test source set.
+- `compat/c2me` submodule is present but empty/uninitialized in the current working tree checkout.
