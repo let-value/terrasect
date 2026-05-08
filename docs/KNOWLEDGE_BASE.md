@@ -2,6 +2,46 @@
 
 ---
 
+## Section 0 — Separation of Concerns
+
+Terrasect uses two coordination layers with different purposes:
+
+### Human ↔ Hermes coordination: Kanban
+
+Use the Hermes Kanban board for work tracking between Alexander and Hermes:
+
+- Board: `terrasect`
+- Tenant: `terrasect`
+- Workspace: `dir:/home/alex/terrasect`
+- Default skill for worker context: `terrasect`
+
+Kanban items are high-level, human-visible work packets: investigation tracks, environment setup, workflow design, development milestones, review gates, and future agentic-development planning. Kanban is the durable queue for “what Alexander and Hermes are coordinating next.”
+
+Backlog/planning cards should be kept `blocked` (or otherwise non-ready) until Alexander and Hermes intentionally choose to execute them. Ready cards assigned to an on-disk profile may be picked up by the gateway dispatcher automatically.
+
+### Hermes ↔ external-agent delegation: `docs/TODO.md` + `docs/goals/`
+
+Use repository docs for external-agent task execution:
+
+- `docs/TODO.md` is the external-agent scratch queue.
+- `docs/goals/GOAL_[YYYYMMDD]_[HHMM]_[ShortDescription].md` files are self-contained task contracts.
+- External agents must read the goal file, perform the work, write the complete response back into the goal file, and set `Status: COMPLETED`.
+- `docs/TODO.md` lines are deleted only after the corresponding goal file is verified as `COMPLETED`.
+
+Do not use `docs/TODO.md` as the Alexander↔Hermes planning board. Do not use Kanban as a substitute for self-contained external-agent goal files when delegating to providers or sub-agents.
+
+### Orchestrator-first worker model
+
+Terrasect coordination is orchestrator-first:
+
+- Hermes in this topic acts as an orchestrator, not a direct implementer by default.
+- Future Kanban workers should also understand themselves as orchestrators unless a task explicitly assigns hands-on implementation.
+- Orchestrator workers should manage task context, create/maintain goal files, decompose work, delegate to the agreed provider chain, verify goal-file completion, and report concise handoffs.
+- All durable communication with delegated agents belongs in the relevant `docs/goals/GOAL_*.md` file, not only in inline chat/process output.
+- Delegation prompts should be minimal once the goal file exists: ask the agent to read the goal file, perform the work, write its complete response into the same file, and set `Status: COMPLETED`.
+
+---
+
 ## Section 1 — Goal Capture and Documentation
 
 Every task starts with a goal file. Goal files live in `docs/goals/`.
@@ -184,3 +224,72 @@ The orchestrator is responsible for coordination only. It does not do the work i
 If the user explicitly specifies a provider (e.g., "Use Copilot for this", "Only use Ollama"), skip directly to that provider. Still apply the response interpretation rules and write outcomes to the ticket.
 
 *Compliance with this workflow is mandatory for all future task initiations.*
+
+---
+
+## Section 7 — Terrasect Development Context
+
+Durable technical facts about the Terrasect repository. Derived from full exploration on 2026-05-08. Update this section when the build system or module layout changes.
+
+### Module layout
+
+| Module | Responsibility |
+|--------|---------------|
+| `common` | All shared logic: region registry, generation strategies, worldgen pipeline, lookup tables, handlers, accessor mixin interfaces, compat shims, test framework |
+| `fabric` | Fabric mod entry point (`TerrasectFabric`), 15 Fabric-specific mixin implementations, Fabric client entry point + game test integration |
+| `neoforge` | NeoForge mod entry point (`TerrasectNeoForge`), 15 NeoForge-specific mixin implementations |
+| `versions/{ver}/{loader}` | Version-specific source overrides; inherit base sources via `gradle/versioned.gradle`; only differing files are present |
+
+Versioned Gradle module IDs use dots→underscores: `fabric-1_20_1`, `fabric-1_21_1`, `fabric-1_21_11`, `neoforge-1_21_1`, `neoforge-1_21_11`.
+
+### Java version matrix
+
+| Scope | Java version |
+|-------|-------------|
+| Root / bleeding-edge snapshot | 25 |
+| MC 1.21.x versioned builds | 21 |
+| MC 1.20.1 versioned build | 17 |
+
+### Key build tasks
+
+| Task | Purpose |
+|------|---------|
+| `./gradlew :common:test` | All unit + snapshot + Minecraft integration tests |
+| `./gradlew :common:test -PupdateSnapshots` | Same + regenerate snapshot files |
+| `./gradlew build` | Compile + test all modules |
+| `./gradlew spotlessApply` | Apply Google Java Format (run before committing) |
+| `./gradlew :fabric:runClient` / `runServer` | Launch Fabric dev game |
+| `./gradlew :neoforge:runClient` / `runServer` | Launch NeoForge dev game |
+| `./gradlew :fabric:unpackMinecraft` | Extract mapped Minecraft sources to `minecraft/` |
+| `./gradlew :fabric-1_20_1:build` | Build a specific versioned artifact |
+
+### Critical packages (read before touching)
+
+- `common/lookup/` — hot-path lookup tables; allocation-free hard constraint
+- `common/handler/` — per-system Minecraft integration handlers (biome, climate, noise, structure, level)
+- `common/strategy/` — layout algorithm implementations (Voronoi, Hex, Subdivision, Template)
+- `common/definition/` — region data model and registry
+- `{loader}/mixin/` — mixin implementations; 15 mixins per loader targeting noise, biome, climate, terrain, chunk gen, level
+
+### Active tooling notes
+
+- **Spotless (Google Java Format 1.33.0):** enforced on Java, Gradle, MD, JSON, YAML. Run `spotlessApply` before commit; CI enforces `spotlessCheck`.
+- **OpenRewrite `UseVar` recipe:** auto-migrates local variables to `var` on build. Agents writing Java should not fight this.
+- **Snapshot tests (`de.skuzzle.test:snapshot-tests-junit5:1.11.0`):** strategy and visualization output is snapshot-verified. Use `-PupdateSnapshots` for intentional changes.
+- **Canonical test seed:** `42424242L` — used for deterministic generation tests.
+- **`stripComments` task:** removes all comments except multiline blocks tagged `@keep`. Comments in source must justify their existence.
+
+### Versioning model (adding a new MC version)
+
+1. Copy the nearest existing `versions/{ver}` directory as a template.
+2. Update `versions/{ver}/gradle.properties` with `minecraft_version`, `minecraft_version_range`, `java_version`.
+3. Place only files that differ from the base in `versions/{ver}/{loader}/src/`.
+4. For API-incompatible classes, use build-level exclusions (see 1.21.11 `RegionDebugEntry` precedent) rather than runtime guards.
+5. Verify mixin counts: older MC versions may require a reduced mixin set (see 1.20.1: 4 mixins vs. 15 in later versions).
+
+### Known open risks (as of 2026-05-08)
+
+- `docs/PROJECT_MAP.md` is partially speculative — needs rewrite from actual code inspection.
+- No JMH benchmarks for hot-path code despite allocation-free being a hard constraint.
+- NeoForge module has no test source set.
+- `gradle.properties` contains a Windows JDK path (`C:\\Program Files\\Java\\jdk-25`) that should not be in version control.
