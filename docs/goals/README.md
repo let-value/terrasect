@@ -1,44 +1,16 @@
 # Terrasect Goals Index
 
-This folder stores durable goal files used by the Terrasect orchestration workflow. Goal files are the source of truth for delegated or documented work.
+This folder stores compact summaries of completed delegated goals. Full discussion/history lives in Git and PR comments; future external-agent work should still start from a new self-contained `GOAL_*.md` file while it is active, then be compacted after completion.
 
 ## Completed goals
 
-### `GOAL_20260508_204601_PR46_Knowledge_Base_Slimdown.md`
-- Status: `COMPLETED`
-- Outcome: Slimmed down `docs/KNOWLEDGE_BASE.md` Section 7 to basic project facts (versions + link to PROJECT_MAP). Moved detailed build tasks, version pins, and known open questions into `docs/PROJECT_MAP.md` §7–8.
-- PR: https://github.com/let-value/terrasect/pull/46
-- Executed by: Claude Code (claude-sonnet-4-6), 2026-05-08.
+- `GOAL_20260508_202347_Reborn_Documentation_Recovery.md` — Recovered workflow/process docs from stale `feature/automate-git-workflow`, closed stale PR #45, rebuilt documentation against `reborn`, opened PR #46, and identified follow-ups now lifted to blocked Kanban cards where non-duplicative.
+- `GOAL_20260508_204601_PR46_Knowledge_Base_Slimdown.md` — Addressed PR #46 feedback by slimming `docs/KNOWLEDGE_BASE.md` Section 7 to basic facts plus a `docs/PROJECT_MAP.md` link and moving/preserving detailed project context in `docs/PROJECT_MAP.md`.
 
-### `GOAL_20260508_202347_Reborn_Documentation_Recovery.md`
-- Status: `COMPLETED`
-- Outcome: Recovered orchestration/process content from stale `feature/automate-git-workflow`; closed stale PR #45 (targeted `main`); recreated `docs/KNOWLEDGE_BASE.md`, `docs/PROJECT_MAP.md`, `docs/TODO.md`, and this README against the verified `reborn` codebase.
-- Fresh PR: https://github.com/let-value/terrasect/pull/46
-- Executed by: Claude Code (claude-sonnet-4-6), 2026-05-08.
+## Historical stale-branch goals
 
-## Historical goals (from stale `main` branch — for process context only)
-
-The following goals were completed on the stale `main`-based branch (`feature/automate-git-workflow`). Their codebase findings are **not reliable for the `reborn` codebase**, but the process/protocol work they produced was recovered and incorporated into `docs/KNOWLEDGE_BASE.md`.
-
-### `GOAL_20260507_0939_Workflow_Review.md` (stale branch)
-- Status: `COMPLETED` (on stale branch)
-- Outcome: Reviewed orchestration/model-runner workflow; identified gaps in state transitions, provider handoff, concurrency, and failure handling. Results incorporated into KNOWLEDGE_BASE.md Sections 2–5.
-
-### `GOAL_20260507_0939_Project_Map.md` (stale branch)
-- Status: `COMPLETED` (on stale branch)
-- Outcome: Produced first Terrasect project-map draft (based on stale `main` code — superseded by `docs/PROJECT_MAP.md` on `reborn`).
-
-### `GOAL_20260508_143719_Goals_Todo_Cleanup.md` (stale branch)
-- Status: `COMPLETED` (on stale branch)
-- Outcome: Cleaned up goals-folder state and rewrote `docs/TODO.md` format conventions. Conventions retained in the `reborn` recovery.
-
-### `GOAL_20260508_195652_Explore_Project_Context_Best_Practices.md` (stale branch)
-- Status: `COMPLETED` (on stale branch)
-- Outcome: Claude Code explored the `main`-based repository and wrote a development-context report. **Stale — do not treat its codebase findings as describing `reborn`.** Section 7 of KNOWLEDGE_BASE.md has been replaced with verified `reborn` facts.
+The earlier `main`-based goals (`GOAL_20260507_0939_Workflow_Review.md`, `GOAL_20260507_0939_Project_Map.md`, `GOAL_20260508_143719_Goals_Todo_Cleanup.md`, and `GOAL_20260508_195652_Explore_Project_Context_Best_Practices.md`) were completed on stale `feature/automate-git-workflow`; their codebase findings are not reliable for `reborn`, but useful process conventions were recovered into the current docs.
 
 ## Not real goals / hallucinated references
 
-### `GOAL_Project_Phoenix_Revival_20260507.md`
-- Status: does not exist.
-- This was an erroneous/hallucinated earlier reference and is not part of Terrasect work.
-- Do not recreate it unless the user explicitly asks for an unrelated Project Phoenix task.
+- `GOAL_Project_Phoenix_Revival_20260507.md` does not exist and was an erroneous earlier reference; do not recreate it unless explicitly requested for an unrelated Project Phoenix task.

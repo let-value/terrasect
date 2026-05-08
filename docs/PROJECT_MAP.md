@@ -191,6 +191,9 @@ Test coverage areas:
 
 ## 8. Known Open Questions (as of 2026-05-08)
 
-- No JMH benchmarks exist for hot-path code despite allocation-free being a design constraint.
-- NeoForge module has no test source set.
-- `compat/c2me` submodule is present but empty/uninitialized in the current working tree checkout.
+These follow-ups were lifted to blocked Hermes Kanban cards so they can be prioritized deliberately:
+
+- `t_4cec0697` — Investigate whether default `minecraft:normal` worlds should activate Terrasect or whether explicit preset selection is intentional.
+- `t_ef0d87d0` — Assess whether `compat/c2me` should be initialized, documented as optional, removed, or updated.
+- `t_464285f5` — Plan whether NeoForge needs test-source/game-test parity with Fabric.
+- `t_446e8260` — Evaluate a JMH or equivalent benchmark strategy for allocation-sensitive hot paths.
