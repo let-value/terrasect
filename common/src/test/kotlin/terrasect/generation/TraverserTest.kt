@@ -1,5 +1,8 @@
 package terrasect.generation
 
+import java.awt.Color
+import java.awt.image.BufferedImage
+import kotlin.math.abs
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -10,9 +13,6 @@ import terrasect.definition.Strategy
 import terrasect.sdf.*
 import terrasect.strategies.VoronoiStrategy
 import terrasect.testing.writeSnapshotPng
-import java.awt.Color
-import java.awt.image.BufferedImage
-import kotlin.math.abs
 
 private const val SEED = 1234L
 private const val WIDTH = 240
@@ -56,11 +56,11 @@ class TraverserTest {
 
       val cellSeed = VoronoiStrategy.getCellSeed(step.traverser.seed, step.id)
       val sites =
-          VoronoiStrategy.getSites(
-              cellSeed,
-              step.sdf,
-              (step.region.strategy as VoronoiStrategy).budgets,
-          )
+        VoronoiStrategy.getSites(
+          cellSeed,
+          step.sdf,
+          (step.region.strategy as VoronoiStrategy).budgets,
+        )
       voronoi.sites = sites
 
       val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -128,8 +128,8 @@ class TraverserTest {
           currentDistances[x][z] = step.distance
           val parentDistance = parentDistances?.get(x)?.get(z) ?: continue
           assertTrue(
-              step.distance + epsilon >= parentDistance,
-              "distance violated parent bounds at $x,$z depth=$depth parent=$parentDistance child=${step.distance}",
+            step.distance + epsilon >= parentDistance,
+            "distance violated parent bounds at $x,$z depth=$depth parent=$parentDistance child=${step.distance}",
           )
         }
       }

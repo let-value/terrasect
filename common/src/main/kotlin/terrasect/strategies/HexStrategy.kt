@@ -1,5 +1,7 @@
 package terrasect.strategies
 
+import java.nio.ByteBuffer
+import kotlin.math.max
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
 import terrasect.definition.Strategy
@@ -7,22 +9,20 @@ import terrasect.definition.StrategySettings
 import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
-import java.nio.ByteBuffer
-import kotlin.math.max
 
 data class HexCellResult(
-    var q: Int = 0,
-    var r: Int = 0,
-    var isGap: Boolean = false,
-    var centerX: Int = 0,
-    var centerZ: Int = 0,
+  var q: Int = 0,
+  var r: Int = 0,
+  var isGap: Boolean = false,
+  var centerX: Int = 0,
+  var centerZ: Int = 0,
 )
 
 class HexStrategy(
-    override val id: Byte,
-    val tiling: Boolean,
-    val children: Region,
-    val ringRegion: Region? = null,
+  override val id: Byte,
+  val tiling: Boolean,
+  val children: Region,
+  val ringRegion: Region? = null,
 ) : Strategy {
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
@@ -161,7 +161,8 @@ class HexStrategy(
 
     override fun build(builder: RegionBuilder, children: Set<Region>): HexStrategy {
       val region =
-          children.find { it.name != ringRegionName } ?: Region.empty("${builder.name}_center")
+        children.asSequence().filter { it.name != ringRegionName }.maxByOrNull { it.budget }
+          ?: Region.empty("${builder.name}_center")
       val ringRegion = ringRegionName?.let { builder.registry.buildTree(it) }
       return HexStrategy(builder.id, tiling, region, ringRegion)
     }

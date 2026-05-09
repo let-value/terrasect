@@ -1,11 +1,15 @@
 package terrasect.strategies
 
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import terrasect.sdf.*
-import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.abs
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import terrasect.definition.RegionRegistry
+import terrasect.definition.Strategy
+import terrasect.generation.Traverser
+import terrasect.sdf.*
+import terrasect.testing.writeSnapshotPng
 
 class HexStrategyTest {
   val apothem = 40f
@@ -43,28 +47,47 @@ class HexStrategyTest {
 
     val expectedCenterArea = centerBudget.toDouble()
     val expectedRingArea =
-        (2f * SQRT3 * ((budgetApothem + budgetGap) * (budgetApothem + budgetGap) - budgetApothem * budgetApothem)).toDouble()
+      (2f *
+          SQRT3 *
+          ((budgetApothem + budgetGap) * (budgetApothem + budgetGap) -
+            budgetApothem * budgetApothem))
+        .toDouble()
 
     val centerRelativeError = abs(centerArea - expectedCenterArea) / expectedCenterArea
     val ringRelativeError = abs(ringArea - expectedRingArea) / expectedRingArea
 
     assertTrue(
-        centerRelativeError <= 0.08,
-        "center relative error=$centerRelativeError expected=$expectedCenterArea actual=$centerArea",
+      centerRelativeError <= 0.08,
+      "center relative error=$centerRelativeError expected=$expectedCenterArea actual=$centerArea",
     )
     assertTrue(
-        ringRelativeError <= 0.08,
-        "ring relative error=$ringRelativeError expected=$expectedRingArea actual=$ringArea",
+      ringRelativeError <= 0.08,
+      "ring relative error=$ringRelativeError expected=$expectedRingArea actual=$ringArea",
     )
 
     val largerGap = areaToApothem(ringBudget * 2)
     val largerBounds = estimateBounds({ x, z -> hexDistance(x, z, budgetApothem + largerGap) })
-    val largerRingArea = estimateArea(HexGapSdf(0, 0, budgetApothem, largerGap), largerBounds).toDouble()
+    val largerRingArea =
+      estimateArea(HexGapSdf(0, 0, budgetApothem, largerGap), largerBounds).toDouble()
 
     assertTrue(
-        largerRingArea > ringArea,
-        "expected ring area to grow with budget, baseline=$ringArea larger=$largerRingArea",
+      largerRingArea > ringArea,
+      "expected ring area to grow with budget, baseline=$ringArea larger=$largerRingArea",
     )
+  }
+
+  @Test
+  fun `should prefer the highest budget child region`() {
+    val registry = RegionRegistry()
+    registry.region("hex").radius(150).strategy(Strategy.hex())
+    registry.region("cell").parent("hex")
+    registry.region("border").radius(1024).parent("hex")
+
+    val root = registry.buildTree("hex")
+    val step = Traverser(1234L, root).traverse(0, 0)
+
+    assertEquals("border", step.region.name)
+    assertTrue(step.distance.isFinite())
   }
 
   private fun colorForCell(q: Int, r: Int, isGap: Boolean): Int {

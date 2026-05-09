@@ -1,12 +1,12 @@
 package terrasect.handler
 
+import kotlin.math.max
+import kotlin.math.min
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
 import terrasect.extender.ClimateTargetPointExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
-import kotlin.math.max
-import kotlin.math.min
 
 object ClimateHandler {
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
@@ -26,11 +26,11 @@ object ClimateHandler {
   }
 
   fun modifyClimate(
-      quadX: Int,
-      quadY: Int,
-      quadZ: Int,
-      climate: Climate.TargetPoint,
-      chunk: ChunkContext,
+    quadX: Int,
+    quadY: Int,
+    quadZ: Int,
+    climate: Climate.TargetPoint,
+    chunk: ChunkContext,
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
@@ -47,7 +47,7 @@ object ClimateHandler {
     }
     constraints.continentalness?.let { range ->
       extender.`terrasect$setContinentalness`(
-          climate.continentalness.coerceIn(range.min, range.max)
+        climate.continentalness.coerceIn(range.min, range.max)
       )
     }
     constraints.erosion?.let { range ->

@@ -1,19 +1,19 @@
 package terrasect.generation
 
+import java.nio.ByteBuffer
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SdfCompose
-import java.nio.ByteBuffer
 
 data class LocatorResult(
-    val region: Region,
-    val centerX: Int,
-    val centerZ: Int,
-    val sdf: Sdf2,
-    val distance: Float,
-    val ambiguous: Boolean = false,
+  val region: Region,
+  val centerX: Int,
+  val centerZ: Int,
+  val sdf: Sdf2,
+  val distance: Float,
+  val ambiguous: Boolean = false,
 )
 
 class Locator(val seed: Long, val root: Region) {
@@ -113,12 +113,12 @@ class LocateStep(val locator: Locator) {
   fun result(): LocatorResult {
     val baked = sdf.bake()
     return LocatorResult(
-        region = region,
-        centerX = centerX,
-        centerZ = centerZ,
-        sdf = baked,
-        distance = baked(centerX, centerZ),
-        ambiguous = ambiguous,
+      region = region,
+      centerX = centerX,
+      centerZ = centerZ,
+      sdf = baked,
+      distance = baked(centerX, centerZ),
+      ambiguous = ambiguous,
     )
   }
 }

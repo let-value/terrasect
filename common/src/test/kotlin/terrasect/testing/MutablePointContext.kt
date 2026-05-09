@@ -14,6 +14,8 @@ class MutablePointContext : DensityFunction.FunctionContext {
   }
 
   override fun blockX() = x
+
   override fun blockY() = y
+
   override fun blockZ() = z
 }

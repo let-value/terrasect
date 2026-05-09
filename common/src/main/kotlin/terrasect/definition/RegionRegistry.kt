@@ -32,16 +32,16 @@ class RegionRegistry {
     visiting.remove(name)
 
     return Region(
-        name = definition.name,
-        budget = definition.budget,
-        children = children,
-        strategy = definition.strategy.build(builder, children),
-        climate = definition.climate,
-        height = definition.height,
-        noise = definition.noise,
-        biomes = definition.biomes,
-        structures = definition.structures,
-        mobs = definition.mobs,
+      name = definition.name,
+      budget = definition.budget,
+      children = children,
+      strategy = definition.strategy.build(builder, children),
+      climate = definition.climate,
+      height = definition.height,
+      noise = definition.noise,
+      biomes = definition.biomes,
+      structures = definition.structures,
+      mobs = definition.mobs,
     )
   }
 

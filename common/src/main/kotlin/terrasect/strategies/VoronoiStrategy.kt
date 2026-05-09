@@ -1,5 +1,8 @@
 package terrasect.strategies
 
+import java.nio.ByteBuffer
+import kotlin.math.hypot
+import kotlin.math.max
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
@@ -8,22 +11,16 @@ import terrasect.definition.StrategySettings
 import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
-import java.nio.ByteBuffer
-import kotlin.math.hypot
-import kotlin.math.max
 
-class VoronoiStrategy(
-    override val id: Byte,
-    val children: Array<Region>,
-    val budgets: LongArray,
-) : Strategy {
+class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val budgets: LongArray) :
+  Strategy {
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
   private fun getCachedSites(
-      seed: Int,
-      id: ByteBuffer,
-      parentSdf: Sdf2,
-      cache: RegionsCache?,
+    seed: Int,
+    id: ByteBuffer,
+    parentSdf: Sdf2,
+    cache: RegionsCache?,
   ): List<Site> {
     if (cache == null) {
       return getSites(seed, parentSdf, budgets)

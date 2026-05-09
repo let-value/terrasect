@@ -4,13 +4,13 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 fun surroundDistance(
-    x: Int,
-    z: Int,
-    parentSdf: Sdf2,
-    centerX: Int,
-    centerZ: Int,
-    scale: Float,
-    smoothing: Float = 0f,
+  x: Int,
+  z: Int,
+  parentSdf: Sdf2,
+  centerX: Int,
+  centerZ: Int,
+  scale: Float,
+  smoothing: Float = 0f,
 ): Float {
   val scaledX = centerX + (x - centerX) / scale
   val scaledZ = centerZ + (z - centerZ) / scale

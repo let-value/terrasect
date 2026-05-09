@@ -3,9 +3,9 @@ package terrasect.definition
 import terrasect.helpers.NoiseTransform
 
 class NoiseConstraints(
-    val noises: Map<String, NoiseTransform>,
-    val densityFunctions: Map<String, NoiseTransform>,
-    val blendWidth: Float = DEFAULT_BLEND_WIDTH,
+  val noises: Map<String, NoiseTransform>,
+  val densityFunctions: Map<String, NoiseTransform>,
+  val blendWidth: Float = DEFAULT_BLEND_WIDTH,
 ) {
   companion object {
     const val DEFAULT_BLEND_WIDTH: Float = 32f
@@ -19,6 +19,7 @@ class NoiseConstraints(
     private val noises = mutableMapOf<String, NoiseTransform>()
     private val densityFunctions = mutableMapOf<String, NoiseTransform>()
     private var blendWidth: Float = DEFAULT_BLEND_WIDTH
+    private var blendWidthExplicit: Boolean = false
 
     fun noise(name: String, transform: NoiseTransform) = apply { noises[name] = transform }
 
@@ -36,7 +37,10 @@ class NoiseConstraints(
       densityFunctions[name] = transform
     }
 
-    fun blendWidth(width: Float) = apply { this.blendWidth = width }
+    fun blendWidth(width: Float) = apply {
+      this.blendWidth = width
+      this.blendWidthExplicit = true
+    }
 
     fun inheritParent(parent: Builder) = apply {
       for ((name, transform) in parent.noises) {
@@ -45,13 +49,13 @@ class NoiseConstraints(
       for ((name, transform) in parent.densityFunctions) {
         this.densityFunctions.putIfAbsent(name, transform)
       }
-      if (this.blendWidth == DEFAULT_BLEND_WIDTH) {
+      if (!blendWidthExplicit) {
         this.blendWidth = parent.blendWidth
       }
     }
 
     fun build(): NoiseConstraints {
-      return NoiseConstraints(noises, densityFunctions, blendWidth)
+      return NoiseConstraints(noises.toMap(), densityFunctions.toMap(), blendWidth)
     }
   }
 }

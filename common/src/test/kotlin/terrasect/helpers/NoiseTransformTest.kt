@@ -30,14 +30,9 @@ class NoiseTransformTest {
   @Test
   fun `remap linearly maps between ranges`() {
     val transform =
-        NoiseTransform.builder()
-            .remap(
-                inputMin = -1.0,
-                inputMax = 1.0,
-                outputMin = 0.0,
-                outputMax = 100.0,
-            )
-            .build()
+      NoiseTransform.builder()
+        .remap(inputMin = -1.0, inputMax = 1.0, outputMin = 0.0, outputMax = 100.0)
+        .build()
     assertEquals(50.0, transform.apply(0.0), 1e-10)
     assertEquals(0.0, transform.apply(-1.0), 1e-10)
     assertEquals(100.0, transform.apply(1.0), 1e-10)
@@ -47,9 +42,9 @@ class NoiseTransformTest {
   @Test
   fun `remap clamps input to source range`() {
     val transform =
-        NoiseTransform.builder()
-            .remap(inputMin = 0.0, inputMax = 1.0, outputMin = 60.0, outputMax = 70.0)
-            .build()
+      NoiseTransform.builder()
+        .remap(inputMin = 0.0, inputMax = 1.0, outputMin = 60.0, outputMax = 70.0)
+        .build()
     assertEquals(60.0, transform.apply(-5.0), 1e-10)
     assertEquals(70.0, transform.apply(5.0), 1e-10)
   }
@@ -57,17 +52,16 @@ class NoiseTransformTest {
   @Test
   fun `remap handles zero-width input range`() {
     val transform =
-        NoiseTransform.builder()
-            .remap(inputMin = 0.5, inputMax = 0.5, outputMin = 10.0, outputMax = 20.0)
-            .build()
+      NoiseTransform.builder()
+        .remap(inputMin = 0.5, inputMax = 0.5, outputMin = 10.0, outputMax = 20.0)
+        .build()
     assertEquals(15.0, transform.apply(0.5), 1e-10)
     assertEquals(15.0, transform.apply(999.0), 1e-10)
   }
 
   @Test
   fun `chained operations apply in order`() {
-    val transform =
-        NoiseTransform.builder().clamp(-0.5, 0.5).multiply(2.0).add(1.0).build()
+    val transform = NoiseTransform.builder().clamp(-0.5, 0.5).multiply(2.0).add(1.0).build()
     assertEquals(2.0, transform.apply(1.0), 1e-10)
     assertEquals(0.0, transform.apply(-0.5), 1e-10)
     assertEquals(1.5, transform.apply(0.25), 1e-10)
@@ -126,12 +120,12 @@ class NoiseTransformTest {
   @Test
   fun `builder consumer style works`() {
     val transform =
-        NoiseTransform.builder()
-            .also { builder ->
-              builder.clamp(-1.0, 1.0)
-              builder.multiply(0.5)
-            }
-            .build()
+      NoiseTransform.builder()
+        .also { builder ->
+          builder.clamp(-1.0, 1.0)
+          builder.multiply(0.5)
+        }
+        .build()
     assertEquals(0.5, transform.apply(2.0), 1e-10)
   }
 }

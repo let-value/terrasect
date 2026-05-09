@@ -1,11 +1,11 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.hypot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.hypot
 
 private const val WIDTH = 240
 private const val HEIGHT = 240

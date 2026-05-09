@@ -11,10 +11,10 @@ import terrasect.generation.DimensionContext
 
 class RegionDebugEntry : DebugScreenEntry {
   override fun display(
-      lines: DebugScreenDisplayer,
-      level: Level?,
-      clientChunk: LevelChunk?,
-      chunk: LevelChunk?,
+    lines: DebugScreenDisplayer,
+    level: Level?,
+    clientChunk: LevelChunk?,
+    chunk: LevelChunk?,
   ) {
     val dimension = level?.dimension() ?: return
     val mc = Minecraft.getInstance()

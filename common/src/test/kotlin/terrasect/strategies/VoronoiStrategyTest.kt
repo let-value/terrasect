@@ -1,15 +1,15 @@
 package terrasect.strategies
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import terrasect.sdf.*
-import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.roundToLong
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import terrasect.sdf.*
+import terrasect.testing.writeSnapshotPng
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -96,13 +96,13 @@ class VoronoiStrategyTest {
     val safeParentArea = parentArea.coerceAtLeast(1L).toDouble()
 
     val budgets =
-        longArrayOf(
-            (parentArea * 0.35).roundToLong(),
-            (parentArea * 0.25).roundToLong(),
-            (parentArea * 0.20).roundToLong(),
-            (parentArea * 0.12).roundToLong(),
-            (parentArea * 0.08).roundToLong(),
-        )
+      longArrayOf(
+        (parentArea * 0.35).roundToLong(),
+        (parentArea * 0.25).roundToLong(),
+        (parentArea * 0.20).roundToLong(),
+        (parentArea * 0.12).roundToLong(),
+        (parentArea * 0.08).roundToLong(),
+      )
 
     val sites = VoronoiStrategy.getSites(SEED, parentSdf, budgets)
     val totalBudget = budgets.sum().toDouble().coerceAtLeast(1.0)
@@ -120,8 +120,8 @@ class VoronoiStrategyTest {
       realizedTotal += realizedFraction
 
       assertTrue(
-          abs(realizedFraction - expectedFraction) <= 0.20,
-          "voronoi cell $index expected=$expectedFraction realized=$realizedFraction area=$cellArea budget=${sortedBudgets[index]}",
+        abs(realizedFraction - expectedFraction) <= 0.20,
+        "voronoi cell $index expected=$expectedFraction realized=$realizedFraction area=$cellArea budget=${sortedBudgets[index]}",
       )
     }
 
@@ -175,16 +175,16 @@ class VoronoiStrategyTest {
     averageRelativeError /= sites.size.coerceAtLeast(1)
 
     println(
-        "dense voronoi stats: parentArea=$parentArea childCount=$childCount worstRelError=$worstRelativeError avgRelError=$averageRelativeError realizedTotal=$realizedTotal",
+      "dense voronoi stats: parentArea=$parentArea childCount=$childCount worstRelError=$worstRelativeError avgRelError=$averageRelativeError realizedTotal=$realizedTotal"
     )
 
     assertTrue(
-        abs(realizedTotal - 1.0) <= 0.05,
-        "dense realized total area fraction=$realizedTotal",
+      abs(realizedTotal - 1.0) <= 0.05,
+      "dense realized total area fraction=$realizedTotal",
     )
     assertTrue(
-        worstRelativeError <= 0.35,
-        "dense voronoi worst relative error too high=$worstRelativeError avg=$averageRelativeError",
+      worstRelativeError <= 0.35,
+      "dense voronoi worst relative error too high=$worstRelativeError avg=$averageRelativeError",
     )
   }
 

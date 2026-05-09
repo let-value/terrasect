@@ -11,55 +11,43 @@ object NoiseHandler {
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext): NoiseRouter {
     return NoiseRouter(
-        ChunkDensityFunction(router.barrierNoise, "barrierNoise", chunk),
-        ChunkDensityFunction(
-            router.fluidLevelFloodednessNoise,
-            "fluidLevelFloodednessNoise",
-            chunk,
-        ),
-        ChunkDensityFunction(
-            router.fluidLevelSpreadNoise,
-            "fluidLevelSpreadNoise",
-            chunk,
-            scale = 16,
-        ),
-        ChunkDensityFunction(
-            router.lavaNoise,
-            "lavaNoise",
-            chunk,
-            scale = 64,
-        ),
-        ChunkDensityFunction(router.temperature, "temperature", chunk),
-        ChunkDensityFunction(router.vegetation, "vegetation", chunk),
-        ChunkDensityFunction(router.continents, "continents", chunk),
-        ChunkDensityFunction(router.erosion, "erosion", chunk),
-        ChunkDensityFunction(router.depth, "depth", chunk),
-        ChunkDensityFunction(router.ridges, "ridges", chunk),
-        ChunkDensityFunction(
-            router.preliminarySurfaceLevel,
-            "preliminarySurfaceLevel",
-            chunk,
-        ),
-        ChunkDensityFunction(router.finalDensity, "finalDensity", chunk),
-        ChunkDensityFunction(router.veinToggle, "veinToggle", chunk),
-        ChunkDensityFunction(router.veinRidged, "veinRidged", chunk),
-        ChunkDensityFunction(router.veinGap, "veinGap", chunk),
+      ChunkDensityFunction(router.barrierNoise, "barrierNoise", chunk),
+      ChunkDensityFunction(router.fluidLevelFloodednessNoise, "fluidLevelFloodednessNoise", chunk),
+      ChunkDensityFunction(
+        router.fluidLevelSpreadNoise,
+        "fluidLevelSpreadNoise",
+        chunk,
+        scale = 16,
+      ),
+      ChunkDensityFunction(router.lavaNoise, "lavaNoise", chunk, scale = 64),
+      ChunkDensityFunction(router.temperature, "temperature", chunk),
+      ChunkDensityFunction(router.vegetation, "vegetation", chunk),
+      ChunkDensityFunction(router.continents, "continents", chunk),
+      ChunkDensityFunction(router.erosion, "erosion", chunk),
+      ChunkDensityFunction(router.depth, "depth", chunk),
+      ChunkDensityFunction(router.ridges, "ridges", chunk),
+      ChunkDensityFunction(router.preliminarySurfaceLevel, "preliminarySurfaceLevel", chunk),
+      ChunkDensityFunction(router.finalDensity, "finalDensity", chunk),
+      ChunkDensityFunction(router.veinToggle, "veinToggle", chunk),
+      ChunkDensityFunction(router.veinRidged, "veinRidged", chunk),
+      ChunkDensityFunction(router.veinGap, "veinGap", chunk),
     )
   }
 
   @JvmStatic
   fun modifyDensityValue(
-      key: String,
-      original: Double,
-      blockX: Int,
-      blockZ: Int,
-      chunk: ChunkContext,
+    key: String,
+    original: Double,
+    blockX: Int,
+    blockZ: Int,
+    chunk: ChunkContext,
   ): Double? {
     val region = chunk.getRegion(blockX, blockZ) ?: return null
-    val constraints = chunk.dimensionContext?.noiseRegistry?.get(region) ?: return null
-    val transform = constraints.densityFunctions[key] ?: return null
+    val noiseRegistry = chunk.dimensionContext?.noiseRegistry ?: return null
+    val constraints = noiseRegistry.get(region) ?: return null
+    val transform = constraints.densityFunctions[key] ?: constraints.noises[key] ?: return null
 
-    val blendWidth = chunk.dimensionContext!!.noiseRegistry!!.getBlendWidth(region)
+    val blendWidth = constraints.blendWidth
     val sdfDist = chunk.getDistance(blockX, blockZ)
 
     val strength = getStrength(blendWidth, sdfDist)

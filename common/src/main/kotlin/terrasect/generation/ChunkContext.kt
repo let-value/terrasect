@@ -28,8 +28,8 @@ class ChunkContext {
 
   constructor(chunk: ChunkAccessExtender, position: ChunkPos) {
     val level: Level =
-        chunk.`terrasect$getLevel`()
-            ?: throw IllegalStateException("Chunk is not attached to a level")
+      chunk.`terrasect$getLevel`()
+        ?: throw IllegalStateException("Chunk is not attached to a level")
     val dimension = ResourceKeyCompat.getKeyId(level.dimension())
     this.dimensionContext = DimensionContext.get(dimension) ?: return
 
