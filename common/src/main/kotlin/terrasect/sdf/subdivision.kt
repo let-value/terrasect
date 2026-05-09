@@ -3,7 +3,7 @@ package terrasect.sdf
 import kotlin.math.max
 
 class SubdivisionCellSdf : Sdf2 {
-  var axis: Int = 0 // 0 = X, 1 = Z
+  var axis: Int = 0
   var lo: Float = Float.NEGATIVE_INFINITY
   var hi: Float = Float.POSITIVE_INFINITY
 

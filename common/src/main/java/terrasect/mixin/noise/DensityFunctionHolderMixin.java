@@ -20,7 +20,6 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
               target =
                   "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"))
   private DensityFunction terrasect$propagateKey(DensityFunction newHolder) {
-    // TODO: maybe remove
     if (this.terrasect$key != null && newHolder instanceof DensityFunctionHolderExtender ext) {
       ext.terrasect$setKey(this.terrasect$key);
     }

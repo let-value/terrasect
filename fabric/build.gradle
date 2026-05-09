@@ -58,9 +58,6 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     modImplementation "net.fabricmc:fabric-language-kotlin:${fabric_kotlin_version}"
 
-    //modImplementation "maven.modrinth:c2me-fabric:0.3.7+alpha.0.7+1.21.11"
-    //modImplementation "maven.modrinth:distanthorizons:2.4.5-b-1.21.11"
-
     implementation project(':common')
     testImplementation project(':common')
 
@@ -116,13 +113,11 @@ publishing {
     }
 
     repositories {
-        // Add repositories to publish to here
     }
 }
 
 createUnpackMinecraftTask(minecraft_version)
 
-// Forward the -Ptest=<name> and -PupdateSnapshots Gradle properties as JVM system properties
 tasks.configureEach {
     if (name == 'runClientGameTest' && it instanceof JavaExec) {
         it.systemProperty('fabric.client.gametest.disableNetworkSynchronizer', 'true')

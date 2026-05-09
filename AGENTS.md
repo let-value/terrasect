@@ -34,6 +34,8 @@ The project uses **Gradle** as its build system.
   - **Java:** `google-java-format`.
   - **Format Check:** `./gradlew spotlessCheck`
   - **Apply Formatting:** `./gradlew spotlessApply`
+- **Style guardrails:** Keep code direct and comment-free. Prefer simplifying code, removing obsolete pathways, and updating callers instead of preserving compatibility wrappers or indirect layers.
+- **Claude-backed task workspace:** When a task is delegated to Claude Code, create and keep a dedicated workspace before starting. A branch by itself is not enough. Reuse the same workspace and keep the associated PR open across repeated visits to the same topic until Alexander explicitly says the task is done.
 - **Testing:** The project supports snapshot-based testing.
   - **Update Snapshots:** Use the `-PupdateSnapshots=true` flag during testing to update reference snapshots.
 - **Mod IDs and Constants:** Centralized in `terrasect.Constants` within the `common` module.

@@ -1,24 +1,10 @@
-/**
- * Shared utilities for Fabric projects.
- *
- * Usage in fabric build.gradle:
- *   apply from: rootProject.file('gradle/loaders/fabric.gradle')
- */
-
 ext {
-    /**
-     * Finds Minecraft sources jars from Loom cache.
-     * Searches both user-level and project-level caches, and handles both
-     * merged sources (older Loom) and split sources (newer Loom).
-     */
     findMinecraftSourcesJars = { String minecraftVersion ->
         def sourcesJars = []
-
         def cacheLocations = [
                 new File(gradle.gradleUserHomeDir, 'caches/fabric-loom/minecraftMaven/net/minecraft'),
                 rootProject.file('.gradle/loom-cache/minecraftMaven/net/minecraft')
         ]
-
         def artifactPrefixes = ['minecraft-merged', 'minecraft-common', 'minecraft-clientOnly']
 
         for (cacheLocation in cacheLocations) {
@@ -51,20 +37,12 @@ ext {
         return sourcesJars
     }
 
-    /**
-     * Extracts Minecraft sources with proper Mojang mappings (human-readable parameter names)
-     * to the minecraft/ folder at the repo root.
-     *
-     * @param minecraftVersion The Minecraft version to extract (e.g., '1.21.11', '1.20.1')
-     * @return The registered task
-     */
     createUnpackMinecraftTask = { String minecraftVersion ->
         tasks.register('unpackMinecraft', Copy) {
             group = 'terrasect'
             description = "Extracts Minecraft ${minecraftVersion} sources with Mojang mappings"
 
             def outputDir = rootProject.file('minecraft')
-
             dependsOn 'genSources'
 
             from {

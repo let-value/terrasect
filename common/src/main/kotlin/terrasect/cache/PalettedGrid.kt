@@ -6,11 +6,8 @@ class PalettedGrid<T>(
     val originX: Int = 0,
     val originZ: Int = 0,
 ) {
-
-  /** Palette of unique values — typically very small (a handful of regions per chunk). */
   val palette = ArrayList<T>()
 
-  /** Per-cell palette index. -1 means no value assigned. */
   val cells = IntArray(width * height) { -1 }
 
   fun idx(x: Int, z: Int): Int {
@@ -19,10 +16,6 @@ class PalettedGrid<T>(
     return localX * height + localZ
   }
 
-  /**
-   * Returns the palette index for [value], adding it to the palette if it isn't already present.
-   * Uses identity comparison (===) since Region instances are shared singletons from a registry.
-   */
   private fun paletteIndex(value: T): Int {
     for (i in palette.indices) {
       if (palette[i] === value) return i

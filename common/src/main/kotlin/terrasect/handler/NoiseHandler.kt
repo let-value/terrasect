@@ -21,13 +21,13 @@ object NoiseHandler {
             router.fluidLevelSpreadNoise,
             "fluidLevelSpreadNoise",
             chunk,
-            scale = 16, // sampled at floorDiv(x,16)
+            scale = 16,
         ),
         ChunkDensityFunction(
             router.lavaNoise,
             "lavaNoise",
             chunk,
-            scale = 64, // sampled at floorDiv(x,64)
+            scale = 64,
         ),
         ChunkDensityFunction(router.temperature, "temperature", chunk),
         ChunkDensityFunction(router.vegetation, "vegetation", chunk),

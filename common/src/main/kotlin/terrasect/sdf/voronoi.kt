@@ -17,8 +17,6 @@ class VoronoiCellSdf : Sdf2 {
     val cellDist = hypot(dx.toDouble(), dz.toDouble()).toFloat()
     val cellPower = cellDist - cell.radius
 
-    // Exact sign for the weighted Voronoi partition used by getCellIndex:
-    // inside cell <=> cellPower <= otherPower for every other site.
     var maxConstraint = Float.NEGATIVE_INFINITY
     for (j in sites.indices) {
       if (j == index) {
