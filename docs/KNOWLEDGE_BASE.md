@@ -14,6 +14,7 @@ Use the Hermes Kanban board for work tracking between Alexander and Hermes:
 - Tenant: `terrasect`
 - Workspace: `dir:/home/alex/terrasect`
 - Default skill for worker context: `terrasect`
+- Workers must verify that `terrasect` actually loaded before making changes; if the skill is missing, treat the run as blocked/misconfigured and stop instead of improvising from generic context.
 
 Kanban items are high-level, human-visible work packets: investigation tracks, environment setup, workflow design, development milestones, review gates, and future agentic-development planning. Kanban is the durable queue for "what Alexander and Hermes are coordinating next."
 
