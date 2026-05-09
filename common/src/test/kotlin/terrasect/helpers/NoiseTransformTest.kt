@@ -50,9 +50,7 @@ class NoiseTransformTest {
         NoiseTransform.builder()
             .remap(inputMin = 0.0, inputMax = 1.0, outputMin = 60.0, outputMax = 70.0)
             .build()
-    // value below input range → clamped to inputMin → outputMin
     assertEquals(60.0, transform.apply(-5.0), 1e-10)
-    // value above input range → clamped to inputMax → outputMax
     assertEquals(70.0, transform.apply(5.0), 1e-10)
   }
 
@@ -62,15 +60,12 @@ class NoiseTransformTest {
         NoiseTransform.builder()
             .remap(inputMin = 0.5, inputMax = 0.5, outputMin = 10.0, outputMax = 20.0)
             .build()
-    // Zero-width input range maps everything to midpoint (15.0)
     assertEquals(15.0, transform.apply(0.5), 1e-10)
     assertEquals(15.0, transform.apply(999.0), 1e-10)
   }
 
   @Test
   fun `chained operations apply in order`() {
-    // Clamp to [-0.5, 0.5], then multiply by 2, then add 1
-    // Input 1.0 → clamp → 0.5 → multiply → 1.0 → add → 2.0
     val transform =
         NoiseTransform.builder().clamp(-0.5, 0.5).multiply(2.0).add(1.0).build()
     assertEquals(2.0, transform.apply(1.0), 1e-10)
@@ -116,12 +111,8 @@ class NoiseTransformTest {
   @Test
   fun `map squeeze produces expected shape`() {
     val transform = NoiseTransform.builder().squeeze().build()
-    // squeeze(x) = clamp(x, -1, 1), then x/2 - x³/24
-    // At 0: 0
     assertEquals(0.0, transform.apply(0.0), 1e-10)
-    // At 1: 1/2 - 1/24 = 12/24 - 1/24 = 11/24
     assertEquals(11.0 / 24.0, transform.apply(1.0), 1e-10)
-    // Values outside [-1,1] are clamped first
     assertEquals(11.0 / 24.0, transform.apply(5.0), 1e-10)
   }
 

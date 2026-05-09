@@ -34,6 +34,7 @@ The project uses **Gradle** as its build system.
   - **Java:** `google-java-format`.
   - **Format Check:** `./gradlew spotlessCheck`
   - **Apply Formatting:** `./gradlew spotlessApply`
+- **Style guardrails:** Keep code direct and comment-free. Prefer simplifying code, removing obsolete pathways, and updating callers instead of preserving compatibility wrappers or indirect layers.
 - **Testing:** The project supports snapshot-based testing.
   - **Update Snapshots:** Use the `-PupdateSnapshots=true` flag during testing to update reference snapshots.
 - **Mod IDs and Constants:** Centralized in `terrasect.Constants` within the `common` module.

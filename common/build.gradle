@@ -32,10 +32,8 @@ neoForge {
 }
 
 dependencies {
-    //implementation("it.unimi.dsi:fastutil-core:8.5.18") included by minecraft
     testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
 
-    // Shared mixin sources live in common, so common needs mixin APIs at compile-time.
     compileOnly("net.fabricmc:sponge-mixin:0.17.0+mixin.0.8.7")
     compileOnly("io.github.llamalad7:mixinextras-common:0.5.0")
 

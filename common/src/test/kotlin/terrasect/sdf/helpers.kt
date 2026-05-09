@@ -162,8 +162,8 @@ fun drawRectangle(
     maxZ: Int,
     color: Int = LINE_COLOR,
 ) {
-  drawLine(image, minX, minZ, maxX, minZ, color) // Top
-  drawLine(image, maxX, minZ, maxX, maxZ, color) // Right
-  drawLine(image, maxX, maxZ, minX, maxZ, color) // Bottom
-  drawLine(image, minX, maxZ, minX, minZ, color) // Left
+  drawLine(image, minX, minZ, maxX, minZ, color)
+  drawLine(image, maxX, minZ, maxX, maxZ, color)
+  drawLine(image, maxX, maxZ, minX, maxZ, color)
+  drawLine(image, minX, maxZ, minX, minZ, color)
 }

@@ -189,7 +189,19 @@ Test coverage areas:
 
 ---
 
-## 8. Known Open Questions (as of 2026-05-08)
+## 8. Code Style Guardrails
+
+Terrasect favors direct, low-magic code. Apply these guardrails when editing source:
+
+- Prefer no comments in code. Simplify the code instead, and remove obsolete comments when touching a file.
+- Break APIs when needed to remove duplicate paths or compatibility wrappers; update call sites together.
+- Keep implementations small, explicit, and coherent across modules.
+- Avoid adding abstraction layers unless they clearly reduce duplication or clarify boundaries.
+- Remove obsolete code when replacing functionality so the codebase stays singular and easy to follow.
+
+---
+
+## 9. Known Open Questions (as of 2026-05-08)
 
 These follow-ups were lifted to blocked Hermes Kanban cards so they can be prioritized deliberately:
 
