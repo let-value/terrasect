@@ -6,6 +6,7 @@ This folder stores compact summaries of completed delegated goals. Full discussi
 
 - `GOAL_20260508_202347_Reborn_Documentation_Recovery.md` — Recovered workflow/process docs from stale `feature/automate-git-workflow`, closed stale PR #45, rebuilt documentation against `reborn`, opened PR #46, and identified follow-ups now lifted to blocked Kanban cards where non-duplicative.
 - `GOAL_20260508_204601_PR46_Knowledge_Base_Slimdown.md` — Addressed PR #46 feedback by slimming `docs/KNOWLEDGE_BASE.md` Section 7 to basic facts plus a `docs/PROJECT_MAP.md` link and moving/preserving detailed project context in `docs/PROJECT_MAP.md`.
+- `GOAL_20260509_025459_Claude_ConversationId_Test.md` — Verified that Claude Code print mode returns a usable `session_id` in JSON output even after an intentionally short, dummy run, and stored the id back into the goal file for future retry bookkeeping.
 
 ## Historical stale-branch goals
 
