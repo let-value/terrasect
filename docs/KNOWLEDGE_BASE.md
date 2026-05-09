@@ -40,6 +40,7 @@ Terrasect coordination is orchestrator-first:
 - Orchestrator workers should manage task context, create/maintain goal files, decompose work, delegate to the agreed provider chain, verify goal-file completion, and report concise handoffs.
 - All durable communication with delegated agents belongs in the relevant `docs/goals/GOAL_*.md` file, not only in inline chat/process output.
 - Delegation prompts should be minimal once the goal file exists: ask the agent to read the goal file, perform the work, write its complete response into the same file, and set `Status: COMPLETED`.
+- Claude-backed tasks should use a dedicated workspace/worktree distinct from the orchestrator's transient checkout. Record that workspace path in the goal file, reuse the same workspace when the topic is revisited, and keep both the workspace and the PR alive until the task is explicitly closed.
 
 ---
 
@@ -52,7 +53,7 @@ Every task starts with a goal file. Goal files live in `docs/goals/`.
 **The goal file is the single source of truth for the task.** It must be fully self-contained — a sub-agent handed only this file must be able to understand the task completely and execute it without needing clarification from the orchestrator. This means the orchestrator must embed all necessary context directly in the file at creation time:
 
 - The full user request (unmodified)
-- **The absolute path to the workspace root** (e.g. `/home/alex/terrasect`) — sub-agents run in isolated terminal sessions with no knowledge of the project location
+- **The absolute path to the workspace root** (e.g. `/home/alex/terrasect`) — sub-agents run in isolated terminal sessions with no knowledge of the project location. For Claude Code-backed work, use the dedicated workspace/worktree path rather than a one-off branch checkout.
 - Background context required to understand the task (relevant prior decisions, constraints, affected files, related goals)
 - Acceptance criteria or expected output shape
 - Any constraints the sub-agent must respect
@@ -238,6 +239,7 @@ When a provider stops because of limits/quota exhaustion:
 - Mark TODO items as `IN_PROGRESS` — only delete them when the goal file reaches `COMPLETED`.
 - Invoke a provider without first creating the goal file.
 - Accept a response that came back inline (in chat) instead of written to the goal file.
+- Throw away the task's dedicated workspace/worktree or close the PR between visits; keep both alive until the user explicitly says the topic is done.
 
 ---
 
