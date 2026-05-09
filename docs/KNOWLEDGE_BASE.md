@@ -76,6 +76,11 @@ Be exhaustive — nothing relevant should live only in the orchestrator's memory
 ### Acceptance criteria
 [What a correct, complete response looks like]
 
+### Run metadata
+[Provider name, conversation/session id, retry_count, retry_after, blocked_reason if the run stopped because of limits]
+
+When Claude Code is the provider and you need a reliable conversation id, prefer print mode with `--output-format json` and store the returned `session_id` here rather than trying to infer it from prose output.
+
 ---
 **Sub-agent instruction:** This file contains everything you need. Read it in full. Perform the work. Write your complete response under `## Response` below before finishing. Do not summarize — write the full output so it is preserved for future sessions. Update the `Status` field to `COMPLETED` when done. If broader protocol understanding is needed, read `docs/KNOWLEDGE_BASE.md`.
 
@@ -113,7 +118,7 @@ The orchestrator MUST verify the file was actually written:
 
 Providers cannot be queried for limits before invocation. Do not attempt pre-flight checks. Instead, invoke the highest-priority provider and interpret its response. The chain is:
 
-**Claude Code → Codex → Copilot → Ollama (local fallback)**
+**Claude Code (real delegated work) → Codex (Hermes-direct execution) → Copilot → Ollama (local fallback)**
 
 For each provider in order:
 
@@ -126,15 +131,17 @@ For each provider in order:
 | Response type | How to detect | Action |
 |---|---|---|
 | **Success** | Agent writes a substantive response to the ticket | Accept. Set ticket `Status: COMPLETED`. Stop the chain. |
-| **Limit exhausted** | Agent says it has no quota, is rate-limited, or refuses with a usage/billing message | Append a single log line to the ticket (see format below). Advance to next provider. |
-| **Partial / error** | Agent produces incomplete output, tool failures, or an explicit error that is not a limit message | Write a structured `## Handoff` block (see format below). Advance to next provider so it can recover from known state. |
-| **All providers failed** | Chain exhausted with no success | Set ticket `Status: FAILED`. Surface to human for manual intervention. Do not silently discard. |
+| **Limit exhausted** | Agent says it has no quota, is rate-limited, or refuses with a usage/billing message | Append a single log line to the ticket (see format below), record the provider session/conversation id when available, set `Status: BLOCKED`, and advance to the next provider only if another provider is available. |
+| **Partial / error** | Agent produces incomplete output, tool failures, or an explicit error that is not a limit message | Write a structured `## Handoff` block (see format below). Keep the ticket retryable only if the failure is transient; otherwise set `Status: FAILED`. Advance to the next provider so it can recover from known state. |
+| **All providers failed** | Chain exhausted with no success | If the failure was limit exhaustion, leave the ticket `BLOCKED` with retry metadata; otherwise set `Status: FAILED`. Surface to human for manual intervention. Do not silently discard. |
 
 ### Limit exhaustion log line (append to ticket body)
 
 ```
 - [YYYYMMDD HH:MM] <provider> skipped: limit exhausted
 ```
+
+For retry bookkeeping, also preserve the provider's conversation/session id in the goal file or ticket metadata when the CLI exposes it.
 
 ### Handoff block (append before advancing on partial/error failure)
 
@@ -163,7 +170,10 @@ Every goal file has a `Status` field. Valid transitions:
 
 ```
 PENDING → CLAIMED → IN_PROGRESS → COMPLETED
-                              └──→ FAILED
+                 ├──→ BLOCKED
+                 └──→ FAILED
+
+BLOCKED ──(cron recovery after retry_after)──→ PENDING
 ```
 
 | Status | Who sets it | When |
@@ -172,11 +182,14 @@ PENDING → CLAIMED → IN_PROGRESS → COMPLETED
 | `CLAIMED` | Sub-agent | Immediately upon starting work |
 | `IN_PROGRESS` | Sub-agent | When actively writing the response |
 | `COMPLETED` | Sub-agent | When the full response is written |
+| `BLOCKED` | Sub-agent or Orchestrator | On transient failures such as provider limit exhaustion; preserve retry metadata for cron recovery |
 | `FAILED` | Sub-agent or Orchestrator | On unrecoverable error |
 
 **Concurrency guard:** Before a sub-agent sets `CLAIMED`, it MUST read the current `Status` value. If `Status` is not `PENDING`, the ticket is already owned — stop immediately and do not proceed. Report the conflict to the orchestrator.
 
-**The orchestrator never sets `CLAIMED`, `IN_PROGRESS`, or `COMPLETED`.** Those transitions belong to the sub-agent. The orchestrator only creates tickets (`PENDING`) and handles `FAILED` outcomes.
+**The orchestrator never sets `CLAIMED`, `IN_PROGRESS`, or `COMPLETED`.** Those transitions belong to the sub-agent. The orchestrator only creates tickets (`PENDING`) and handles `FAILED`/`BLOCKED` outcomes.
+
+**The orchestrator may set or preserve `BLOCKED`** when a provider run stops due to limits, but it must also record the provider session/conversation id and retry metadata so the cron recovery job can requeue it later.
 
 ---
 
@@ -206,6 +219,16 @@ The orchestrator is responsible for coordination only. It does not do the work i
 4. Monitor the goal file's `Status` field for `COMPLETED` or `FAILED`.
 5. On `COMPLETED`: delete the item from `docs/TODO.md`.
 6. On `FAILED`: surface to human. Do not silently retry with the same prompt.
+
+### Transient provider-limit recovery
+
+When a provider stops because of limits/quota exhaustion:
+
+1. Record the provider name and the provider's conversation/session id in the goal file when available.
+2. Set `Status: BLOCKED` and add `blocked_reason`, `retry_count`, and `retry_after` metadata.
+3. Do not keep re-running the same prompt manually.
+4. Let the cron recovery job (`kanban-limit-recovery-scan`) scan for eligible blocked items and move them back to `PENDING` when usage is expected to be available again.
+5. Keep non-retryable failures as `FAILED`.
 
 **What the orchestrator must NOT do:**
 - Do the task itself instead of delegating.
