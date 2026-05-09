@@ -82,7 +82,7 @@ The loader modules are intentionally minimal. All game logic is in `common/`. Th
 | `main/kotlin/terrasect/TerrasectFabric.kt` | `ModInitializer` entry point |
 | `client/kotlin/terrasect/TerrasectFabricClient.kt` | `ClientModInitializer` entry point |
 | `gametest/kotlin/terrasect/WorldDigestGameTest.kt` | Game test: world digest snapshot |
-| `gametest/kotlin/terrasect/TerrasectFabricClientGameTest.kt` | Game test: client-side |
+| `gametest/kotlin/terrasect/TerrasectFabricClientGameTest.kt` | Game test: client-side noise constraints integration |
 | `gametest/kotlin/terrasect/GameTestFilter.kt` | Test filter utility |
 
 ### NeoForge (`neoforge/src/`)
@@ -150,6 +150,7 @@ Test coverage areas:
 - Region definition (`definition/RegionDefinitionTest`)
 - Noise transform helpers (`helpers/NoiseTransformSnapshotTest`)
 - Compiled noise registry (`lookup/CompiledNoiseConstraintsTest`)
+- Fabric client noise constraints integration (`fabric/src/gametest/kotlin/terrasect/TerrasectFabricClientGameTest`)
 - Snapshot framework itself (`testing/SnapshotLibraryTest`)
 
 ---

@@ -57,7 +57,7 @@ object NoiseHandler {
   ): Double? {
     val region = chunk.getRegion(blockX, blockZ) ?: return null
     val constraints = chunk.dimensionContext?.noiseRegistry?.get(region) ?: return null
-    val transform = constraints.densityFunctions[key] ?: return null
+    val transform = constraints.densityFunctions[key] ?: constraints.noises[key] ?: return null
 
     val blendWidth = chunk.dimensionContext!!.noiseRegistry!!.getBlendWidth(region)
     val sdfDist = chunk.getDistance(blockX, blockZ)
