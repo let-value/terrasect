@@ -4,39 +4,27 @@ import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
 
 class CompiledNoiseRegistry
-private constructor(
-    private val constraints: IdentityHashMap<Region, NoiseConstraints>,
-    private val blendWidths: IdentityHashMap<Region, Float>,
-) {
+private constructor(private val constraints: IdentityHashMap<Region, NoiseConstraints>) {
   fun get(region: Region): NoiseConstraints? = constraints[region]
-
-  fun getBlendWidth(region: Region): Float =
-      blendWidths[region] ?: NoiseConstraints.DEFAULT_BLEND_WIDTH
 
   fun isEmpty(): Boolean = constraints.isEmpty()
 
   companion object {
     fun build(root: Region): CompiledNoiseRegistry? {
       val map = IdentityHashMap<Region, NoiseConstraints>()
-      val widths = IdentityHashMap<Region, Float>()
-      collectRecursively(root, map, widths)
-      return if (map.isEmpty()) null else CompiledNoiseRegistry(map, widths)
+      collectRecursively(root, map)
+      return if (map.isEmpty()) null else CompiledNoiseRegistry(map)
     }
 
-    private fun collectRecursively(
-        region: Region,
-        map: IdentityHashMap<Region, NoiseConstraints>,
-        widths: IdentityHashMap<Region, Float>,
-    ) {
+    private fun collectRecursively(region: Region, map: IdentityHashMap<Region, NoiseConstraints>) {
       if (!map.containsKey(region)) {
         val noise = region.noise
         if (noise != null && noise.hasAnyConstraints()) {
           map[region] = noise
-          widths[region] = noise.blendWidth
         }
       }
       for (child in region.children) {
-        collectRecursively(child, map, widths)
+        collectRecursively(child, map)
       }
     }
   }
