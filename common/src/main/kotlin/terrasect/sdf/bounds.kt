@@ -86,13 +86,7 @@ fun numericGradient(sdf: Sdf2, x: Int, z: Int, eps: Int): Pair<Float, Float> {
   return Pair(dx / (2 * eps), dz / (2 * eps))
 }
 
-private fun floodBounds(
-    sdf: Sdf2,
-    seedX: Int,
-    seedZ: Int,
-    originX: Int,
-    originZ: Int,
-): SdfBounds {
+private fun floodBounds(sdf: Sdf2, seedX: Int, seedZ: Int, originX: Int, originZ: Int): SdfBounds {
 
   val maxCells = max(1, MAX_RADIUS / CELL_SIZE)
   val originCellX = toCell(originX)
@@ -130,20 +124,28 @@ private fun floodBounds(
     queue.add(Pair(cx, cz - 1))
   }
 
-  if (minX == Int.MAX_VALUE || maxX == Int.MIN_VALUE || minZ == Int.MAX_VALUE || maxZ == Int.MIN_VALUE) {
+  if (
+    minX == Int.MAX_VALUE || maxX == Int.MIN_VALUE || minZ == Int.MAX_VALUE || maxZ == Int.MIN_VALUE
+  ) {
     return fallbackBounds(sdf, seedX, seedZ, originX, originZ)
   }
 
   val half = CELL_SIZE / 2
   return SdfBounds(
-      saturatingAdd(minX, -half),
-      saturatingAdd(maxX, half),
-      saturatingAdd(minZ, -half),
-      saturatingAdd(maxZ, half),
+    saturatingAdd(minX, -half),
+    saturatingAdd(maxX, half),
+    saturatingAdd(minZ, -half),
+    saturatingAdd(maxZ, half),
   )
 }
 
-private fun fallbackBounds(sdf: Sdf2, seedX: Int, seedZ: Int, originX: Int, originZ: Int): SdfBounds {
+private fun fallbackBounds(
+  sdf: Sdf2,
+  seedX: Int,
+  seedZ: Int,
+  originX: Int,
+  originZ: Int,
+): SdfBounds {
   val seedDistance = abs(sdf(seedX, seedZ))
   val originDistance = abs(sdf(originX, originZ))
   return if (seedDistance <= originDistance) {
@@ -156,10 +158,10 @@ private fun fallbackBounds(sdf: Sdf2, seedX: Int, seedZ: Int, originX: Int, orig
 private fun boundsAroundPoint(x: Int, z: Int): SdfBounds {
   val half = CELL_SIZE / 2
   return SdfBounds(
-      saturatingAdd(x, -half),
-      saturatingAdd(x, half),
-      saturatingAdd(z, -half),
-      saturatingAdd(z, half),
+    saturatingAdd(x, -half),
+    saturatingAdd(x, half),
+    saturatingAdd(z, -half),
+    saturatingAdd(z, half),
   )
 }
 

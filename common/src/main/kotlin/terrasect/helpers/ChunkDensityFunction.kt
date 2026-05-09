@@ -6,20 +6,20 @@ import terrasect.generation.ChunkContext
 import terrasect.handler.NoiseHandler
 
 class ChunkDensityFunction(
-    val wrapped: DensityFunction,
-    val key: String,
-    val chunk: ChunkContext,
-    val scale: Int = 1,
+  val wrapped: DensityFunction,
+  val key: String,
+  val chunk: ChunkContext,
+  val scale: Int = 1,
 ) : DensityFunction {
   override fun compute(context: DensityFunction.FunctionContext): Double {
     val original = wrapped.compute(context)
 
     return NoiseHandler.modifyDensityValue(
-        key,
-        original,
-        context.blockX() * scale,
-        context.blockZ() * scale,
-        chunk,
+      key,
+      original,
+      context.blockX() * scale,
+      context.blockZ() * scale,
+      chunk,
     ) ?: original
   }
 

@@ -1,13 +1,13 @@
 package terrasect.strategies
 
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import terrasect.sdf.*
-import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import terrasect.sdf.*
+import terrasect.testing.writeSnapshotPng
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -89,8 +89,8 @@ class SubdivisionStrategyTest {
       realizedTotal += realizedFraction
 
       assertTrue(
-          abs(realizedFraction - expectedFraction) <= 0.08,
-          "subdivision child $i expected=$expectedFraction realized=$realizedFraction area=$childArea budget=${budgets[i]}",
+        abs(realizedFraction - expectedFraction) <= 0.08,
+        "subdivision child $i expected=$expectedFraction realized=$realizedFraction area=$childArea budget=${budgets[i]}",
       )
     }
 

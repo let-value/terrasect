@@ -1,5 +1,7 @@
 package terrasect.strategies
 
+import java.nio.ByteBuffer
+import kotlin.math.max
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
@@ -10,26 +12,21 @@ import terrasect.generation.TraversalStep
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SubdivisionCellSdf
 import terrasect.sdf.estimateBounds
-import java.nio.ByteBuffer
-import kotlin.math.max
 
 @Suppress("ArrayInDataClass")
-data class SubdivisionSplit(
-    var axis: Int = 0,
-    var edges: FloatArray = floatArrayOf(),
-)
+data class SubdivisionSplit(var axis: Int = 0, var edges: FloatArray = floatArrayOf())
 
 class SubdivisionStrategy(
-    override val id: Byte,
-    val children: Array<Region>,
-    val budgets: LongArray,
+  override val id: Byte,
+  val children: Array<Region>,
+  val budgets: LongArray,
 ) : Strategy {
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
   private fun getCachedSplit(
-      id: ByteBuffer,
-      parentSdf: Sdf2,
-      cache: RegionsCache?,
+    id: ByteBuffer,
+    parentSdf: Sdf2,
+    cache: RegionsCache?,
   ): SubdivisionSplit {
     if (cache == null) {
       return getSplit(parentSdf, budgets)

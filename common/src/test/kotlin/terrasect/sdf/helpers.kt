@@ -22,11 +22,11 @@ fun bananaSdf(x: Int, z: Int, scale: Float = 2f): Float {
 }
 
 fun distanceColor(
-    distance: Float,
-    edgeThreshold: Float = 0.6f,
-    edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int? = SDF_INSIDE_COLOR,
-    outsideColor: Int? = null,
+  distance: Float,
+  edgeThreshold: Float = 0.6f,
+  edgeColor: Int = SDF_EDGE_COLOR,
+  insideColor: Int? = SDF_INSIDE_COLOR,
+  outsideColor: Int? = null,
 ): Int? {
   return when {
     abs(distance) <= edgeThreshold -> edgeColor
@@ -36,18 +36,18 @@ fun distanceColor(
 }
 
 fun drawSdf(
-    image: BufferedImage,
-    sdf: Sdf2,
-    edgeThreshold: Float = 0.6f,
-    edgeColor: Int = SDF_EDGE_COLOR,
-    insideColor: Int? = SDF_INSIDE_COLOR,
-    outsideColor: Int? = null,
+  image: BufferedImage,
+  sdf: Sdf2,
+  edgeThreshold: Float = 0.6f,
+  edgeColor: Int = SDF_EDGE_COLOR,
+  insideColor: Int? = SDF_INSIDE_COLOR,
+  outsideColor: Int? = null,
 ) {
   for (z in 0 until image.height) {
     for (x in 0 until image.width) {
       val distance = sdf(x, z)
       val color =
-          distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor) ?: continue
+        distanceColor(distance, edgeThreshold, edgeColor, insideColor, outsideColor) ?: continue
       image.setRGB(x, z, color)
     }
   }
@@ -108,11 +108,11 @@ fun drawLine(image: BufferedImage, x0: Int, z0: Int, x1: Int, z1: Int, color: In
 }
 
 fun drawCircle(
-    image: BufferedImage,
-    centerX: Int,
-    centerZ: Int,
-    radius: Int,
-    color: Int = SITE_AREA_COLOR,
+  image: BufferedImage,
+  centerX: Int,
+  centerZ: Int,
+  radius: Int,
+  color: Int = SITE_AREA_COLOR,
 ) {
   if (radius <= 0) return
 
@@ -134,12 +134,12 @@ fun drawCircle(
 }
 
 fun drawRing(
-    image: BufferedImage,
-    centerX: Int,
-    centerZ: Int,
-    radius: Float,
-    steps: Int = 64,
-    color: Int = LINE_COLOR,
+  image: BufferedImage,
+  centerX: Int,
+  centerZ: Int,
+  radius: Float,
+  steps: Int = 64,
+  color: Int = LINE_COLOR,
 ) {
   if (radius <= 0.0 || steps <= 0) return
 
@@ -155,12 +155,12 @@ fun drawRing(
 }
 
 fun drawRectangle(
-    image: BufferedImage,
-    minX: Int,
-    minZ: Int,
-    maxX: Int,
-    maxZ: Int,
-    color: Int = LINE_COLOR,
+  image: BufferedImage,
+  minX: Int,
+  minZ: Int,
+  maxX: Int,
+  maxZ: Int,
+  color: Int = LINE_COLOR,
 ) {
   drawLine(image, minX, minZ, maxX, minZ, color)
   drawLine(image, maxX, minZ, maxX, maxZ, color)

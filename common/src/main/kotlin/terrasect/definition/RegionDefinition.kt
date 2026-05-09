@@ -3,27 +3,23 @@ package terrasect.definition
 import kotlin.math.max
 
 open class RegionDefinition(
-    val registry: RegionRegistry,
-    val name: String,
-    val originAnchor: Boolean = false,
-    var budget: Long,
-    val strategy: StrategySettings,
-    var adjacentTo: Set<String>? = null,
-    var parent: String? = null,
-    val children: MutableSet<String>? = null,
-    val climate: ClimateConstraints? = null,
-    val height: HeightConstraints? = null,
-    val noise: NoiseConstraints? = null,
-    val biomes: SelectionConstraints? = null,
-    val structures: SelectionConstraints? = null,
-    val mobs: SelectionConstraints? = null,
+  val registry: RegionRegistry,
+  val name: String,
+  val originAnchor: Boolean = false,
+  var budget: Long,
+  val strategy: StrategySettings,
+  var adjacentTo: Set<String>? = null,
+  var parent: String? = null,
+  val children: MutableSet<String>? = null,
+  val climate: ClimateConstraints? = null,
+  val height: HeightConstraints? = null,
+  val noise: NoiseConstraints? = null,
+  val biomes: SelectionConstraints? = null,
+  val structures: SelectionConstraints? = null,
+  val mobs: SelectionConstraints? = null,
 )
 
-open class RegionBuilder(
-    val id: Byte,
-    val registry: RegionRegistry,
-    var name: String,
-) {
+open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: String) {
   var originAnchor = false
   var budget: Long? = null
   var strategy: StrategySettings? = null
@@ -126,21 +122,21 @@ open class RegionBuilder(
     val budget = children?.sumOf { it.budget }?.let { max(this.budget ?: 0, it) }
 
     return RegionDefinition(
-        registry = this.registry,
-        name = this.name,
-        originAnchor = this.originAnchor,
-        budget = budget ?: (this.budget ?: 0),
-        strategy = this.strategy ?: Strategy.voronoi(),
-        adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
-        parent = this.parent,
-        children = if (this.childrenLazy.isInitialized()) this.children else null,
-        climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
-        height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
-        noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
-        biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
-        structures =
-            if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
-        mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
+      registry = this.registry,
+      name = this.name,
+      originAnchor = this.originAnchor,
+      budget = budget ?: (this.budget ?: 0),
+      strategy = this.strategy ?: Strategy.voronoi(),
+      adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
+      parent = this.parent,
+      children = if (this.childrenLazy.isInitialized()) this.children else null,
+      climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,
+      height = if (this.heightLazyBuilder.isInitialized()) heightBuilder.build() else null,
+      noise = if (this.noiseLazyBuilder.isInitialized()) noiseBuilder.build() else null,
+      biomes = if (this.biomesLazyBuilder.isInitialized()) biomesBuilder.build() else null,
+      structures =
+        if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
+      mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
     )
   }
 }

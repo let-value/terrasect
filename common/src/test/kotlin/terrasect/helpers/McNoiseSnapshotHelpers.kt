@@ -4,12 +4,7 @@ import java.awt.image.BufferedImage
 import net.minecraft.world.level.levelgen.DensityFunction
 import terrasect.testing.MutablePointContext
 
-fun sampleXZ(
-    function: DensityFunction,
-    imgSize: Int,
-    worldSize: Int,
-    y: Int,
-): DoubleArray {
+fun sampleXZ(function: DensityFunction, imgSize: Int, worldSize: Int, y: Int): DoubleArray {
   val step = worldSize / imgSize
   val start = -worldSize / 2
   val point = MutablePointContext()
@@ -36,7 +31,8 @@ fun renderNormalizedGrayscale(values: DoubleArray, size: Int): BufferedImage {
     if (v > max) max = v
   }
   if (!min.isFinite() || !max.isFinite() || max <= min) {
-    min = 0.0; max = 1.0
+    min = 0.0
+    max = 1.0
   }
   val range = max - min
   val img = BufferedImage(size, size, BufferedImage.TYPE_INT_RGB)
@@ -51,16 +47,23 @@ fun renderNormalizedGrayscale(values: DoubleArray, size: Int): BufferedImage {
 }
 
 fun renderSideBySideGrayscale(
-    original: DoubleArray,
-    transformed: DoubleArray,
-    size: Int,
+  original: DoubleArray,
+  transformed: DoubleArray,
+  size: Int,
 ): BufferedImage {
   var min = Double.POSITIVE_INFINITY
   var max = Double.NEGATIVE_INFINITY
-  for (v in original) { if (v < min) min = v; if (v > max) max = v }
-  for (v in transformed) { if (v < min) min = v; if (v > max) max = v }
+  for (v in original) {
+    if (v < min) min = v
+    if (v > max) max = v
+  }
+  for (v in transformed) {
+    if (v < min) min = v
+    if (v > max) max = v
+  }
   if (!min.isFinite() || !max.isFinite() || max <= min) {
-    min = 0.0; max = 1.0
+    min = 0.0
+    max = 1.0
   }
   val range = max - min
 
@@ -84,18 +87,22 @@ fun renderSideBySideGrayscale(
 }
 
 fun renderTripleGrayscale(
-    original: DoubleArray,
-    transformed: DoubleArray,
-    blended: DoubleArray,
-    size: Int,
+  original: DoubleArray,
+  transformed: DoubleArray,
+  blended: DoubleArray,
+  size: Int,
 ): BufferedImage {
   var min = Double.POSITIVE_INFINITY
   var max = Double.NEGATIVE_INFINITY
   for (arr in arrayOf(original, transformed, blended)) {
-    for (v in arr) { if (v < min) min = v; if (v > max) max = v }
+    for (v in arr) {
+      if (v < min) min = v
+      if (v > max) max = v
+    }
   }
   if (!min.isFinite() || !max.isFinite() || max <= min) {
-    min = 0.0; max = 1.0
+    min = 0.0
+    max = 1.0
   }
   val range = max - min
 
@@ -126,12 +133,12 @@ fun applyTransform(values: DoubleArray, transform: NoiseTransform): DoubleArray 
 }
 
 fun applyBlend(
-    original: DoubleArray,
-    transformed: DoubleArray,
-    size: Int,
-    blendWidth: Float,
-    sdfAt: (x: Int, z: Int) -> Float,
-    worldSize: Int,
+  original: DoubleArray,
+  transformed: DoubleArray,
+  size: Int,
+  blendWidth: Float,
+  sdfAt: (x: Int, z: Int) -> Float,
+  worldSize: Int,
 ): DoubleArray {
   val step = worldSize / size
   val start = -worldSize / 2

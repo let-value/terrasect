@@ -1,5 +1,7 @@
 package terrasect.strategies
 
+import java.nio.ByteBuffer
+import kotlin.math.max
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
@@ -8,30 +10,28 @@ import terrasect.definition.StrategySettings
 import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
 import terrasect.sdf.*
-import java.nio.ByteBuffer
-import kotlin.math.max
 
 data class SurroundOriginResult(
-    var centerX: Int = 0,
-    var centerZ: Int = 0,
-    var isCenter: Boolean = false,
-    var parent: Sdf2 = EmptySdf,
+  var centerX: Int = 0,
+  var centerZ: Int = 0,
+  var isCenter: Boolean = false,
+  var parent: Sdf2 = EmptySdf,
 )
 
 class SurroundStrategy(
-    override val id: Byte,
-    val center: Region,
-    val surround: Region,
-    val scale: Float,
-    val smoothing: Float,
+  override val id: Byte,
+  val center: Region,
+  val surround: Region,
+  val scale: Float,
+  val smoothing: Float,
 ) : Strategy {
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
   fun getCachedOrigin(
-      id: ByteBuffer,
-      parentSdf: SdfCompose,
-      cache: RegionsCache?,
+    id: ByteBuffer,
+    parentSdf: SdfCompose,
+    cache: RegionsCache?,
   ): SurroundOriginResult {
     if (cache == null) {
       return getOrigin(parentSdf.bake())
@@ -44,15 +44,15 @@ class SurroundStrategy(
   override fun traverse(step: TraversalStep): TraversalStep {
     val origin = getCachedOrigin(step.id, step.sdf, step.cache)
     val isCenter =
-        surroundDistance(
-            step.x,
-            step.z,
-            origin.parent,
-            origin.centerX,
-            origin.centerZ,
-            scale,
-            smoothing,
-        ) <= 0.0
+      surroundDistance(
+        step.x,
+        step.z,
+        origin.parent,
+        origin.centerX,
+        origin.centerZ,
+        scale,
+        smoothing,
+      ) <= 0.0
 
     writeId(step.id, origin, isCenter)
 
@@ -156,8 +156,8 @@ class SurroundStrategy(
 
     override fun build(builder: RegionBuilder, children: Set<Region>): SurroundStrategy {
       val center =
-          children.find { it.name != surroundRegionName }
-              ?: Region.empty("${surroundRegionName}_center")
+        children.find { it.name != surroundRegionName }
+          ?: Region.empty("${surroundRegionName}_center")
 
       val surround = builder.registry.buildTree(surroundRegionName)
 

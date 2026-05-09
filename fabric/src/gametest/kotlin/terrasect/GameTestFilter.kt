@@ -7,10 +7,10 @@ object GameTestFilter {
 
   private val included: Set<String>? by lazy {
     (FOCUS ?: System.getProperty("test"))
-        ?.takeIf { it.isNotBlank() }
-        ?.split(",")
-        ?.map { it.trim().lowercase() }
-        ?.toSet()
+      ?.takeIf { it.isNotBlank() }
+      ?.split(",")
+      ?.map { it.trim().lowercase() }
+      ?.toSet()
   }
 
   fun shouldRun(klass: KClass<*>): Boolean {

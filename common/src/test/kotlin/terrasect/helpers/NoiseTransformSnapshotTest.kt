@@ -31,8 +31,11 @@ class NoiseTransformSnapshotTest {
 
       val lookup = VanillaRegistries.createLookup()
       val noiseParams = lookup.lookupOrThrow(Registries.NOISE)
-      val settings = lookup.lookupOrThrow(Registries.NOISE_SETTINGS)
-          .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value()
+      val settings =
+        lookup
+          .lookupOrThrow(Registries.NOISE_SETTINGS)
+          .getOrThrow(NoiseGeneratorSettings.OVERWORLD)
+          .value()
       val randomState = RandomState.create(settings, noiseParams, SEED)
       router = randomState.router()
     }
@@ -45,7 +48,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.continents())
     val transform = NoiseTransform.builder().clamp(-0.3, 0.3).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/clamp-continents.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/clamp-continents.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -53,7 +60,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().clamp(-0.2, 0.2).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/clamp-depth.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/clamp-depth.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -61,7 +72,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().multiply(0.5).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/multiply-half.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/multiply-half.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -69,7 +84,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().multiply(2.0).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/multiply-double.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/multiply-double.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -77,7 +96,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().add(0.3).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/add-raise.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/add-raise.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -85,27 +108,41 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().add(-0.3).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/add-lower.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/add-lower.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
   fun `remap - compress range`() {
     val original = sample(router.depth())
-    val transform = NoiseTransform.builder()
+    val transform =
+      NoiseTransform.builder()
         .remap(inputMin = -1.0, inputMax = 1.0, outputMin = -0.3, outputMax = 0.3)
         .build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/remap-compress.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/remap-compress.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
   fun `remap - invert range`() {
     val original = sample(router.depth())
-    val transform = NoiseTransform.builder()
+    val transform =
+      NoiseTransform.builder()
         .remap(inputMin = -1.0, inputMax = 1.0, outputMin = 1.0, outputMax = -1.0)
         .build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/remap-invert.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/remap-invert.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -113,7 +150,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.erosion())
     val transform = NoiseTransform.builder().abs().build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/abs-erosion.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/abs-erosion.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -121,7 +162,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.ridges())
     val transform = NoiseTransform.builder().square().build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/square-ridges.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/square-ridges.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -129,7 +174,11 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().halfNegative().build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/half-negative-depth.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/half-negative-depth.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -137,30 +186,39 @@ class NoiseTransformSnapshotTest {
     val original = sample(router.depth())
     val transform = NoiseTransform.builder().squeeze().build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "operations/squeeze-depth.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "operations/squeeze-depth.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
   fun `chain - mountain to hill`() {
     val original = sample(router.depth())
-    val transform = NoiseTransform.builder()
+    val transform =
+      NoiseTransform.builder()
         .clamp(-0.5, 1.0)
         .remap(inputMin = -0.5, inputMax = 1.0, outputMin = -0.3, outputMax = 0.4)
         .build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "chains/mountain-to-hill.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "chains/mountain-to-hill.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
   fun `chain - flatten terrain`() {
     val original = sample(router.depth())
-    val transform = NoiseTransform.builder()
-        .multiply(0.3)
-        .add(0.1)
-        .clamp(-0.2, 0.3)
-        .build()
+    val transform = NoiseTransform.builder().multiply(0.3).add(0.1).clamp(-0.2, 0.3).build()
     val transformed = applyTransform(original, transform)
-    writeSnapshotPng(javaClass, "chains/flatten.png", renderSideBySideGrayscale(original, transformed, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "chains/flatten.png",
+      renderSideBySideGrayscale(original, transformed, IMG),
+    )
   }
 
   @Test
@@ -173,7 +231,11 @@ class NoiseTransformSnapshotTest {
     val transformed = applyTransform(original, transform)
     val blended = applyBlend(original, transformed, IMG, 128f, sdfAt, WORLD)
 
-    writeSnapshotPng(javaClass, "blend/circle-clamp.png", renderTripleGrayscale(original, transformed, blended, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "blend/circle-clamp.png",
+      renderTripleGrayscale(original, transformed, blended, IMG),
+    )
   }
 
   @Test
@@ -182,14 +244,19 @@ class NoiseTransformSnapshotTest {
     val sdfAt = { x: Int, z: Int -> hypot(x.toFloat(), z.toFloat()) - regionRadius }
 
     val original = sample(router.depth())
-    val transform = NoiseTransform.builder()
+    val transform =
+      NoiseTransform.builder()
         .clamp(-0.5, 1.0)
         .remap(inputMin = -0.5, inputMax = 1.0, outputMin = -0.3, outputMax = 0.4)
         .build()
     val transformed = applyTransform(original, transform)
     val blended = applyBlend(original, transformed, IMG, 128f, sdfAt, WORLD)
 
-    writeSnapshotPng(javaClass, "blend/circle-mountain-to-hill.png", renderTripleGrayscale(original, transformed, blended, IMG))
+    writeSnapshotPng(
+      javaClass,
+      "blend/circle-mountain-to-hill.png",
+      renderTripleGrayscale(original, transformed, blended, IMG),
+    )
   }
 
   @Test
@@ -209,12 +276,36 @@ class NoiseTransformSnapshotTest {
 
   @Test
   fun `all router functions - original`() {
-    writeSnapshotPng(javaClass, "vanilla/continents.png", renderNormalizedGrayscale(sample(router.continents()), IMG))
-    writeSnapshotPng(javaClass, "vanilla/erosion.png", renderNormalizedGrayscale(sample(router.erosion()), IMG))
-    writeSnapshotPng(javaClass, "vanilla/ridges.png", renderNormalizedGrayscale(sample(router.ridges()), IMG))
-    writeSnapshotPng(javaClass, "vanilla/depth.png", renderNormalizedGrayscale(sample(router.depth()), IMG))
-    writeSnapshotPng(javaClass, "vanilla/temperature.png", renderNormalizedGrayscale(sample(router.temperature()), IMG))
-    writeSnapshotPng(javaClass, "vanilla/vegetation.png", renderNormalizedGrayscale(sample(router.vegetation()), IMG))
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/continents.png",
+      renderNormalizedGrayscale(sample(router.continents()), IMG),
+    )
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/erosion.png",
+      renderNormalizedGrayscale(sample(router.erosion()), IMG),
+    )
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/ridges.png",
+      renderNormalizedGrayscale(sample(router.ridges()), IMG),
+    )
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/depth.png",
+      renderNormalizedGrayscale(sample(router.depth()), IMG),
+    )
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/temperature.png",
+      renderNormalizedGrayscale(sample(router.temperature()), IMG),
+    )
+    writeSnapshotPng(
+      javaClass,
+      "vanilla/vegetation.png",
+      renderNormalizedGrayscale(sample(router.vegetation()), IMG),
+    )
   }
 
   @Test
@@ -223,20 +314,23 @@ class NoiseTransformSnapshotTest {
     val sdfAt = { x: Int, z: Int -> hypot(x.toFloat(), z.toFloat()) - regionRadius }
 
     val original = sample(router.depth())
-    val transforms = mapOf(
+    val transforms =
+      mapOf(
         "clamp" to NoiseTransform.builder().clamp(-0.2, 0.2).build(),
         "multiply-half" to NoiseTransform.builder().multiply(0.5).build(),
         "flatten" to NoiseTransform.builder().multiply(0.3).add(0.1).clamp(-0.2, 0.3).build(),
-        "mountain-to-hill" to NoiseTransform.builder()
-            .clamp(-0.5, 1.0)
-            .remap(-0.5, 1.0, -0.3, 0.4)
-            .build(),
-    )
+        "mountain-to-hill" to
+          NoiseTransform.builder().clamp(-0.5, 1.0).remap(-0.5, 1.0, -0.3, 0.4).build(),
+      )
 
     for ((name, transform) in transforms) {
       val transformed = applyTransform(original, transform)
       val blended = applyBlend(original, transformed, IMG, 128f, sdfAt, WORLD)
-      writeSnapshotPng(javaClass, "blend/compare/$name.png", renderTripleGrayscale(original, transformed, blended, IMG))
+      writeSnapshotPng(
+        javaClass,
+        "blend/compare/$name.png",
+        renderTripleGrayscale(original, transformed, blended, IMG),
+      )
     }
   }
 }

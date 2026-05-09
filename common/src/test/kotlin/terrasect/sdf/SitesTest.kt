@@ -1,12 +1,12 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.hypot
+import kotlin.math.roundToLong
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.hypot
-import kotlin.math.roundToLong
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -61,11 +61,11 @@ class SitesTest {
     val area = estimateArea(sdf, bounds)
 
     val budgets =
-        longArrayOf(
-            (area * 0.3).roundToLong(),
-            (area * 0.5).roundToLong(),
-            (area * 0.2).roundToLong(),
-        )
+      longArrayOf(
+        (area * 0.3).roundToLong(),
+        (area * 0.5).roundToLong(),
+        (area * 0.2).roundToLong(),
+      )
 
     val sites = getSites(SEED, sdf, bounds, budgets)
 

@@ -1,10 +1,10 @@
 package terrasect.cache
 
 class PalettedGrid<T>(
-    val width: Int = 16,
-    val height: Int = 16,
-    val originX: Int = 0,
-    val originZ: Int = 0,
+  val width: Int = 16,
+  val height: Int = 16,
+  val originX: Int = 0,
+  val originZ: Int = 0,
 ) {
   val palette = ArrayList<T>()
 

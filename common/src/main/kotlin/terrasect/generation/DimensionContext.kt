@@ -1,5 +1,6 @@
 package terrasect.generation
 
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.ResourceKey
@@ -13,15 +14,14 @@ import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.Region
 import terrasect.lookup.CompiledNoiseRegistry
-import java.util.concurrent.ConcurrentHashMap
 
 class DimensionContext(
-    val presetId: String?,
-    val dimensionId: String,
-    val seed: Long,
-    val root: Region,
-    val sampler: Climate.Sampler,
-    val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
+  val presetId: String?,
+  val dimensionId: String,
+  val seed: Long,
+  val root: Region,
+  val sampler: Climate.Sampler,
+  val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
 ) {
   val cache = RegionsCache(200, Terrasect.cache)
   val traverser = Traverser(seed, root)
@@ -34,13 +34,13 @@ class DimensionContext(
 
     @JvmStatic
     fun register(
-        presetId: String?,
-        dimension: ResourceKey<Level>,
-        structureSets: MutableList<Holder<StructureSet>>,
-        registry: RegistryAccess.Frozen,
-        seed: Long,
-        sampler: Climate.Sampler,
-        biomesClimate: Climate.ParameterList<Holder<Biome>>?,
+      presetId: String?,
+      dimension: ResourceKey<Level>,
+      structureSets: MutableList<Holder<StructureSet>>,
+      registry: RegistryAccess.Frozen,
+      seed: Long,
+      sampler: Climate.Sampler,
+      biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
       val registry = PresetRegistry.resolve(presetId) ?: return
@@ -48,7 +48,7 @@ class DimensionContext(
       val root = registry.buildTree(name)
 
       val dimensionContext =
-          DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
+        DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
       map[dimensionId] = dimensionContext
     }
 

@@ -1,10 +1,10 @@
 package terrasect.sdf
 
+import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import terrasect.testing.writeSnapshotPng
-import java.awt.image.BufferedImage
-import kotlin.math.roundToInt
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -28,12 +28,7 @@ class HexTest {
     renderHexSdfSnapshot(1337L, "offset.png", CX + centerX, CZ + centerZ)
   }
 
-  private fun renderHexSdfSnapshot(
-      seed: Long,
-      snapshotName: String,
-      centerX: Int,
-      centerZ: Int,
-  ) {
+  private fun renderHexSdfSnapshot(seed: Long, snapshotName: String, centerX: Int, centerZ: Int) {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     val sdf = HexCellSdf()
 

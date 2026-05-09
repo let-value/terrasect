@@ -1,16 +1,16 @@
 package terrasect.cache
 
+import com.github.benmanes.caffeine.cache.Cache as CaffeineCache
 import com.github.benmanes.caffeine.cache.Caffeine
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import java.nio.ByteBuffer
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import net.openhft.hashing.LongHashFunction
 import terrasect.sdf.Site
 import terrasect.strategies.HexCellResult
 import terrasect.strategies.SubdivisionSplit
 import terrasect.strategies.SurroundOriginResult
-import java.nio.ByteBuffer
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
-import com.github.benmanes.caffeine.cache.Cache as CaffeineCache
 
 val hasher: LongHashFunction = LongHashFunction.xx()
 
@@ -21,16 +21,16 @@ class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
   private val stripes = Array(KEY_STRIPES) { Long2ObjectOpenHashMap<CacheKey>() }
   private val locks = Array(KEY_STRIPES) { ReentrantLock() }
   private val keys: ThreadLocal<Long2ObjectOpenHashMap<CacheKey>> =
-      ThreadLocal.withInitial { Long2ObjectOpenHashMap(LOCAL_KEY_CACHE_SIZE) }
+    ThreadLocal.withInitial { Long2ObjectOpenHashMap(LOCAL_KEY_CACHE_SIZE) }
 
   private val hexLocal =
-      Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, HexCellResult>()
+    Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, HexCellResult>()
   private val voronoiLocal =
-      Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, List<Site>>()
+    Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, List<Site>>()
   private val subdivisionLocal =
-      Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SubdivisionSplit>()
+    Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SubdivisionSplit>()
   private val surroundLocal =
-      Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SurroundOriginResult>()
+    Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SurroundOriginResult>()
 
   val hex = LayeredCache(hexLocal, shared?.hexLocal)
   val voronoi = LayeredCache(voronoiLocal, shared?.voronoiLocal)
@@ -52,10 +52,10 @@ class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
 
     val stripe = stripeFor(hash)
     val interned =
-        locks[stripe].withLock {
-          val keys = stripes[stripe]
-          keys.get(hash) ?: CacheKey(hash).also { keys.put(hash, it) }
-        }
+      locks[stripe].withLock {
+        val keys = stripes[stripe]
+        keys.get(hash) ?: CacheKey(hash).also { keys.put(hash, it) }
+      }
 
     if (local.size >= LOCAL_KEY_CACHE_SIZE) {
       local.clear()
@@ -76,8 +76,8 @@ class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
 }
 
 class LayeredCache<T : Any>(
-    private val local: CaffeineCache<CacheKey, T>,
-    private val shared: CaffeineCache<CacheKey, T>?,
+  private val local: CaffeineCache<CacheKey, T>,
+  private val shared: CaffeineCache<CacheKey, T>?,
 ) {
 
   internal inline fun getOrCompute(key: CacheKey, crossinline compute: () -> T): T {

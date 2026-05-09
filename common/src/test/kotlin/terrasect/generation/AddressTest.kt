@@ -1,9 +1,9 @@
 package terrasect.generation
 
+import java.nio.ByteBuffer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import terrasect.generation.TraverserTest.Companion.registry
-import java.nio.ByteBuffer
 
 class AddressTest {
 
@@ -37,8 +37,8 @@ class AddressTest {
 
     val actual = Address.serialize(buffer)
     assertEquals(
-        "wyv8SyjznNZnLVeABWfKHrHbnWN5LGXSgtN5Qgh6CifvHBY7rSX3HhRJHbfvc2rTvzmkAiBmjsHh",
-        actual,
+      "wyv8SyjznNZnLVeABWfKHrHbnWN5LGXSgtN5Qgh6CifvHBY7rSX3HhRJHbfvc2rTvzmkAiBmjsHh",
+      actual,
     )
   }
 

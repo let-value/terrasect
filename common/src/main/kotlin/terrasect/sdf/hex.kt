@@ -1,9 +1,9 @@
 package terrasect.sdf
 
+import kotlin.math.*
 import terrasect.utils.first
 import terrasect.utils.packPair
 import terrasect.utils.second
-import kotlin.math.*
 
 val SIN60 = sin(Math.toRadians(60.0).toFloat())
 val SQRT3 = sqrt(3f)
@@ -52,11 +52,7 @@ fun hexDistance(px: Int, pz: Int, apothem: Float): Float {
   return max(d, x) - apothem
 }
 
-class HexCellSdf(
-    var centerX: Int = 0,
-    var centerZ: Int = 0,
-    var apothem: Float = 0f,
-) : Sdf2 {
+class HexCellSdf(var centerX: Int = 0, var centerZ: Int = 0, var apothem: Float = 0f) : Sdf2 {
 
   override fun invoke(x: Int, z: Int): Float {
     return hexDistance(x - centerX, z - centerZ, apothem)
@@ -64,10 +60,10 @@ class HexCellSdf(
 }
 
 class HexGapSdf(
-    var centerX: Int = 0,
-    var centerZ: Int = 0,
-    var apothem: Float = 0f,
-    var gap: Float = 0f,
+  var centerX: Int = 0,
+  var centerZ: Int = 0,
+  var apothem: Float = 0f,
+  var gap: Float = 0f,
 ) : Sdf2 {
 
   override fun invoke(x: Int, z: Int): Float {

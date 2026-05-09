@@ -7,10 +7,10 @@ import terrasect.gui.RegionDebugEntry
 
 object TerrasectFabricClient : ClientModInitializer {
   val REGION_DEBUG: Identifier =
-      DebugScreenEntries.register(
-          Identifier.fromNamespaceAndPath("terrasect", "region"),
-          RegionDebugEntry(),
-      )
+    DebugScreenEntries.register(
+      Identifier.fromNamespaceAndPath("terrasect", "region"),
+      RegionDebugEntry(),
+    )
 
   override fun onInitializeClient() {}
 }

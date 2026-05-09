@@ -1,9 +1,9 @@
 package terrasect.generation
 
+import java.nio.ByteBuffer
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.sdf.SdfCompose
-import java.nio.ByteBuffer
 
 class Traverser(val seed: Long, val root: Region) {
   val iterator: ThreadLocal<TraversalStep> = ThreadLocal.withInitial { TraversalStep(this) }

@@ -1,13 +1,13 @@
 package terrasect.strategies
 
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import terrasect.sdf.*
-import terrasect.testing.writeSnapshotPng
 import java.awt.image.BufferedImage
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import terrasect.sdf.*
+import terrasect.testing.writeSnapshotPng
 
 private const val WIDTH = 240
 private const val HEIGHT = 240
@@ -75,20 +75,20 @@ class SurroundStrategyTest {
     val totalBudget = (centerBudget + surroundBudget).toDouble().coerceAtLeast(1.0)
 
     val centerSdf =
-        CenterCellSdf().apply {
-          parent = parentSdf
-          centerX = origin.centerX
-          centerZ = origin.centerZ
-          this.scale = this@SurroundStrategyTest.scale
-        }
+      CenterCellSdf().apply {
+        parent = parentSdf
+        centerX = origin.centerX
+        centerZ = origin.centerZ
+        this.scale = this@SurroundStrategyTest.scale
+      }
 
     val surroundSdf =
-        SurroundCellSdf().apply {
-          parent = parentSdf
-          centerX = origin.centerX
-          centerZ = origin.centerZ
-          this.scale = this@SurroundStrategyTest.scale
-        }
+      SurroundCellSdf().apply {
+        parent = parentSdf
+        centerX = origin.centerX
+        centerZ = origin.centerZ
+        this.scale = this@SurroundStrategyTest.scale
+      }
 
     val centerArea = estimateArea({ x, z -> max(parentSdf(x, z), centerSdf(x, z)) }, bounds)
     val surroundArea = estimateArea({ x, z -> max(parentSdf(x, z), surroundSdf(x, z)) }, bounds)
@@ -99,16 +99,16 @@ class SurroundStrategyTest {
     val expectedSurroundFraction = surroundBudget / totalBudget
 
     assertTrue(
-        abs(centerFraction - expectedCenterFraction) <= 0.07,
-        "center expected=$expectedCenterFraction realized=$centerFraction area=$centerArea",
+      abs(centerFraction - expectedCenterFraction) <= 0.07,
+      "center expected=$expectedCenterFraction realized=$centerFraction area=$centerArea",
     )
     assertTrue(
-        abs(surroundFraction - expectedSurroundFraction) <= 0.07,
-        "surround expected=$expectedSurroundFraction realized=$surroundFraction area=$surroundArea",
+      abs(surroundFraction - expectedSurroundFraction) <= 0.07,
+      "surround expected=$expectedSurroundFraction realized=$surroundFraction area=$surroundArea",
     )
     assertTrue(
-        abs((centerFraction + surroundFraction) - 1.0) <= 0.03,
-        "realized total area fraction=${centerFraction + surroundFraction}",
+      abs((centerFraction + surroundFraction) - 1.0) <= 0.03,
+      "realized total area fraction=${centerFraction + surroundFraction}",
     )
   }
 

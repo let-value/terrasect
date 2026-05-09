@@ -2,6 +2,7 @@ package terrasect
 
 import de.skuzzle.test.snapshots.SnapshotFile
 import de.skuzzle.test.snapshots.SnapshotFile.SnapshotHeader
+import java.nio.file.Path
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
@@ -13,19 +14,12 @@ import org.apache.commons.lang3.function.FailableConsumer
 import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.presets.Presets
-import java.nio.file.Path
 
 private val LOGGER = LoggerFactory.getLogger("WorldDigestGameTest")
 
 private const val SEED = "seed"
 
-private val PROBE_LOCATIONS =
-    listOf(
-        0 to 0,
-        512 to 0,
-        0 to 512,
-        512 to 512,
-    )
+private val PROBE_LOCATIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
@@ -41,18 +35,18 @@ private val GAME_TEST_RESOURCES_BASE: Path by lazy {
 }
 
 private fun snapshotPath(testSimpleName: String): Path =
-    GAME_TEST_RESOURCES_BASE.resolve("${testSimpleName}_snapshots/columns.snapshot")
+  GAME_TEST_RESOURCES_BASE.resolve("${testSimpleName}_snapshots/columns.snapshot")
 
 private fun parseColumnsSnapshot(path: Path): Map<String, Pair<Int, Int>> {
   val text = SnapshotFile.fromSnapshotFile(path).snapshot()
   return text
-      .lineSequence()
-      .drop(1) // header row: x,z,ocean_floor,world_surface
-      .filter { it.isNotBlank() }
-      .associate { line ->
-        val parts = line.split(",")
-        "${parts[0]},${parts[1]}" to (parts[2].toInt() to parts[3].toInt())
-      }
+    .lineSequence()
+    .drop(1) // header row: x,z,ocean_floor,world_surface
+    .filter { it.isNotBlank() }
+    .associate { line ->
+      val parts = line.split(",")
+      "${parts[0]},${parts[1]}" to (parts[2].toInt() to parts[3].toInt())
+    }
 }
 
 private fun diffAgainstVanilla(terrasectSimpleName: String) {
@@ -80,32 +74,32 @@ private fun diffAgainstVanilla(terrasectSimpleName: String) {
   val diffLines = diffText.lines().count { it.isNotBlank() } - 1 // subtract header
   if (diffLines <= 0) {
     LOGGER.warn(
-        "[WorldDigest] Terrasect produced NO terrain differences vs vanilla — is the preset active?"
+      "[WorldDigest] Terrasect produced NO terrain differences vs vanilla — is the preset active?"
     )
   } else {
     LOGGER.info("[WorldDigest] {} column(s) differ vs vanilla", diffLines)
   }
 
   val diffSnapshotPath =
-      GAME_TEST_RESOURCES_BASE.resolve("${terrasectSimpleName}_snapshots/diff_vs_vanilla.snapshot")
+    GAME_TEST_RESOURCES_BASE.resolve("${terrasectSimpleName}_snapshots/diff_vs_vanilla.snapshot")
   val header =
-      SnapshotHeader.fromMap(
-          mapOf(
-              SnapshotHeader.TEST_CLASS to TerrasectWorldDigestTest::class.qualifiedName!!,
-              SnapshotHeader.TEST_METHOD to "runTest",
-              SnapshotHeader.SNAPSHOT_NUMBER to "1",
-              SnapshotHeader.SNAPSHOT_NAME to "diff_vs_vanilla",
-              SnapshotHeader.DYNAMIC_DIRECTORY to "true",
-          )
+    SnapshotHeader.fromMap(
+      mapOf(
+        SnapshotHeader.TEST_CLASS to TerrasectWorldDigestTest::class.qualifiedName!!,
+        SnapshotHeader.TEST_METHOD to "runTest",
+        SnapshotHeader.SNAPSHOT_NUMBER to "1",
+        SnapshotHeader.SNAPSHOT_NAME to "diff_vs_vanilla",
+        SnapshotHeader.DYNAMIC_DIRECTORY to "true",
       )
+    )
   SnapshotFile.of(header, diffText).writeTo(diffSnapshotPath)
   LOGGER.info("[WorldDigest] Diff snapshot written to {}", diffSnapshotPath)
 }
 
 private fun snapshotColumns(
-    columns: Map<String, Pair<Int, Int>>,
-    snapshotDir: Path,
-    testClassName: String,
+  columns: Map<String, Pair<Int, Int>>,
+  snapshotDir: Path,
+  testClassName: String,
 ) {
   val text = buildString {
     append("x,z,ocean_floor,world_surface\n")
@@ -120,15 +114,15 @@ private fun snapshotColumns(
   if (update || !snapshotFile.toFile().exists()) {
     snapshotDir.toFile().mkdirs()
     val header =
-        SnapshotHeader.fromMap(
-            mapOf(
-                SnapshotHeader.TEST_CLASS to testClassName,
-                SnapshotHeader.TEST_METHOD to "runTest",
-                SnapshotHeader.SNAPSHOT_NUMBER to "0",
-                SnapshotHeader.SNAPSHOT_NAME to "columns",
-                SnapshotHeader.DYNAMIC_DIRECTORY to "true",
-            )
+      SnapshotHeader.fromMap(
+        mapOf(
+          SnapshotHeader.TEST_CLASS to testClassName,
+          SnapshotHeader.TEST_METHOD to "runTest",
+          SnapshotHeader.SNAPSHOT_NUMBER to "0",
+          SnapshotHeader.SNAPSHOT_NAME to "columns",
+          SnapshotHeader.DYNAMIC_DIRECTORY to "true",
         )
+      )
     SnapshotFile.of(header, text).writeTo(snapshotFile)
     val verb = if (update) "updated" else "created initially — commit it to SCM"
     LOGGER.info("[WorldDigest] Snapshot {} at {}", verb, snapshotFile)
@@ -136,9 +130,9 @@ private fun snapshotColumns(
     val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
     if (stored != text) {
       throw AssertionError(
-          "Column snapshot mismatch at $snapshotFile\n" +
-              "Rerun with -PupdateSnapshots to accept the new terrain, or investigate the diff:\n" +
-              buildUnifiedDiff(stored, text)
+        "Column snapshot mismatch at $snapshotFile\n" +
+          "Rerun with -PupdateSnapshots to accept the new terrain, or investigate the diff:\n" +
+          buildUnifiedDiff(stored, text)
       )
     }
     LOGGER.info("[WorldDigest] Snapshot matches: {}", snapshotFile)
@@ -180,43 +174,43 @@ private fun buildUnifiedDiff(expected: String, actual: String): String {
 
 @Suppress("UnstableApiUsage")
 private fun computeWorldDigest(
-    context: ClientGameTestContext,
-    label: String,
-    testSimpleName: String,
-    testClassName: String,
+  context: ClientGameTestContext,
+  label: String,
+  testSimpleName: String,
+  testClassName: String,
 ) {
   val screenshotsDir = GAME_TEST_SCREENSHOTS_BASE.resolve(testSimpleName)
   val snapshotDir = GAME_TEST_RESOURCES_BASE.resolve("${testSimpleName}_snapshots")
   val game =
-      context
-          .worldBuilder()
-          .setUseConsistentSettings(false)
-          .adjustSettings { settings ->
-            settings.seed = SEED
-            settings.gameMode = WorldCreationUiState.SelectedGameMode.CREATIVE
-          }
-          .create()
+    context
+      .worldBuilder()
+      .setUseConsistentSettings(false)
+      .adjustSettings { settings ->
+        settings.seed = SEED
+        settings.gameMode = WorldCreationUiState.SelectedGameMode.CREATIVE
+      }
+      .create()
 
   try {
 
     game.server.runOnServer(
-        FailableConsumer<MinecraftServer, Exception> { server ->
-          server.playerList.players[0].teleportTo(0.0, 400.0, 0.0)
-        }
+      FailableConsumer<MinecraftServer, Exception> { server ->
+        server.playerList.players[0].teleportTo(0.0, 400.0, 0.0)
+      }
     )
 
     context.waitTicks(10)
 
     context.runOnClient(
-        FailableConsumer<Minecraft, Exception> { client ->
-          client.player?.let { player ->
-            client.player?.xRot = 90f // pitch 90° = looking straight down
-            client.player?.yRot = 0f // face north for a consistent orientation
-            player.abilities.mayfly = true
-            player.abilities.flying = true
-            player.onUpdateAbilities()
-          }
+      FailableConsumer<Minecraft, Exception> { client ->
+        client.player?.let { player ->
+          client.player?.xRot = 90f // pitch 90° = looking straight down
+          client.player?.yRot = 0f // face north for a consistent orientation
+          player.abilities.mayfly = true
+          player.abilities.flying = true
+          player.onUpdateAbilities()
         }
+      }
     )
 
     game.clientWorld.waitForChunksRender()
@@ -225,9 +219,9 @@ private fun computeWorldDigest(
 
     for ((x, z) in PROBE_LOCATIONS) {
       game.server.runOnServer(
-          FailableConsumer<MinecraftServer, Exception> { server ->
-            server.playerList.players[0].teleportTo(x + 8.0, 120.0, z + 8.0)
-          }
+        FailableConsumer<MinecraftServer, Exception> { server ->
+          server.playerList.players[0].teleportTo(x + 8.0, 120.0, z + 8.0)
+        }
       )
 
       context.waitTicks(60)
@@ -235,20 +229,20 @@ private fun computeWorldDigest(
       game.clientWorld.waitForChunksRender()
 
       game.server.runOnServer(
-          FailableConsumer<MinecraftServer, Exception> { server ->
-            val level = server.overworld()
-            for (bx in x until x + 16) {
-              for (bz in z until z + 16) {
-                val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
-                val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
-                allColumns["$bx,$bz"] = oceanFloor to worldSurface
-              }
+        FailableConsumer<MinecraftServer, Exception> { server ->
+          val level = server.overworld()
+          for (bx in x until x + 16) {
+            for (bz in z until z + 16) {
+              val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
+              val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
+              allColumns["$bx,$bz"] = oceanFloor to worldSurface
             }
           }
+        }
       )
 
       context.takeScreenshot(
-          TestScreenshotOptions.of("probe_${x}_${z}").withDestinationDir(screenshotsDir)
+        TestScreenshotOptions.of("probe_${x}_${z}").withDestinationDir(screenshotsDir)
       )
     }
 
@@ -267,10 +261,10 @@ object VanillaWorldDigestTest : FabricClientGameTest {
     PresetRegistry.forcePresetId = "__disabled__"
     try {
       computeWorldDigest(
-          context,
-          "vanilla",
-          testSimpleName = this::class.simpleName!!,
-          testClassName = this::class.qualifiedName!!,
+        context,
+        "vanilla",
+        testSimpleName = this::class.simpleName!!,
+        testClassName = this::class.qualifiedName!!,
       )
     } finally {
       PresetRegistry.forcePresetId = null
@@ -286,10 +280,10 @@ object TerrasectWorldDigestTest : FabricClientGameTest {
     PresetRegistry.forcePresetId = Presets.CLIMATE_DEBUG.toString()
     try {
       computeWorldDigest(
-          context,
-          "terrasect",
-          testSimpleName = this::class.simpleName!!,
-          testClassName = this::class.qualifiedName!!,
+        context,
+        "terrasect",
+        testSimpleName = this::class.simpleName!!,
+        testClassName = this::class.qualifiedName!!,
       )
       diffAgainstVanilla(this::class.simpleName!!)
     } finally {

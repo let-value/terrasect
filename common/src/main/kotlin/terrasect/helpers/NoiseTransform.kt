@@ -24,10 +24,10 @@ class NoiseTransform(val operations: List<Operation>) {
   }
 
   class Remap(
-      val inputMin: Double,
-      val inputMax: Double,
-      val outputMin: Double,
-      val outputMax: Double,
+    val inputMin: Double,
+    val inputMax: Double,
+    val outputMin: Double,
+    val outputMax: Double,
   ) : Operation {
     override fun apply(value: Double): Double {
       val range = inputMax - inputMin
@@ -38,18 +38,18 @@ class NoiseTransform(val operations: List<Operation>) {
 
   class Map(val type: MapType) : Operation {
     override fun apply(value: Double): Double =
-        when (type) {
-          MapType.ABS -> abs(value)
-          MapType.SQUARE -> value * value
-          MapType.CUBE -> value * value * value
-          MapType.HALF_NEGATIVE -> if (value > 0.0) value else value * 0.5
-          MapType.QUARTER_NEGATIVE -> if (value > 0.0) value else value * 0.25
-          MapType.INVERT -> 1.0 / value
-          MapType.SQUEEZE -> {
-            val clamped = value.coerceIn(-1.0, 1.0)
-            clamped / 2.0 - clamped * clamped * clamped / 24.0
-          }
+      when (type) {
+        MapType.ABS -> abs(value)
+        MapType.SQUARE -> value * value
+        MapType.CUBE -> value * value * value
+        MapType.HALF_NEGATIVE -> if (value > 0.0) value else value * 0.5
+        MapType.QUARTER_NEGATIVE -> if (value > 0.0) value else value * 0.25
+        MapType.INVERT -> 1.0 / value
+        MapType.SQUEEZE -> {
+          val clamped = value.coerceIn(-1.0, 1.0)
+          clamped / 2.0 - clamped * clamped * clamped / 24.0
         }
+      }
   }
 
   enum class MapType {
