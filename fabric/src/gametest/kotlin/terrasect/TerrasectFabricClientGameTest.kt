@@ -1,8 +1,13 @@
 package terrasect
 
+import java.nio.file.Path
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.function.FailableConsumer
@@ -16,8 +21,33 @@ private const val DISABLED_PRESET = "__disabled__"
 private const val SEED = "noise-narrative"
 private const val CUSTOM_PRESET_PREFIX = "noise_narrative_client_test"
 
-// Registers a flat single-region preset: every overworld block belongs to the root region,
-// so constraints are applied at full strength everywhere. Used for spawn-chunk isolation.
+private val SCREENSHOTS_BASE: Path by lazy {
+  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
+  classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
+}
+
+private data class ColumnStats(
+  val oceanFloor: Int,
+  val worldSurface: Int,
+  val groundBlock: String,
+  val coverBlock: String,
+  val biome: String,
+)
+
+private data class DiffSummary(
+  val heightDiffs: Int,
+  val groundBlockDiffs: Int,
+  val coverBlockDiffs: Int,
+  val biomeDiffs: Int,
+  val total: Int,
+)
+
+private data class Scenario(
+  val name: String,
+  val trace: String,
+  val configure: RegionRegistry.() -> Unit,
+)
+
 private fun registerSimpleRootPreset(id: String, configure: RegionRegistry.() -> Unit) {
   PresetRegistry.presets[id] =
     RegionRegistry().apply {
@@ -27,12 +57,16 @@ private fun registerSimpleRootPreset(id: String, configure: RegionRegistry.() ->
     }
 }
 
-// Creates a world, waits for the spawn chunk to load, then reads one 16×16 chunk of column data.
+private fun scenarioPresetId(name: String) = "${CUSTOM_PRESET_PREFIX}_$name"
+
 @Suppress("UnstableApiUsage")
 private fun runSpawnChunk(
   context: ClientGameTestContext,
   presetId: String?,
-): Map<String, Pair<Int, Int>> {
+  scenarioName: String,
+  trace: String,
+  screenshotLabel: String? = null,
+): Map<String, ColumnStats> {
   val originalPresetId = PresetRegistry.forcePresetId
   PresetRegistry.forcePresetId = presetId
   val game =
@@ -48,14 +82,32 @@ private fun runSpawnChunk(
   try {
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
-        server.playerList.players[0].teleportTo(8.0, 400.0, 8.0)
+        server.playerList.players[0].teleportTo(8.0, 85.0, -16.0)
+      }
+    )
+    context.runOnClient(
+      FailableConsumer<Minecraft, Exception> { client ->
+        client.player?.let { player ->
+          player.xRot = 20f
+          player.yRot = 180f
+          player.abilities.mayfly = true
+          player.abilities.flying = true
+          player.onUpdateAbilities()
+        }
       }
     )
 
     context.waitTicks(20)
     game.clientWorld.waitForChunksRender()
 
-    val columns = LinkedHashMap<String, Pair<Int, Int>>()
+    if (screenshotLabel != null) {
+      context.takeScreenshot(
+        TestScreenshotOptions.of(screenshotLabel)
+          .withDestinationDir(SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest"))
+      )
+    }
+
+    val columns = LinkedHashMap<String, ColumnStats>()
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
         val level = server.overworld()
@@ -63,14 +115,35 @@ private fun runSpawnChunk(
           for (bz in 0 until 16) {
             val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
             val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
-            columns["$bx,$bz"] = oceanFloor to worldSurface
+            val groundY = (worldSurface - 1).coerceAtLeast(level.minBuildHeight)
+            val groundBlock =
+              BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(bx, groundY, bz)).block)
+                ?.toString() ?: "unknown"
+            val coverBlock =
+              BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(bx, worldSurface, bz)).block)
+                ?.toString() ?: "unknown"
+            val biome =
+              level
+                .getBiome(BlockPos(bx, worldSurface, bz))
+                .unwrapKey()
+                .map { it.location().toString() }
+                .orElse("unknown")
+            columns["$bx,$bz"] = ColumnStats(oceanFloor, worldSurface, groundBlock, coverBlock, biome)
           }
         }
+
+        val surfaces = columns.values.map { it.worldSurface }
+        val groundCounts = countBlocks(columns) { it.groundBlock }
+        val biomeCounts = countBlocks(columns) { it.biome }
         LOGGER.info(
-          "[SpawnChunkTest] preset={} sampled {} columns — surfaces: {}",
+          "[NoiseNarrative][{}] preset={} trace=[{}] surface={}-{} ground=[{}] biomes=[{}]",
+          scenarioName,
           presetId,
-          columns.size,
-          columns.values.map { it.second }.distinct().sorted().takeLast(5),
+          trace,
+          surfaces.min(),
+          surfaces.max(),
+          formatCounts(groundCounts, 4),
+          formatCounts(biomeCounts, 3),
         )
       }
     )
@@ -82,103 +155,165 @@ private fun runSpawnChunk(
   }
 }
 
-private fun countDifferences(
-  baseline: Map<String, Pair<Int, Int>>,
-  candidate: Map<String, Pair<Int, Int>>,
-): Int {
-  var diffCount = 0
-  for ((key, value) in candidate) {
-    if (baseline[key] != value) diffCount++
+private fun compareDiffs(
+  baseline: Map<String, ColumnStats>,
+  candidate: Map<String, ColumnStats>,
+): DiffSummary {
+  var heightDiffs = 0
+  var groundBlockDiffs = 0
+  var coverBlockDiffs = 0
+  var biomeDiffs = 0
+  for ((key, c) in candidate) {
+    val b = baseline[key] ?: continue
+    if (b.oceanFloor != c.oceanFloor || b.worldSurface != c.worldSurface) heightDiffs++
+    if (b.groundBlock != c.groundBlock) groundBlockDiffs++
+    if (b.coverBlock != c.coverBlock) coverBlockDiffs++
+    if (b.biome != c.biome) biomeDiffs++
   }
-  return diffCount
+  return DiffSummary(heightDiffs, groundBlockDiffs, coverBlockDiffs, biomeDiffs, candidate.size)
 }
 
-// Single-scenario, single spawn-chunk test for rapid noise-constraint troubleshooting.
-// Uses a simple root preset so the entire overworld is one constrained region.
-// depth*3 is extreme enough to produce an unmissable height shift if the pipeline works.
+private fun logColumnDiffs(
+  baseline: Map<String, ColumnStats>,
+  candidate: Map<String, ColumnStats>,
+  scenarioName: String,
+) {
+  var logged = 0
+  for ((key, c) in candidate) {
+    val b = baseline[key] ?: continue
+    if (b != c) {
+      if (logged < 6) {
+        LOGGER.info(
+          "[NoiseNarrative][{}] column {} surface {}→{} ground {}→{} cover {}→{} biome {}→{}",
+          scenarioName,
+          key,
+          b.worldSurface,
+          c.worldSurface,
+          b.groundBlock.substringAfterLast(':'),
+          c.groundBlock.substringAfterLast(':'),
+          b.coverBlock.substringAfterLast(':'),
+          c.coverBlock.substringAfterLast(':'),
+          b.biome.substringAfterLast('/'),
+          c.biome.substringAfterLast('/'),
+        )
+      }
+      logged++
+    }
+  }
+  if (logged == 0) {
+    LOGGER.warn(
+      "[NoiseNarrative][{}] NO columns changed — check [NC-*] log lines; constraint pipeline may not be firing",
+      scenarioName,
+    )
+  } else if (logged > 6) {
+    LOGGER.info("[NoiseNarrative][{}] … {} more columns changed (not shown)", scenarioName, logged - 6)
+  }
+}
+
+private fun countBlocks(
+  columns: Map<String, ColumnStats>,
+  selector: (ColumnStats) -> String,
+): Map<String, Int> = columns.values.groupingBy(selector).eachCount()
+
+private fun formatCounts(counts: Map<String, Int>, limit: Int): String =
+  counts.entries
+    .sortedByDescending { it.value }
+    .take(limit)
+    .joinToString { "${it.key.substringAfterLast(':')}×${it.value}" }
+
 @Suppress("UnstableApiUsage")
 object TerrasectFabricClientGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
 
-    val presetId = "${CUSTOM_PRESET_PREFIX}_depth_extreme"
-    registerSimpleRootPreset(presetId) {
-      region("overworld_root").noise { densityFunction("depth") { it.multiply(3.0) } }
-    }
+    val scenarios =
+      listOf(
+        Scenario(
+          name = "desert",
+          trace = "continents remap(-1..1→0.1..0.7) + depth×3 → forced inland land",
+        ) {
+          region("overworld_root").noise {
+            densityFunction("continents") { it.remap(-1.0, 1.0, 0.1, 0.7) }
+            densityFunction("depth") { it.multiply(3.0) }
+          }
+        },
+        Scenario(
+          name = "ocean",
+          trace = "continents remap(-1..1→-1.05..-0.455) + depth×2 → forced deep ocean",
+        ) {
+          region("overworld_root").noise {
+            densityFunction("continents") { it.remap(-1.0, 1.0, -1.05, -0.455) }
+            densityFunction("depth") { it.multiply(2.0) }
+          }
+        },
+      )
 
+    val registeredPresetIds = mutableListOf<String>()
     try {
-      val vanillaColumns = runSpawnChunk(context, DISABLED_PRESET)
-      val constrainedColumns = runSpawnChunk(context, presetId)
-      val diffCount = countDifferences(vanillaColumns, constrainedColumns)
+      val vanilla =
+        runSpawnChunk(context, DISABLED_PRESET, "vanilla", "baseline — no constraints", "vanilla")
 
-      LOGGER.info(
-        "[NoiseNarrative] depth_extreme: {} of {} spawn-chunk columns changed",
-        diffCount,
-        vanillaColumns.size,
-      )
-      LOGGER.info(
-        "[NoiseNarrative] vanilla surface range: {}–{}",
-        vanillaColumns.values.map { it.second }.min(),
-        vanillaColumns.values.map { it.second }.max(),
-      )
-      LOGGER.info(
-        "[NoiseNarrative] constrained surface range: {}–{}",
-        constrainedColumns.values.map { it.second }.min(),
-        constrainedColumns.values.map { it.second }.max(),
-      )
+      for (scenario in scenarios) {
+        val presetId = scenarioPresetId(scenario.name)
+        registeredPresetIds.add(presetId)
+        registerSimpleRootPreset(presetId, scenario.configure)
 
-      assertTrue(
-        diffCount > 0,
-        "TerrasectFabricClientGameTest: depth*3 must change spawn-chunk terrain " +
-          "(got 0 diffs / ${vanillaColumns.size} columns). " +
-          "Check [NC-*] log lines for which pipeline stage returned null.",
-      )
+        val candidate =
+          runSpawnChunk(context, presetId, scenario.name, scenario.trace, scenario.name)
+        val diff = compareDiffs(vanilla, candidate)
+        val groundCounts = countBlocks(candidate) { it.groundBlock }
+        val coverCounts = countBlocks(candidate) { it.coverBlock }
+
+        LOGGER.info(
+          "[NoiseNarrative][{}] diffs: height={} ground={} cover={} biome={} / {} columns",
+          scenario.name,
+          diff.heightDiffs,
+          diff.groundBlockDiffs,
+          diff.coverBlockDiffs,
+          diff.biomeDiffs,
+          diff.total,
+        )
+        logColumnDiffs(vanilla, candidate, scenario.name)
+
+        val anyChange =
+          diff.heightDiffs > 0 || diff.groundBlockDiffs > 0 || diff.coverBlockDiffs > 0 || diff.biomeDiffs > 0
+        assertTrue(
+          anyChange,
+          "[${scenario.name}] spawn-chunk terrain did not change vs vanilla " +
+            "(height=${diff.heightDiffs} ground=${diff.groundBlockDiffs} cover=${diff.coverBlockDiffs} " +
+            "biome=${diff.biomeDiffs} / ${diff.total} columns). Check [NC-*] log lines — constraint pipeline may not be firing.",
+        )
+
+        when (scenario.name) {
+          "desert" -> {
+            val sandGroundColumns = candidate.values.count { "sand" in it.groundBlock }
+            val waterColumns = candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
+            assertTrue(
+              sandGroundColumns > candidate.size / 2,
+              "[desert] expected sand-dominant ground but only $sandGroundColumns/${candidate.size} columns were sand. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)}",
+            )
+            assertTrue(
+              waterColumns == 0,
+              "[desert] expected dry terrain but found $waterColumns water-bearing columns. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)}",
+            )
+          }
+          "ocean" -> {
+            val waterColumns = candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
+            assertTrue(
+              waterColumns > candidate.size / 2,
+              "[ocean] expected water-dominant terrain but only $waterColumns/${candidate.size} columns were water-bearing. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)}",
+            )
+          }
+        }
+      }
     } finally {
-      PresetRegistry.presets.remove(presetId)
-    }
-  }
-}
-
-// Separate object so it can be run in isolation via GameTestFilter.
-@Suppress("UnstableApiUsage")
-object SpawnChunkNoiseConstraintTest : FabricClientGameTest {
-  override fun runTest(context: ClientGameTestContext) {
-    if (!GameTestFilter.shouldRun(this::class)) return
-
-    val presetId = "spawn_chunk_noise_constraint_test"
-    registerSimpleRootPreset(presetId) {
-      region("overworld_root").noise { densityFunction("depth") { it.multiply(3.0) } }
-    }
-
-    try {
-      val vanillaColumns = runSpawnChunk(context, DISABLED_PRESET)
-      val constrainedColumns = runSpawnChunk(context, presetId)
-
-      val diffCount = countDifferences(vanillaColumns, constrainedColumns)
-      LOGGER.info(
-        "[SpawnChunkTest] depth*3 scenario: {} of {} spawn-chunk columns changed",
-        diffCount,
-        vanillaColumns.size,
-      )
-      LOGGER.info(
-        "[SpawnChunkTest] vanilla surface range: {}–{}",
-        vanillaColumns.values.map { it.second }.min(),
-        vanillaColumns.values.map { it.second }.max(),
-      )
-      LOGGER.info(
-        "[SpawnChunkTest] constrained surface range: {}–{}",
-        constrainedColumns.values.map { it.second }.min(),
-        constrainedColumns.values.map { it.second }.max(),
-      )
-
-      assertTrue(
-        diffCount > 0,
-        "SpawnChunkNoiseConstraintTest: depth*3 constraint must change spawn-chunk terrain " +
-          "(got 0 diffs out of ${vanillaColumns.size} columns). " +
-          "Check [NC-*] log lines for which pipeline stage returned null.",
-      )
-    } finally {
-      PresetRegistry.presets.remove(presetId)
+      PresetRegistry.forcePresetId = null
+      for (presetId in registeredPresetIds) {
+        PresetRegistry.presets.remove(presetId)
+      }
     }
   }
 }

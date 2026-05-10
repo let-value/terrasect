@@ -33,10 +33,6 @@
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.SpawnChunkNoiseConstraintTest",
-        "adapter": "kotlin"
-      },
-      {
         "value": "terrasect.VanillaWorldDigestTest",
         "adapter": "kotlin"
       },
