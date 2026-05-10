@@ -8,12 +8,15 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.structure.StructureSet
+import org.slf4j.LoggerFactory
 import terrasect.Terrasect
 import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.Region
 import terrasect.lookup.CompiledNoiseRegistry
+
+private val LOGGER = LoggerFactory.getLogger("Terrasect/DimensionContext")
 
 class DimensionContext(
   val presetId: String?,
@@ -29,6 +32,15 @@ class DimensionContext(
 
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
 
+  init {
+    LOGGER.info(
+      "[NC-DimensionContext] built preset={} dim={} noiseRegistry={}",
+      presetId,
+      dimensionId,
+      if (noiseRegistry != null) "ACTIVE" else "NULL (no noise constraints)",
+    )
+  }
+
   companion object {
     val map = ConcurrentHashMap<String, DimensionContext>()
 
@@ -43,13 +55,35 @@ class DimensionContext(
       biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
-      val registry = PresetRegistry.resolve(presetId) ?: return
-      val name = registry.getRoot(dimensionId) ?: return
-      val root = registry.buildTree(name)
+      LOGGER.info(
+        "[NC-DimensionContext] register called: preset={} force={} dim={}",
+        presetId,
+        PresetRegistry.forcePresetId,
+        dimensionId,
+      )
+      val resolvedRegistry = PresetRegistry.resolve(presetId)
+      if (resolvedRegistry == null) {
+        LOGGER.warn(
+          "[NC-DimensionContext] no preset resolved — noise constraints disabled for {}",
+          dimensionId,
+        )
+        return
+      }
+      val name = resolvedRegistry.getRoot(dimensionId)
+      if (name == null) {
+        LOGGER.warn(
+          "[NC-DimensionContext] no root region for dim={} in preset={}",
+          dimensionId,
+          presetId,
+        )
+        return
+      }
+      val root = resolvedRegistry.buildTree(name)
 
       val dimensionContext =
         DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
       map[dimensionId] = dimensionContext
+      LOGGER.info("[NC-DimensionContext] registered dim={}", dimensionId)
     }
 
     fun get(dimensionId: String): DimensionContext? = map[dimensionId]

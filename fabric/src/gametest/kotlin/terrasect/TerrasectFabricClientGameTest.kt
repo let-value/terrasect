@@ -20,7 +20,10 @@ private val LOGGER = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
 private const val DISABLED_PRESET = "__disabled__"
 private const val SEED = "noise-narrative"
 private const val CUSTOM_PRESET_PREFIX = "noise_narrative_client_test"
+// Full four-location probe set (multi-scenario test)
 private val PROBE_LOCATIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
+// Single spawn-chunk probe for rapid troubleshooting
+private val SPAWN_CHUNK_PROBE = listOf(0 to 0)
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
@@ -90,7 +93,10 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
           screenshotPaths.add(screenshotsDir.resolve("aerial_${x}_${z}.png").toString())
         }
       }
-      assertTrue(requiredScenarioPassed, "no worldgen-affecting noise-narrative case changed terrain")
+      assertTrue(
+        requiredScenarioPassed,
+        "no worldgen-affecting noise-narrative case changed terrain",
+      )
     } finally {
       PresetRegistry.forcePresetId = null
       for (presetId in registeredPresetIds) {
@@ -144,7 +150,9 @@ private fun runWorld(
     context.waitTicks(10)
 
     context.runOnClient(
-      FailableConsumer<Minecraft, Exception> { client -> client.player?.let { configureAerialCamera(it) } }
+      FailableConsumer<Minecraft, Exception> { client ->
+        client.player?.let { configureAerialCamera(it) }
+      }
     )
 
     game.clientWorld.waitForChunksRender()
@@ -164,7 +172,9 @@ private fun runWorld(
       if (screenshotsDir != null) {
         screenshotsDir.toFile().mkdirs()
         context.runOnClient(
-          FailableConsumer<Minecraft, Exception> { client -> client.player?.let { configureAerialCamera(it) } }
+          FailableConsumer<Minecraft, Exception> { client ->
+            client.player?.let { configureAerialCamera(it) }
+          }
         )
         context.takeScreenshot(
           TestScreenshotOptions.of("aerial_${x}_${z}").withDestinationDir(screenshotsDir)
@@ -212,4 +222,120 @@ private fun countDifferences(
     }
   }
   return diffCount
+}
+
+// Registers a flat single-region preset: every overworld block belongs to the root region,
+// so constraints are applied at full strength everywhere.  Used for spawn-chunk isolation.
+private fun registerSimpleRootPreset(id: String, configure: RegionRegistry.() -> Unit) {
+  PresetRegistry.presets[id] =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld_root")
+      region("overworld_root")
+      apply(configure)
+    }
+}
+
+private fun runSpawnChunk(
+  context: ClientGameTestContext,
+  presetId: String?,
+): Map<String, Pair<Int, Int>> {
+  val originalPresetId = PresetRegistry.forcePresetId
+  PresetRegistry.forcePresetId = presetId
+  val game =
+    context
+      .worldBuilder()
+      .setUseConsistentSettings(false)
+      .adjustSettings { settings ->
+        settings.seed = SEED
+        settings.gameMode = WorldCreationUiState.SelectedGameMode.CREATIVE
+      }
+      .create()
+
+  try {
+    game.server.runOnServer(
+      FailableConsumer<MinecraftServer, Exception> { server ->
+        server.playerList.players[0].teleportTo(8.0, 400.0, 8.0)
+      }
+    )
+
+    context.waitTicks(20)
+    game.clientWorld.waitForChunksRender()
+
+    val columns = LinkedHashMap<String, Pair<Int, Int>>()
+    game.server.runOnServer(
+      FailableConsumer<MinecraftServer, Exception> { server ->
+        val level = server.overworld()
+        for (bx in 0 until 16) {
+          for (bz in 0 until 16) {
+            val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
+            val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
+            columns["$bx,$bz"] = oceanFloor to worldSurface
+          }
+        }
+        LOGGER.info(
+          "[SpawnChunkTest] preset={} sampled {} columns — surfaces: {}",
+          presetId,
+          columns.size,
+          columns.values.map { it.second }.distinct().sorted().takeLast(5),
+        )
+      }
+    )
+
+    return columns
+  } finally {
+    game.close()
+    PresetRegistry.forcePresetId = originalPresetId
+  }
+}
+
+/**
+ * Focused single-chunk test that applies an extreme depth transform to every overworld block via a
+ * root-level region (no children → all positions get the constraint at full strength). This is the
+ * fastest path for verifying the full noise-constraint pipeline: registry build → wrap → modify.
+ */
+@Suppress("UnstableApiUsage")
+object SpawnChunkNoiseConstraintTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+
+    val presetId = "spawn_chunk_noise_constraint_test"
+    registerSimpleRootPreset(presetId) {
+      // depth * 3 → terrain pushed dramatically higher/lower; should be impossible to miss
+      region("overworld_root").noise { densityFunction("depth") { it.multiply(3.0) } }
+    }
+
+    try {
+      val vanillaColumns = runSpawnChunk(context, DISABLED_PRESET)
+      val constrainedColumns = runSpawnChunk(context, presetId)
+
+      val diffCount = countDifferences(vanillaColumns, constrainedColumns)
+      LOGGER.info(
+        "[SpawnChunkTest] depth*3 scenario: {} of {} spawn-chunk columns changed",
+        diffCount,
+        vanillaColumns.size,
+      )
+
+      val vanillaSurfaces = vanillaColumns.values.map { it.second }
+      val constrainedSurfaces = constrainedColumns.values.map { it.second }
+      LOGGER.info(
+        "[SpawnChunkTest] vanilla surface range: {}–{}",
+        vanillaSurfaces.min(),
+        vanillaSurfaces.max(),
+      )
+      LOGGER.info(
+        "[SpawnChunkTest] constrained surface range: {}–{}",
+        constrainedSurfaces.min(),
+        constrainedSurfaces.max(),
+      )
+
+      assertTrue(
+        diffCount > 0,
+        "SpawnChunkNoiseConstraintTest: depth*3 constraint must change spawn-chunk terrain " +
+          "(got 0 diffs out of ${vanillaColumns.size} columns). " +
+          "Check [NC-*] log lines for which pipeline stage returned null.",
+      )
+    } finally {
+      PresetRegistry.presets.remove(presetId)
+    }
+  }
 }
