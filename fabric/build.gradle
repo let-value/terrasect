@@ -119,8 +119,10 @@ publishing {
 createUnpackMinecraftTask(minecraft_version)
 
 tasks.configureEach {
-    if (name == 'runClientGameTest' && it instanceof JavaExec) {
-        it.systemProperty('fabric.client.gametest.disableNetworkSynchronizer', 'true')
+    if (name in ['runGameTest', 'runClientGameTest'] && it instanceof JavaExec) {
+        if (name == 'runClientGameTest') {
+            it.systemProperty('fabric.client.gametest.disableNetworkSynchronizer', 'true')
+        }
 
         def args = project.gradle.startParameter.projectProperties
         if (args.containsKey('test')) {
@@ -130,4 +132,8 @@ tasks.configureEach {
             it.systemProperty('updateSnapshots', 'true')
         }
     }
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('runClientGameTest')
 }
