@@ -153,7 +153,7 @@ private fun runWorld(
     for ((x, z) in PROBE_LOCATIONS) {
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
-          server.playerList.players[0].teleportTo(x + 8.0, 200.0, z + 8.0)
+          server.playerList.players[0].teleportTo(x + 8.0, 120.0, z + 8.0)
         }
       )
 
