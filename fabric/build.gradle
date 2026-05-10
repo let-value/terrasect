@@ -118,10 +118,29 @@ publishing {
 
 createUnpackMinecraftTask(minecraft_version)
 
+def xvfbProcess = null
+
 tasks.configureEach {
     if (name in ['runGameTest', 'runClientGameTest'] && it instanceof JavaExec) {
         if (name == 'runClientGameTest') {
             it.systemProperty('fabric.client.gametest.disableNetworkSynchronizer', 'true')
+
+            def task = it
+            doFirst {
+                def existingDisplay = System.getenv('DISPLAY')
+                if (!existingDisplay) {
+                    def displayNum = (99..199).find { n -> !new File("/tmp/.X${n}-lock").exists() } ?: 99
+                    logger.lifecycle("[Xvfb] No DISPLAY detected; starting Xvfb :${displayNum}")
+                    xvfbProcess = new ProcessBuilder('Xvfb', ":${displayNum}", '-screen', '0', '1280x1024x24')
+                            .redirectErrorStream(true)
+                            .start()
+                    Thread.sleep(800)
+                    task.environment('DISPLAY', ":${displayNum}")
+                    logger.lifecycle("[Xvfb] DISPLAY set to :${displayNum}")
+                } else {
+                    logger.lifecycle("[Xvfb] Using existing DISPLAY=${existingDisplay}")
+                }
+            }
         }
 
         def args = project.gradle.startParameter.projectProperties
@@ -131,6 +150,16 @@ tasks.configureEach {
         if (args.containsKey('updateSnapshots')) {
             it.systemProperty('updateSnapshots', 'true')
         }
+    }
+}
+
+gradle.buildFinished {
+    if (xvfbProcess != null) {
+        logger.lifecycle("[Xvfb] Tearing down Xvfb...")
+        xvfbProcess.destroy()
+        xvfbProcess.waitFor()
+        xvfbProcess = null
+        logger.lifecycle("[Xvfb] Xvfb stopped.")
     }
 }
 
