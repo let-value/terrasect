@@ -18,12 +18,30 @@ private const val TRACE_BLOCK_Z = 0
 object ClimateHandler {
   private val nullRegionCount = AtomicInteger()
   private val nullConstraintsCount = AtomicInteger()
+  private val samplerSkipCount = AtomicInteger()
   private val appliedCount = AtomicInteger()
 
   fun resetOriginTrace() {
     nullRegionCount.set(0)
     nullConstraintsCount.set(0)
+    samplerSkipCount.set(0)
     appliedCount.set(0)
+  }
+
+  @JvmStatic
+  fun traceSamplerSkip(quadX: Int, quadY: Int, quadZ: Int, reason: String) {
+    if (!isTraceOrigin(quadX shl 2, quadZ shl 2)) return
+    val count = samplerSkipCount.incrementAndGet()
+    if (count <= 3) {
+      LOGGER.info(
+        "[NC-OriginClimate] sampler skipped #{} quad=({}, {}, {}) reason={}",
+        count,
+        quadX,
+        quadY,
+        quadZ,
+        reason,
+      )
+    }
   }
 
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
@@ -51,47 +69,31 @@ object ClimateHandler {
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
-    val traceOrigin = blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z
+    val traceOrigin = isTraceOrigin(blockX, blockZ)
+
     val region = chunk.regions?.get(blockX, blockZ)
     if (region == null) {
-      if (traceOrigin) {
-        val count = nullRegionCount.incrementAndGet()
-        if (count <= 3) {
-          LOGGER.info(
-            "[NC-OriginClimate] sample #{} block=({}, {}) quad=({}, {}, {}) region=NULL",
-            count,
-            blockX,
-            blockZ,
-            quadX,
-            quadY,
-            quadZ,
-          )
-        }
-      }
+      traceSkip(traceOrigin, nullRegionCount, blockX, blockZ, quadX, quadY, quadZ, "region=NULL")
       return
     }
+
     val constraints = region.climate
     if (constraints == null) {
-      if (traceOrigin) {
-        val count = nullConstraintsCount.incrementAndGet()
-        if (count <= 3) {
-          LOGGER.info(
-            "[NC-OriginClimate] sample #{} block=({}, {}) quad=({}, {}, {}) region={} climateConstraints=NULL",
-            count,
-            blockX,
-            blockZ,
-            quadX,
-            quadY,
-            quadZ,
-            region.name,
-          )
-        }
-      }
+      traceSkip(
+        traceOrigin,
+        nullConstraintsCount,
+        blockX,
+        blockZ,
+        quadX,
+        quadY,
+        quadZ,
+        "region=${region.name} climateConstraints=NULL",
+      )
       return
     }
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender
-    val details = StringBuilder()
+    val details = if (traceOrigin) StringBuilder() else null
     var changed = false
 
     constraints.temperature?.let { range ->
@@ -106,8 +108,7 @@ object ClimateHandler {
     }
     constraints.continentalness?.let { range ->
       val value = climate.continentalness.coerceIn(range.min, range.max)
-      changed =
-        appendAxis(details, "continentalness", climate.continentalness, value, range) || changed
+      changed = appendAxis(details, "continentalness", climate.continentalness, value, range) || changed
       extender.`terrasect$setContinentalness`(value)
     }
     constraints.erosion?.let { range ->
@@ -145,24 +146,47 @@ object ClimateHandler {
     }
   }
 
+  private fun traceSkip(
+    enabled: Boolean,
+    counter: AtomicInteger,
+    blockX: Int,
+    blockZ: Int,
+    quadX: Int,
+    quadY: Int,
+    quadZ: Int,
+    reason: String,
+  ) {
+    if (!enabled) return
+    val count = counter.incrementAndGet()
+    if (count <= 3) {
+      LOGGER.info(
+        "[NC-OriginClimate] sample #{} block=({}, {}) quad=({}, {}, {}) {}",
+        count,
+        blockX,
+        blockZ,
+        quadX,
+        quadY,
+        quadZ,
+        reason,
+      )
+    }
+  }
+
   private fun appendAxis(
-    details: StringBuilder,
+    details: StringBuilder?,
     name: String,
     original: Long,
     value: Long,
     range: ClimateRange,
   ): Boolean {
-    if (details.isNotEmpty()) details.append(", ")
-    details
-      .append(name)
-      .append('=')
-      .append(original)
-      .append("→")
-      .append(value)
-      .append(" in ")
-      .append(range.min)
-      .append("..")
-      .append(range.max)
+    if (details != null) {
+      if (details.isNotEmpty()) details.append(", ")
+      details.append(name).append('=').append(original).append("→").append(value)
+        .append(" in ").append(range.min).append("..").append(range.max)
+    }
     return original != value
   }
+
+  private fun isTraceOrigin(blockX: Int, blockZ: Int): Boolean =
+    blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z
 }

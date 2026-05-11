@@ -319,6 +319,45 @@ Result: **PASS**. Full `./gradlew --no-daemon spotlessCheck` is still noisy beca
 
 ---
 
+### PR review cleanup pass
+
+Addressed follow-up PR review comments from PR #50:
+
+- Moved mixin diagnostics out of Java-side mixins into Kotlin handlers (`NoiseHandler` / `ClimateHandler`) so Java injection code stays minimal.
+- Simplified router wrapping call sites so handlers accept nullable chunk context and own the skip/wrap logging.
+- Simplified climate transform tracing to avoid building detailed strings unless the origin trace is actually enabled.
+- Kept density holder key capture/propagation only in the holder mixin; scoped density chunk context is now mediated by `NoiseHandler.withDensityChunk(...)` around `ChunkDensityFunction` compute/fill instead of Java mixins owning lifecycle/logging.
+- Updated the screenshot camera teleport to y=160 for a wider aerial frame.
+
+Verification:
+
+```
+./gradlew --no-daemon :common:compileJava :common:compileKotlin :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 13s`).
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest | tee /tmp/terrasect-pr50-review-fixes-3.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 1m 24s`). Key evidence:
+
+```
+[NoiseNarrative][desert] surface=67-80 ground=[sand×247, short_dry_grass×4, tall_dry_grass×4, cactus×1] biomes=[desert×256]
+[NoiseNarrative][desert] diffs: height=256 ground=256 cover=0 biome=256 / 256 columns
+[NoiseNarrative][ocean] surface=63-67 ground=[water×225, grass_block×31] biomes=[deep_ocean×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=232 cover=0 biome=256 / 256 columns
+```
+
+Fresh screenshots after the review cleanup pass:
+
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png`
+
+---
+
 ## Provenance
 
 - Branch: `noise-narrative-constraints`

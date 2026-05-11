@@ -2,8 +2,6 @@ package terrasect.mixin.noise;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.levelgen.DensityFunction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,13 +15,6 @@ import terrasect.handler.NoiseHandler;
 @Mixin(targets = "net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder")
 public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender {
 
-  @Unique
-  private static final Logger TERRASECT_LOGGER =
-      LoggerFactory.getLogger("Terrasect/DensityFunctionHolderMixin");
-
-  @Unique private static int terrasect$keyCaptureLogCount;
-  @Unique private static int terrasect$missingChunkLogCount;
-
   @Unique private String terrasect$key;
 
   @Inject(method = "<init>", at = @At("RETURN"))
@@ -33,27 +24,17 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
         .ifPresent(
             key -> {
               this.terrasect$key = key.identifier().getPath();
-              if (terrasect$keyCaptureLogCount < 24) {
-                terrasect$keyCaptureLogCount++;
-                TERRASECT_LOGGER.info(
-                    "[NC-HolderKey] captured density holder key={}", this.terrasect$key);
-              }
+              NoiseHandler.logCapturedDensityKey(this.terrasect$key);
             });
   }
 
   @Inject(method = "compute", at = @At("RETURN"), cancellable = true)
   private void terrasect$modifyKeyedValue(
       DensityFunction.FunctionContext context, CallbackInfoReturnable<Double> cir) {
-    if (this.terrasect$key == null) {
-      return;
-    }
-    var chunk = NoiseHandler.currentChunk.get();
-    if (chunk == null) {
-      if (terrasect$missingChunkLogCount < 24) {
-        terrasect$missingChunkLogCount++;
-        TERRASECT_LOGGER.info(
-            "[NC-HolderKey] skipped keyed value key={} because chunk context is missing",
-            this.terrasect$key);
+    var chunk = NoiseHandler.currentDensityChunk();
+    if (this.terrasect$key == null || chunk == null) {
+      if (this.terrasect$key != null) {
+        NoiseHandler.logMissingDensityChunk(this.terrasect$key);
       }
       return;
     }
@@ -73,16 +54,10 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
   @Inject(method = "fillArray", at = @At("RETURN"))
   private void terrasect$modifyKeyedArray(
       double[] values, DensityFunction.ContextProvider contextProvider, CallbackInfo ci) {
-    if (this.terrasect$key == null) {
-      return;
-    }
-    var chunk = NoiseHandler.currentChunk.get();
-    if (chunk == null) {
-      if (terrasect$missingChunkLogCount < 24) {
-        terrasect$missingChunkLogCount++;
-        TERRASECT_LOGGER.info(
-            "[NC-HolderKey] skipped keyed value key={} because chunk context is missing",
-            this.terrasect$key);
+    var chunk = NoiseHandler.currentDensityChunk();
+    if (this.terrasect$key == null || chunk == null) {
+      if (this.terrasect$key != null) {
+        NoiseHandler.logMissingDensityChunk(this.terrasect$key);
       }
       return;
     }

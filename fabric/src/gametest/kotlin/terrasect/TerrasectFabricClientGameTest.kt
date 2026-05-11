@@ -90,7 +90,7 @@ private fun runSpawnChunk(
   try {
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
-        server.playerList.players[0].teleportTo(8.0, 140.0, -16.0)
+        server.playerList.players[0].teleportTo(8.0, 160.0, -16.0)
       }
     )
     context.runOnClient(
