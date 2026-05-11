@@ -12,19 +12,57 @@ class ChunkDensityFunction(
   val scale: Int = 1,
 ) : DensityFunction {
   override fun compute(context: DensityFunction.FunctionContext): Double {
-    val original = wrapped.compute(context)
+    val previous = NoiseHandler.currentChunk.get()
+    NoiseHandler.currentChunk.set(chunk)
+    val original =
+      try {
+        wrapped.compute(context)
+      } finally {
+        if (previous == null) {
+          NoiseHandler.currentChunk.remove()
+        } else {
+          NoiseHandler.currentChunk.set(previous)
+        }
+      }
 
     return NoiseHandler.modifyDensityValue(
       key,
       original,
       context.blockX() * scale,
+      context.blockY(),
       context.blockZ() * scale,
       chunk,
     ) ?: original
   }
 
   override fun fillArray(array: DoubleArray, context: DensityFunction.ContextProvider) {
-    return context.fillAllDirectly(array, this)
+    val previous = NoiseHandler.currentChunk.get()
+    NoiseHandler.currentChunk.set(chunk)
+    try {
+      wrapped.fillArray(array, context)
+    } finally {
+      if (previous == null) {
+        NoiseHandler.currentChunk.remove()
+      } else {
+        NoiseHandler.currentChunk.set(previous)
+      }
+    }
+
+    for (index in array.indices) {
+      val sample = context.forIndex(index)
+      val transformed =
+        NoiseHandler.modifyDensityValue(
+          key,
+          array[index],
+          sample.blockX() * scale,
+          sample.blockY(),
+          sample.blockZ() * scale,
+          chunk,
+        )
+      if (transformed != null) {
+        array[index] = transformed
+      }
+    }
   }
 
   override fun mapAll(visitor: DensityFunction.Visitor): DensityFunction {

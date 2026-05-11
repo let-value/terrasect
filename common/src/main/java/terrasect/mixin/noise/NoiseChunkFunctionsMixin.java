@@ -2,11 +2,14 @@ package terrasect.mixin.noise;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.world.level.levelgen.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.extender.NoiseChunkExtender;
 import terrasect.generation.ChunkContext;
 import terrasect.handler.NoiseHandler;
@@ -15,6 +18,15 @@ import terrasect.handler.NoiseHandler;
 public class NoiseChunkFunctionsMixin {
   private static final Logger LOGGER =
       LoggerFactory.getLogger("Terrasect/NoiseChunkFunctionsMixin");
+  private static final AtomicInteger WRAP_LOGS = new AtomicInteger();
+
+  @Inject(method = "wrap", at = @At("HEAD"), cancellable = true)
+  private void terrasect$keepKeyedHolders(
+      DensityFunction densityFunction, CallbackInfoReturnable<DensityFunction> cir) {
+    if (densityFunction instanceof DensityFunctions.HolderHolder) {
+      cir.setReturnValue(densityFunction);
+    }
+  }
 
   @WrapOperation(
       method = "<init>",
@@ -41,8 +53,12 @@ public class NoiseChunkFunctionsMixin {
       return result;
     }
 
-    LOGGER.info(
-        "[NC-Mixin] NoiseChunkFunctionsMixin wrapping router — constraints will be applied");
+    var count = WRAP_LOGS.incrementAndGet();
+    if (count <= 8 || count % 500 == 0) {
+      LOGGER.info(
+          "[NC-Mixin] NoiseChunkFunctionsMixin wrapping router #{} — constraints will be applied",
+          count);
+    }
     return NoiseHandler.wrapNoiseRouter(result, context);
   }
 }
