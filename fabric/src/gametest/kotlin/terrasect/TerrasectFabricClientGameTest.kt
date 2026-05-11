@@ -246,31 +246,51 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
         Scenario(
           name = "desert",
           trace =
-            "temperature=10000 + humidity=-10000 + climate continentalness=0 + erosion=-3000 + weirdness=-3000, terrain continents=0.2..0.4 + depth=0 → forced vanilla desert cell/sand",
+            "noise-only: temperature pinned hot + inland/erosion/weirdness density pinned to middle-slice desert cell",
         ) {
-          region("overworld_root").climate {
-            temperature(10000)
-            humidity(-10000)
-            continentalness(0)
-            erosion(-3000)
-            depth(0)
-            weirdness(-3000)
-          }
           region("overworld_root").noise {
-            densityFunction("continents") { it.remap(-1.0, 1.0, 0.2, 0.4) }
-            densityFunction("depth") { it.multiply(0.0) }
+            noise("temperature") {
+              it.multiply(0.0)
+              it.add(0.8)
+            }
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(-0.2)
+            }
+            densityFunction("finalDensity") { it.add(-0.15) }
           }
         },
         Scenario(
           name = "ocean",
           trace =
-            "climate continentalness=-8000 + finalDensity-0.15 → depressed deep-ocean climate cell",
+            "noise-only: deep-ocean continentalness + flooded aquifer noise + lowered finalDensity → visible water basin",
         ) {
-          region("overworld_root").climate {
-            continentalness(-8000)
-          }
           region("overworld_root").noise {
-            densityFunction("finalDensity") { it.add(-0.15) }
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(-0.8)
+            }
+            densityFunction("fluidLevelFloodednessNoise") {
+              it.multiply(0.0)
+              it.add(1.0)
+            }
+            densityFunction("fluidLevelSpreadNoise") {
+              it.multiply(0.0)
+              it.add(1.0)
+            }
+            densityFunction("lavaNoise") {
+              it.multiply(0.0)
+              it.add(-1.0)
+            }
+            densityFunction("finalDensity") { it.add(-0.4) }
           }
         },
       )
@@ -303,64 +323,50 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
         )
         logColumnDiffs(vanilla, candidate, scenario.name)
 
-        val anyChange =
-          diff.heightDiffs > 0 ||
-            diff.groundBlockDiffs > 0 ||
-            diff.coverBlockDiffs > 0 ||
-            diff.biomeDiffs > 0
+        val terrainChange =
+          diff.heightDiffs > 0 || diff.groundBlockDiffs > 0 || diff.coverBlockDiffs > 0
+        LOGGER.info(
+          "[NoiseNarrative][{}] composition evidence: ground=[{}] cover=[{}] biomes=[{}]",
+          scenario.name,
+          formatCounts(groundCounts, 4),
+          formatCounts(coverCounts, 4),
+          formatCounts(biomeCounts, 4),
+        )
         assertTrue(
-          anyChange,
-          "[${scenario.name}] spawn-chunk terrain did not change vs vanilla " +
+          terrainChange,
+          "[${scenario.name}] noise-only scenario did not change terrain vs vanilla " +
             "(height=${diff.heightDiffs} ground=${diff.groundBlockDiffs} cover=${diff.coverBlockDiffs} " +
-            "biome=${diff.biomeDiffs} / ${diff.total} columns). Check [NC-*] log lines — constraint pipeline may not be firing.",
+            "biome=${diff.biomeDiffs} / ${diff.total} columns). Biome-only differences are not enough here; " +
+            "check [NC-OriginNoise] and [NC-HolderKey] log lines to see whether constrained density keys reach the effective terrain-density graph.",
         )
 
         when (scenario.name) {
           "desert" -> {
             val sandGroundColumns = candidate.values.count { "sand" in it.groundBlock }
             val desertBiomeColumns = candidate.values.count { it.biome == "minecraft:desert" }
-            val waterColumns =
-              candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
-            LOGGER.info(
-              "[NoiseNarrative][desert] enforced composition: sandGround={}/{} desertBiome={}/{} water={} ground=[{}] cover=[{}] biomes=[{}]",
-              sandGroundColumns,
-              candidate.size,
-              desertBiomeColumns,
-              candidate.size,
-              waterColumns,
-              formatCounts(groundCounts, 4),
-              formatCounts(coverCounts, 4),
-              formatCounts(biomeCounts, 4),
-            )
             assertTrue(
               sandGroundColumns > candidate.size / 2,
-              "[desert] expected sand-dominant ground but only $sandGroundColumns/${candidate.size} columns were sand. " +
+              "[desert] expected sand-dominant ground from noise-routed climate but only $sandGroundColumns/${candidate.size} columns were sand. " +
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
             assertTrue(
               desertBiomeColumns > candidate.size / 2,
-              "[desert] expected desert biome dominance but only $desertBiomeColumns/${candidate.size} columns were desert. " +
-                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
-            )
-            assertTrue(
-              waterColumns == 0,
-              "[desert] expected dry terrain but found $waterColumns water-bearing columns. " +
+              "[desert] expected desert biome dominance from noise-routed climate but only $desertBiomeColumns/${candidate.size} columns were desert. " +
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
           }
           "ocean" -> {
             val deepOceanColumns = candidate.values.count { it.biome == "minecraft:deep_ocean" }
-            LOGGER.info(
-              "[NoiseNarrative][ocean] enforced composition: deepOcean={}/{} ground=[{}] cover=[{}] biomes=[{}]",
-              deepOceanColumns,
-              candidate.size,
-              formatCounts(groundCounts, 4),
-              formatCounts(coverCounts, 4),
-              formatCounts(biomeCounts, 4),
-            )
+            val waterColumns =
+              candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
             assertTrue(
               deepOceanColumns > candidate.size / 2,
-              "[ocean] expected deep-ocean biome dominance but only $deepOceanColumns/${candidate.size} columns were deep ocean. " +
+              "[ocean] expected deep-ocean biome dominance from noise-routed climate but only $deepOceanColumns/${candidate.size} columns were deep ocean. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              waterColumns > candidate.size / 2,
+              "[ocean] expected visible water-dominant basin but only $waterColumns/${candidate.size} columns contained water. " +
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
           }

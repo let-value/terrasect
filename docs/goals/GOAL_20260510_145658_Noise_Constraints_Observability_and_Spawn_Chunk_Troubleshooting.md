@@ -1,9 +1,9 @@
 # Goal: Noise constraints observability + spawn-chunk troubleshooting
 
 ## Status
-**IN PROGRESS — desert screenshot mismatch diagnosed and camera fixed**
+**COMPLETED — noise-only climate sampler routing and fresh desert/ocean screenshots verified**
 
-The original observability instrumentation and spawn-chunk troubleshooting path are in place. The reported non-desert screenshot was not caused by screenshot mislabeling: live column samples show the `desert` scenario now produces a desert biome and sand-dominant terrain. The old/noisy screenshot was misleading because the capture camera was at y=85 while the sampled desert terrain reaches y=89, putting the camera at/inside terrain and yielding mostly dark pixels. The camera is now raised to y=140 and pitched down to make the generated terrain visible in the actual GameTest screenshots.
+The original observability instrumentation and spawn-chunk troubleshooting path are in place. PR feedback correctly identified that the previous desert/ocean narrative scenarios cheated by setting direct `climate { ... }` constraints. A follow-up attempt to project noise constraints directly onto `ClimateHandler` target axes was also rejected as overreach: it bypassed Minecraft's own noise→climate path. The final working-tree state keeps climate constraints isolated, wraps the native `NoiseChunk.cachedClimateSampler(...)` router so noise constraints reach biome selection, and uses noise-only desert/ocean scenarios with live composition assertions and fresh client screenshots.
 
 ---
 
@@ -138,6 +138,37 @@ at every position, no SDF boundary involved — eliminates distance as a failure
   - `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png`
 - `git status --short` — only the expected worktree files are modified
 
+### PR review fix: no direct climate constraints in noise narrative test
+
+The previous working-tree scenario forced the desired result with direct climate constraints. That was wrong for this test: `NoiseNarrative` must prove pure noise/density routing, not biome selection via the separate climate-constraint hook.
+
+Current fix:
+
+- `TerrasectFabricClientGameTest` no longer uses `region("overworld_root").climate { ... }` for `desert` or `ocean`.
+- The rejected `ClimateHandler` noise→climate projection has been reverted; `ClimateHandler` again applies only explicit `region(...).climate { ... }` constraints.
+- `NoiseNarrative` asserts live terrain/density effects only: height, ground block, or cover block diffs versus vanilla. Biome-only differences are not accepted as proof for this test.
+- `desert` remains noise-only and now includes a direct `finalDensity` perturbation so the test proves the constrained density path reaches terrain generation while logging the still-unchanged biome outcome.
+- `ocean` remains noise-only with `continents=-0.8` plus `finalDensity-0.15`.
+
+Live verification after reverting the projection:
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:compileClientKotlin
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest
+```
+
+Result: compile passed, and the client GameTest passes when terrain effects are asserted. Key evidence:
+
+```
+[NC-OriginClimate] ... region=overworld_root climateConstraints=NULL
+[NoiseNarrative][desert] surface=67-80 ground=[grass_block×219, short_grass×34, bush×2, tall_grass×1] biomes=[plains×256]
+[NoiseNarrative][desert] diffs: height=256 ground=36 cover=0 biome=0 / 256 columns
+[NoiseNarrative][ocean] surface=67-80 ground=[grass_block×219, short_grass×34, bush×2, tall_grass×1] biomes=[plains×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=36 cover=0 biome=0 / 256 columns
+```
+
+Interpretation: density routing is real for keys like `finalDensity`; the terrain height changes in every sampled spawn-chunk column. Biomes stay vanilla plains because there is no longer a climate shortcut, and the current noise hooks still do not prove that the climate sampler is inheriting constrained climate-axis noise such as temperature/continents through Minecraft's native path. The next root-cause target is the climate/noise sampler path, not another `ClimateHandler` projection.
+
 ## Notes
 
 Claude Code hit `error_max_turns` twice while editing, but the worktree changes were
@@ -154,8 +185,9 @@ Source inspection of `OverworldBiomeBuilder`, `NoiseRouterData`, `Noises`, and
   continentalness, erosion, depth, weirdness
 - the scenario was only remapping terrain shape (`continents` + `depth`), which can
   still leave the climate sample outside the desert cell even if the terrain is dry land
-- the updated `desert` scenario now clamps hot/dry/inland climate values and flattens
-  `overworld/depth` so the screenshot should read as a recognizably sandy inland landform
+- the updated `desert` scenario now derives those climate axes from noise constraints
+  instead of direct `climate { ... }` constraints, so the test remains isolated to noise
+  constraints while still producing a recognizably sandy inland landform
 
 ### Follow-up: origin-column ocean diagnostics
 
@@ -213,6 +245,77 @@ A fresh run proved the desert scenario itself is valid:
 ```
 
 The misleading screenshot was a camera/framing problem: the old camera was teleported to y=85 while the live desert surface reaches y=89, so screenshots could be captured at/inside terrain and appear mostly dark/non-desert. `runSpawnChunk` now captures from y=140 with `xRot=65f`, which makes the actual generated terrain visible.
+
+### Final verification: native noise → climate routing restored
+
+The final fix wraps the `NoiseRouter` argument passed into `NoiseChunk.cachedClimateSampler(...)` with the active chunk context before Minecraft builds its native `Climate.Sampler`. This keeps explicit `ClimateHandler` constraints isolated while allowing noise-only scenarios to drive vanilla biome selection through the normal noise→climate path.
+
+Final live command:
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest
+```
+
+Result: **PASS**. Key evidence from `/tmp/terrasect-noise-narrative-constraints-final.log`:
+
+```
+[NC-ClimateRouter] wrapping climate sampler router #1000
+[NoiseNarrative][desert] surface=67-80 ground=[sand×247, short_dry_grass×4, tall_dry_grass×4, cactus×1] biomes=[desert×256]
+[NoiseNarrative][desert] diffs: height=256 ground=256 cover=0 biome=256 / 256 columns
+[NoiseNarrative][ocean] surface=63-67 ground=[water×225, grass_block×31] biomes=[deep_ocean×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=232 cover=0 biome=256 / 256 columns
+```
+
+Fresh screenshots from the passing run:
+
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png`
+
+Interpretation:
+
+- The reported old `noise-narrative/desert/0000_aerial_0_0.png` mismatch was not the final evidence path; it came from the older scenario/camera artifact tree.
+- The fresh diagnostic path now produces distinct screenshots and live column evidence: desert is sand/desert-dominant, ocean is water/deep-ocean-dominant.
+- Ocean needs aquifer/fluid noise constraints as well as continentalness and density lowering; lowering `finalDensity` alone either left grassy deep-ocean terrain or overcut into lava/deepslate.
+
+### Continuation verification after Claude limit handoff
+
+Hermes resumed from the goal file/worktree after Claude was unavailable and re-ran the live client GameTest:
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest | tee /tmp/terrasect-noise-narrative-continue.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 1m 27s`). Key evidence from `/tmp/terrasect-noise-narrative-continue.log`:
+
+```
+[NC-ClimateRouter] wrapping climate sampler router #500
+[NoiseNarrative][vanilla] surface=75-89 ground=[grass_block×208, short_grass×46, tall_grass×2] biomes=[plains×256]
+[NoiseNarrative][desert] surface=67-80 ground=[sand×247, short_dry_grass×4, tall_dry_grass×4, cactus×1] biomes=[desert×256]
+[NoiseNarrative][desert] diffs: height=256 ground=256 cover=0 biome=256 / 256 columns
+[NoiseNarrative][ocean] surface=63-67 ground=[water×225, grass_block×31] biomes=[deep_ocean×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=232 cover=0 biome=256 / 256 columns
+```
+
+Fresh screenshot artifact mtimes from the handoff run:
+
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png` — `2026-05-11 22:14:00 +0500`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png` — `2026-05-11 22:14:35 +0500`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png` — `2026-05-11 22:15:01 +0500`
+
+Post-run checks:
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 6s`).
+
+```
+git diff --check
+```
+
+Result: **PASS**. Full `./gradlew --no-daemon spotlessCheck` is still noisy because the repo has thousands of pre-existing/generated `minecraft/` format violations; the only new Java formatting issue reported in `NoiseChunkClimateSamplerMixin.java` was fixed manually before the final compile/diff-check pass.
 
 ---
 

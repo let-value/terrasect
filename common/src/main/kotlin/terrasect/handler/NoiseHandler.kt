@@ -149,7 +149,7 @@ object NoiseHandler {
 
     val transformed = transform.apply(original)
     val hitNum = modifyHitCount.incrementAndGet()
-    if (hitNum <= 24 || hitNum % 5000 == 0) {
+    if (hitNum <= 24 || hitNum % 500_000 == 0) {
       LOGGER.info(
         "[NC-NoiseHandler] CONSTRAINT HIT #{}: key={} block=({}, {}, {}) region={} orig={} transformed={} strength={} sdfDist={}",
         hitNum,
