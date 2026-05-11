@@ -115,18 +115,18 @@ private fun runSpawnChunk(
           for (bz in 0 until 16) {
             val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
             val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
-            val groundY = (worldSurface - 1).coerceAtLeast(level.minBuildHeight)
+            val groundY = worldSurface - 1
             val groundBlock =
               BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(bx, groundY, bz)).block)
-                ?.toString() ?: "unknown"
+                .toString()
             val coverBlock =
               BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(bx, worldSurface, bz)).block)
-                ?.toString() ?: "unknown"
+                .toString()
             val biome =
               level
                 .getBiome(BlockPos(bx, worldSurface, bz))
                 .unwrapKey()
-                .map { it.location().toString() }
+                .map { it.toString() }
                 .orElse("unknown")
             columns["$bx,$bz"] = ColumnStats(oceanFloor, worldSurface, groundBlock, coverBlock, biome)
           }

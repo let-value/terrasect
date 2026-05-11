@@ -242,15 +242,15 @@ private fun computeWorldDigest(
               val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
               allColumns["$bx,$bz"] = oceanFloor to worldSurface
               surfaces.add(worldSurface)
-              val surfaceY = (worldSurface - 1).coerceAtLeast(level.minBuildHeight)
+              val surfaceY = worldSurface - 1
               val block = level.getBlockState(BlockPos(bx, surfaceY, bz)).block
-              val blockName = BuiltInRegistries.BLOCK.getKey(block)?.toString() ?: "unknown"
+              val blockName = BuiltInRegistries.BLOCK.getKey(block).toString()
               blockCounts[blockName] = (blockCounts[blockName] ?: 0) + 1
               val biome =
                 level
                   .getBiome(BlockPos(bx, worldSurface, bz))
                   .unwrapKey()
-                  .map { it.location().toString() }
+                  .map { it.toString() }
                   .orElse("unknown")
               biomeCounts[biome] = (biomeCounts[biome] ?: 0) + 1
             }
