@@ -127,18 +127,20 @@ tasks.configureEach {
 
             def task = it
             doFirst {
-                def existingDisplay = System.getenv('DISPLAY')
-                if (!existingDisplay) {
-                    def displayNum = (99..199).find { n -> !new File("/tmp/.X${n}-lock").exists() } ?: 99
-                    logger.lifecycle("[Xvfb] No DISPLAY detected; starting Xvfb :${displayNum}")
-                    xvfbProcess = new ProcessBuilder('Xvfb', ":${displayNum}", '-screen', '0', '1280x1024x24')
-                            .redirectErrorStream(true)
-                            .start()
-                    Thread.sleep(800)
-                    task.environment('DISPLAY', ":${displayNum}")
-                    logger.lifecycle("[Xvfb] DISPLAY set to :${displayNum}")
-                } else {
-                    logger.lifecycle("[Xvfb] Using existing DISPLAY=${existingDisplay}")
+                if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+                    def existingDisplay = System.getenv('DISPLAY')
+                    if (!existingDisplay) {
+                        def displayNum = (99..199).find { n -> !new File("/tmp/.X${n}-lock").exists() } ?: 99
+                        logger.lifecycle("[Xvfb] No DISPLAY detected; starting Xvfb :${displayNum}")
+                        xvfbProcess = new ProcessBuilder('Xvfb', ":${displayNum}", '-screen', '0', '1280x1024x24')
+                                .redirectErrorStream(true)
+                                .start()
+                        Thread.sleep(800)
+                        task.environment('DISPLAY', ":${displayNum}")
+                        logger.lifecycle("[Xvfb] DISPLAY set to :${displayNum}")
+                    } else {
+                        logger.lifecycle("[Xvfb] Using existing DISPLAY=${existingDisplay}")
+                    }
                 }
             }
         }
@@ -154,7 +156,7 @@ tasks.configureEach {
 }
 
 gradle.buildFinished {
-    if (xvfbProcess != null) {
+    if (xvfbProcess != null && org.gradle.internal.os.OperatingSystem.current().isLinux()) {
         logger.lifecycle("[Xvfb] Tearing down Xvfb...")
         xvfbProcess.destroy()
         xvfbProcess.waitFor()
