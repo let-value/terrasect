@@ -1,7 +1,7 @@
 # Goal: Noise constraints observability + spawn-chunk troubleshooting
 
 ## Status
-**IN PROGRESS — repairing post-review noise constraints without restoring hot-path thread locals**
+**IN REVIEW — branch pushed to PR #50 after post-review noise-constraint repair**
 
 The original observability instrumentation and spawn-chunk troubleshooting path are in place. PR feedback correctly identified that the previous desert/ocean narrative scenarios cheated by setting direct `climate { ... }` constraints. A follow-up attempt to project noise constraints directly onto `ClimateHandler` target axes was also rejected as overreach: it bypassed Minecraft's own noise→climate path. The final working-tree state keeps climate constraints isolated, wraps the native `NoiseChunk.cachedClimateSampler(...)` router so noise constraints reach biome selection, and uses noise-only desert/ocean scenarios with live composition assertions and fresh client screenshots.
 
@@ -412,7 +412,7 @@ rg "pendingChunk|currentDensityChunk|withDensityChunk|ThreadLocal<ChunkContext|T
 
 Result: **no matches**. Existing strategy/cache thread-locals outside this noise-wrapper path are unchanged.
 
-Current status: implementation is working and verified locally; needs review of the small creation-binding map approach before final status is marked completed.
+Current status: implementation is working and verified locally; branch `noise-narrative-constraints` has been pushed to PR #50 for review, with the PR body updated to focus review on the creation-binding map and keyed holder wrapping path.
 
 ---
 
