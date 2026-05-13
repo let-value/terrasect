@@ -1,7 +1,7 @@
 # Goal: Noise constraints observability + spawn-chunk troubleshooting
 
 ## Status
-**COMPLETED — noise-only climate sampler routing and fresh desert/ocean screenshots verified**
+**IN PROGRESS — repairing post-review noise constraints without restoring hot-path thread locals**
 
 The original observability instrumentation and spawn-chunk troubleshooting path are in place. PR feedback correctly identified that the previous desert/ocean narrative scenarios cheated by setting direct `climate { ... }` constraints. A follow-up attempt to project noise constraints directly onto `ClimateHandler` target axes was also rejected as overreach: it bypassed Minecraft's own noise→climate path. The final working-tree state keeps climate constraints isolated, wraps the native `NoiseChunk.cachedClimateSampler(...)` router so noise constraints reach biome selection, and uses noise-only desert/ocean scenarios with live composition assertions and fresh client screenshots.
 
@@ -355,6 +355,64 @@ Fresh screenshots after the review cleanup pass:
 - `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png`
 - `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png`
 - `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png`
+
+---
+
+### Continuation: post-review no-threadlocal repair
+
+Alexander reported that an outside cleanup simplified the worldgen code but broke noise constraint enforcement, and clarified the desired architecture: do **not** restore thread-local plumbing on the hot path; bind/wrap noise at `NoiseChunk` creation time so density-function sampling later only executes captured wrappers.
+
+Investigation/repair in `/home/alex/terrasect/.worktrees/noise-narrative-constraints`:
+
+- Fast-forwarded local branch to `origin/noise-narrative-constraints` (`457c389 windows`) and inspected the outside diff.
+- Reproduced the pre-repair baseline with the live client GameTest; constraints still passed, but the implementation still depended on `NoiseHandler.pendingChunk` and `NoiseHandler.withDensityChunk(...)` thread-local handoff.
+- Removed the hot-path density thread-local and the `pendingChunk` handoff from `ChunkAccessMixin`; deleted the now-empty `NoiseBasedChunkGeneratorMixin` and removed it from `common.mixins.json`.
+- Added creation-time noise-chunk binding:
+  - `NoiseChunk.forChunk(...)` registers `(RandomState identity, firstNoiseX, firstNoiseZ) -> ChunkAccessExtender` only while the `NoiseChunk` constructor runs.
+  - `NoiseChunkMixin` reads that creation binding at constructor head and stores the chunk on the `NoiseChunk` instance.
+- Moved named-holder enforcement from runtime thread-local lookup into `NoiseChunk.wrapNew(...)` creation-time wrapping:
+  - `DensityFunctionHolderMixin` now captures/propagates holder keys only.
+  - `NoiseChunkFunctionsMixin` wraps keyed holder density functions in `ChunkDensityFunction(key, chunkContext)` when Minecraft creates the per-`NoiseChunk` wrapped density graph.
+  - `ChunkDensityFunction` no longer installs any thread-local while delegating to the wrapped density function.
+- `NoiseHandler.wrapRouter(...)` avoids double-wrapping values that are already `ChunkDensityFunction` instances.
+
+Verification:
+
+```
+./gradlew --no-daemon :common:compileJava :common:compileKotlin :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 9s`).
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest 2>&1 | tee /tmp/terrasect-no-threadlocal-noise-narrative-final.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 58s`). Key evidence:
+
+```
+[NoiseNarrative][vanilla] surface=75-89 ground=[grass_block×208, short_grass×46, tall_grass×2] biomes=[plains×256]
+[NoiseNarrative][desert] surface=67-80 ground=[sand×247, short_dry_grass×4, tall_dry_grass×4, cactus×1] biomes=[desert×256]
+[NoiseNarrative][desert] diffs: height=256 ground=256 cover=0 biome=256 / 256 columns
+[NoiseNarrative][ocean] surface=63-67 ground=[water×225, grass_block×31] biomes=[deep_ocean×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=232 cover=0 biome=256 / 256 columns
+```
+
+Post-repair checks:
+
+```
+git diff --check
+```
+
+Result: **PASS**.
+
+```
+rg "pendingChunk|currentDensityChunk|withDensityChunk|ThreadLocal<ChunkContext|ThreadLocal<ChunkAccessExtender" common/src/main
+```
+
+Result: **no matches**. Existing strategy/cache thread-locals outside this noise-wrapper path are unchanged.
+
+Current status: implementation is working and verified locally; needs review of the small creation-binding map approach before final status is marked completed.
 
 ---
 

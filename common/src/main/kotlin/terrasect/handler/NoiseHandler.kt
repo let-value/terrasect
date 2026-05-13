@@ -14,9 +14,7 @@ private const val TRACE_BLOCK_Z = 0
 private const val TRACE_PER_KEY_LIMIT = 8
 
 object NoiseHandler {
-  @JvmField val pendingChunk: ThreadLocal<ChunkAccessExtender?> = ThreadLocal()
-
-  private val densityChunk = ThreadLocal<ChunkContext?>()
+  private val noiseChunkCreations = ConcurrentHashMap<NoiseChunkKey, ChunkAccessExtender>()
   private val routerWrapCount = AtomicInteger()
   private val climateRouterWrapCount = AtomicInteger()
   private val modifyHitCount = AtomicInteger()
@@ -29,17 +27,23 @@ object NoiseHandler {
   }
 
   @JvmStatic
-  fun currentDensityChunk(): ChunkContext? = densityChunk.get()
-
-  fun <T> withDensityChunk(chunk: ChunkContext, block: () -> T): T {
-    val previous = densityChunk.get()
-    densityChunk.set(chunk)
-    try {
-      return block()
-    } finally {
-      if (previous == null) densityChunk.remove() else densityChunk.set(previous)
-    }
+  fun beginNoiseChunkCreation(
+    random: Any,
+    firstNoiseX: Int,
+    firstNoiseZ: Int,
+    chunk: ChunkAccessExtender,
+  ) {
+    noiseChunkCreations[NoiseChunkKey(random, firstNoiseX, firstNoiseZ)] = chunk
   }
+
+  @JvmStatic
+  fun endNoiseChunkCreation(random: Any, firstNoiseX: Int, firstNoiseZ: Int) {
+    noiseChunkCreations.remove(NoiseChunkKey(random, firstNoiseX, firstNoiseZ))
+  }
+
+  @JvmStatic
+  fun getNoiseChunkCreation(random: Any, firstNoiseX: Int, firstNoiseZ: Int): ChunkAccessExtender? =
+    noiseChunkCreations[NoiseChunkKey(random, firstNoiseX, firstNoiseZ)]
 
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter =
@@ -156,22 +160,32 @@ object NoiseHandler {
       )
     }
     return NoiseRouter(
-      ChunkDensityFunction(router.barrierNoise, "barrierNoise", chunk),
-      ChunkDensityFunction(router.fluidLevelFloodednessNoise, "fluidLevelFloodednessNoise", chunk),
-      ChunkDensityFunction(router.fluidLevelSpreadNoise, "fluidLevelSpreadNoise", chunk, scale = 16),
-      ChunkDensityFunction(router.lavaNoise, "lavaNoise", chunk, scale = 64),
-      ChunkDensityFunction(router.temperature, "temperature", chunk),
-      ChunkDensityFunction(router.vegetation, "vegetation", chunk),
-      ChunkDensityFunction(router.continents, "continents", chunk),
-      ChunkDensityFunction(router.erosion, "erosion", chunk),
-      ChunkDensityFunction(router.depth, "depth", chunk),
-      ChunkDensityFunction(router.ridges, "ridges", chunk),
-      ChunkDensityFunction(router.preliminarySurfaceLevel, "preliminarySurfaceLevel", chunk),
-      ChunkDensityFunction(router.finalDensity, "finalDensity", chunk),
-      ChunkDensityFunction(router.veinToggle, "veinToggle", chunk),
-      ChunkDensityFunction(router.veinRidged, "veinRidged", chunk),
-      ChunkDensityFunction(router.veinGap, "veinGap", chunk),
+      wrapDensityFunction(router.barrierNoise, "barrierNoise", chunk),
+      wrapDensityFunction(router.fluidLevelFloodednessNoise, "fluidLevelFloodednessNoise", chunk),
+      wrapDensityFunction(router.fluidLevelSpreadNoise, "fluidLevelSpreadNoise", chunk, scale = 16),
+      wrapDensityFunction(router.lavaNoise, "lavaNoise", chunk, scale = 64),
+      wrapDensityFunction(router.temperature, "temperature", chunk),
+      wrapDensityFunction(router.vegetation, "vegetation", chunk),
+      wrapDensityFunction(router.continents, "continents", chunk),
+      wrapDensityFunction(router.erosion, "erosion", chunk),
+      wrapDensityFunction(router.depth, "depth", chunk),
+      wrapDensityFunction(router.ridges, "ridges", chunk),
+      wrapDensityFunction(router.preliminarySurfaceLevel, "preliminarySurfaceLevel", chunk),
+      wrapDensityFunction(router.finalDensity, "finalDensity", chunk),
+      wrapDensityFunction(router.veinToggle, "veinToggle", chunk),
+      wrapDensityFunction(router.veinRidged, "veinRidged", chunk),
+      wrapDensityFunction(router.veinGap, "veinGap", chunk),
     )
+  }
+
+  private fun wrapDensityFunction(
+    function: net.minecraft.world.level.levelgen.DensityFunction,
+    key: String,
+    chunk: ChunkContext,
+    scale: Int = 1,
+  ): net.minecraft.world.level.levelgen.DensityFunction {
+    if (function is ChunkDensityFunction) return function
+    return ChunkDensityFunction(function, key, chunk, scale)
   }
 
   private fun trace(
@@ -202,6 +216,15 @@ object NoiseHandler {
     }
     return null
   }
+}
+
+private data class NoiseChunkKey(
+  val randomIdentity: Int,
+  val firstNoiseX: Int,
+  val firstNoiseZ: Int,
+) {
+  constructor(random: Any, firstNoiseX: Int, firstNoiseZ: Int) :
+    this(System.identityHashCode(random), firstNoiseX, firstNoiseZ)
 }
 
 private fun Double.fmt4() = "%.4f".format(this)

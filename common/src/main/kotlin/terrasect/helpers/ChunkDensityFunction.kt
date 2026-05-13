@@ -12,7 +12,7 @@ class ChunkDensityFunction(
   val scale: Int = 1,
 ) : DensityFunction {
   override fun compute(context: DensityFunction.FunctionContext): Double {
-    val original = NoiseHandler.withDensityChunk(chunk) { wrapped.compute(context) }
+    val original = wrapped.compute(context)
     return NoiseHandler.modifyDensityValue(
       key,
       original,
@@ -24,7 +24,7 @@ class ChunkDensityFunction(
   }
 
   override fun fillArray(array: DoubleArray, context: DensityFunction.ContextProvider) {
-    NoiseHandler.withDensityChunk(chunk) { wrapped.fillArray(array, context) }
+    wrapped.fillArray(array, context)
     for (index in array.indices) {
       val sample = context.forIndex(index)
       val transformed =
