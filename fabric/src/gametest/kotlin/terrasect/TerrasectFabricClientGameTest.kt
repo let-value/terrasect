@@ -61,6 +61,16 @@ private fun registerSimpleRootPreset(id: String, configure: RegionRegistry.() ->
 
 private fun scenarioPresetId(name: String) = "${CUSTOM_PRESET_PREFIX}_$name"
 
+private fun configureAerialScreenshotCamera(client: Minecraft) {
+  client.player?.let { player ->
+    player.xRot = 65f
+    player.yRot = 0f
+    player.abilities.mayfly = true
+    player.abilities.flying = true
+    player.onUpdateAbilities()
+  }
+}
+
 @Suppress("UnstableApiUsage")
 private fun runSpawnChunk(
   context: ClientGameTestContext,
@@ -93,22 +103,19 @@ private fun runSpawnChunk(
         server.playerList.players[0].teleportTo(8.0, 160.0, -16.0)
       }
     )
+    context.waitTicks(10)
     context.runOnClient(
-      FailableConsumer<Minecraft, Exception> { client ->
-        client.player?.let { player ->
-          player.xRot = 65f
-          player.yRot = 180f
-          player.abilities.mayfly = true
-          player.abilities.flying = true
-          player.onUpdateAbilities()
-        }
-      }
+      FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
     )
 
-    context.waitTicks(20)
+    context.waitTicks(10)
     game.clientWorld.waitForChunksRender()
 
     if (screenshotLabel != null) {
+      context.runOnClient(
+        FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
+      )
+      context.waitTicks(5)
       context.takeScreenshot(
         TestScreenshotOptions.of(screenshotLabel)
           .withDestinationDir(SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest"))

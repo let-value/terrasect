@@ -416,6 +416,53 @@ Current status: implementation is working and verified locally; branch `noise-na
 
 ---
 
+### Continuation: force flying camera before screenshots
+
+Date: `2026-05-14 01:48:55 +0500`
+
+Alexander asked to match the other client GameTest screenshot pattern so screenshots are taken while the client player is in flying mode.
+
+Changes in `/home/alex/terrasect/.worktrees/noise-narrative-constraints`:
+
+- Compared `TerrasectFabricClientGameTest.kt` with `WorldDigestGameTest.kt`, which sets creative mode, teleports the player to the sky, enables `mayfly`/`flying`, calls `onUpdateAbilities()`, waits for chunk render, then takes screenshots.
+- Added `configureAerialScreenshotCamera(client)` to centralize the noise-narrative screenshot camera setup:
+  - `xRot = 65f`
+  - `yRot = 0f`
+  - `abilities.mayfly = true`
+  - `abilities.flying = true`
+  - `onUpdateAbilities()`
+- Updated `runSpawnChunk(...)` to wait after the server teleport, enable the aerial/flying camera, wait for render, and re-apply the same flying camera setup immediately before `context.takeScreenshot(...)` so the capture is definitely in flying mode.
+
+Verification:
+
+```
+./gradlew --no-daemon :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 9s`).
+
+```
+./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 59s`; all required client GameTests passed). Fresh verification was re-run at `2026-05-14 02:03:26 +0500` after comparing the flight setup with `WorldDigestGameTest`.
+
+```
+git diff --check
+```
+
+Result: **PASS**.
+
+Fresh screenshot artifacts after this run:
+
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png` — refreshed `2026-05-14 01:59:05 +0500`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png` — refreshed `2026-05-14 01:59:15 +0500`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png` — refreshed `2026-05-14 01:59:38 +0500`
+
+The old `fabric/build/gametest-screenshots/noise-narrative/desert/0000_aerial_0_0.png` artifact is from the previous screenshot path and should not be used to judge the fixed camera setup.
+
+---
+
 ## Provenance
 
 - Branch: `noise-narrative-constraints`
