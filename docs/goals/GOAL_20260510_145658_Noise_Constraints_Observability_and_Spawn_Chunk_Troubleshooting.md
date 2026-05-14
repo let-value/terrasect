@@ -5,6 +5,10 @@
 
 The original observability instrumentation and spawn-chunk troubleshooting path are in place. PR feedback correctly identified that the previous desert/ocean narrative scenarios cheated by setting direct `climate { ... }` constraints. A follow-up attempt to project noise constraints directly onto `ClimateHandler` target axes was also rejected as overreach: it bypassed Minecraft's own noise→climate path. The final working-tree state keeps climate constraints isolated, wraps the native `NoiseChunk.cachedClimateSampler(...)` router so noise constraints reach biome selection, and uses noise-only desert/ocean scenarios with live composition assertions and fresh client screenshots.
 
+2026-05-14 follow-up: expanded `NoiseNarrativeConstraintTest` with more narrative terrain cases and richer column analysis. Added average surface / ocean-floor height logging, per-scenario composition evidence, and new noise-only scenarios for `highlands`, `lowlands`, and `ridge_valley`. Fresh screenshots were generated under `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/` and `:fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest` passes after tuning the highlands case away from the earlier over-solidified `finalDensity` setting.
+
+2026-05-14 camera follow-up: lowered the noise-narrative screenshot camera teleport from Y=160 to Y=120, cleared `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/`, and regenerated fresh screenshots with `./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest` (passed). Fresh artifacts: `0000_vanilla.png`, `0001_desert.png`, `0002_ocean.png`, `0003_highlands.png`, `0004_lowlands.png`, `0005_ridge_valley.png`.
+
 ---
 
 ## What I changed
@@ -501,6 +505,91 @@ git diff --check
 Result: **PASS**.
 
 Note: `./gradlew spotlessCheck` was attempted and still reports pre-existing generated `minecraft/...` formatting violations outside the PR scope, so verification used compile, live GameTest, and `git diff --check`.
+
+### 2026-05-14 Codex follow-up: more mountain-frame narrative variation
+
+User feedback: most screenshots keep the same two mountains in frame, which is useful for showing a desert mountain, but the suite also needs cases where those mountains are transformed into hilly plains and flatter plains.
+
+Implemented in `fabric/src/gametest/kotlin/terrasect/TerrasectFabricClientGameTest.kt`:
+
+- Added `hilly_plains`: dry-temperate inland, high erosion, neutral ridges, softened/lowered density. Assertion requires lower average surface than vanilla, rolling-plains relief, and mostly dry columns.
+- Added `flat_plains`: dry-temperate inland, maximum erosion, neutral ridges, stronger surface/density lowering. Assertion requires the same mountain frame to be lowered well below vanilla, near-flat relief, and mostly dry columns.
+- Kept the existing mountain/desert/ocean/lowland/valley scenarios so the fresh run now yields eight clean screenshot artifacts after deleting the old screenshot directory.
+
+Verification:
+
+```
+rm -rf fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest
+./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 1m 59s`). Fresh screenshots:
+
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0000_vanilla.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0001_desert.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0002_ocean.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0003_highlands.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0004_hilly_plains.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0005_flat_plains.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0006_lowlands.png`
+- `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/0007_ridge_valley.png`
+
+---
+
+### 2026-05-14 logging-layer DX follow-up
+
+Date: `2026-05-14 21:18:13 +0500`
+
+Alexander requested a logging-layer cleanup before continuing feature work:
+
+- The current noise/climate diagnostics are too verbose and pollute implementation code.
+- Logging must be behind an explicit configuration flag.
+- When debug logging is disabled, the expected overhead is effectively zero: no avoidable allocations, no string construction, no hot-path lambda/collection churn, no diagnostic counters unless enabled.
+- Use Kotlin's expressiveness to improve logging DX: concise call sites, lazy message construction where appropriate, scoped/typed diagnostic helpers, and handler-owned logging so Java mixins and hot paths stay thin.
+- Preserve useful targeted diagnostics for troubleshooting noise narrative constraints, but make them opt-in and unobtrusive.
+
+Provider task: refactor the current Terrasect noise/climate diagnostic logging layer to satisfy the above, update this goal file with changes and verification, and keep stdout terse.
+
+Claude Code session: `f3656404-99d2-4aba-b880-3b3ad9ec9ebe`.
+
+Outcome:
+
+- Added `NoiseDebug` as the opt-in switch for noise/climate diagnostic logging. It initializes from system property `terrasect.noiseDebug` and exposes an inline `ifEnabled { ... }` guard so diagnostic messages/counters are only touched when enabled.
+- Moved existing `[NC-*]` registry, dimension-context, holder-key, router-wrap, origin-noise, and origin-climate logging behind `NoiseDebug` checks.
+- Kept Java mixins thin by routing diagnostics through Kotlin handlers.
+- Updated the client GameTest to enable `NoiseDebug` only for the noise-narrative run and disable it again in `finally`, preserving targeted debug evidence without making diagnostics globally noisy.
+- Claude hit `error_max_turns` while trying to run validation, so Hermes ran verification directly.
+
+Verification:
+
+```
+./gradlew --no-daemon :common:compileJava :common:compileKotlin :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 11s`).
+
+```
+./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest 2>&1 | tee /tmp/terrasect-logging-layer-gametest.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 1m 22s`). The GameTest intentionally enables `NoiseDebug`, so the captured log includes opt-in `[NC-*]` diagnostic lines for the narrative scenarios.
+
+```
+git diff --check
+```
+
+Result: **PASS**.
+
+Hermes/Claude follow-up (`2026-05-14 21:49:33 +0500`):
+
+- Claude retry session: `8784044c-a8c4-44cc-b0bc-cb3bb40ec071`.
+- Claude inspected and continued the logging-DX cleanup but hit `error_max_turns` again before committing.
+- Hermes applied the final small cleanup Claude attempted: `NoiseHandler.resetOriginTrace()` now also resets diagnostic hit/holder/missing-chunk counters so per-scenario logs start from readable counts.
+- Verification after the final cleanup:
+  - `./gradlew --no-daemon :common:compileJava :common:compileKotlin :fabric:compileGametestKotlin :fabric:compileClientKotlin` — **PASS** (`BUILD SUCCESSFUL in 5s`).
+  - `./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest 2>&1 | tee /tmp/terrasect-logging-dx-gametest.log` — **PASS** (`BUILD SUCCESSFUL in 1m 31s`).
+  - `git diff --check` — **PASS**.
+- Current state: logging-DX changes are verified locally and committed as `chore: improve noise diagnostics dx`.
 
 ---
 

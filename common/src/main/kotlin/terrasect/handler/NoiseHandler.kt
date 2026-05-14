@@ -25,6 +25,9 @@ object NoiseHandler {
 
   fun resetOriginTrace() {
     originTraceCounts.clear()
+    modifyHitCount.set(0)
+    holderKeyLogCount.set(0)
+    missingHolderChunkLogCount.set(0)
   }
 
   @JvmStatic
@@ -50,15 +53,19 @@ object NoiseHandler {
 
   @JvmStatic
   fun logCapturedDensityKey(key: String) {
-    val count = holderKeyLogCount.incrementAndGet()
-    if (count <= 24) LOGGER.info("[NC-HolderKey] captured density holder key={}", key)
+    NoiseDebug.ifEnabled {
+      val count = holderKeyLogCount.incrementAndGet()
+      if (count <= 24) LOGGER.info("[NC-HolderKey] captured density holder key={}", key)
+    }
   }
 
   @JvmStatic
   fun logMissingDensityChunk(key: String) {
-    val count = missingHolderChunkLogCount.incrementAndGet()
-    if (count <= 24) {
-      LOGGER.info("[NC-HolderKey] skipped keyed value key={} because chunk context is missing", key)
+    NoiseDebug.ifEnabled {
+      val count = missingHolderChunkLogCount.incrementAndGet()
+      if (count <= 24) {
+        LOGGER.info("[NC-HolderKey] skipped keyed value key={} because chunk context is missing", key)
+      }
     }
   }
 
@@ -81,18 +88,36 @@ object NoiseHandler {
     blockZ: Int,
     chunk: ChunkContext,
   ): Double? {
-    val traceOrigin = blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z
     val region = chunk.getRegion(blockX, blockZ)
-    if (region == null) return trace(traceOrigin, key, blockX, blockY, blockZ, original, null, "region=NULL")
+    if (region == null) {
+      ifOriginTrace(blockX, blockZ) {
+        trace(key, blockX, blockY, blockZ, original, null, "region=NULL")
+      }
+      return null
+    }
 
     val noiseRegistry = chunk.dimensionContext?.noiseRegistry
     if (noiseRegistry == null) {
-      return trace(traceOrigin, key, blockX, blockY, blockZ, original, null, "region=${region.name} noiseRegistry=NULL")
+      ifOriginTrace(blockX, blockZ) {
+        trace(key, blockX, blockY, blockZ, original, null, "region=${region.name} noiseRegistry=NULL")
+      }
+      return null
     }
 
     val constraints = noiseRegistry.get(region)
     if (constraints == null) {
-      return trace(traceOrigin, key, blockX, blockY, blockZ, original, null, "region=${region.name} constraints=NULL (region not in registry)")
+      ifOriginTrace(blockX, blockZ) {
+        trace(
+          key,
+          blockX,
+          blockY,
+          blockZ,
+          original,
+          null,
+          "region=${region.name} constraints=NULL (region not in registry)",
+        )
+      }
+      return null
     }
 
     val transform =
@@ -101,35 +126,61 @@ object NoiseHandler {
         ?: constraints.densityFunctions[key.substringAfterLast('/')]
         ?: constraints.noises[key.substringAfterLast('/')]
     if (transform == null) {
-      return trace(traceOrigin, key, blockX, blockY, blockZ, original, null, "region=${region.name} transform=NULL")
+      ifOriginTrace(blockX, blockZ) {
+        trace(key, blockX, blockY, blockZ, original, null, "region=${region.name} transform=NULL")
+      }
+      return null
     }
 
     val blendWidth = constraints.blendWidth
     val sdfDist = chunk.getDistance(blockX, blockZ)
     val strength = getStrength(blendWidth, sdfDist)
     if (strength <= 0f) {
-      trace(traceOrigin, key, blockX, blockY, blockZ, original, original, "region=${region.name} strength=0 sdfDist=${sdfDist.fmt1()}")
+      ifOriginTrace(blockX, blockZ) {
+        trace(
+          key,
+          blockX,
+          blockY,
+          blockZ,
+          original,
+          original,
+          "region=${region.name} strength=0 sdfDist=${sdfDist.fmt1()}",
+        )
+      }
       return original
     }
 
     val transformed = transform.apply(original)
-    val hitNum = modifyHitCount.incrementAndGet()
-    if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
-      LOGGER.info(
-        "[NC-NoiseHandler] CONSTRAINT HIT #{}: key={} block=({}, {}, {}) region={} orig={} transformed={} strength={} sdfDist={}",
-        hitNum,
-        key,
-        blockX,
-        blockY,
-        blockZ,
-        region.name,
-        original.fmt4(),
-        transformed.fmt4(),
-        strength.fmt3(),
-        sdfDist.fmt1(),
-      )
+
+    NoiseDebug.ifEnabled {
+      val hitNum = modifyHitCount.incrementAndGet()
+      if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
+        LOGGER.info(
+          "[NC-NoiseHandler] CONSTRAINT HIT #{}: key={} block=({}, {}, {}) region={} orig={} transformed={} strength={} sdfDist={}",
+          hitNum,
+          key,
+          blockX,
+          blockY,
+          blockZ,
+          region.name,
+          original.fmt4(),
+          transformed.fmt4(),
+          strength.fmt3(),
+          sdfDist.fmt1(),
+        )
+      }
+      if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) {
+        trace(
+          key,
+          blockX,
+          blockY,
+          blockZ,
+          original,
+          transformed,
+          "hit=$hitNum region=${region.name} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}",
+        )
+      }
     }
-    trace(traceOrigin, key, blockX, blockY, blockZ, original, transformed, "hit=$hitNum region=${region.name} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}")
 
     if (strength >= 1f) return transformed
     return original + (transformed - original) * strength
@@ -147,22 +198,28 @@ object NoiseHandler {
     router: NoiseRouter,
     chunk: ChunkContext?,
   ): NoiseRouter {
-    val n = counter.incrementAndGet()
     if (chunk == null) {
-      if (n <= 8 || n % 500 == 0) LOGGER.warn("[NC-NoiseHandler] {} #{} skipped: chunkContext=NULL", label, n)
+      NoiseDebug.ifEnabled {
+        val n = counter.incrementAndGet()
+        if (n <= 8 || n % 500 == 0)
+          LOGGER.warn("[NC-NoiseHandler] {} #{} skipped: chunkContext=NULL", label, n)
+      }
       return router
     }
 
-    val registry = chunk.dimensionContext?.noiseRegistry
-    if (n <= 8 || n % 500 == 0) {
-      LOGGER.info(
-        "[NC-NoiseHandler] {} #{}: dim={} hasRegistry={} regionCount={}",
-        label,
-        n,
-        chunk.dimensionContext?.dimensionId ?: "null",
-        registry != null,
-        registry?.size() ?: 0,
-      )
+    NoiseDebug.ifEnabled {
+      val registry = chunk.dimensionContext?.noiseRegistry
+      val n = counter.incrementAndGet()
+      if (n <= 8 || n % 500 == 0) {
+        LOGGER.info(
+          "[NC-NoiseHandler] {} #{}: dim={} hasRegistry={} regionCount={}",
+          label,
+          n,
+          chunk.dimensionContext?.dimensionId ?: "null",
+          registry != null,
+          registry?.size() ?: 0,
+        )
+      }
     }
     return NoiseRouter(
       wrapDensityFunction(router.barrierNoise, "barrierNoise", chunk),
@@ -193,8 +250,11 @@ object NoiseHandler {
     return ChunkDensityFunction(function, key, chunk, scale)
   }
 
+  private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
+    if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+  }
+
   private fun trace(
-    enabled: Boolean,
     key: String,
     blockX: Int,
     blockY: Int,
@@ -202,8 +262,7 @@ object NoiseHandler {
     original: Double,
     transformed: Double?,
     status: String,
-  ): Double? {
-    if (!enabled) return null
+  ) {
     val bucket = if (status.startsWith("hit=")) "$key|hit" else "$key|$status"
     val count = originTraceCounts.computeIfAbsent(bucket) { AtomicInteger() }.incrementAndGet()
     if (count <= TRACE_PER_KEY_LIMIT) {
@@ -219,7 +278,6 @@ object NoiseHandler {
         status,
       )
     }
-    return null
   }
 }
 

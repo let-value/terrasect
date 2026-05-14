@@ -58,74 +58,99 @@ object ClimateHandler {
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
-    val traceOrigin = isTraceOrigin(blockX, blockZ)
 
     if (chunk == null) {
-      traceSkip(traceOrigin, samplerSkipCount, blockX, blockZ, quadX, quadY, quadZ, "context=NULL")
+      ifOriginTrace(blockX, blockZ) {
+        traceSkip(samplerSkipCount, blockX, blockZ, quadX, quadY, quadZ, "context=NULL")
+      }
       return
     }
 
     val region = chunk.regions?.get(blockX, blockZ)
     if (region == null) {
-      traceSkip(traceOrigin, nullRegionCount, blockX, blockZ, quadX, quadY, quadZ, "region=NULL")
+      ifOriginTrace(blockX, blockZ) {
+        traceSkip(nullRegionCount, blockX, blockZ, quadX, quadY, quadZ, "region=NULL")
+      }
       return
     }
 
     val constraints = region.climate
     if (constraints == null) {
-      traceSkip(
-        traceOrigin,
-        nullConstraintsCount,
-        blockX,
-        blockZ,
-        quadX,
-        quadY,
-        quadZ,
-        "region=${region.name} climateConstraints=NULL",
-      )
+      ifOriginTrace(blockX, blockZ) {
+        traceSkip(
+          nullConstraintsCount,
+          blockX,
+          blockZ,
+          quadX,
+          quadY,
+          quadZ,
+          "region=${region.name} climateConstraints=NULL",
+        )
+      }
       return
     }
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender
-    val details = if (traceOrigin) StringBuilder() else null
-    var changed = false
+
+    // Capture originals only when tracing — no allocation on the normal hot path.
+    val originals =
+      if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
+        longArrayOf(
+          climate.temperature,
+          climate.humidity,
+          climate.continentalness,
+          climate.erosion,
+          climate.depth,
+          climate.weirdness,
+        )
+      else null
 
     constraints.temperature?.let { range ->
-      val value = climate.temperature.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "temperature", climate.temperature, value, range) || changed
-      extender.`terrasect$setTemperature`(value)
+      extender.`terrasect$setTemperature`(climate.temperature.coerceIn(range.min, range.max))
     }
     constraints.humidity?.let { range ->
-      val value = climate.humidity.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "humidity", climate.humidity, value, range) || changed
-      extender.`terrasect$setHumidity`(value)
+      extender.`terrasect$setHumidity`(climate.humidity.coerceIn(range.min, range.max))
     }
     constraints.continentalness?.let { range ->
-      val value = climate.continentalness.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "continentalness", climate.continentalness, value, range) || changed
-      extender.`terrasect$setContinentalness`(value)
+      extender.`terrasect$setContinentalness`(
+        climate.continentalness.coerceIn(range.min, range.max)
+      )
     }
     constraints.erosion?.let { range ->
-      val value = climate.erosion.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "erosion", climate.erosion, value, range) || changed
-      extender.`terrasect$setErosion`(value)
+      extender.`terrasect$setErosion`(climate.erosion.coerceIn(range.min, range.max))
     }
     constraints.depth?.let { range ->
-      val value = climate.depth.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "depth", climate.depth, value, range) || changed
-      extender.`terrasect$setDepth`(value)
+      extender.`terrasect$setDepth`(climate.depth.coerceIn(range.min, range.max))
     }
     constraints.weirdness?.let { range ->
-      val value = climate.weirdness.coerceIn(range.min, range.max)
-      changed = appendAxis(details, "weirdness", climate.weirdness, value, range) || changed
-      extender.`terrasect$setWeirdness`(value)
+      extender.`terrasect$setWeirdness`(climate.weirdness.coerceIn(range.min, range.max))
     }
 
-    if (traceOrigin) {
+    if (originals != null) {
       val count = appliedCount.incrementAndGet()
       if (count <= 8) {
+        val axes = buildString {
+          constraints.temperature?.let { range ->
+            appendAxis("temperature", originals[0], climate.temperature, range)
+          }
+          constraints.humidity?.let { range ->
+            appendAxis("humidity", originals[1], climate.humidity, range)
+          }
+          constraints.continentalness?.let { range ->
+            appendAxis("continentalness", originals[2], climate.continentalness, range)
+          }
+          constraints.erosion?.let { range ->
+            appendAxis("erosion", originals[3], climate.erosion, range)
+          }
+          constraints.depth?.let { range ->
+            appendAxis("depth", originals[4], climate.depth, range)
+          }
+          constraints.weirdness?.let { range ->
+            appendAxis("weirdness", originals[5], climate.weirdness, range)
+          }
+        }
         LOGGER.info(
-          "[NC-OriginClimate] APPLIED #{} block=({}, {}) quad=({}, {}, {}) region={} changed={} axes=[{}]",
+          "[NC-OriginClimate] APPLIED #{} block=({}, {}) quad=({}, {}, {}) region={} axes=[{}]",
           count,
           blockX,
           blockZ,
@@ -133,15 +158,17 @@ object ClimateHandler {
           quadY,
           quadZ,
           region.name,
-          changed,
-          details.toString(),
+          axes,
         )
       }
     }
   }
 
+  private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
+    if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+  }
+
   private fun traceSkip(
-    enabled: Boolean,
     counter: AtomicInteger,
     blockX: Int,
     blockZ: Int,
@@ -150,7 +177,6 @@ object ClimateHandler {
     quadZ: Int,
     reason: String,
   ) {
-    if (!enabled) return
     val count = counter.incrementAndGet()
     if (count <= 3) {
       LOGGER.info(
@@ -166,21 +192,14 @@ object ClimateHandler {
     }
   }
 
-  private fun appendAxis(
-    details: StringBuilder?,
+  private fun StringBuilder.appendAxis(
     name: String,
     original: Long,
     value: Long,
     range: ClimateRange,
-  ): Boolean {
-    if (details != null) {
-      if (details.isNotEmpty()) details.append(", ")
-      details.append(name).append('=').append(original).append("→").append(value)
-        .append(" in ").append(range.min).append("..").append(range.max)
-    }
-    return original != value
+  ) {
+    if (isNotEmpty()) append(", ")
+    append(name).append('=').append(original).append("→").append(value)
+      .append(" in ").append(range.min).append("..").append(range.max)
   }
-
-  private fun isTraceOrigin(blockX: Int, blockZ: Int): Boolean =
-    blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z
 }

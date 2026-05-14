@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 import terrasect.handler.ClimateHandler
+import terrasect.handler.NoiseDebug
 import terrasect.handler.NoiseHandler
 
 private val LOGGER = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
@@ -44,9 +45,20 @@ private data class DiffSummary(
   val total: Int,
 )
 
+private enum class ScenarioExpectation {
+  DESERT,
+  OCEAN,
+  HIGHLANDS,
+  HILLY_PLAINS,
+  FLAT_PLAINS,
+  LOWLANDS,
+  RIDGE_VALLEY,
+}
+
 private data class Scenario(
   val name: String,
   val trace: String,
+  val expectation: ScenarioExpectation,
   val configure: RegionRegistry.() -> Unit,
 )
 
@@ -83,10 +95,7 @@ private fun runSpawnChunk(
   PresetRegistry.forcePresetId = presetId
   NoiseHandler.resetOriginTrace()
   ClimateHandler.resetOriginTrace()
-  LOGGER.info(
-    "[NoiseNarrative][{}] reset origin diagnostics; detailed [NC-OriginNoise]/[NC-OriginClimate] logs are limited to block x=0 z=0",
-    scenarioName,
-  )
+  LOGGER.info("[NoiseNarrative][{}] START preset={} trace=[{}]", scenarioName, presetId, trace)
   val game =
     context
       .worldBuilder()
@@ -100,7 +109,7 @@ private fun runSpawnChunk(
   try {
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
-        server.playerList.players[0].teleportTo(8.0, 160.0, -16.0)
+        server.playerList.players[0].teleportTo(8.0, 120.0, -16.0)
       }
     )
     context.waitTicks(10)
@@ -112,13 +121,14 @@ private fun runSpawnChunk(
     game.clientWorld.waitForChunksRender()
 
     if (screenshotLabel != null) {
+      val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")
+      LOGGER.info("[NoiseNarrative][{}] screenshot -> {}/{}.png", scenarioName, screenshotDir, screenshotLabel)
       context.runOnClient(
         FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
       )
       context.waitTicks(5)
       context.takeScreenshot(
-        TestScreenshotOptions.of(screenshotLabel)
-          .withDestinationDir(SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest"))
+        TestScreenshotOptions.of(screenshotLabel).withDestinationDir(screenshotDir)
       )
     }
 
@@ -154,13 +164,18 @@ private fun runSpawnChunk(
         val groundCounts = countBlocks(columns) { it.groundBlock }
         val biomeCounts = countBlocks(columns) { it.biome }
         LOGGER.info(
-          "[NoiseNarrative][{}] preset={} trace=[{}] surface={}-{} ground=[{}] biomes=[{}]",
+          "[NoiseNarrative][{}] preset={} trace=[{}] surface={}-{} avg={} oceanFloor={}-{} avg={} ground=[{}] cover=[{}] biomes=[{}]",
           scenarioName,
           presetId,
           trace,
           surfaces.min(),
           surfaces.max(),
+          average(surfaces).fmt1(),
+          columns.values.minOf { it.oceanFloor },
+          columns.values.maxOf { it.oceanFloor },
+          average(columns.values.map { it.oceanFloor }).fmt1(),
           formatCounts(groundCounts, 4),
+          formatCounts(countBlocks(columns) { it.coverBlock }, 4),
           formatCounts(biomeCounts, 3),
         )
       }
@@ -237,6 +252,16 @@ private fun countBlocks(
   selector: (ColumnStats) -> String,
 ): Map<String, Int> = columns.values.groupingBy(selector).eachCount()
 
+private fun average(values: Collection<Int>): Double = values.sum().toDouble() / values.size
+
+private fun averageSurface(columns: Map<String, ColumnStats>): Double =
+  average(columns.values.map { it.worldSurface })
+
+private fun surfaceRelief(columns: Map<String, ColumnStats>): Int =
+  columns.values.maxOf { it.worldSurface } - columns.values.minOf { it.worldSurface }
+
+private fun Double.fmt1() = "%.1f".format(this)
+
 private fun formatCounts(counts: Map<String, Int>, limit: Int): String =
   counts.entries
     .sortedByDescending { it.value }
@@ -248,12 +273,15 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
 
+    val noiseDebugWas = NoiseDebug.enabled
+    NoiseDebug.enabled = true
     val scenarios =
       listOf(
         Scenario(
           name = "desert",
           trace =
             "noise-only: temperature pinned hot + inland/erosion/weirdness density pinned to middle-slice desert cell",
+          expectation = ScenarioExpectation.DESERT,
         ) {
           region("overworld_root").noise {
             noise("temperature") {
@@ -279,6 +307,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
           name = "ocean",
           trace =
             "noise-only: deep-ocean continentalness + flooded aquifer noise + lowered finalDensity → visible water basin",
+          expectation = ScenarioExpectation.OCEAN,
         ) {
           region("overworld_root").noise {
             densityFunction("continents") {
@@ -298,6 +327,131 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
               it.add(-1.0)
             }
             densityFunction("finalDensity") { it.add(-0.4) }
+          }
+        },
+        Scenario(
+          name = "highlands",
+          trace =
+            "noise-only: inland continentalness + raised finalDensity → elevated traversal plateau",
+          expectation = ScenarioExpectation.HIGHLANDS,
+        ) {
+          region("overworld_root").noise {
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.35)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(-0.65)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(0.6)
+            }
+            densityFunction("preliminarySurfaceLevel") { it.add(16.0) }
+            densityFunction("finalDensity") { it.add(0.02) }
+          }
+        },
+        Scenario(
+          name = "hilly_plains",
+          trace =
+            "noise-only: dry-temperate inland + high erosion + softened density → same mountain frame transformed into rolling plains",
+          expectation = ScenarioExpectation.HILLY_PLAINS,
+        ) {
+          region("overworld_root").noise {
+            noise("temperature") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
+            noise("vegetation") {
+              it.multiply(0.0)
+              it.add(-0.2)
+            }
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.8)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
+            densityFunction("preliminarySurfaceLevel") { it.add(-12.0) }
+            densityFunction("finalDensity") { it.add(-0.12) }
+          }
+        },
+        Scenario(
+          name = "flat_plains",
+          trace =
+            "noise-only: dry-temperate inland + maximum erosion + neutral ridges + lowered surface → mountain frame flattened into plains",
+          expectation = ScenarioExpectation.FLAT_PLAINS,
+        ) {
+          region("overworld_root").noise {
+            noise("temperature") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
+            noise("vegetation") {
+              it.multiply(0.0)
+              it.add(-0.2)
+            }
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.85)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
+            densityFunction("preliminarySurfaceLevel") { it.add(-24.0) }
+            densityFunction("finalDensity") { it.add(-0.18) }
+          }
+        },
+        Scenario(
+          name = "lowlands",
+          trace =
+            "noise-only: inland continentalness + softened density → lower approach basin without becoming ocean",
+          expectation = ScenarioExpectation.LOWLANDS,
+        ) {
+          region("overworld_root").noise {
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.6)
+            }
+            densityFunction("finalDensity") { it.add(-0.18) }
+          }
+        },
+        Scenario(
+          name = "ridge_valley",
+          trace =
+            "noise-only: river-valley weirdness band + high erosion → traversable narrative corridor",
+          expectation = ScenarioExpectation.RIDGE_VALLEY,
+        ) {
+          region("overworld_root").noise {
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.1)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.8)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
+            densityFunction("finalDensity") { it.add(-0.08) }
           }
         },
       )
@@ -347,8 +501,8 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
             "check [NC-OriginNoise] and [NC-HolderKey] log lines to see whether constrained density keys reach the effective terrain-density graph.",
         )
 
-        when (scenario.name) {
-          "desert" -> {
+        when (scenario.expectation) {
+          ScenarioExpectation.DESERT -> {
             val sandGroundColumns = candidate.values.count { "sand" in it.groundBlock }
             val desertBiomeColumns = candidate.values.count { it.biome == "minecraft:desert" }
             assertTrue(
@@ -362,7 +516,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
           }
-          "ocean" -> {
+          ScenarioExpectation.OCEAN -> {
             val deepOceanColumns = candidate.values.count { it.biome == "minecraft:deep_ocean" }
             val waterColumns =
               candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
@@ -377,9 +531,88 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
           }
+          ScenarioExpectation.HIGHLANDS -> {
+            val baselineAverage = averageSurface(vanilla)
+            val candidateAverage = averageSurface(candidate)
+            assertTrue(
+              candidateAverage >= baselineAverage + 2.0,
+              "[highlands] expected average surface to rise by at least 2 blocks but vanilla=${baselineAverage.fmt1()} candidate=${candidateAverage.fmt1()}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+          }
+          ScenarioExpectation.HILLY_PLAINS -> {
+            val baselineAverage = averageSurface(vanilla)
+            val candidateAverage = averageSurface(candidate)
+            val waterColumns =
+              candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
+            val relief = surfaceRelief(candidate)
+            assertTrue(
+              candidateAverage <= baselineAverage - 2.0,
+              "[hilly_plains] expected the mountain frame to become lower rolling plains but vanilla=${baselineAverage.fmt1()} candidate=${candidateAverage.fmt1()}. " +
+                "relief=$relief ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              relief <= 18,
+              "[hilly_plains] expected rolling plains relief, not intact mountains; relief=$relief. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              waterColumns < candidate.size / 3,
+              "[hilly_plains] expected mostly dry rolling plains, not a water basin; water=$waterColumns/${candidate.size}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+          }
+          ScenarioExpectation.FLAT_PLAINS -> {
+            val baselineAverage = averageSurface(vanilla)
+            val candidateAverage = averageSurface(candidate)
+            val waterColumns =
+              candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
+            val relief = surfaceRelief(candidate)
+            assertTrue(
+              candidateAverage <= baselineAverage - 6.0,
+              "[flat_plains] expected the mountain frame to flatten well below vanilla but vanilla=${baselineAverage.fmt1()} candidate=${candidateAverage.fmt1()}. " +
+                "relief=$relief ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              relief <= 14,
+              "[flat_plains] expected near-flat plains relief, not remaining mountains; relief=$relief. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              waterColumns < candidate.size / 4,
+              "[flat_plains] expected dry flat plains, not a water basin; water=$waterColumns/${candidate.size}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+          }
+          ScenarioExpectation.LOWLANDS -> {
+            val baselineAverage = averageSurface(vanilla)
+            val candidateAverage = averageSurface(candidate)
+            val waterColumns =
+              candidate.values.count { "water" in it.groundBlock || "water" in it.coverBlock }
+            assertTrue(
+              candidateAverage <= baselineAverage - 4.0,
+              "[lowlands] expected average surface to drop by at least 4 blocks but vanilla=${baselineAverage.fmt1()} candidate=${candidateAverage.fmt1()}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+            assertTrue(
+              waterColumns < candidate.size / 2,
+              "[lowlands] expected a mostly dry basin, not an ocean; water=$waterColumns/${candidate.size}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+          }
+          ScenarioExpectation.RIDGE_VALLEY -> {
+            val baselineAverage = averageSurface(vanilla)
+            val candidateAverage = averageSurface(candidate)
+            assertTrue(
+              candidateAverage <= baselineAverage - 2.0,
+              "[ridge_valley] expected valley corridor to sit below vanilla average surface but vanilla=${baselineAverage.fmt1()} candidate=${candidateAverage.fmt1()}. " +
+                "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
+            )
+          }
         }
       }
     } finally {
+      NoiseDebug.enabled = noiseDebugWas
       PresetRegistry.forcePresetId = null
       for (presetId in registeredPresetIds) {
         PresetRegistry.presets.remove(presetId)

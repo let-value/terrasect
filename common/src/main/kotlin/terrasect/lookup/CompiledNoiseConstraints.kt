@@ -3,6 +3,7 @@ package terrasect.lookup
 import org.slf4j.LoggerFactory
 import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
+import terrasect.handler.NoiseDebug
 
 private val LOGGER = LoggerFactory.getLogger("Terrasect/CompiledNoiseRegistry")
 
@@ -19,18 +20,22 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
       val map = IdentityHashMap<Region, NoiseConstraints>()
       collectRecursively(root, map)
       return if (map.isEmpty()) {
-        LOGGER.info(
-          "[NC-Registry] build: no noise-constrained regions found under root={}",
-          root.name,
-        )
+        NoiseDebug.ifEnabled {
+          LOGGER.info(
+            "[NC-Registry] build: no noise-constrained regions found under root={}",
+            root.name,
+          )
+        }
         null
       } else {
-        LOGGER.info(
-          "[NC-Registry] build: {} noise-constrained region(s) under root={}: {}",
-          map.size,
-          root.name,
-          map.keys.joinToString { it.name },
-        )
+        NoiseDebug.ifEnabled {
+          LOGGER.info(
+            "[NC-Registry] build: {} noise-constrained region(s) under root={}: {}",
+            map.size,
+            root.name,
+            map.keys.joinToString { it.name },
+          )
+        }
         CompiledNoiseRegistry(map)
       }
     }
@@ -40,13 +45,15 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
         val noise = region.noise
         if (noise != null && noise.hasAnyConstraints()) {
           map[region] = noise
-          LOGGER.info(
-            "[NC-Registry] collected region={} densityFunctions=[{}] noises=[{}] blendWidth={}",
-            region.name,
-            noise.densityFunctions.keys.joinToString(),
-            noise.noises.keys.joinToString(),
-            noise.blendWidth,
-          )
+          NoiseDebug.ifEnabled {
+            LOGGER.info(
+              "[NC-Registry] collected region={} densityFunctions=[{}] noises=[{}] blendWidth={}",
+              region.name,
+              noise.densityFunctions.keys.joinToString(),
+              noise.noises.keys.joinToString(),
+              noise.blendWidth,
+            )
+          }
         }
       }
       for (child in region.children) {
