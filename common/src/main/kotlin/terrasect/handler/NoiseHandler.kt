@@ -4,12 +4,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseRouter
-import org.slf4j.LoggerFactory
 import terrasect.extender.ChunkAccessExtender
 import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
 
-private val LOGGER = LoggerFactory.getLogger("Terrasect/NoiseHandler")
 private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
 private const val TRACE_PER_KEY_LIMIT = 8
@@ -53,18 +51,22 @@ object NoiseHandler {
 
   @JvmStatic
   fun logCapturedDensityKey(key: String) {
-    NoiseDebug.ifEnabled {
+    if (NoiseScope.densityFunction.isTraceEnabled) {
       val count = holderKeyLogCount.incrementAndGet()
-      if (count <= 24) LOGGER.info("[NC-HolderKey] captured density holder key={}", key)
+      if (count <= 24) {
+        NoiseScope.densityFunction.trace { "[NC-HolderKey] captured density holder key=$key" }
+      }
     }
   }
 
   @JvmStatic
   fun logMissingDensityChunk(key: String) {
-    NoiseDebug.ifEnabled {
+    if (NoiseScope.densityFunction.isTraceEnabled) {
       val count = missingHolderChunkLogCount.incrementAndGet()
       if (count <= 24) {
-        LOGGER.info("[NC-HolderKey] skipped keyed value key={} because chunk context is missing", key)
+        NoiseScope.densityFunction.trace {
+          "[NC-HolderKey] skipped keyed value key=$key because chunk context is missing"
+        }
       }
     }
   }
@@ -152,22 +154,12 @@ object NoiseHandler {
 
     val transformed = transform.apply(original)
 
-    NoiseDebug.ifEnabled {
+    if (NoiseScope.densityFunction.isTraceEnabled) {
       val hitNum = modifyHitCount.incrementAndGet()
       if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
-        LOGGER.info(
-          "[NC-NoiseHandler] CONSTRAINT HIT #{}: key={} block=({}, {}, {}) region={} orig={} transformed={} strength={} sdfDist={}",
-          hitNum,
-          key,
-          blockX,
-          blockY,
-          blockZ,
-          region.name,
-          original.fmt4(),
-          transformed.fmt4(),
-          strength.fmt3(),
-          sdfDist.fmt1(),
-        )
+        NoiseScope.densityFunction.trace {
+          "[NC-NoiseHandler] CONSTRAINT HIT #$hitNum: key=$key block=($blockX, $blockY, $blockZ) region=${region.name} orig=${original.fmt4()} transformed=${transformed.fmt4()} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}"
+        }
       }
       if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) {
         trace(
@@ -199,26 +191,21 @@ object NoiseHandler {
     chunk: ChunkContext?,
   ): NoiseRouter {
     if (chunk == null) {
-      NoiseDebug.ifEnabled {
+      if (NoiseScope.handler.isDebugEnabled) {
         val n = counter.incrementAndGet()
         if (n <= 8 || n % 500 == 0)
-          LOGGER.warn("[NC-NoiseHandler] {} #{} skipped: chunkContext=NULL", label, n)
+          NoiseScope.handler.debug { "[NC-NoiseHandler] $label #$n skipped: chunkContext=NULL" }
       }
       return router
     }
 
-    NoiseDebug.ifEnabled {
+    if (NoiseScope.handler.isDebugEnabled) {
       val registry = chunk.dimensionContext?.noiseRegistry
       val n = counter.incrementAndGet()
       if (n <= 8 || n % 500 == 0) {
-        LOGGER.info(
-          "[NC-NoiseHandler] {} #{}: dim={} hasRegistry={} regionCount={}",
-          label,
-          n,
-          chunk.dimensionContext?.dimensionId ?: "null",
-          registry != null,
-          registry?.size() ?: 0,
-        )
+        NoiseScope.handler.debug {
+          "[NC-NoiseHandler] $label #$n: dim=${chunk.dimensionContext?.dimensionId ?: "null"} hasRegistry=${registry != null} regionCount=${registry?.size() ?: 0}"
+        }
       }
     }
     return NoiseRouter(
@@ -251,7 +238,7 @@ object NoiseHandler {
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+    if (NoiseScope.originNoise.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
   }
 
   private fun trace(
@@ -266,17 +253,9 @@ object NoiseHandler {
     val bucket = if (status.startsWith("hit=")) "$key|hit" else "$key|$status"
     val count = originTraceCounts.computeIfAbsent(bucket) { AtomicInteger() }.incrementAndGet()
     if (count <= TRACE_PER_KEY_LIMIT) {
-      LOGGER.info(
-        "[NC-OriginNoise] sample #{} key={} block=({}, {}, {}) original={} transformed={} {}",
-        count,
-        key,
-        blockX,
-        blockY,
-        blockZ,
-        original.fmt4(),
-        transformed?.fmt4() ?: "unchanged",
-        status,
-      )
+      NoiseScope.originNoise.trace {
+        "[NC-OriginNoise] sample #$count key=$key block=($blockX, $blockY, $blockZ) original=${original.fmt4()} transformed=${transformed?.fmt4() ?: "unchanged"} $status"
+      }
     }
   }
 }

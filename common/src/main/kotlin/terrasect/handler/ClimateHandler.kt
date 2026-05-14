@@ -5,14 +5,12 @@ import kotlin.math.max
 import kotlin.math.min
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
-import org.slf4j.LoggerFactory
 import terrasect.definition.ClimateRange
 import terrasect.extender.ClimateTargetPointExtender
 import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
 
-private val LOGGER = LoggerFactory.getLogger("Terrasect/ClimateHandler")
 private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
 
@@ -94,7 +92,7 @@ object ClimateHandler {
 
     // Capture originals only when tracing — no allocation on the normal hot path.
     val originals =
-      if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
+      if (NoiseScope.originClimate.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
         longArrayOf(
           climate.temperature,
           climate.humidity,
@@ -149,23 +147,15 @@ object ClimateHandler {
             appendAxis("weirdness", originals[5], climate.weirdness, range)
           }
         }
-        LOGGER.info(
-          "[NC-OriginClimate] APPLIED #{} block=({}, {}) quad=({}, {}, {}) region={} axes=[{}]",
-          count,
-          blockX,
-          blockZ,
-          quadX,
-          quadY,
-          quadZ,
-          region.name,
-          axes,
-        )
+        NoiseScope.originClimate.trace {
+          "[NC-OriginClimate] APPLIED #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) region=${region.name} axes=[$axes]"
+        }
       }
     }
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (NoiseDebug.enabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+    if (NoiseScope.originClimate.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
   }
 
   private fun traceSkip(
@@ -179,16 +169,9 @@ object ClimateHandler {
   ) {
     val count = counter.incrementAndGet()
     if (count <= 3) {
-      LOGGER.info(
-        "[NC-OriginClimate] sample #{} block=({}, {}) quad=({}, {}, {}) {}",
-        count,
-        blockX,
-        blockZ,
-        quadX,
-        quadY,
-        quadZ,
-        reason,
-      )
+      NoiseScope.originClimate.trace {
+        "[NC-OriginClimate] sample #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) $reason"
+      }
     }
   }
 

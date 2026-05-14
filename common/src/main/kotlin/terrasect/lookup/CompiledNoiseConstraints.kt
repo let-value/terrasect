@@ -1,11 +1,8 @@
 package terrasect.lookup
 
-import org.slf4j.LoggerFactory
 import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
-import terrasect.handler.NoiseDebug
-
-private val LOGGER = LoggerFactory.getLogger("Terrasect/CompiledNoiseRegistry")
+import terrasect.handler.NoiseScope
 
 class CompiledNoiseRegistry
 private constructor(private val constraints: IdentityHashMap<Region, NoiseConstraints>) {
@@ -20,21 +17,13 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
       val map = IdentityHashMap<Region, NoiseConstraints>()
       collectRecursively(root, map)
       return if (map.isEmpty()) {
-        NoiseDebug.ifEnabled {
-          LOGGER.info(
-            "[NC-Registry] build: no noise-constrained regions found under root={}",
-            root.name,
-          )
+        NoiseScope.registry.debug {
+          "[NC-Registry] build: no noise-constrained regions found under root=${root.name}"
         }
         null
       } else {
-        NoiseDebug.ifEnabled {
-          LOGGER.info(
-            "[NC-Registry] build: {} noise-constrained region(s) under root={}: {}",
-            map.size,
-            root.name,
-            map.keys.joinToString { it.name },
-          )
+        NoiseScope.registry.debug {
+          "[NC-Registry] build: ${map.size} noise-constrained region(s) under root=${root.name}: ${map.keys.joinToString { it.name }}"
         }
         CompiledNoiseRegistry(map)
       }
@@ -45,14 +34,8 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
         val noise = region.noise
         if (noise != null && noise.hasAnyConstraints()) {
           map[region] = noise
-          NoiseDebug.ifEnabled {
-            LOGGER.info(
-              "[NC-Registry] collected region={} densityFunctions=[{}] noises=[{}] blendWidth={}",
-              region.name,
-              noise.densityFunctions.keys.joinToString(),
-              noise.noises.keys.joinToString(),
-              noise.blendWidth,
-            )
+          NoiseScope.registry.debug {
+            "[NC-Registry] collected region=${region.name} densityFunctions=[${noise.densityFunctions.keys.joinToString()}] noises=[${noise.noises.keys.joinToString()}] blendWidth=${noise.blendWidth}"
           }
         }
       }

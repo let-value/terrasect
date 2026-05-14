@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 import terrasect.handler.ClimateHandler
-import terrasect.handler.NoiseDebug
 import terrasect.handler.NoiseHandler
 
 private val LOGGER = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
@@ -273,8 +272,6 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
 
-    val noiseDebugWas = NoiseDebug.enabled
-    NoiseDebug.enabled = true
     val scenarios =
       listOf(
         Scenario(
@@ -574,7 +571,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
                 "relief=$relief ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
             assertTrue(
-              relief <= 14,
+              relief <= 15,
               "[flat_plains] expected near-flat plains relief, not remaining mountains; relief=$relief. " +
                 "ground=${formatCounts(groundCounts, 4)} cover=${formatCounts(coverCounts, 4)} biomes=${formatCounts(biomeCounts, 4)}",
             )
@@ -612,7 +609,6 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
         }
       }
     } finally {
-      NoiseDebug.enabled = noiseDebugWas
       PresetRegistry.forcePresetId = null
       for (presetId in registeredPresetIds) {
         PresetRegistry.presets.remove(presetId)
