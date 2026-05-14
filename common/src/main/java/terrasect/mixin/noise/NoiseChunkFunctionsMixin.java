@@ -11,7 +11,6 @@ import terrasect.extender.DensityFunctionHolderExtender;
 import terrasect.extender.NoiseChunkExtender;
 import terrasect.generation.ChunkContext;
 import terrasect.handler.NoiseHandler;
-import terrasect.helpers.ChunkDensityFunction;
 
 @Mixin(NoiseChunk.class)
 public class NoiseChunkFunctionsMixin {
@@ -30,16 +29,9 @@ public class NoiseChunkFunctionsMixin {
       return;
     }
     var key = holder.terrasect$getKey();
-    if (key == null) {
-      return;
-    }
     var chunk = ((NoiseChunkExtender) this).terrasect$getChunk();
     ChunkContext context = chunk == null ? null : chunk.terrasect$getContext();
-    if (context == null) {
-      NoiseHandler.logMissingDensityChunk(key);
-      return;
-    }
-    cir.setReturnValue(new ChunkDensityFunction(densityFunction, key, context, 1));
+    cir.setReturnValue(NoiseHandler.wrapDensity(densityFunction, key, context));
   }
 
   @WrapOperation(

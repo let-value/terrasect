@@ -8,6 +8,7 @@ import net.minecraft.world.level.biome.Climate
 import org.slf4j.LoggerFactory
 import terrasect.definition.ClimateRange
 import terrasect.extender.ClimateTargetPointExtender
+import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
 
@@ -29,20 +30,8 @@ object ClimateHandler {
   }
 
   @JvmStatic
-  fun traceSamplerSkip(quadX: Int, quadY: Int, quadZ: Int, reason: String) {
-    if (!isTraceOrigin(quadX shl 2, quadZ shl 2)) return
-    val count = samplerSkipCount.incrementAndGet()
-    if (count <= 3) {
-      LOGGER.info(
-        "[NC-OriginClimate] sampler skipped #{} quad=({}, {}, {}) reason={}",
-        count,
-        quadX,
-        quadY,
-        quadZ,
-        reason,
-      )
-    }
-  }
+  fun contextOf(noiseChunk: NoiseChunkExtender?): ChunkContext? =
+    noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
 
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
     if (dimensionContext.biomesClimate == null) return 0f to 0f
@@ -65,11 +54,16 @@ object ClimateHandler {
     quadY: Int,
     quadZ: Int,
     climate: Climate.TargetPoint,
-    chunk: ChunkContext,
+    chunk: ChunkContext?,
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
     val traceOrigin = isTraceOrigin(blockX, blockZ)
+
+    if (chunk == null) {
+      traceSkip(traceOrigin, samplerSkipCount, blockX, blockZ, quadX, quadY, quadZ, "context=NULL")
+      return
+    }
 
     val region = chunk.regions?.get(blockX, blockZ)
     if (region == null) {

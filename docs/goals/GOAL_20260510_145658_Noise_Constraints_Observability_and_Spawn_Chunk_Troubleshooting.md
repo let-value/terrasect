@@ -463,6 +463,47 @@ The old `fabric/build/gametest-screenshots/noise-narrative/desert/0000_aerial_0_
 
 ---
 
+### Follow-up: PR review comments from 2026-05-14
+
+Date: `2026-05-14 13:00 +0500`
+
+Alexander left three new review comments on PR #50. Addressed them in `/home/alex/terrasect/.worktrees/noise-narrative-constraints`:
+
+- `ClimateClimateSamplerMixin` is thin again: it only gets the return target point, asks `ClimateHandler.contextOf(...)` for the nullable chunk context, and calls `ClimateHandler.modifyClimate(...)`. Null-context trace logging now lives in `ClimateHandler.modifyClimate(...)`, which avoids the previous Java-side condition/logging block while still handling global/non-chunk climate samplers safely.
+- `NoiseChunkFunctionsMixin` no longer allocates `ChunkDensityFunction` or logs missing chunk context directly. It extracts the optional holder key and delegates wrapping/logging to `NoiseHandler.wrapDensity(...)`.
+- `NoiseHandler` no longer uses the `ConcurrentHashMap<NoiseChunkKey, ChunkAccessExtender>` creation map. `NoiseChunk.forChunk(...)` now uses a single creation-scope `ThreadLocal<ChunkAccessExtender?>`, and the `NoiseChunk` instance keeps the chunk reference after construction.
+
+Verification:
+
+```
+./gradlew --no-daemon :common:compileJava :common:compileKotlin :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 9s`).
+
+```
+./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest | tee /tmp/terrasect-noise-narrative-review-comments.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 59s`). Key evidence:
+
+```
+[NoiseNarrative][desert] surface=67-80 ground=[sand×247, short_dry_grass×4, tall_dry_grass×4, cactus×1] biomes=[desert×256]
+[NoiseNarrative][desert] diffs: height=256 ground=256 cover=0 biome=256 / 256 columns
+[NoiseNarrative][ocean] surface=63-67 ground=[water×225, grass_block×31] biomes=[deep_ocean×256]
+[NoiseNarrative][ocean] diffs: height=256 ground=232 cover=0 biome=256 / 256 columns
+```
+
+```
+git diff --check
+```
+
+Result: **PASS**.
+
+Note: `./gradlew spotlessCheck` was attempted and still reports pre-existing generated `minecraft/...` formatting violations outside the PR scope, so verification used compile, live GameTest, and `git diff --check`.
+
+---
+
 ## Provenance
 
 - Branch: `noise-narrative-constraints`

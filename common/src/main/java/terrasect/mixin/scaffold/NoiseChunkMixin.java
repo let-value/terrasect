@@ -1,8 +1,8 @@
 package terrasect.mixin.scaffold;
 
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,7 +30,7 @@ public class NoiseChunkMixin implements NoiseChunkExtender {
       Aquifer.FluidPicker fluidPicker,
       Blender blender,
       CallbackInfo ci) {
-    this.terrasect$chunk = NoiseHandler.getNoiseChunkCreation(randomState, j, k);
+    this.terrasect$chunk = NoiseHandler.getNoiseChunkCreation();
   }
 
   @Inject(method = "forChunk", at = @At("HEAD"))
@@ -42,9 +42,7 @@ public class NoiseChunkMixin implements NoiseChunkExtender {
       Aquifer.FluidPicker fluidPicke,
       Blender blender,
       CallbackInfoReturnable<NoiseChunk> cir) {
-    var chunkPos = chunk.getPos();
-    NoiseHandler.beginNoiseChunkCreation(
-        state, chunkPos.getMinBlockX(), chunkPos.getMinBlockZ(), (ChunkAccessExtender) chunk);
+    NoiseHandler.beginNoiseChunkCreation((ChunkAccessExtender) chunk);
   }
 
   @Inject(method = "forChunk", at = @At("RETURN"))
@@ -56,8 +54,7 @@ public class NoiseChunkMixin implements NoiseChunkExtender {
       Aquifer.FluidPicker fluidPicke,
       Blender blender,
       CallbackInfoReturnable<NoiseChunk> cir) {
-    var chunkPos = chunk.getPos();
-    NoiseHandler.endNoiseChunkCreation(state, chunkPos.getMinBlockX(), chunkPos.getMinBlockZ());
+    NoiseHandler.endNoiseChunkCreation();
   }
 
   @Override

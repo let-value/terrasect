@@ -2,6 +2,7 @@ package terrasect.handler
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseRouter
 import org.slf4j.LoggerFactory
 import terrasect.extender.ChunkAccessExtender
@@ -14,7 +15,7 @@ private const val TRACE_BLOCK_Z = 0
 private const val TRACE_PER_KEY_LIMIT = 8
 
 object NoiseHandler {
-  private val noiseChunkCreations = ConcurrentHashMap<NoiseChunkKey, ChunkAccessExtender>()
+  private val pendingNoiseChunkCreation = ThreadLocal<ChunkAccessExtender?>()
   private val routerWrapCount = AtomicInteger()
   private val climateRouterWrapCount = AtomicInteger()
   private val modifyHitCount = AtomicInteger()
@@ -27,23 +28,17 @@ object NoiseHandler {
   }
 
   @JvmStatic
-  fun beginNoiseChunkCreation(
-    random: Any,
-    firstNoiseX: Int,
-    firstNoiseZ: Int,
-    chunk: ChunkAccessExtender,
-  ) {
-    noiseChunkCreations[NoiseChunkKey(random, firstNoiseX, firstNoiseZ)] = chunk
+  fun beginNoiseChunkCreation(chunk: ChunkAccessExtender) {
+    pendingNoiseChunkCreation.set(chunk)
   }
 
   @JvmStatic
-  fun endNoiseChunkCreation(random: Any, firstNoiseX: Int, firstNoiseZ: Int) {
-    noiseChunkCreations.remove(NoiseChunkKey(random, firstNoiseX, firstNoiseZ))
+  fun endNoiseChunkCreation() {
+    pendingNoiseChunkCreation.remove()
   }
 
   @JvmStatic
-  fun getNoiseChunkCreation(random: Any, firstNoiseX: Int, firstNoiseZ: Int): ChunkAccessExtender? =
-    noiseChunkCreations[NoiseChunkKey(random, firstNoiseX, firstNoiseZ)]
+  fun getNoiseChunkCreation(): ChunkAccessExtender? = pendingNoiseChunkCreation.get()
 
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter =
@@ -65,6 +60,16 @@ object NoiseHandler {
     if (count <= 24) {
       LOGGER.info("[NC-HolderKey] skipped keyed value key={} because chunk context is missing", key)
     }
+  }
+
+  @JvmStatic
+  fun wrapDensity(function: DensityFunction, key: String?, chunk: ChunkContext?): DensityFunction {
+    if (key == null || function is ChunkDensityFunction) return function
+    if (chunk == null) {
+      logMissingDensityChunk(key)
+      return function
+    }
+    return ChunkDensityFunction(function, key, chunk, 1)
   }
 
   @JvmStatic
@@ -179,11 +184,11 @@ object NoiseHandler {
   }
 
   private fun wrapDensityFunction(
-    function: net.minecraft.world.level.levelgen.DensityFunction,
+    function: DensityFunction,
     key: String,
     chunk: ChunkContext,
     scale: Int = 1,
-  ): net.minecraft.world.level.levelgen.DensityFunction {
+  ): DensityFunction {
     if (function is ChunkDensityFunction) return function
     return ChunkDensityFunction(function, key, chunk, scale)
   }
@@ -216,15 +221,6 @@ object NoiseHandler {
     }
     return null
   }
-}
-
-private data class NoiseChunkKey(
-  val randomIdentity: Int,
-  val firstNoiseX: Int,
-  val firstNoiseZ: Int,
-) {
-  constructor(random: Any, firstNoiseX: Int, firstNoiseZ: Int) :
-    this(System.identityHashCode(random), firstNoiseX, firstNoiseZ)
 }
 
 private fun Double.fmt4() = "%.4f".format(this)
