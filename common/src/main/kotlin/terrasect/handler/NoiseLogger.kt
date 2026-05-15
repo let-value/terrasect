@@ -6,14 +6,6 @@ import org.slf4j.LoggerFactory
 class ScopedLogger(scope: String) {
   @PublishedApi internal val logger: Logger = LoggerFactory.getLogger(scope)
 
-  inline fun traceBlock(action: () -> Unit) {
-    if (logger.isTraceEnabled) action()
-  }
-
-  inline fun debugBlock(action: () -> Unit) {
-    if (logger.isDebugEnabled) action()
-  }
-
   inline fun trace(message: () -> String) {
     if (logger.isTraceEnabled) logger.trace(message())
   }
@@ -31,7 +23,7 @@ class ScopedLogger(scope: String) {
   }
 }
 
-object NoiseScope {
+object NoiseLogger {
   val root = ScopedLogger("noise")
   val registry = ScopedLogger("noise.registry")
   val dimension = ScopedLogger("noise.dimension")

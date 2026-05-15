@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.extender.DensityFunctionHolderExtender;
 import terrasect.extender.NoiseChunkExtender;
-import terrasect.generation.ChunkContext;
 import terrasect.handler.NoiseHandler;
 
 @Mixin(NoiseChunk.class)
@@ -22,7 +21,7 @@ public class NoiseChunkFunctionsMixin {
     }
     var key = holder.terrasect$getKey();
     var chunk = ((NoiseChunkExtender) this).terrasect$getChunk();
-    ChunkContext context = chunk == null ? null : chunk.terrasect$getContext();
+    var context = chunk == null ? null : chunk.terrasect$getContext();
     cir.setReturnValue(NoiseHandler.wrapDensity(densityFunction, key, context));
   }
 
@@ -37,7 +36,7 @@ public class NoiseChunkFunctionsMixin {
       NoiseRouter router, DensityFunction.Visitor visitor, Operation<NoiseRouter> original) {
     var result = original.call(router, visitor);
     var chunk = ((NoiseChunkExtender) this).terrasect$getChunk();
-    ChunkContext context = chunk == null ? null : chunk.terrasect$getContext();
+    var context = chunk == null ? null : chunk.terrasect$getContext();
     return NoiseHandler.wrapNoiseRouter(result, context);
   }
 }
