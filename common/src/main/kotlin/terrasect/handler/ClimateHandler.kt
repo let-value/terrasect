@@ -27,10 +27,6 @@ object ClimateHandler {
     appliedCount.set(0)
   }
 
-  @JvmStatic
-  fun contextOf(noiseChunk: NoiseChunkExtender?): ChunkContext? =
-    noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
-
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
     if (dimensionContext.biomesClimate == null) return 0f to 0f
 
@@ -52,10 +48,12 @@ object ClimateHandler {
     quadY: Int,
     quadZ: Int,
     climate: Climate.TargetPoint,
-    chunk: ChunkContext?,
+    noiseChunk: NoiseChunkExtender?,
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
+
+    val chunk: ChunkContext? = noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
 
     if (chunk == null) {
       ifOriginTrace(blockX, blockZ) {
@@ -90,9 +88,8 @@ object ClimateHandler {
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender
 
-    // Capture originals only when tracing — no allocation on the normal hot path.
     val originals =
-      if (NoiseScope.originClimate.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
+      if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
         longArrayOf(
           climate.temperature,
           climate.humidity,
@@ -155,7 +152,7 @@ object ClimateHandler {
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (NoiseScope.originClimate.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
   }
 
   private fun traceSkip(
@@ -182,7 +179,14 @@ object ClimateHandler {
     range: ClimateRange,
   ) {
     if (isNotEmpty()) append(", ")
-    append(name).append('=').append(original).append("→").append(value)
-      .append(" in ").append(range.min).append("..").append(range.max)
+    append(name)
+      .append('=')
+      .append(original)
+      .append("→")
+      .append(value)
+      .append(" in ")
+      .append(range.min)
+      .append("..")
+      .append(range.max)
   }
 }

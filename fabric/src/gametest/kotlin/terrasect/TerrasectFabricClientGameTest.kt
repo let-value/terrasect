@@ -121,7 +121,12 @@ private fun runSpawnChunk(
 
     if (screenshotLabel != null) {
       val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")
-      LOGGER.info("[NoiseNarrative][{}] screenshot -> {}/{}.png", scenarioName, screenshotDir, screenshotLabel)
+      LOGGER.info(
+        "[NoiseNarrative][{}] screenshot -> {}/{}.png",
+        scenarioName,
+        screenshotDir,
+        screenshotLabel,
+      )
       context.runOnClient(
         FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
       )

@@ -1,6 +1,6 @@
 # Noise Narrative Constraint Expansion
 
-Status: DONE
+Status: IN_PROGRESS — review follow-up addressed 2026-05-15; awaiting re-review
 
 ## User request
 
@@ -113,6 +113,13 @@ The first attempt had a wrong assertion in the ocean-world test: `assertEquals(-
 - 2026-05-10 12:06:22 UTC: Goal file created by Hermes before delegating to Claude Code.
 - 2026-05-10 (session 1): `genSources` + `unpackMinecraft` run; `NarrativeNoiseConstraintsTest` drafted but ocean-world assertion was wrong (expected floor, got ceiling).
 - 2026-05-10 (session 2): Removed explanatory comments per project style; fixed ocean-world assertion; all 4 tests green.
+- 2026-05-15 (session 3): Addressed 2026-05-15 reviewer round. Changes across 4 files:
+  - `ClimateClimateSamplerMixin.java`: removed `contextOf` call; mixin now passes `this.terrasect$noiseChunk` directly to `modifyClimate`, keeping the mixin thin.
+  - `NoiseChunkFunctionsMixin.java`: removed the `terrasect$keepKeyedHolders` inject-into-`wrap` method; `wrapNew` already handles `HolderHolder` keying via `NoiseHandler.wrapDensity`, making the `wrap` override redundant.
+  - `ClimateHandler.kt`: removed `contextOf` helper; `modifyClimate` signature changed from `ChunkContext?` to `NoiseChunkExtender?` with context derived inline; removed `isTraceEnabled` from `originals` capture guard and from `ifOriginTrace` — both now rely on the `trace { }` lambda gate.
+  - `DimensionContext.kt`: added file-level `private val log = NoiseScope.context`; all call sites compacted to `log.debug { … }`.
+  - Spotless reformatted long lines in `NoiseHandler.kt` and `TerrasectFabricClientGameTest.kt` (no logic change).
+  - Verification: `./gradlew :common:compileKotlin :common:compileJava :common:test` — BUILD SUCCESSFUL, all tests pass.
 
 ## PR URL
 

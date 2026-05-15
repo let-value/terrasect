@@ -14,14 +14,6 @@ import terrasect.handler.NoiseHandler;
 
 @Mixin(NoiseChunk.class)
 public class NoiseChunkFunctionsMixin {
-  @Inject(method = "wrap", at = @At("HEAD"), cancellable = true)
-  private void terrasect$keepKeyedHolders(
-      DensityFunction densityFunction, CallbackInfoReturnable<DensityFunction> cir) {
-    if (densityFunction instanceof DensityFunctions.HolderHolder) {
-      cir.setReturnValue(densityFunction);
-    }
-  }
-
   @Inject(method = "wrapNew", at = @At("HEAD"), cancellable = true)
   private void terrasect$wrapKeyedHolderAtCreation(
       DensityFunction densityFunction, CallbackInfoReturnable<DensityFunction> cir) {

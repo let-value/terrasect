@@ -38,8 +38,7 @@ object NoiseHandler {
     pendingNoiseChunkCreation.remove()
   }
 
-  @JvmStatic
-  fun getNoiseChunkCreation(): ChunkAccessExtender? = pendingNoiseChunkCreation.get()
+  @JvmStatic fun getNoiseChunkCreation(): ChunkAccessExtender? = pendingNoiseChunkCreation.get()
 
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter =
@@ -101,7 +100,15 @@ object NoiseHandler {
     val noiseRegistry = chunk.dimensionContext?.noiseRegistry
     if (noiseRegistry == null) {
       ifOriginTrace(blockX, blockZ) {
-        trace(key, blockX, blockY, blockZ, original, null, "region=${region.name} noiseRegistry=NULL")
+        trace(
+          key,
+          blockX,
+          blockY,
+          blockZ,
+          original,
+          null,
+          "region=${region.name} noiseRegistry=NULL",
+        )
       }
       return null
     }
@@ -238,7 +245,8 @@ object NoiseHandler {
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (NoiseScope.originNoise.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+    if (NoiseScope.originNoise.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
+      action()
   }
 
   private fun trace(

@@ -16,6 +16,8 @@ import terrasect.definition.Region
 import terrasect.handler.NoiseScope
 import terrasect.lookup.CompiledNoiseRegistry
 
+private val log = NoiseScope.context
+
 class DimensionContext(
   val presetId: String?,
   val dimensionId: String,
@@ -31,7 +33,7 @@ class DimensionContext(
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
 
   init {
-    NoiseScope.context.debug {
+    log.debug {
       "[NC-DimensionContext] built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL (no noise constraints)"}"
     }
   }
@@ -50,19 +52,19 @@ class DimensionContext(
       biomesClimate: Climate.ParameterList<Holder<Biome>>?,
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
-      NoiseScope.context.debug {
+      log.debug {
         "[NC-DimensionContext] register called: preset=$presetId force=${PresetRegistry.forcePresetId} dim=$dimensionId"
       }
       val resolvedRegistry = PresetRegistry.resolve(presetId)
       if (resolvedRegistry == null) {
-        NoiseScope.context.debug {
+        log.debug {
           "[NC-DimensionContext] no preset resolved — noise constraints disabled for $dimensionId"
         }
         return
       }
       val name = resolvedRegistry.getRoot(dimensionId)
       if (name == null) {
-        NoiseScope.context.debug {
+        log.debug {
           "[NC-DimensionContext] no root region for dim=$dimensionId in preset=$presetId"
         }
         return
@@ -72,7 +74,7 @@ class DimensionContext(
       val dimensionContext =
         DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
       map[dimensionId] = dimensionContext
-      NoiseScope.context.debug { "[NC-DimensionContext] registered dim=$dimensionId" }
+      log.debug { "[NC-DimensionContext] registered dim=$dimensionId" }
     }
 
     fun get(dimensionId: String): DimensionContext? = map[dimensionId]
