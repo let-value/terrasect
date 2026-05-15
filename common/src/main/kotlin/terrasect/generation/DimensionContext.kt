@@ -34,7 +34,7 @@ class DimensionContext(
 
   init {
     log.debug {
-      "[NC-DimensionContext] built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL (no noise constraints)"}"
+      "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL (no noise constraints)"}"
     }
   }
 
@@ -53,20 +53,16 @@ class DimensionContext(
     ) {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
       log.debug {
-        "[NC-DimensionContext] register called: preset=$presetId force=${PresetRegistry.forcePresetId} dim=$dimensionId"
+        "register called: preset=$presetId force=${PresetRegistry.forcePresetId} dim=$dimensionId"
       }
       val resolvedRegistry = PresetRegistry.resolve(presetId)
       if (resolvedRegistry == null) {
-        log.debug {
-          "[NC-DimensionContext] no preset resolved — noise constraints disabled for $dimensionId"
-        }
+        log.debug { "no preset resolved — noise constraints disabled for $dimensionId" }
         return
       }
       val name = resolvedRegistry.getRoot(dimensionId)
       if (name == null) {
-        log.debug {
-          "[NC-DimensionContext] no root region for dim=$dimensionId in preset=$presetId"
-        }
+        log.debug { "no root region for dim=$dimensionId in preset=$presetId" }
         return
       }
       val root = resolvedRegistry.buildTree(name)
@@ -74,7 +70,7 @@ class DimensionContext(
       val dimensionContext =
         DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate)
       map[dimensionId] = dimensionContext
-      log.debug { "[NC-DimensionContext] registered dim=$dimensionId" }
+      log.debug { "registered dim=$dimensionId" }
     }
 
     fun get(dimensionId: String): DimensionContext? = map[dimensionId]

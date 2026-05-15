@@ -12,6 +12,10 @@ private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
 private const val TRACE_PER_KEY_LIMIT = 8
 
+private val log = NoiseScope.handler
+private val logDf = NoiseScope.densityFunction
+private val logOrigin = NoiseScope.originNoise
+
 object NoiseHandler {
   private val pendingNoiseChunkCreation = ThreadLocal<ChunkAccessExtender?>()
   private val routerWrapCount = AtomicInteger()
@@ -50,23 +54,17 @@ object NoiseHandler {
 
   @JvmStatic
   fun logCapturedDensityKey(key: String) {
-    if (NoiseScope.densityFunction.isTraceEnabled) {
+    logDf.traceBlock {
       val count = holderKeyLogCount.incrementAndGet()
-      if (count <= 24) {
-        NoiseScope.densityFunction.trace { "[NC-HolderKey] captured density holder key=$key" }
-      }
+      if (count <= 24) logDf.trace { "captured density holder key=$key" }
     }
   }
 
   @JvmStatic
   fun logMissingDensityChunk(key: String) {
-    if (NoiseScope.densityFunction.isTraceEnabled) {
+    logDf.traceBlock {
       val count = missingHolderChunkLogCount.incrementAndGet()
-      if (count <= 24) {
-        NoiseScope.densityFunction.trace {
-          "[NC-HolderKey] skipped keyed value key=$key because chunk context is missing"
-        }
-      }
+      if (count <= 24) logDf.trace { "skipped keyed value key=$key: chunk context missing" }
     }
   }
 
@@ -161,11 +159,11 @@ object NoiseHandler {
 
     val transformed = transform.apply(original)
 
-    if (NoiseScope.densityFunction.isTraceEnabled) {
+    logDf.traceBlock {
       val hitNum = modifyHitCount.incrementAndGet()
       if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
-        NoiseScope.densityFunction.trace {
-          "[NC-NoiseHandler] CONSTRAINT HIT #$hitNum: key=$key block=($blockX, $blockY, $blockZ) region=${region.name} orig=${original.fmt4()} transformed=${transformed.fmt4()} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}"
+        logDf.trace {
+          "CONSTRAINT HIT #$hitNum: key=$key block=($blockX, $blockY, $blockZ) region=${region.name} orig=${original.fmt4()} transformed=${transformed.fmt4()} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}"
         }
       }
       if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) {
@@ -198,20 +196,19 @@ object NoiseHandler {
     chunk: ChunkContext?,
   ): NoiseRouter {
     if (chunk == null) {
-      if (NoiseScope.handler.isDebugEnabled) {
+      log.debugBlock {
         val n = counter.incrementAndGet()
-        if (n <= 8 || n % 500 == 0)
-          NoiseScope.handler.debug { "[NC-NoiseHandler] $label #$n skipped: chunkContext=NULL" }
+        if (n <= 8 || n % 500 == 0) log.debug { "$label #$n skipped: chunkContext=NULL" }
       }
       return router
     }
 
-    if (NoiseScope.handler.isDebugEnabled) {
+    log.debugBlock {
       val registry = chunk.dimensionContext?.noiseRegistry
       val n = counter.incrementAndGet()
       if (n <= 8 || n % 500 == 0) {
-        NoiseScope.handler.debug {
-          "[NC-NoiseHandler] $label #$n: dim=${chunk.dimensionContext?.dimensionId ?: "null"} hasRegistry=${registry != null} regionCount=${registry?.size() ?: 0}"
+        log.debug {
+          "$label #$n: dim=${chunk.dimensionContext?.dimensionId ?: "null"} hasRegistry=${registry != null} regionCount=${registry?.size() ?: 0}"
         }
       }
     }
@@ -245,8 +242,7 @@ object NoiseHandler {
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (NoiseScope.originNoise.isTraceEnabled && blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
-      action()
+    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) logOrigin.traceBlock(action)
   }
 
   private fun trace(
@@ -261,8 +257,8 @@ object NoiseHandler {
     val bucket = if (status.startsWith("hit=")) "$key|hit" else "$key|$status"
     val count = originTraceCounts.computeIfAbsent(bucket) { AtomicInteger() }.incrementAndGet()
     if (count <= TRACE_PER_KEY_LIMIT) {
-      NoiseScope.originNoise.trace {
-        "[NC-OriginNoise] sample #$count key=$key block=($blockX, $blockY, $blockZ) original=${original.fmt4()} transformed=${transformed?.fmt4() ?: "unchanged"} $status"
+      logOrigin.trace {
+        "sample #$count key=$key block=($blockX, $blockY, $blockZ) original=${original.fmt4()} transformed=${transformed?.fmt4() ?: "unchanged"} $status"
       }
     }
   }

@@ -657,6 +657,88 @@ Result: **PASS**. The final live run completed successfully (`BUILD SUCCESSFUL i
 
 ---
 
+### 2026-05-15 PR #50 final review cleanup
+
+Claude session: `4d945f5a-6561-4dcc-a772-acecf9ef5337` (edits) + `current` (compile fix + commit).
+
+Addressed remaining reviewer comments from PR #50:
+
+- **`NoiseScope.kt`**: Removed public `isTraceEnabled`/`isDebugEnabled`/`isInfoEnabled`/`isWarnEnabled` flags from `ScopedLogger`. Added `traceBlock`/`debugBlock` inline block guards so callers can gate multi-step logic (counter increments, multi-line builds) without exposing level checks.
+- **`DimensionContext.kt`**: Stripped `[NC-DimensionContext]` prefix from all five debug messages; logger scope (`noise.dimension.context`) already provides context.
+- **`CompiledNoiseConstraints.kt`**: Stripped `[NC-Registry]` prefix from all three debug messages.
+- **`NoiseHandler.kt`**: Added `log`/`logDf`/`logOrigin` file-level aliases. Replaced all explicit `isDebugEnabled`/`isTraceEnabled` guards with `debugBlock { }`/`traceBlock { }` call sites so counters and string formatting run only when the logger level is active. Stripped `[NC-HolderKey]`/`[NC-NoiseHandler]`/`[NC-OriginNoise]` prefixes.
+- **`ClimateHandler.kt`**: Fixed `ifOriginTrace` to also check the logger scope (`NoiseScope.originClimate.traceBlock`). Moved `originals` LongArray capture inside the coordinate + trace gate to avoid hot-path allocation when diagnostics are off. Replaced `originals!!` dereferences inside the `trace { }` lambda with a `?.let { o -> }` capture to eliminate compile warnings. Stripped `[NC-OriginClimate]` prefixes.
+- **`TerrasectFabricClientGameTest.kt`**: Updated two human-readable hint strings to reference scoped logger names (`noise.handler`, `noise.handler.origin.noise`, `noise.handler.densityFunction`) instead of `[NC-*]` patterns.
+
+Verification:
+
+```
+JAVA_HOME=/home/alex/.local/share/mise/installs/java/21 \
+  ./gradlew --no-daemon :common:compileKotlin :common:compileJava \
+            :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 5s`).
+
+```
+git diff --check
+```
+
+Result: **PASS** (no whitespace issues).
+
+Full `runClientGameTest` skipped in this session (no display available); last passing live run was recorded in the prior session entry above. Compile and diff-check are the targeted validations for this cleanup-only pass.
+
+---
+
+### 2026-05-15 final regression review before merge
+
+Alexander asked for review of the last two commits because review comments/fixes were intended to be code-quality-only and should not regress world generation.
+
+Claude Code was dispatched first with an instruction to load the Terrasect workflow, inspect the last two commits, identify semantic worldgen regressions, and prepare PR #50 for merge. Claude identified the risk in the scenario tuning path but could not complete the full verification/fix cycle, so Hermes finished it directly.
+
+Findings:
+
+- The application/worldgen implementation changes in the recent commits are logging/diagnostic cleanup only; they do not change the constraint pipeline semantics.
+- The regression was in the client GameTest scenario tuning in `TerrasectFabricClientGameTest.kt`, where some narrative scenarios had been pushed below sea level by negative `finalDensity` / surface-level adjustments while the intent was still dry terrain evidence.
+- The fix keeps the stronger semantic assertions but retunes only the GameTest scenario inputs so the scenarios are deterministic and visually/semantically aligned again:
+  - `desert`: hot desert remains dry and sand-dominant.
+  - `ocean`: remains water-dominant deep ocean.
+  - `hilly_plains` / `flat_plains`: stay dry, below vanilla, and bounded in relief.
+  - `lowlands`: drops at least four blocks without becoming ocean.
+  - `ridge_valley`: remains the intentional flooded corridor case.
+
+Verification:
+
+```
+./gradlew --no-daemon :common:compileKotlin :common:compileJava :fabric:compileGametestKotlin :fabric:compileClientKotlin
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 5s`).
+
+```
+rm -rf fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest
+set -o pipefail; ./gradlew --no-daemon :fabric:runClientGameTest -Ptest=TerrasectFabricClientGameTest 2>&1 | tee /tmp/terrasect-noise-gametest-final-pass.log
+```
+
+Result: **PASS** (`BUILD SUCCESSFUL in 1m 42s`). The refreshed screenshots are under `fabric/build/gametest-screenshots/NoiseNarrativeConstraintTest/`.
+
+Key live evidence from the final pass:
+
+- `desert`: `surface=70-74 avg=71.6`, `ground=[sand×246, short_dry_grass×6, tall_dry_grass×3, cactus_flower×1]`, `biomes=[desert×256]`.
+- `ocean`: `surface=63-67 avg=63.3`, `ground=[water×225, grass_block×31]`, `biomes=[deep_ocean×256]`.
+- `hilly_plains`: `surface=71-86 avg=75.8`, dry forest/plains-like frame, `diffs: height=252 ground=177 biome=256 / 256`.
+- `flat_plains`: `surface=70-79 avg=74.1`, dry forest/plains-like frame, `diffs: height=247 ground=174 biome=256 / 256`.
+- `lowlands`: `surface=71-84 avg=76.9`, dry plains, `diffs: height=256 ground=43 biome=0 / 256`.
+- `ridge_valley`: intentional water corridor, `surface=63-64 avg=63.0`, `ground=[water×249, lily_pad×7]`, `biomes=[swamp×256]`.
+
+```
+git diff --check
+```
+
+Result: **PASS** (no whitespace issues).
+
+---
+
 ## Provenance
 
 - Branch: `noise-narrative-constraints`

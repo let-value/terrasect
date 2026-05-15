@@ -88,17 +88,20 @@ object ClimateHandler {
 
     @Suppress("CAST_NEVER_SUCCEEDS") val extender = climate as ClimateTargetPointExtender
 
-    val originals =
-      if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z)
-        longArrayOf(
-          climate.temperature,
-          climate.humidity,
-          climate.continentalness,
-          climate.erosion,
-          climate.depth,
-          climate.weirdness,
-        )
-      else null
+    var originals: LongArray? = null
+    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) {
+      NoiseScope.originClimate.traceBlock {
+        originals =
+          longArrayOf(
+            climate.temperature,
+            climate.humidity,
+            climate.continentalness,
+            climate.erosion,
+            climate.depth,
+            climate.weirdness,
+          )
+      }
+    }
 
     constraints.temperature?.let { range ->
       extender.`terrasect$setTemperature`(climate.temperature.coerceIn(range.min, range.max))
@@ -121,38 +124,38 @@ object ClimateHandler {
       extender.`terrasect$setWeirdness`(climate.weirdness.coerceIn(range.min, range.max))
     }
 
-    if (originals != null) {
+    originals?.let { o ->
       val count = appliedCount.incrementAndGet()
       if (count <= 8) {
-        val axes = buildString {
-          constraints.temperature?.let { range ->
-            appendAxis("temperature", originals[0], climate.temperature, range)
-          }
-          constraints.humidity?.let { range ->
-            appendAxis("humidity", originals[1], climate.humidity, range)
-          }
-          constraints.continentalness?.let { range ->
-            appendAxis("continentalness", originals[2], climate.continentalness, range)
-          }
-          constraints.erosion?.let { range ->
-            appendAxis("erosion", originals[3], climate.erosion, range)
-          }
-          constraints.depth?.let { range ->
-            appendAxis("depth", originals[4], climate.depth, range)
-          }
-          constraints.weirdness?.let { range ->
-            appendAxis("weirdness", originals[5], climate.weirdness, range)
-          }
-        }
         NoiseScope.originClimate.trace {
-          "[NC-OriginClimate] APPLIED #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) region=${region.name} axes=[$axes]"
+          val axes = buildString {
+            constraints.temperature?.let { range ->
+              appendAxis("temperature", o[0], climate.temperature, range)
+            }
+            constraints.humidity?.let { range ->
+              appendAxis("humidity", o[1], climate.humidity, range)
+            }
+            constraints.continentalness?.let { range ->
+              appendAxis("continentalness", o[2], climate.continentalness, range)
+            }
+            constraints.erosion?.let { range ->
+              appendAxis("erosion", o[3], climate.erosion, range)
+            }
+            constraints.depth?.let { range ->
+              appendAxis("depth", o[4], climate.depth, range)
+            }
+            constraints.weirdness?.let { range ->
+              appendAxis("weirdness", o[5], climate.weirdness, range)
+            }
+          }
+          "APPLIED #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) region=${region.name} axes=[$axes]"
         }
       }
     }
   }
 
   private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
+    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) NoiseScope.originClimate.traceBlock(action)
   }
 
   private fun traceSkip(
@@ -167,7 +170,7 @@ object ClimateHandler {
     val count = counter.incrementAndGet()
     if (count <= 3) {
       NoiseScope.originClimate.trace {
-        "[NC-OriginClimate] sample #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) $reason"
+        "sample #$count block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) $reason"
       }
     }
   }

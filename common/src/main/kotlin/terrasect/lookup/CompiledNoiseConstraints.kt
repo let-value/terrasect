@@ -18,12 +18,12 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
       collectRecursively(root, map)
       return if (map.isEmpty()) {
         NoiseScope.registry.debug {
-          "[NC-Registry] build: no noise-constrained regions found under root=${root.name}"
+          "build: no noise-constrained regions found under root=${root.name}"
         }
         null
       } else {
         NoiseScope.registry.debug {
-          "[NC-Registry] build: ${map.size} noise-constrained region(s) under root=${root.name}: ${map.keys.joinToString { it.name }}"
+          "build: ${map.size} noise-constrained region(s) under root=${root.name}: ${map.keys.joinToString { it.name }}"
         }
         CompiledNoiseRegistry(map)
       }
@@ -35,7 +35,7 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
         if (noise != null && noise.hasAnyConstraints()) {
           map[region] = noise
           NoiseScope.registry.debug {
-            "[NC-Registry] collected region=${region.name} densityFunctions=[${noise.densityFunctions.keys.joinToString()}] noises=[${noise.noises.keys.joinToString()}] blendWidth=${noise.blendWidth}"
+            "collected region=${region.name} densityFunctions=[${noise.densityFunctions.keys.joinToString()}] noises=[${noise.noises.keys.joinToString()}] blendWidth=${noise.blendWidth}"
           }
         }
       }

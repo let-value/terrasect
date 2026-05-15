@@ -6,17 +6,13 @@ import org.slf4j.LoggerFactory
 class ScopedLogger(scope: String) {
   @PublishedApi internal val logger: Logger = LoggerFactory.getLogger(scope)
 
-  val isTraceEnabled: Boolean
-    get() = logger.isTraceEnabled
+  inline fun traceBlock(action: () -> Unit) {
+    if (logger.isTraceEnabled) action()
+  }
 
-  val isDebugEnabled: Boolean
-    get() = logger.isDebugEnabled
-
-  val isInfoEnabled: Boolean
-    get() = logger.isInfoEnabled
-
-  val isWarnEnabled: Boolean
-    get() = logger.isWarnEnabled
+  inline fun debugBlock(action: () -> Unit) {
+    if (logger.isDebugEnabled) action()
+  }
 
   inline fun trace(message: () -> String) {
     if (logger.isTraceEnabled) logger.trace(message())
