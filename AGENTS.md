@@ -17,10 +17,13 @@ Terrasect is a multiloader Minecraft mod developed for version **1.21.11**, writ
 - **`neoforge/`**: NeoForge-specific implementation and entrypoints.
   - `terrasect.TerrasectNeoForge`: Main `@Mod` class, handling NeoForge event buses.
 - **`compat/c2me/`**: A Git submodule pointing to [C2ME-fabric](https://github.com/RelativityMC/C2ME-fabric.git), used for performance enhancements.
+- **`legacy/`**: Legacy multiloader workspace retained in-repo (`legacy/common`, `legacy/fabric`, `legacy/neoforge`, `legacy/*-template`). Prefer editing top-level modules unless a task explicitly targets legacy code.
+- **`docs/`**: Project docs and operational context (for example `docs/PROJECT_MAP.md`, `docs/KNOWLEDGE_BASE.md`, and `docs/TODO.md`) that can speed up onboarding and planning.
 
 ## Building and Running
 The project uses **Gradle** as its build system.
 
+- **Windows shell (PowerShell/cmd):** Use `./gradlew.bat` equivalents for commands below (for example `./gradlew.bat build`).
 - **Build all modules:** `./gradlew build`
 - **Build specific loader:** `./gradlew :fabric:build` or `./gradlew :neoforge:build`
 - **Run Fabric Client:** `./gradlew :fabric:runClient`

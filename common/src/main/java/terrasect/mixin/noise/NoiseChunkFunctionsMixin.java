@@ -5,11 +5,26 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.level.levelgen.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import terrasect.extender.DensityFunctionHolderExtender;
 import terrasect.extender.NoiseChunkExtender;
 import terrasect.handler.NoiseHandler;
 
 @Mixin(NoiseChunk.class)
 public class NoiseChunkFunctionsMixin {
+  @Inject(method = "wrapNew", at = @At("HEAD"), cancellable = true)
+  private void terrasect$wrapKeyedHolderAtCreation(
+      DensityFunction densityFunction, CallbackInfoReturnable<DensityFunction> cir) {
+    if (!(densityFunction instanceof DensityFunctionHolderExtender holder)) {
+      return;
+    }
+    var key = holder.terrasect$getKey();
+    var chunk = ((NoiseChunkExtender) this).terrasect$getChunk();
+    var context = chunk == null ? null : chunk.terrasect$getContext();
+    cir.setReturnValue(NoiseHandler.wrapDensity(densityFunction, key, context));
+  }
+
   @WrapOperation(
       method = "<init>",
       at =
@@ -20,8 +35,8 @@ public class NoiseChunkFunctionsMixin {
   private NoiseRouter terrasect$attachChunkToDensityFunctions(
       NoiseRouter router, DensityFunction.Visitor visitor, Operation<NoiseRouter> original) {
     var result = original.call(router, visitor);
-
-    var context = ((NoiseChunkExtender) this).terrasect$getChunk().terrasect$getContext();
+    var chunk = ((NoiseChunkExtender) this).terrasect$getChunk();
+    var context = chunk == null ? null : chunk.terrasect$getContext();
     return NoiseHandler.wrapNoiseRouter(result, context);
   }
 }

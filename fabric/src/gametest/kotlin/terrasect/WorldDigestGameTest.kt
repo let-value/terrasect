@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.function.FailableConsumer
@@ -41,7 +43,7 @@ private fun parseColumnsSnapshot(path: Path): Map<String, Pair<Int, Int>> {
   val text = SnapshotFile.fromSnapshotFile(path).snapshot()
   return text
     .lineSequence()
-    .drop(1) // header row: x,z,ocean_floor,world_surface
+    .drop(1)
     .filter { it.isNotBlank() }
     .associate { line ->
       val parts = line.split(",")
@@ -71,7 +73,7 @@ private fun diffAgainstVanilla(terrasectSimpleName: String) {
     }
   }
 
-  val diffLines = diffText.lines().count { it.isNotBlank() } - 1 // subtract header
+  val diffLines = diffText.lines().count { it.isNotBlank() } - 1
   if (diffLines <= 0) {
     LOGGER.warn(
       "[WorldDigest] Terrasect produced NO terrain differences vs vanilla — is the preset active?"
@@ -204,8 +206,8 @@ private fun computeWorldDigest(
     context.runOnClient(
       FailableConsumer<Minecraft, Exception> { client ->
         client.player?.let { player ->
-          client.player?.xRot = 90f // pitch 90° = looking straight down
-          client.player?.yRot = 0f // face north for a consistent orientation
+          client.player?.xRot = 25f
+          client.player?.yRot = 0f
           player.abilities.mayfly = true
           player.abilities.flying = true
           player.onUpdateAbilities()
@@ -231,13 +233,47 @@ private fun computeWorldDigest(
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
           val level = server.overworld()
+          val blockCounts = LinkedHashMap<String, Int>()
+          val biomeCounts = LinkedHashMap<String, Int>()
+          val surfaces = mutableListOf<Int>()
           for (bx in x until x + 16) {
             for (bz in z until z + 16) {
               val oceanFloor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, bx, bz)
               val worldSurface = level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz)
               allColumns["$bx,$bz"] = oceanFloor to worldSurface
+              surfaces.add(worldSurface)
+              val surfaceY = worldSurface - 1
+              val block = level.getBlockState(BlockPos(bx, surfaceY, bz)).block
+              val blockName = BuiltInRegistries.BLOCK.getKey(block).toString()
+              blockCounts[blockName] = (blockCounts[blockName] ?: 0) + 1
+              val biome =
+                level
+                  .getBiome(BlockPos(bx, worldSurface, bz))
+                  .unwrapKey()
+                  .map { it.toString() }
+                  .orElse("unknown")
+              biomeCounts[biome] = (biomeCounts[biome] ?: 0) + 1
             }
           }
+          val topBlocks =
+            blockCounts.entries
+              .sortedByDescending { it.value }
+              .take(3)
+              .joinToString { "${it.key.substringAfterLast(':')}×${it.value}" }
+          val topBiomes =
+            biomeCounts.entries
+              .sortedByDescending { it.value }
+              .take(2)
+              .joinToString { "${it.key.substringAfterLast(':')}×${it.value}" }
+          LOGGER.info(
+            "[WorldDigest] probe ({},{}) surface={}-{} blocks=[{}] biomes=[{}]",
+            x,
+            z,
+            surfaces.min(),
+            surfaces.max(),
+            topBlocks,
+            topBiomes,
+          )
         }
       )
 
