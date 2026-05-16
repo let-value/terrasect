@@ -12,6 +12,7 @@ import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import terrasect.extender.ChunkAccessExtender;
 import terrasect.handler.StructureHandler;
 
 @Mixin(targets = "net.minecraft.world.level.chunk.ChunkGenerator")
@@ -30,7 +31,8 @@ public class ChunkGeneratorStructureMixin {
       @Local(argsOnly = true) ResourceKey<Level> dimensionKey) {
     var sets = original.call(state);
     var chunkPos = chunkAccess.getPos();
-    var filtered = StructureHandler.getFilteredSets(dimensionKey, chunkPos.x, chunkPos.z);
+    var chunkCtx = ((ChunkAccessExtender) chunkAccess).terrasect$getContext();
+    var filtered = StructureHandler.getFilteredSets(chunkCtx, dimensionKey, chunkPos.x, chunkPos.z);
     return filtered != null ? filtered : sets;
   }
 }

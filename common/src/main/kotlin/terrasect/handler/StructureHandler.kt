@@ -8,18 +8,31 @@ import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.StructureConstraints
+import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
 
 object StructureHandler {
+  /**
+   * Returns filtered structure sets for chunk creation. When a pre-built [ChunkContext] is
+   * available it reads the region from the pre-computed grid, avoiding a re-traversal per chunk.
+   */
   @JvmStatic
   fun getFilteredSets(
+    chunkContext: ChunkContext?,
     dimensionKey: ResourceKey<Level>,
     chunkX: Int,
     chunkZ: Int,
   ): List<Holder<StructureSet>>? {
-    val ctx = DimensionContext.get(ResourceKeyCompat.getKeyId(dimensionKey)) ?: return null
+    val ctx =
+      chunkContext?.dimensionContext
+        ?: DimensionContext.get(ResourceKeyCompat.getKeyId(dimensionKey))
+        ?: return null
     val lookup = ctx.structureLookup ?: return null
-    val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return null
+    val blockX = (chunkX shl 4) + 8
+    val blockZ = (chunkZ shl 4) + 8
+    val constraints =
+      (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
+        .structures ?: return null
     return lookup.getFilteredSets(constraints)
   }
 

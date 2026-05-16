@@ -65,8 +65,22 @@ All four review comments addressed in a single commit on `structures-constraints
 - `./gradlew :common:compileKotlin :common:compileJava` — BUILD SUCCESSFUL, zero warnings.
 - `./gradlew spotlessApply` — no reformatting errors.
 
+## Second-pass review comments (addressed in follow-up commit)
+
+A second PR review pass raised six numbered comments. Status of each:
+
+1. **Thin mixin (locate path)** — already done in the first pass. `ChunkGeneratorLocateMixin` is 2 lines per handler, no business logic.
+2. **Remove `getFilteredSets` overloads** — already done. One `getFilteredSets` per layer; `resolveLocateSet` is the separate locate-path entry point.
+3. **Implement `spacing`/`separation`/`frequency` in generation path** — already done. `CompiledStructureLookup.applyPlacementOverrides` produces overridden `RandomSpreadStructurePlacement` instances; `build()` pre-warms the `filteredCache` so chunk creation always hits the cache, never recomputes.
+4. **Precompute chunk/region constraint state from `chunkAccess`** — fixed in this pass. `StructureHandler.getFilteredSets` now accepts `ChunkContext?`; when non-null it calls `chunkContext.getRegion(blockX, blockZ)` which reads from the pre-computed `PalettedGrid<Region>` instead of re-traversing the region tree per chunk.
+5. **Avoid hot-path allocations in `StructureHandler`** — fixed alongside #4. The per-chunk traversal (`ctx.traverser.traverse`) in the structure-creation path is eliminated when a `ChunkContext` is present; the locate path still traverses but it is not a hot path.
+6. **Avoid placement allocation in `applyPlacementOverrides`** — already moot. Because `build()` pre-warms all `StructureConstraints` entries at level-load time, `applyPlacementOverrides` (and any allocation it makes) runs exactly once per unique constraint set, never at chunk-creation time.
+
+### Changes in this pass
+- **`StructureHandler.kt`**: `getFilteredSets` gains a `chunkContext: ChunkContext?` leading parameter. When non-null, it resolves `DimensionContext` from `chunkContext.dimensionContext` and the region from `chunkContext.getRegion()`. Falls back to the old traversal path when `chunkContext` is null (e.g., the locate case).
+- **`ChunkGeneratorStructureMixin.java`**: casts `chunkAccess` to `ChunkAccessExtender`, extracts the attached `ChunkContext`, and forwards it to `StructureHandler.getFilteredSets`.
+
 ## Notes
 - Do not create a new branch.
 - Do not open a new PR.
 - Preserve any existing fixes unless the review comments require a refinement.
-- Once Claude quota resets, resume or rerun the same follow-up from this goal file.
