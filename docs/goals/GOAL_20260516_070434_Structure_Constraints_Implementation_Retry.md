@@ -55,6 +55,7 @@ Reviewed all existing branch work. Found the following files already in place fr
 - `./gradlew spotlessKotlinApply spotlessJavaApply` — applied (import ordering in ClimateHandler/NoiseHandler; indentation in CompiledNoiseConstraints/DimensionContext/StructureHandler/CompiledStructureLookup)
 - `./gradlew spotlessKotlinCheck spotlessJavaCheck` — **PASS**
 - `./gradlew build` — **PASS** (BUILD SUCCESSFUL in 2m 44s)
+- PR created: https://github.com/let-value/terrasect/pull/51
 
 ### Final result
 All structure-constraint machinery is complete and building clean:
