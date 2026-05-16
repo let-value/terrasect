@@ -5,6 +5,7 @@ import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.definition.Region
 import terrasect.definition.SelectionConstraints
+import terrasect.definition.StructureConstraints
 import terrasect.handler.NoiseLogger
 
 private val structureLog = NoiseLogger.registry
@@ -15,12 +16,13 @@ private constructor(
   private val index: java.util.IdentityHashMap<Structure, StructureEntry>,
 ) {
   private val filteredCache =
-    java.util.concurrent.ConcurrentHashMap<SelectionConstraints, List<Holder<StructureSet>>>()
+    java.util.concurrent.ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
 
-  fun getFilteredSets(constraints: SelectionConstraints): List<Holder<StructureSet>> =
+  fun getFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> =
     filteredCache.computeIfAbsent(constraints) { computeFilteredSets(it) }
 
-  private fun computeFilteredSets(constraints: SelectionConstraints): List<Holder<StructureSet>> {
+  private fun computeFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> {
+    val selection = constraints.selection ?: return allSets
     val result = ArrayList<Holder<StructureSet>>(allSets.size)
     for (setHolder in allSets) {
       val set = setHolder.value()
@@ -28,7 +30,7 @@ private constructor(
       val filtered =
         entries.filter { entry ->
           val meta = index[entry.structure().value()]
-          meta == null || constraints.evaluate(meta.id, meta.tags)
+          meta == null || selection.evaluate(meta.id, meta.tags)
         }
       when {
         filtered.isEmpty() -> {} // drop entirely

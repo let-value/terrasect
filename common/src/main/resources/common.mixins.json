@@ -18,6 +18,7 @@
     "scaffold.ChunkAccessMixin",
     "scaffold.LevelMixin",
     "scaffold.NoiseChunkMixin",
+    "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin"
   ],
   "injectors": {

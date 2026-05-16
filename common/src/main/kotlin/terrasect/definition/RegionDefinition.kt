@@ -15,7 +15,7 @@ open class RegionDefinition(
   val height: HeightConstraints? = null,
   val noise: NoiseConstraints? = null,
   val biomes: SelectionConstraints? = null,
-  val structures: SelectionConstraints? = null,
+  val structures: StructureConstraints? = null,
   val mobs: SelectionConstraints? = null,
 )
 
@@ -36,7 +36,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   val noiseBuilder by noiseLazyBuilder
   val biomesLazyBuilder = lazy { SelectionConstraints.builder() }
   val biomesBuilder by biomesLazyBuilder
-  val structuresLazyBuilder = lazy { SelectionConstraints.builder() }
+  val structuresLazyBuilder = lazy { StructureConstraints.builder() }
   val structuresBuilder by structuresLazyBuilder
   val mobsLazyBuilder = lazy { SelectionConstraints.builder() }
   val mobsBuilder by mobsLazyBuilder
@@ -77,7 +77,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     biomesBuilder.apply(consumer)
   }
 
-  inline fun structures(consumer: SelectionConstraints.Builder.() -> Unit) = apply {
+  inline fun structures(consumer: StructureConstraints.Builder.() -> Unit) = apply {
     structuresBuilder.apply(consumer)
   }
 
