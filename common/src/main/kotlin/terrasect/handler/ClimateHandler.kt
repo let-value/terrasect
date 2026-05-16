@@ -1,5 +1,8 @@
 package terrasect.handler
 
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
+import kotlin.math.min
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
 import terrasect.definition.ClimateRange
@@ -7,9 +10,6 @@ import terrasect.extender.ClimateTargetPointExtender
 import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
-import kotlin.math.min
 
 private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
@@ -46,11 +46,11 @@ object ClimateHandler {
   }
 
   fun modifyClimate(
-      quadX: Int,
-      quadY: Int,
-      quadZ: Int,
-      climate: Climate.TargetPoint,
-      noiseChunk: NoiseChunkExtender?,
+    quadX: Int,
+    quadY: Int,
+    quadZ: Int,
+    climate: Climate.TargetPoint,
+    noiseChunk: NoiseChunkExtender?,
   ) {
     val blockX = quadX shl 2
     val blockZ = quadZ shl 2
@@ -88,14 +88,14 @@ object ClimateHandler {
 
     ifOriginTrace(blockX, blockZ) {
       originals =
-          longArrayOf(
-              climate.temperature,
-              climate.humidity,
-              climate.continentalness,
-              climate.erosion,
-              climate.depth,
-              climate.weirdness,
-          )
+        longArrayOf(
+          climate.temperature,
+          climate.humidity,
+          climate.continentalness,
+          climate.erosion,
+          climate.depth,
+          climate.weirdness,
+        )
     }
 
     constraints.temperature?.let { range ->
@@ -106,7 +106,7 @@ object ClimateHandler {
     }
     constraints.continentalness?.let { range ->
       extender.`terrasect$setContinentalness`(
-          climate.continentalness.coerceIn(range.min, range.max)
+        climate.continentalness.coerceIn(range.min, range.max)
       )
     }
     constraints.erosion?.let { range ->
@@ -152,20 +152,20 @@ object ClimateHandler {
   }
 
   private fun StringBuilder.appendAxis(
-      name: String,
-      original: Long,
-      value: Long,
-      range: ClimateRange,
+    name: String,
+    original: Long,
+    value: Long,
+    range: ClimateRange,
   ) {
     if (isNotEmpty()) append(", ")
     append(name)
-        .append('=')
-        .append(original)
-        .append("→")
-        .append(value)
-        .append(" in ")
-        .append(range.min)
-        .append("..")
-        .append(range.max)
+      .append('=')
+      .append(original)
+      .append("→")
+      .append(value)
+      .append(" in ")
+      .append(range.min)
+      .append("..")
+      .append(range.max)
   }
 }

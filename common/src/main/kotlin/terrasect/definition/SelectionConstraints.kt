@@ -21,7 +21,7 @@ class SelectionConstraints(
       }
     }
 
-    val namespace = (resourceId)
+    val namespace = extractNamespace(resourceId)
     if (blockedMods?.contains(namespace) == true) return false
     if (allowedMods?.contains(namespace) == true) return true
 
