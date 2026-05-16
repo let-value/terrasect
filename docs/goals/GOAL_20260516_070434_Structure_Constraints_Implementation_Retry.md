@@ -57,6 +57,10 @@ Reviewed all existing branch work. Found the following files already in place fr
 - `./gradlew build` — **PASS** (BUILD SUCCESSFUL in 2m 44s)
 - PR created: https://github.com/let-value/terrasect/pull/51
 
+### PR review follow-up (2026-05-16)
+- Resolved the remaining review comment in `CompiledStructureLookup.kt` by replacing the constructor-based `RandomSpreadStructurePlacement` rebuild with a blank-instance + accessor mutation path in `RandomSpreadStructurePlacementMixin`.
+- Re-ran `./gradlew :common:compileJava :common:compileKotlin` after the follow-up — **PASS**.
+
 ### Final result
 All structure-constraint machinery is complete and building clean:
 

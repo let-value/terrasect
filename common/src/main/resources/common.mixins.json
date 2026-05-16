@@ -20,6 +20,7 @@
     "scaffold.NoiseChunkMixin",
     "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin",
+    "structure.RandomSpreadStructurePlacementMixin",
     "structure.StructurePlacementMixin"
   ],
   "injectors": {

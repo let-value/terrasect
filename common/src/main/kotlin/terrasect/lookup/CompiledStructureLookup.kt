@@ -7,6 +7,7 @@ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStruct
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 import terrasect.definition.Region
 import terrasect.definition.StructureConstraints
+import terrasect.extender.RandomSpreadStructurePlacementExtender
 import terrasect.extender.StructurePlacementExtender
 import terrasect.handler.NoiseLogger
 
@@ -90,16 +91,8 @@ private constructor(
         newFrequency == ext.`terrasect$frequency`()
     )
       return placement
-    return RandomSpreadStructurePlacement(
-      ext.`terrasect$locateOffset`(),
-      ext.`terrasect$frequencyReductionMethod`(),
-      newFrequency,
-      ext.`terrasect$salt`(),
-      ext.`terrasect$exclusionZone`(),
-      newSpacing,
-      newSeparation,
-      placement.spreadType(),
-    )
+    return (placement as RandomSpreadStructurePlacementExtender)
+      .`terrasect$withOverrides`(newSpacing, newSeparation, newFrequency)
   }
 
   companion object {
