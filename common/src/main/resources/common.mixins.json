@@ -19,7 +19,8 @@
     "scaffold.LevelMixin",
     "scaffold.NoiseChunkMixin",
     "structure.ChunkGeneratorLocateMixin",
-    "structure.ChunkGeneratorStructureMixin"
+    "structure.ChunkGeneratorStructureMixin",
+    "structure.StructurePlacementMixin"
   ],
   "injectors": {
     "defaultRequire": 1

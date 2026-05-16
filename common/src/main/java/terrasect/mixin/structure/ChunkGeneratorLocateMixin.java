@@ -3,8 +3,6 @@ package terrasect.mixin.structure;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.datafixers.util.Pair;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -13,8 +11,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraft.world.level.levelgen.structure.StructureSet.StructureSelectionEntry;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
@@ -71,30 +67,14 @@ public class ChunkGeneratorLocateMixin {
     if (!(levelReader instanceof Level level)) {
       return original.call(set, levelReader, structureManager, bl, structurePlacement, chunkPos);
     }
-
-    List<Holder<StructureSet>> filteredSets =
-        StructureHandler.getFilteredSets(level.dimension(), chunkPos.x, chunkPos.z);
-    if (filteredSets == null) {
+    Set<Holder<Structure>> allowed =
+        StructureHandler.filterStructuresForLocate(
+            set, level.dimension(), chunkPos.x, chunkPos.z);
+    if (allowed == null) {
       return original.call(set, levelReader, structureManager, bl, structurePlacement, chunkPos);
     }
-
-    HashSet<Holder<Structure>> allowed = new HashSet<>(set.size());
-    for (Holder<StructureSet> setHolder : filteredSets) {
-      StructureSet structureSet = setHolder.value();
-      if (structureSet.placement() != structurePlacement) continue;
-      for (StructureSelectionEntry entry : structureSet.structures()) {
-        Holder<Structure> structure = entry.structure();
-        if (set.contains(structure)) {
-          allowed.add(structure);
-        }
-      }
-    }
-
     if (allowed.isEmpty()) {
       return null;
-    }
-    if (allowed.size() == set.size()) {
-      return original.call(set, levelReader, structureManager, bl, structurePlacement, chunkPos);
     }
     return original.call(allowed, levelReader, structureManager, bl, structurePlacement, chunkPos);
   }
