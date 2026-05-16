@@ -7,12 +7,9 @@ import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
-import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -36,8 +33,9 @@ public class ChunkGeneratorLocateMixin {
       StructurePlacement structurePlacement,
       ChunkPos chunkPos,
       Operation<Pair<BlockPos, Holder<Structure>>> original) {
-    return terrasect$applyLocateConstraints(
-        set, levelReader, structureManager, bl, structurePlacement, chunkPos, original);
+    var resolved = StructureHandler.resolveLocateSet(set, levelReader, chunkPos.x, chunkPos.z);
+    if (resolved == null) return null;
+    return original.call(resolved, levelReader, structureManager, bl, structurePlacement, chunkPos);
   }
 
   @WrapOperation(
@@ -52,30 +50,8 @@ public class ChunkGeneratorLocateMixin {
       StructurePlacement structurePlacement,
       ChunkPos chunkPos,
       Operation<Pair<BlockPos, Holder<Structure>>> original) {
-    return terrasect$applyLocateConstraints(
-        set, levelReader, structureManager, bl, structurePlacement, chunkPos, original);
-  }
-
-  private static Pair<BlockPos, Holder<Structure>> terrasect$applyLocateConstraints(
-      Set<Holder<Structure>> set,
-      LevelReader levelReader,
-      StructureManager structureManager,
-      boolean bl,
-      StructurePlacement structurePlacement,
-      ChunkPos chunkPos,
-      Operation<Pair<BlockPos, Holder<Structure>>> original) {
-    if (!(levelReader instanceof Level level)) {
-      return original.call(set, levelReader, structureManager, bl, structurePlacement, chunkPos);
-    }
-    Set<Holder<Structure>> allowed =
-        StructureHandler.filterStructuresForLocate(
-            set, level.dimension(), chunkPos.x, chunkPos.z);
-    if (allowed == null) {
-      return original.call(set, levelReader, structureManager, bl, structurePlacement, chunkPos);
-    }
-    if (allowed.isEmpty()) {
-      return null;
-    }
-    return original.call(allowed, levelReader, structureManager, bl, structurePlacement, chunkPos);
+    var resolved = StructureHandler.resolveLocateSet(set, levelReader, chunkPos.x, chunkPos.z);
+    if (resolved == null) return null;
+    return original.call(resolved, levelReader, structureManager, bl, structurePlacement, chunkPos);
   }
 }

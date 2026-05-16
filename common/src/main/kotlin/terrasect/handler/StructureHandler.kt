@@ -3,12 +3,12 @@ package terrasect.handler
 import net.minecraft.core.Holder
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.StructureConstraints
 import terrasect.generation.DimensionContext
-import terrasect.lookup.CompiledStructureLookup
 
 object StructureHandler {
   @JvmStatic
@@ -17,32 +17,39 @@ object StructureHandler {
     chunkX: Int,
     chunkZ: Int,
   ): List<Holder<StructureSet>>? {
-    val (lookup, constraints) = resolve(dimensionKey, chunkX, chunkZ) ?: return null
+    val ctx = DimensionContext.get(ResourceKeyCompat.getKeyId(dimensionKey)) ?: return null
+    val lookup = ctx.structureLookup ?: return null
+    val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return null
     return lookup.getFilteredSets(constraints)
   }
 
+  /**
+   * Returns null → all structures filtered, caller should skip this chunk. Returns non-null
+   * (possibly the original set) → use this set.
+   */
   @JvmStatic
-  fun filterStructuresForLocate(
+  fun resolveLocateSet(
     structures: Set<Holder<Structure>>,
-    dimensionKey: ResourceKey<Level>,
+    levelReader: LevelReader,
     chunkX: Int,
     chunkZ: Int,
   ): Set<Holder<Structure>>? {
-    val (lookup, constraints) = resolve(dimensionKey, chunkX, chunkZ) ?: return null
-    return lookup.filterStructuresForLocate(structures, constraints)
+    if (levelReader !is Level) return structures
+    val ctx =
+      DimensionContext.get(ResourceKeyCompat.getKeyId(levelReader.dimension())) ?: return structures
+    val lookup = ctx.structureLookup ?: return structures
+    val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return structures
+    val filtered = lookup.filterStructuresForLocate(structures, constraints) ?: return structures
+    return filtered.ifEmpty { null }
   }
 
-  private fun resolve(
-    dimensionKey: ResourceKey<Level>,
+  private fun constraintsAt(
+    ctx: DimensionContext,
     chunkX: Int,
     chunkZ: Int,
-  ): Pair<CompiledStructureLookup, StructureConstraints>? {
-    val ctx = DimensionContext.get(ResourceKeyCompat.getKeyId(dimensionKey)) ?: return null
-    val lookup = ctx.structureLookup ?: return null
+  ): StructureConstraints? {
     val blockX = (chunkX shl 4) + 8
     val blockZ = (chunkZ shl 4) + 8
-    val region = ctx.traverser.traverse(blockX, blockZ).region
-    val constraints = region.structures ?: return null
-    return Pair(lookup, constraints)
+    return ctx.traverser.traverse(blockX, blockZ).region.structures
   }
 }

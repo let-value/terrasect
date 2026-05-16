@@ -28,12 +28,19 @@ private constructor(
     constraints: StructureConstraints,
   ): Set<Holder<Structure>>? {
     val selection = constraints.selection ?: return null
-    val allowed = HashSet<Holder<Structure>>(structures.size)
+    // Collect blocked entries lazily to avoid allocating in the common no-filter case.
+    var blocked: HashSet<Holder<Structure>>? = null
     for (holder in structures) {
       val meta = index[holder.value()]
-      if (meta == null || selection.evaluate(meta.id, meta.tags)) allowed.add(holder)
+      if (meta != null && !selection.evaluate(meta.id, meta.tags)) {
+        (blocked ?: HashSet<Holder<Structure>>().also { blocked = it }).add(holder)
+      }
     }
-    return if (allowed.size == structures.size) null else allowed
+    val b = blocked ?: return null
+    if (b.size == structures.size) return emptySet()
+    val allowed = HashSet<Holder<Structure>>(structures.size - b.size)
+    for (holder in structures) if (holder !in b) allowed.add(holder)
+    return allowed
   }
 
   private fun computeFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> {
@@ -102,10 +109,26 @@ private constructor(
         return null
       }
       val index = buildIndex(allSets)
+      val lookup = CompiledStructureLookup(allSets, index)
+      // Pre-bake filtered sets for every unique StructureConstraints in the region tree so that
+      // the per-chunk hot path (getFilteredSets) always hits the cache and never recomputes.
+      collectAllConstraints(root).forEach { lookup.getFilteredSets(it) }
       structureLog.debug {
         "build: ${index.size} structures indexed; structure constraints active under root=${root.name}"
       }
-      return CompiledStructureLookup(allSets, index)
+      return lookup
+    }
+
+    private fun collectAllConstraints(root: Region): Set<StructureConstraints> {
+      val result = mutableSetOf<StructureConstraints>()
+      val queue = ArrayDeque<Region>()
+      queue.add(root)
+      while (queue.isNotEmpty()) {
+        val region = queue.removeFirst()
+        region.structures?.let { result.add(it) }
+        queue.addAll(region.children)
+      }
+      return result
     }
 
     private fun buildIndex(
