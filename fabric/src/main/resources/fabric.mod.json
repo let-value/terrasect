@@ -39,6 +39,14 @@
       {
         "value": "terrasect.TerrasectWorldDigestTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintVanillaGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintHighDensityGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
