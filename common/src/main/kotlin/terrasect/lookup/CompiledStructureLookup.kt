@@ -29,19 +29,18 @@ private constructor(
     constraints: StructureConstraints,
   ): Set<Holder<Structure>>? {
     val selection = constraints.selection ?: return null
-    // Collect blocked entries lazily to avoid allocating in the common no-filter case.
-    var blocked: HashSet<Holder<Structure>>? = null
+    val allowed = HashSet<Holder<Structure>>(structures.size)
     for (holder in structures) {
       val meta = index[holder.value()]
-      if (meta != null && !selection.evaluate(meta.id, meta.tags)) {
-        (blocked ?: HashSet<Holder<Structure>>().also { blocked = it }).add(holder)
+      if (meta == null || selection.evaluate(meta.id, meta.tags)) {
+        allowed.add(holder)
       }
     }
-    val b = blocked ?: return null
-    if (b.size == structures.size) return emptySet()
-    val allowed = HashSet<Holder<Structure>>(structures.size - b.size)
-    for (holder in structures) if (holder !in b) allowed.add(holder)
-    return allowed
+    return when {
+      allowed.isEmpty() -> emptySet()
+      allowed.size == structures.size -> null
+      else -> allowed
+    }
   }
 
   private fun computeFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> {

@@ -3,7 +3,7 @@ package terrasect.extender;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
 
-public interface RandomSpreadStructurePlacementExtender {
+public interface RandomSpreadStructurePlacementExtender extends StructurePlacementExtender {
   void terrasect$setSpacing(int spacing);
 
   void terrasect$setSeparation(int separation);
