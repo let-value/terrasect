@@ -55,6 +55,30 @@
       {
         "value": "terrasect.StructureConstraintLocateRuinedPortalGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintBanByModGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintAllowByModGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintBanByTagGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintAllowByTagGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintBanByNameGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintAllowByNameGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
@@ -73,4 +97,3 @@
     "fabric-language-kotlin": ">=${fabric_kotlin_version}"
   }
 }
-

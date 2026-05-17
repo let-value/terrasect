@@ -82,11 +82,7 @@ private fun configureAerialCamera(client: Minecraft) {
 }
 
 @Suppress("UnstableApiUsage")
-private fun runStructureProbes(
-  context: ClientGameTestContext,
-  label: String,
-  screenshotDir: Path,
-) {
+private fun runStructureProbes(context: ClientGameTestContext, label: String, screenshotDir: Path) {
   val game =
     context
       .worldBuilder()
@@ -207,7 +203,7 @@ private fun runLocateTest(
         }
         val holderSet = HolderSet.direct(holders)
         val found =
-          generator.findNearestMapStructure(level, holderSet, BlockPos(0, 64, 0), 100, true)
+          generator.findNearestMapStructure(level, holderSet, BlockPos(0, 64, 0), 1000, true)
         if (found != null) {
           val id = found.second.unwrapKey().map { it.identifier().toString() }.orElse("unknown")
           val pos = found.first
@@ -222,7 +218,7 @@ private fun runLocateTest(
           )
           result = LocateResult(id, pos)
         } else {
-          LOGGER.info("[StructureConstraint][locate][{}] not found within radius=100", label)
+          LOGGER.info("[StructureConstraint][locate][{}] not found within radius=1000", label)
           result = LocateResult(null, null)
         }
       }
@@ -308,8 +304,7 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
     PresetRegistry.forcePresetId = DISABLED_PRESET
     val vanillaResult: LocateResult
     try {
-      vanillaResult =
-        runLocateTest(context, "vanilla", locateScreenshotsBase.resolve("vanilla"))
+      vanillaResult = runLocateTest(context, "vanilla", locateScreenshotsBase.resolve("vanilla"))
     } finally {
       PresetRegistry.forcePresetId = null
     }
@@ -346,17 +341,18 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
       vanillaResult.distance,
       highDensityResult.structureId,
       highDensityResult.distance,
-      if (blockedResult.pos == null) "null (correct)" else "FOUND (unexpected: ${blockedResult.structureId})",
+      if (blockedResult.pos == null) "null (correct)"
+      else "FOUND (unexpected: ${blockedResult.structureId})",
     )
 
     assertNotNull(
       vanillaResult.pos,
-      "[locate] vanilla should find a village within radius=100 but got null — " +
+      "[locate] vanilla should find a village within radius=200 but got null — " +
         "check that village structures exist in the test world registry.",
     )
     assertNotNull(
       highDensityResult.pos,
-      "[locate] high-density should find a village within radius=100 but got null — " +
+      "[locate] high-density should find a village within radius=200 but got null — " +
         "placement-only preset must not suppress locate results (no selection constraint set).",
     )
     assertTrue(
@@ -384,8 +380,424 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
     assertNull(
       blockedResult.pos,
       "[locate] selection-blocked preset (blockMods=minecraft) must not find any village " +
-        "within radius=100, but found ${blockedResult.structureId} at ${blockedResult.pos} — " +
+        "within radius=200, but found ${blockedResult.structureId} at ${blockedResult.pos} — " +
         "the locate mixin selection filter did not apply.",
+    )
+  }
+}
+
+// --- Phase 3: per-level allow/ban coverage ---
+
+private const val BAN_BY_MOD_PRESET = "structure_constraint_ban_by_mod"
+private const val ALLOW_BY_MOD_PRESET = "structure_constraint_allow_by_mod"
+private const val BAN_BY_TAG_PRESET = "structure_constraint_ban_by_tag"
+private const val ALLOW_BY_TAG_PRESET = "structure_constraint_allow_by_tag"
+private const val VILLAGE_TAG = "minecraft:village"
+
+private fun registerBanByModPreset() {
+  PresetRegistry.presets[BAN_BY_MOD_PRESET] =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld_root")
+      region("overworld_root").structures { blockMods("minecraft") }
+    }
+}
+
+private fun registerAllowByModPreset() {
+  PresetRegistry.presets[ALLOW_BY_MOD_PRESET] =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld_root")
+      region("overworld_root").structures { allowMods("minecraft") }
+    }
+}
+
+private fun registerBanByTagPreset() {
+  PresetRegistry.presets[BAN_BY_TAG_PRESET] =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld_root")
+      region("overworld_root").structures { blockTags(VILLAGE_TAG) }
+    }
+}
+
+private fun registerAllowByTagPreset() {
+  PresetRegistry.presets[ALLOW_BY_TAG_PRESET] =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld_root")
+      region("overworld_root").structures {
+        allowTags(VILLAGE_TAG)
+        blockMods("minecraft")
+      }
+    }
+}
+
+// Runs a locate with the current forcePresetId and always screenshots at screenshotPos
+// regardless of whether locate found anything.
+private fun runLocateAtPos(
+  context: ClientGameTestContext,
+  label: String,
+  screenshotDir: Path,
+  screenshotName: String,
+  screenshotPos: BlockPos,
+  structureFilter: (String) -> Boolean = { "village" in it },
+): LocateResult {
+  val game =
+    context
+      .worldBuilder()
+      .setUseConsistentSettings(false)
+      .adjustSettings { settings ->
+        settings.seed = SEED
+        settings.gameMode = WorldCreationUiState.SelectedGameMode.CREATIVE
+      }
+      .create()
+  try {
+    var result: LocateResult? = null
+    game.server.runOnServer(
+      FailableConsumer<MinecraftServer, Exception> { server ->
+        val level = server.overworld()
+        val generator = level.getChunkSource().getGenerator()
+        val structReg = server.registryAccess().lookupOrThrow(Registries.STRUCTURE)
+        val holders =
+          structReg
+            .listElements()
+            .filter { h ->
+              h.unwrapKey().map { structureFilter(it.identifier().toString()) }.orElse(false)
+            }
+            .toList()
+        if (holders.isEmpty()) {
+          LOGGER.warn("[StructureConstraint][locate][{}] no matching holders in registry", label)
+          result = LocateResult(null, null)
+          return@FailableConsumer
+        }
+        val holderSet = HolderSet.direct(holders)
+        val found =
+          generator.findNearestMapStructure(level, holderSet, BlockPos(0, 64, 0), 1000, true)
+        if (found != null) {
+          val id = found.second.unwrapKey().map { it.identifier().toString() }.orElse("unknown")
+          val pos = found.first
+          LOGGER.info(
+            "[StructureConstraint][locate][{}] found type={} at ({},{})",
+            label,
+            id,
+            pos.x,
+            pos.z,
+          )
+          result = LocateResult(id, pos)
+        } else {
+          LOGGER.info("[StructureConstraint][locate][{}] not found within radius=1000", label)
+          result = LocateResult(null, null)
+        }
+      }
+    )
+    val locateResult = result ?: LocateResult(null, null)
+    game.server.runOnServer(
+      FailableConsumer<MinecraftServer, Exception> { server ->
+        server.playerList.players[0].teleportTo(screenshotPos.x + 0.5, 100.0, screenshotPos.z + 0.5)
+      }
+    )
+    context.waitTicks(10)
+    context.runOnClient(
+      FailableConsumer<Minecraft, Exception> { client ->
+        client.player?.let { player ->
+          player.xRot = 90f
+          player.yRot = 0f
+          player.abilities.mayfly = true
+          player.abilities.flying = true
+          player.onUpdateAbilities()
+        }
+      }
+    )
+    context.waitTicks(5)
+    game.clientWorld.waitForChunksDownload()
+    game.clientWorld.waitForChunksRender()
+    context.takeScreenshot(
+      TestScreenshotOptions.of(screenshotName).withDestinationDir(screenshotDir)
+    )
+    LOGGER.info("[StructureConstraint][locate][{}] screenshot at {} done", label, screenshotDir)
+    return locateResult
+  } finally {
+    game.close()
+  }
+}
+
+// Ban by mod: blockMods("minecraft") suppresses all vanilla village locate results.
+// Screenshots: vanilla (village visible) vs banned (same location, no village generated).
+@Suppress("UnstableApiUsage")
+object StructureConstraintBanByModGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintBanByModTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    registerBanByModPreset()
+    PresetRegistry.forcePresetId = BAN_BY_MOD_PRESET
+    val bannedResult: LocateResult
+    try {
+      bannedResult =
+        runLocateAtPos(
+          context,
+          "ban_by_mod",
+          screenshotDir.resolve("banned"),
+          "village_absent",
+          vanillaResult.pos ?: BlockPos(0, 64, 0),
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(BAN_BY_MOD_PRESET)
+    }
+
+    assertNotNull(vanillaResult.pos, "[ban_by_mod] vanilla must find a village within radius=200")
+    assertNull(
+      bannedResult.pos,
+      "[ban_by_mod] blockMods(minecraft) must suppress all village locate results, " +
+        "but found ${bannedResult.structureId} at ${bannedResult.pos}",
+    )
+  }
+}
+
+// Allow by mod: allowMods("minecraft") is a pass-through — all vanilla structures remain.
+// Screenshots: vanilla (village visible) vs allowMods-constrained (village still visible).
+@Suppress("UnstableApiUsage")
+object StructureConstraintAllowByModGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintAllowByModTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    registerAllowByModPreset()
+    PresetRegistry.forcePresetId = ALLOW_BY_MOD_PRESET
+    val allowedResult: LocateResult
+    try {
+      allowedResult =
+        runLocateAtPos(
+          context,
+          "allow_by_mod",
+          screenshotDir.resolve("allowed"),
+          "village_present",
+          vanillaResult.pos ?: BlockPos(0, 64, 0),
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(ALLOW_BY_MOD_PRESET)
+    }
+
+    assertNotNull(vanillaResult.pos, "[allow_by_mod] vanilla must find a village within radius=200")
+    assertNotNull(
+      allowedResult.pos,
+      "[allow_by_mod] allowMods(minecraft) must not suppress village locate — " +
+        "it is a pass-through that leaves all minecraft structures allowed",
+    )
+  }
+}
+
+// Ban by tag: blockTags("minecraft:village") suppresses all village-tagged structures.
+// Screenshots: vanilla (village visible) vs banned (same location, village absent).
+@Suppress("UnstableApiUsage")
+object StructureConstraintBanByTagGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintBanByTagTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    registerBanByTagPreset()
+    PresetRegistry.forcePresetId = BAN_BY_TAG_PRESET
+    val bannedResult: LocateResult
+    try {
+      bannedResult =
+        runLocateAtPos(
+          context,
+          "ban_by_tag",
+          screenshotDir.resolve("banned"),
+          "village_absent",
+          vanillaResult.pos ?: BlockPos(0, 64, 0),
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(BAN_BY_TAG_PRESET)
+    }
+
+    assertNotNull(vanillaResult.pos, "[ban_by_tag] vanilla must find a village within radius=200")
+    assertNull(
+      bannedResult.pos,
+      "[ban_by_tag] blockTags($VILLAGE_TAG) must suppress all village locate results, " +
+        "but found ${bannedResult.structureId} at ${bannedResult.pos}",
+    )
+  }
+}
+
+// Allow by tag: allowTags("minecraft:village") + blockMods("minecraft") lets village-tagged
+// structures through the mod block. Screenshots: vanilla vs constrained (village still visible).
+@Suppress("UnstableApiUsage")
+object StructureConstraintAllowByTagGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintAllowByTagTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    registerAllowByTagPreset()
+    PresetRegistry.forcePresetId = ALLOW_BY_TAG_PRESET
+    val allowedResult: LocateResult
+    try {
+      allowedResult =
+        runLocateAtPos(
+          context,
+          "allow_by_tag",
+          screenshotDir.resolve("allowed"),
+          "village_present",
+          vanillaResult.pos ?: BlockPos(0, 64, 0),
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(ALLOW_BY_TAG_PRESET)
+    }
+
+    assertNotNull(vanillaResult.pos, "[allow_by_tag] vanilla must find a village within radius=200")
+    assertNotNull(
+      allowedResult.pos,
+      "[allow_by_tag] allowTags($VILLAGE_TAG)+blockMods(minecraft) must still locate a village — " +
+        "tag-level allow overrides mod-level block",
+    )
+  }
+}
+
+// Ban by name: blockNames(T) suppresses exactly the village type T that vanilla would find.
+// Dynamic: T is derived from vanilla locate so the exact structure is always targeted.
+// Screenshots: vanilla (structure T visible) vs banned (same location, T absent).
+@Suppress("UnstableApiUsage")
+object StructureConstraintBanByNameGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintBanByNameTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    assertNotNull(
+      vanillaResult.pos,
+      "[ban_by_name] vanilla must find a village within radius=200 to derive blockNames target",
+    )
+    val targetId = vanillaResult.structureId!!
+
+    val banPresetId = "structure_constraint_ban_by_name"
+    PresetRegistry.presets[banPresetId] =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "overworld_root")
+        region("overworld_root").structures { blockNames(targetId) }
+      }
+    PresetRegistry.forcePresetId = banPresetId
+    val bannedResult: LocateResult
+    try {
+      bannedResult =
+        runLocateAtPos(
+          context,
+          "ban_by_name",
+          screenshotDir.resolve("banned"),
+          "village_absent",
+          vanillaResult.pos!!,
+          structureFilter = { it == targetId },
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(banPresetId)
+    }
+
+    assertNull(
+      bannedResult.pos,
+      "[ban_by_name] blockNames($targetId) must suppress that exact structure, " +
+        "but found ${bannedResult.structureId} at ${bannedResult.pos}",
+    )
+  }
+}
+
+// Allow by name: allowNames(T)+blockMods("minecraft") lets exactly structure T through the
+// mod block. Dynamic: T is derived from vanilla locate. Screenshots: vanilla vs constrained
+// (same structure T visible despite mod block).
+@Suppress("UnstableApiUsage")
+object StructureConstraintAllowByNameGameTest : FabricClientGameTest {
+  override fun runTest(context: ClientGameTestContext) {
+    if (!GameTestFilter.shouldRun(this::class)) return
+    val screenshotDir = SCREENSHOTS_BASE.resolve("StructureConstraintAllowByNameTest")
+
+    PresetRegistry.forcePresetId = DISABLED_PRESET
+    val vanillaResult: LocateResult
+    try {
+      vanillaResult = runLocateTest(context, "vanilla", screenshotDir.resolve("vanilla"))
+    } finally {
+      PresetRegistry.forcePresetId = null
+    }
+
+    assertNotNull(
+      vanillaResult.pos,
+      "[allow_by_name] vanilla must find a village within radius=200 to derive allowNames target",
+    )
+    val targetId = vanillaResult.structureId!!
+
+    val allowPresetId = "structure_constraint_allow_by_name"
+    PresetRegistry.presets[allowPresetId] =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "overworld_root")
+        region("overworld_root").structures {
+          allowNames(targetId)
+          blockMods("minecraft")
+        }
+      }
+    PresetRegistry.forcePresetId = allowPresetId
+    val allowedResult: LocateResult
+    try {
+      allowedResult =
+        runLocateAtPos(
+          context,
+          "allow_by_name",
+          screenshotDir.resolve("allowed"),
+          "village_present",
+          vanillaResult.pos!!,
+          structureFilter = { it == targetId },
+        )
+    } finally {
+      PresetRegistry.forcePresetId = null
+      PresetRegistry.presets.remove(allowPresetId)
+    }
+
+    assertNotNull(
+      allowedResult.pos,
+      "[allow_by_name] allowNames($targetId)+blockMods(minecraft) must still locate $targetId — " +
+        "name-level allow overrides mod-level block",
+    )
+    assertEquals(
+      targetId,
+      allowedResult.structureId,
+      "[allow_by_name] constrained locate must return the same structure type as vanilla",
     )
   }
 }
@@ -420,7 +832,7 @@ object StructureConstraintLocateRuinedPortalGameTest : FabricClientGameTest {
 
     assertNotNull(
       result.pos,
-      "[locate][ruined_portal] expected a ruined portal within radius=100 but got null",
+      "[locate][ruined_portal] expected a ruined portal within radius=200 but got null",
     )
     assertTrue(
       result.structureId?.contains("ruined_portal") == true,

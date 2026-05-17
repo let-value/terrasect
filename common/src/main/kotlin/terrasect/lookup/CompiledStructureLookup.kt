@@ -90,8 +90,11 @@ private constructor(
         newFrequency == ext.`terrasect$frequency`()
     )
       return placement
-    return (placement as RandomSpreadStructurePlacementExtender)
-      .`terrasect$withOverrides`(newSpacing, newSeparation, newFrequency)
+    return (placement as RandomSpreadStructurePlacementExtender).`terrasect$withOverrides`(
+      newSpacing,
+      newSeparation,
+      newFrequency,
+    )
   }
 
   companion object {

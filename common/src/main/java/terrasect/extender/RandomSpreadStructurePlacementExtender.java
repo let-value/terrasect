@@ -10,5 +10,6 @@ public interface RandomSpreadStructurePlacementExtender extends StructurePlaceme
 
   void terrasect$setSpreadType(RandomSpreadType spreadType);
 
-  RandomSpreadStructurePlacement terrasect$withOverrides(int spacing, int separation, float frequency);
+  RandomSpreadStructurePlacement terrasect$withOverrides(
+      int spacing, int separation, float frequency);
 }

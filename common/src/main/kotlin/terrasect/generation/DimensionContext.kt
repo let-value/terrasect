@@ -61,6 +61,7 @@ class DimensionContext(
       val resolvedRegistry = PresetRegistry.resolve(presetId)
       if (resolvedRegistry == null) {
         log.debug { "no preset resolved — noise constraints disabled for $dimensionId" }
+        map.remove(dimensionId)
         return
       }
       val name = resolvedRegistry.getRoot(dimensionId)
