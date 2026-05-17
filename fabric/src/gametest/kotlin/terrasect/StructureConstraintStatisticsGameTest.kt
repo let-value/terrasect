@@ -300,7 +300,7 @@ private fun collectVillageStatistics(
 @Suppress("UnstableApiUsage")
 object StructureConstraintStatisticsTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
-    
+    // todo will be refactored later, dont want to spend time on making this test work in the current state of the codebase
     if (!GameTestFilter.shouldRun(this::class) || true) return
 
     PresetRegistry.forcePresetId = DISABLED_PRESET
