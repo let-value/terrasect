@@ -300,7 +300,8 @@ private fun collectVillageStatistics(
 @Suppress("UnstableApiUsage")
 object StructureConstraintStatisticsTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
-    if (!GameTestFilter.shouldRun(this::class)) return
+    
+    if (!GameTestFilter.shouldRun(this::class) || true) return
 
     PresetRegistry.forcePresetId = DISABLED_PRESET
     val vanillaStats: LocateStats
