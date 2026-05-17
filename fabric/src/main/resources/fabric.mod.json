@@ -47,6 +47,14 @@
       {
         "value": "terrasect.StructureConstraintHighDensityGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintLocateGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintLocateRuinedPortalGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
