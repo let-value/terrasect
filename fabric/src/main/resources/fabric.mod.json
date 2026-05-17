@@ -79,6 +79,10 @@
       {
         "value": "terrasect.StructureConstraintAllowByNameGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.StructureConstraintStatisticsTest",
+        "adapter": "kotlin"
       }
     ]
   },
