@@ -64,23 +64,28 @@ private constructor(
 
       if (filtered.isEmpty()) continue
 
-      val placement =
-        if (hasPlacementOverrides) applyPlacementOverrides(set.placement(), constraints)
-        else set.placement()
+      val originalPlacement = set.placement()
+      val placementMutated =
+        hasPlacementOverrides && applyPlacementOverrides(originalPlacement, constraints)
 
-      if (filtered.size == entries.size && placement === set.placement()) result.add(setHolder)
-      else result.add(Holder.direct(StructureSet(filtered, placement)))
+      if (filtered.size == entries.size && !placementMutated) result.add(setHolder)
+      else result.add(Holder.direct(StructureSet(filtered, originalPlacement)))
     }
     structureLog.debug { "computeFilteredSets: ${allSets.size} → ${result.size} structure sets" }
     return result
   }
 
+  // Returns true if placement was mutated in place; false if values were already correct.
+  // Each unique StructureConstraints is pre-baked once, so a single placement instance is mutated
+  // at most once per constraint during build(). Worlds where two distinct regions demand different
+  // spacing/separation on the same structure set are not supported by this approach.
   private fun applyPlacementOverrides(
     placement: StructurePlacement,
     constraints: StructureConstraints,
-  ): StructurePlacement {
-    if (placement !is RandomSpreadStructurePlacement) return placement
+  ): Boolean {
+    if (placement !is RandomSpreadStructurePlacement) return false
     val ext = placement as StructurePlacementExtender
+    val rspExt = placement as RandomSpreadStructurePlacementExtender
     val newSpacing = constraints.spacing ?: placement.spacing()
     val newSeparation = minOf(constraints.separation ?: placement.separation(), newSpacing - 1)
     val newFrequency = constraints.frequency ?: ext.`terrasect$frequency`()
@@ -89,12 +94,11 @@ private constructor(
         newSeparation == placement.separation() &&
         newFrequency == ext.`terrasect$frequency`()
     )
-      return placement
-    return (placement as RandomSpreadStructurePlacementExtender).`terrasect$withOverrides`(
-      newSpacing,
-      newSeparation,
-      newFrequency,
-    )
+      return false
+    rspExt.`terrasect$setSpacing`(newSpacing)
+    rspExt.`terrasect$setSeparation`(newSeparation)
+    ext.`terrasect$setFrequency`(newFrequency)
+    return true
   }
 
   companion object {

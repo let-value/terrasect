@@ -4,16 +4,12 @@ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStruct
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import terrasect.extender.RandomSpreadStructurePlacementExtender;
 
 @Mixin(RandomSpreadStructurePlacement.class)
 public abstract class RandomSpreadStructurePlacementMixin
     implements RandomSpreadStructurePlacementExtender {
-
-  @Shadow
-  public abstract RandomSpreadType spreadType();
 
   @Override
   @Accessor("spacing")
@@ -29,13 +25,4 @@ public abstract class RandomSpreadStructurePlacementMixin
   @Accessor("spreadType")
   @Mutable
   public abstract void terrasect$setSpreadType(RandomSpreadType spreadType);
-
-  @Override
-  public RandomSpreadStructurePlacement terrasect$withOverrides(
-      int spacing, int separation, float frequency) {
-    terrasect$setFrequency(frequency);
-    terrasect$setSpacing(spacing);
-    terrasect$setSeparation(separation);
-    return (RandomSpreadStructurePlacement) (Object) this;
-  }
 }
