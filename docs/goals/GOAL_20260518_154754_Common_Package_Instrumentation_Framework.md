@@ -3,7 +3,7 @@
 Status: DONE — pass 2 scoped API refinement complete
 
 Branch: `feature/common-instrumentation`
-PR: (pending)
+PR: https://github.com/let-value/terrasect/pull/52
 Worktree: `/home/alex/terrasect/.worktrees/common-instrumentation`
 
 ## Objective
