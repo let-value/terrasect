@@ -13,15 +13,15 @@ class SelectionConstraints(
     if (allowedNames?.contains(resourceId) == true) return true
 
     if (tags != null) {
-      if (blockedTags?.containsAll(tags) == true) {
+      if (blockedTags?.any(tags::contains) == true) {
         return false
       }
-      if (allowedTags?.containsAll(tags) == true) {
+      if (allowedTags?.any(tags::contains) == true) {
         return true
       }
     }
 
-    val namespace = (resourceId)
+    val namespace = extractNamespace(resourceId)
     if (blockedMods?.contains(namespace) == true) return false
     if (allowedMods?.contains(namespace) == true) return true
 

@@ -4,10 +4,10 @@ import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
 import terrasect.handler.NoiseLogger
 
-var log = NoiseLogger.registry
+private val log = NoiseLogger.registry
 
 class CompiledNoiseRegistry
-private constructor(private val constraints: IdentityHashMap<Region, NoiseConstraints>) {
+private constructor(private val constraints: java.util.IdentityHashMap<Region, NoiseConstraints>) {
   fun get(region: Region): NoiseConstraints? = constraints[region]
 
   fun isEmpty(): Boolean = constraints.isEmpty()
@@ -16,7 +16,7 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
 
   companion object {
     fun build(root: Region): CompiledNoiseRegistry? {
-      val map = IdentityHashMap<Region, NoiseConstraints>()
+      val map = java.util.IdentityHashMap<Region, NoiseConstraints>()
       collectRecursively(root, map)
       return if (map.isEmpty()) {
         log.debug { "build: no noise-constrained regions found under root=${root.name}" }
@@ -29,7 +29,10 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
       }
     }
 
-    private fun collectRecursively(region: Region, map: IdentityHashMap<Region, NoiseConstraints>) {
+    private fun collectRecursively(
+      region: Region,
+      map: java.util.IdentityHashMap<Region, NoiseConstraints>,
+    ) {
       if (!map.containsKey(region)) {
         val noise = region.noise
         if (noise != null && noise.hasAnyConstraints()) {
@@ -45,5 +48,3 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
     }
   }
 }
-
-private typealias IdentityHashMap<K, V> = java.util.IdentityHashMap<K, V>

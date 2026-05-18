@@ -17,7 +17,11 @@
     "preset.WorldDimensionsMixin",
     "scaffold.ChunkAccessMixin",
     "scaffold.LevelMixin",
-    "scaffold.NoiseChunkMixin"
+    "scaffold.NoiseChunkMixin",
+    "structure.ChunkGeneratorLocateMixin",
+    "structure.ChunkGeneratorStructureMixin",
+    "structure.RandomSpreadStructurePlacementMixin",
+    "structure.StructurePlacementMixin"
   ],
   "injectors": {
     "defaultRequire": 1

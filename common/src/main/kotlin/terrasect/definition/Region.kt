@@ -9,7 +9,7 @@ class Region(
   val height: HeightConstraints? = null,
   val noise: NoiseConstraints? = null,
   val biomes: SelectionConstraints? = null,
-  val structures: SelectionConstraints? = null,
+  val structures: StructureConstraints? = null,
   val mobs: SelectionConstraints? = null,
 ) {
   val bytes = name.toByteArray()
