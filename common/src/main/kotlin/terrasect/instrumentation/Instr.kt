@@ -1,5 +1,6 @@
 package terrasect.instrumentation
 
+@Suppress("NOTHING_TO_INLINE")
 object Instr {
   @Volatile private var backend: MetricsBackend = InMemoryBackend()
 
@@ -14,6 +15,10 @@ object Instr {
   }
 
   fun getBackend(): MetricsBackend = backend
+
+  fun isCounterEnabled(): Boolean = root.isCounterEnabled
+
+  fun isTimingEnabled(): Boolean = root.isTimingEnabled
 
   fun counterSnapshot(): List<CounterSnapshot> = backend.counterSnapshots()
 
@@ -77,57 +82,94 @@ object Instr {
     block: () -> T,
   ): T = root.time(event, key0, value0, key1, value1, key2, value2, block)
 
+  inline fun recordDurationNanos(event: MetricEvent, nanos: Long) =
+    root.recordDurationNanos(event, nanos)
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+  ) = root.recordDurationNanos(event, nanos, key0, value0)
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+    key1: String,
+    crossinline value1: () -> String,
+  ) = root.recordDurationNanos(event, nanos, key0, value0, key1, value1)
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+    key1: String,
+    crossinline value1: () -> String,
+    key2: String,
+    crossinline value2: () -> String,
+  ) = root.recordDurationNanos(event, nanos, key0, value0, key1, value1, key2, value2)
+
   inline fun counter(event: MetricEvent): InstrCounter = root.counter(event)
 
   inline fun counter(
     event: MetricEvent,
     key0: String,
-    crossinline value0: () -> String,
+    noinline value0: () -> String,
   ): InstrCounter = root.counter(event, key0, value0)
 
   inline fun counter(
     event: MetricEvent,
     key0: String,
-    crossinline value0: () -> String,
+    noinline value0: () -> String,
     key1: String,
-    crossinline value1: () -> String,
+    noinline value1: () -> String,
   ): InstrCounter = root.counter(event, key0, value0, key1, value1)
 
   inline fun counter(
     event: MetricEvent,
     key0: String,
-    crossinline value0: () -> String,
+    noinline value0: () -> String,
     key1: String,
-    crossinline value1: () -> String,
+    noinline value1: () -> String,
     key2: String,
-    crossinline value2: () -> String,
+    noinline value2: () -> String,
   ): InstrCounter = root.counter(event, key0, value0, key1, value1, key2, value2)
 
   inline fun timer(event: MetricEvent): InstrTimer = root.timer(event)
 
-  inline fun timer(event: MetricEvent, key0: String, crossinline value0: () -> String): InstrTimer =
+  inline fun timer(event: MetricEvent, key0: String, noinline value0: () -> String): InstrTimer =
     root.timer(event, key0, value0)
 
   inline fun timer(
     event: MetricEvent,
     key0: String,
-    crossinline value0: () -> String,
+    noinline value0: () -> String,
     key1: String,
-    crossinline value1: () -> String,
+    noinline value1: () -> String,
   ): InstrTimer = root.timer(event, key0, value0, key1, value1)
 
   inline fun timer(
     event: MetricEvent,
     key0: String,
-    crossinline value0: () -> String,
+    noinline value0: () -> String,
     key1: String,
-    crossinline value1: () -> String,
+    noinline value1: () -> String,
     key2: String,
-    crossinline value2: () -> String,
+    noinline value2: () -> String,
   ): InstrTimer = root.timer(event, key0, value0, key1, value1, key2, value2)
 }
 
+@Suppress("NOTHING_TO_INLINE")
 class ScopedInstr(val scope: InstrScope) {
+  val isCounterEnabled: Boolean
+    get() = MetricsConfig.isCounterEnabled(scope)
+
+  val isTimingEnabled: Boolean
+    get() = MetricsConfig.isTimerEnabled(scope)
+
   inline fun count(event: MetricEvent, delta: Long = 1) {
     if (!MetricsConfig.isCounterEnabled(scope)) return
     Instr.currentBackend().counter(MetricId(scope.id, event.id)).increment(delta)
@@ -135,9 +177,7 @@ class ScopedInstr(val scope: InstrScope) {
 
   inline fun count(event: MetricEvent, key0: String, crossinline value0: () -> String) {
     if (!MetricsConfig.isCounterEnabled(scope)) return
-    Instr.currentBackend()
-      .counter(MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()))))
-      .increment()
+    Instr.currentBackend().counter(metricId(event, key0, value0())).increment()
   }
 
   inline fun count(
@@ -148,11 +188,7 @@ class ScopedInstr(val scope: InstrScope) {
     crossinline value1: () -> String,
   ) {
     if (!MetricsConfig.isCounterEnabled(scope)) return
-    Instr.currentBackend()
-      .counter(
-        MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()), MetricTag(key1, value1())))
-      )
-      .increment()
+    Instr.currentBackend().counter(metricId(event, key0, value0(), key1, value1())).increment()
   }
 
   inline fun count(
@@ -166,25 +202,13 @@ class ScopedInstr(val scope: InstrScope) {
   ) {
     if (!MetricsConfig.isCounterEnabled(scope)) return
     Instr.currentBackend()
-      .counter(
-        MetricId(
-          scope.id,
-          event.id,
-          listOf(MetricTag(key0, value0()), MetricTag(key1, value1()), MetricTag(key2, value2())),
-        )
-      )
+      .counter(metricId(event, key0, value0(), key1, value1(), key2, value2()))
       .increment()
   }
 
   inline fun <T> time(event: MetricEvent, block: () -> T): T {
     if (!MetricsConfig.isTimerEnabled(scope)) return block()
-    val timer = Instr.currentBackend().timer(MetricId(scope.id, event.id))
-    val start = System.nanoTime()
-    try {
-      return block()
-    } finally {
-      timer.recordDurationNanos(System.nanoTime() - start)
-    }
+    return timeEnabled(MetricId(scope.id, event.id), block)
   }
 
   inline fun <T> time(
@@ -194,14 +218,7 @@ class ScopedInstr(val scope: InstrScope) {
     block: () -> T,
   ): T {
     if (!MetricsConfig.isTimerEnabled(scope)) return block()
-    val timer =
-      Instr.currentBackend().timer(MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()))))
-    val start = System.nanoTime()
-    try {
-      return block()
-    } finally {
-      timer.recordDurationNanos(System.nanoTime() - start)
-    }
+    return timeEnabled(metricId(event, key0, value0()), block)
   }
 
   inline fun <T> time(
@@ -213,17 +230,7 @@ class ScopedInstr(val scope: InstrScope) {
     block: () -> T,
   ): T {
     if (!MetricsConfig.isTimerEnabled(scope)) return block()
-    val timer =
-      Instr.currentBackend()
-        .timer(
-          MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()), MetricTag(key1, value1())))
-        )
-    val start = System.nanoTime()
-    try {
-      return block()
-    } finally {
-      timer.recordDurationNanos(System.nanoTime() - start)
-    }
+    return timeEnabled(metricId(event, key0, value0(), key1, value1()), block)
   }
 
   inline fun <T> time(
@@ -237,15 +244,137 @@ class ScopedInstr(val scope: InstrScope) {
     block: () -> T,
   ): T {
     if (!MetricsConfig.isTimerEnabled(scope)) return block()
-    val timer =
-      Instr.currentBackend()
-        .timer(
-          MetricId(
-            scope.id,
-            event.id,
-            listOf(MetricTag(key0, value0()), MetricTag(key1, value1()), MetricTag(key2, value2())),
-          )
-        )
+    return timeEnabled(metricId(event, key0, value0(), key1, value1(), key2, value2()), block)
+  }
+
+  inline fun recordDurationNanos(event: MetricEvent, nanos: Long) {
+    if (!MetricsConfig.isTimerEnabled(scope)) return
+    Instr.currentBackend().timer(MetricId(scope.id, event.id)).recordDurationNanos(nanos)
+  }
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+  ) {
+    if (!MetricsConfig.isTimerEnabled(scope)) return
+    Instr.currentBackend().timer(metricId(event, key0, value0())).recordDurationNanos(nanos)
+  }
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+    key1: String,
+    crossinline value1: () -> String,
+  ) {
+    if (!MetricsConfig.isTimerEnabled(scope)) return
+    Instr.currentBackend()
+      .timer(metricId(event, key0, value0(), key1, value1()))
+      .recordDurationNanos(nanos)
+  }
+
+  inline fun recordDurationNanos(
+    event: MetricEvent,
+    nanos: Long,
+    key0: String,
+    crossinline value0: () -> String,
+    key1: String,
+    crossinline value1: () -> String,
+    key2: String,
+    crossinline value2: () -> String,
+  ) {
+    if (!MetricsConfig.isTimerEnabled(scope)) return
+    Instr.currentBackend()
+      .timer(metricId(event, key0, value0(), key1, value1(), key2, value2()))
+      .recordDurationNanos(nanos)
+  }
+
+  fun counter(event: MetricEvent): InstrCounter =
+    ManagedCounter(scope, FixedMetricId(MetricId(scope.id, event.id)))
+
+  fun counter(event: MetricEvent, key0: String, value0: () -> String): InstrCounter =
+    ManagedCounter(scope, OneTagMetricId(scope, event, key0, value0))
+
+  fun counter(
+    event: MetricEvent,
+    key0: String,
+    value0: () -> String,
+    key1: String,
+    value1: () -> String,
+  ): InstrCounter = ManagedCounter(scope, TwoTagMetricId(scope, event, key0, value0, key1, value1))
+
+  fun counter(
+    event: MetricEvent,
+    key0: String,
+    value0: () -> String,
+    key1: String,
+    value1: () -> String,
+    key2: String,
+    value2: () -> String,
+  ): InstrCounter =
+    ManagedCounter(scope, ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2))
+
+  fun timer(event: MetricEvent): InstrTimer =
+    ManagedTimer(scope, FixedMetricId(MetricId(scope.id, event.id)))
+
+  fun timer(event: MetricEvent, key0: String, value0: () -> String): InstrTimer =
+    ManagedTimer(scope, OneTagMetricId(scope, event, key0, value0))
+
+  fun timer(
+    event: MetricEvent,
+    key0: String,
+    value0: () -> String,
+    key1: String,
+    value1: () -> String,
+  ): InstrTimer = ManagedTimer(scope, TwoTagMetricId(scope, event, key0, value0, key1, value1))
+
+  fun timer(
+    event: MetricEvent,
+    key0: String,
+    value0: () -> String,
+    key1: String,
+    value1: () -> String,
+    key2: String,
+    value2: () -> String,
+  ): InstrTimer =
+    ManagedTimer(scope, ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2))
+
+  @PublishedApi
+  internal fun metricId(event: MetricEvent, key0: String, value0: String): MetricId =
+    MetricId(scope.id, event.id, listOf(MetricTag(key0, value0)))
+
+  @PublishedApi
+  internal fun metricId(
+    event: MetricEvent,
+    key0: String,
+    value0: String,
+    key1: String,
+    value1: String,
+  ): MetricId =
+    MetricId(scope.id, event.id, listOf(MetricTag(key0, value0), MetricTag(key1, value1)))
+
+  @PublishedApi
+  internal fun metricId(
+    event: MetricEvent,
+    key0: String,
+    value0: String,
+    key1: String,
+    value1: String,
+    key2: String,
+    value2: String,
+  ): MetricId =
+    MetricId(
+      scope.id,
+      event.id,
+      listOf(MetricTag(key0, value0), MetricTag(key1, value1), MetricTag(key2, value2)),
+    )
+
+  @PublishedApi
+  internal inline fun <T> timeEnabled(id: MetricId, block: () -> T): T {
+    val timer = Instr.currentBackend().timer(id)
     val start = System.nanoTime()
     try {
       return block()
@@ -253,141 +382,52 @@ class ScopedInstr(val scope: InstrScope) {
       timer.recordDurationNanos(System.nanoTime() - start)
     }
   }
+}
 
-  inline fun counter(event: MetricEvent): InstrCounter =
-    ManagedCounter(scope, Instr.currentBackend().counter(MetricId(scope.id, event.id)))
+internal interface MetricIdFactory {
+  fun metricId(): MetricId
+}
 
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-  ): InstrCounter {
-    if (!MetricsConfig.isCounterEnabled(scope)) {
-      return ManagedCounter(
-        scope,
-        Instr.currentBackend().counter(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedCounter(
-      scope,
-      Instr.currentBackend()
-        .counter(MetricId(scope.id, event.id, listOf(MetricTag(key0, value0())))),
+private class FixedMetricId(private val id: MetricId) : MetricIdFactory {
+  override fun metricId(): MetricId = id
+}
+
+private class OneTagMetricId(
+  private val scope: InstrScope,
+  private val event: MetricEvent,
+  private val key0: String,
+  private val value0: () -> String,
+) : MetricIdFactory {
+  override fun metricId(): MetricId =
+    MetricId(scope.id, event.id, listOf(MetricTag(key0, value0())))
+}
+
+private class TwoTagMetricId(
+  private val scope: InstrScope,
+  private val event: MetricEvent,
+  private val key0: String,
+  private val value0: () -> String,
+  private val key1: String,
+  private val value1: () -> String,
+) : MetricIdFactory {
+  override fun metricId(): MetricId =
+    MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()), MetricTag(key1, value1())))
+}
+
+private class ThreeTagMetricId(
+  private val scope: InstrScope,
+  private val event: MetricEvent,
+  private val key0: String,
+  private val value0: () -> String,
+  private val key1: String,
+  private val value1: () -> String,
+  private val key2: String,
+  private val value2: () -> String,
+) : MetricIdFactory {
+  override fun metricId(): MetricId =
+    MetricId(
+      scope.id,
+      event.id,
+      listOf(MetricTag(key0, value0()), MetricTag(key1, value1()), MetricTag(key2, value2())),
     )
-  }
-
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-  ): InstrCounter {
-    if (!MetricsConfig.isCounterEnabled(scope)) {
-      return ManagedCounter(
-        scope,
-        Instr.currentBackend().counter(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedCounter(
-      scope,
-      Instr.currentBackend()
-        .counter(
-          MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()), MetricTag(key1, value1())))
-        ),
-    )
-  }
-
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    key2: String,
-    crossinline value2: () -> String,
-  ): InstrCounter {
-    if (!MetricsConfig.isCounterEnabled(scope)) {
-      return ManagedCounter(
-        scope,
-        Instr.currentBackend().counter(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedCounter(
-      scope,
-      Instr.currentBackend()
-        .counter(
-          MetricId(
-            scope.id,
-            event.id,
-            listOf(MetricTag(key0, value0()), MetricTag(key1, value1()), MetricTag(key2, value2())),
-          )
-        ),
-    )
-  }
-
-  inline fun timer(event: MetricEvent): InstrTimer =
-    ManagedTimer(scope, Instr.currentBackend().timer(MetricId(scope.id, event.id)))
-
-  inline fun timer(event: MetricEvent, key0: String, crossinline value0: () -> String): InstrTimer {
-    if (!MetricsConfig.isTimerEnabled(scope)) {
-      return ManagedTimer(
-        scope,
-        Instr.currentBackend().timer(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedTimer(
-      scope,
-      Instr.currentBackend().timer(MetricId(scope.id, event.id, listOf(MetricTag(key0, value0())))),
-    )
-  }
-
-  inline fun timer(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-  ): InstrTimer {
-    if (!MetricsConfig.isTimerEnabled(scope)) {
-      return ManagedTimer(
-        scope,
-        Instr.currentBackend().timer(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedTimer(
-      scope,
-      Instr.currentBackend()
-        .timer(
-          MetricId(scope.id, event.id, listOf(MetricTag(key0, value0()), MetricTag(key1, value1())))
-        ),
-    )
-  }
-
-  inline fun timer(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    key2: String,
-    crossinline value2: () -> String,
-  ): InstrTimer {
-    if (!MetricsConfig.isTimerEnabled(scope)) {
-      return ManagedTimer(
-        scope,
-        Instr.currentBackend().timer(MetricId(scope.id, event.id, emptyList())),
-      )
-    }
-    return ManagedTimer(
-      scope,
-      Instr.currentBackend()
-        .timer(
-          MetricId(
-            scope.id,
-            event.id,
-            listOf(MetricTag(key0, value0()), MetricTag(key1, value1()), MetricTag(key2, value2())),
-          )
-        ),
-    )
-  }
 }

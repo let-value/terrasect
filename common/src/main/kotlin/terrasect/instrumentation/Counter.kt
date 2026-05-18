@@ -42,18 +42,26 @@ internal class InMemoryCounter(override val id: MetricId) : InstrCounter {
 }
 
 @PublishedApi
-internal class ManagedCounter(private val scope: InstrScope, private val delegate: InstrCounter) :
-  InstrCounter {
+internal class ManagedCounter(
+  private val scope: InstrScope,
+  private val idFactory: MetricIdFactory,
+) : InstrCounter {
   override val id: MetricId
-    get() = delegate.id
+    get() = idFactory.metricId()
 
   override fun increment(delta: Long) {
-    if (MetricsConfig.isCounterEnabled(scope)) delegate.increment(delta)
+    if (MetricsConfig.isCounterEnabled(scope)) {
+      Instr.currentBackend().counter(idFactory.metricId()).increment(delta)
+    }
   }
 
-  override fun snapshot() = delegate.snapshot()
+  override fun snapshot(): CounterSnapshot =
+    Instr.currentBackend().counter(idFactory.metricId()).snapshot()
 
-  override fun snapshotAndReset() = delegate.snapshotAndReset()
+  override fun snapshotAndReset(): CounterSnapshot =
+    Instr.currentBackend().counter(idFactory.metricId()).snapshotAndReset()
 
-  override fun reset() = delegate.reset()
+  override fun reset() {
+    Instr.currentBackend().counter(idFactory.metricId()).reset()
+  }
 }

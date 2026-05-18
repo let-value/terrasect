@@ -215,6 +215,63 @@ class MetricsTest {
   }
 
   @Test
+  fun `manual duration facade records tagged batch timings`() {
+    worldgen.recordDurationNanos(TestEvent.TIMER, 25L, "phase") { "scan" }
+    worldgen.recordDurationNanos(TestEvent.TIMER, 75L, "phase") { "scan" }
+
+    assertEquals(
+      TimerSnapshot(
+        MetricId("worldgen", "worldgen.phase", listOf(MetricTag("phase", "scan"))),
+        2L,
+        100L,
+        75L,
+      ),
+      Instr.timerSnapshot().single(),
+    )
+  }
+
+  @Test
+  fun `manual duration facade does not evaluate tags while timers are disabled`() {
+    MetricsConfig.timersEnabled = false
+    var evaluated = false
+
+    worldgen.recordDurationNanos(TestEvent.TIMER, 25L, "phase") {
+      evaluated = true
+      "scan"
+    }
+
+    assertFalse(evaluated)
+    assertTrue(Instr.timerSnapshot().isEmpty())
+  }
+
+  @Test
+  fun `bound tagged handles delay tag evaluation until enabled use`() {
+    MetricsConfig.countersEnabled = false
+    var counterTagEvaluations = 0
+    val counter =
+      worldgen.counter(TestEvent.ATTEMPT, "dimension") {
+        counterTagEvaluations++
+        "overworld"
+      }
+
+    counter.increment()
+    assertEquals(0, counterTagEvaluations)
+    assertTrue(Instr.counterSnapshot().isEmpty())
+
+    MetricsConfig.countersEnabled = true
+    counter.increment()
+
+    assertEquals(1, counterTagEvaluations)
+    assertEquals(
+      CounterSnapshot(
+        MetricId("worldgen", "worldgen.attempt", listOf(MetricTag("dimension", "overworld"))),
+        1L,
+      ),
+      Instr.counterSnapshot().single(),
+    )
+  }
+
+  @Test
   fun `snapshot and reset returns stable data and clears`() {
     worldgen.count(TestEvent.ATTEMPT)
     worldgen.timer(TestEvent.TIMER).recordDurationNanos(50L)

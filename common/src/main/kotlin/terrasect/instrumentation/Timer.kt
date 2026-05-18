@@ -54,7 +54,7 @@ internal class InMemoryTimer(override val id: MetricId) : InstrTimer {
   override fun recordDurationNanos(nanos: Long) {
     count.increment()
     totalNanos.add(nanos)
-    maxNanos.updateAndGet { current -> maxOf(current, nanos) }
+    maxNanos.accumulateAndGet(nanos, ::maxOf)
   }
 
   override fun snapshot() = TimerSnapshot(id, count.sum(), totalNanos.sum(), maxNanos.get())
@@ -74,23 +74,38 @@ internal class InMemoryTimer(override val id: MetricId) : InstrTimer {
 }
 
 @PublishedApi
-internal class ManagedTimer(private val scope: InstrScope, private val delegate: InstrTimer) :
+internal class ManagedTimer(private val scope: InstrScope, private val idFactory: MetricIdFactory) :
   InstrTimer {
   override val id: MetricId
-    get() = delegate.id
+    get() = idFactory.metricId()
 
   override val isTimingEnabled: Boolean
-    get() = MetricsConfig.isTimerEnabled(scope) && delegate.isTimingEnabled
+    get() = MetricsConfig.isTimerEnabled(scope)
 
-  override fun <T> time(block: () -> T): T = if (isTimingEnabled) delegate.time(block) else block()
-
-  override fun recordDurationNanos(nanos: Long) {
-    if (isTimingEnabled) delegate.recordDurationNanos(nanos)
+  override fun <T> time(block: () -> T): T {
+    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    val timer = Instr.currentBackend().timer(idFactory.metricId())
+    val start = System.nanoTime()
+    try {
+      return block()
+    } finally {
+      timer.recordDurationNanos(System.nanoTime() - start)
+    }
   }
 
-  override fun snapshot() = delegate.snapshot()
+  override fun recordDurationNanos(nanos: Long) {
+    if (MetricsConfig.isTimerEnabled(scope)) {
+      Instr.currentBackend().timer(idFactory.metricId()).recordDurationNanos(nanos)
+    }
+  }
 
-  override fun snapshotAndReset() = delegate.snapshotAndReset()
+  override fun snapshot(): TimerSnapshot =
+    Instr.currentBackend().timer(idFactory.metricId()).snapshot()
 
-  override fun reset() = delegate.reset()
+  override fun snapshotAndReset(): TimerSnapshot =
+    Instr.currentBackend().timer(idFactory.metricId()).snapshotAndReset()
+
+  override fun reset() {
+    Instr.currentBackend().timer(idFactory.metricId()).reset()
+  }
 }
