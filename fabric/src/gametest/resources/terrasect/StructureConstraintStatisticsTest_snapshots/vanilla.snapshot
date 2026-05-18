@@ -1,0 +1,20 @@
+dynamic-directory: true
+snapshot-name: vanilla
+snapshot-number: 0
+test-class: terrasect.StructureConstraintStatisticsTest
+test-method: runTest
+
+case,vanilla
+samples,1024
+hits,1024
+misses,0
+unique_structures,5
+min_distance,698
+max_distance,24802
+average_distance,13390.39
+top_structures,id,count
+minecraft:village_plains,484
+minecraft:village_savanna,179
+minecraft:village_taiga,126
+minecraft:village_snowy,121
+minecraft:village_desert,114
