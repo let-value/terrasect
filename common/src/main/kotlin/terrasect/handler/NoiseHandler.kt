@@ -7,6 +7,8 @@ import net.minecraft.world.level.levelgen.NoiseRouter
 import terrasect.extender.ChunkAccessExtender
 import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
+import terrasect.instrumentation.TerrasectInstr
+import terrasect.instrumentation.TerrasectMetricEvent
 
 private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
@@ -59,6 +61,7 @@ object NoiseHandler {
 
   @JvmStatic
   fun logMissingDensityChunk(key: String) {
+    TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING, "noise_key") { key }
     val count = missingHolderChunkLogCount.incrementAndGet()
     if (count <= 24) logDf.trace { "skipped keyed value key=$key: chunk context missing" }
   }
@@ -70,6 +73,7 @@ object NoiseHandler {
       logMissingDensityChunk(key)
       return function
     }
+    TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
     return ChunkDensityFunction(function, key, chunk, 1)
   }
 
@@ -153,6 +157,7 @@ object NoiseHandler {
     }
 
     val transformed = transform.apply(original)
+    TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_APPLIED, "noise_key") { key }
 
     val hitNum = modifyHitCount.incrementAndGet()
     if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
@@ -190,6 +195,7 @@ object NoiseHandler {
     chunk: ChunkContext?,
   ): NoiseRouter {
     if (chunk == null) {
+      TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING)
 
       val n = counter.incrementAndGet()
       if (n <= 8 || n % 500 == 0) log.debug { "$label #$n skipped: chunkContext=NULL" }
@@ -198,6 +204,7 @@ object NoiseHandler {
     }
 
     val registry = chunk.dimensionContext?.noiseRegistry
+    TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_ROUTER_WRAP)
     val n = counter.incrementAndGet()
     if (n <= 8 || n % 500 == 0) {
       log.debug {
@@ -231,6 +238,7 @@ object NoiseHandler {
     scale: Int = 1,
   ): DensityFunction {
     if (function is ChunkDensityFunction) return function
+    TerrasectInstr.noise.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
     return ChunkDensityFunction(function, key, chunk, scale)
   }
 

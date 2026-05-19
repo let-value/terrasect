@@ -44,6 +44,16 @@ class MetricsTest {
   }
 
   @Test
+  fun `terrasect structure counter uses curated scope and event identity`() {
+    TerrasectInstr.structure.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
+
+    assertEquals(
+      CounterSnapshot(MetricId("structure", "structure.applied"), 1L),
+      Instr.counterSnapshot().single(),
+    )
+  }
+
+  @Test
   fun `disabled counters do not record and lazy tags are not evaluated`() {
     MetricsConfig.countersEnabled = false
     var evaluated = false

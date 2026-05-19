@@ -3,6 +3,8 @@ package terrasect.generation
 import java.nio.ByteBuffer
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
+import terrasect.instrumentation.TerrasectInstr
+import terrasect.instrumentation.TerrasectMetricEvent
 import terrasect.sdf.SdfCompose
 
 class Traverser(val seed: Long, val root: Region) {
@@ -22,6 +24,7 @@ class Traverser(val seed: Long, val root: Region) {
       step = step.next() ?: break
     }
 
+    TerrasectInstr.traversal.count(TerrasectMetricEvent.TRAVERSAL_COMPLETED)
     return step
   }
 }
@@ -54,6 +57,10 @@ class TraversalStep(val traverser: Traverser) {
       return null
     }
 
-    return region.strategy?.traverse(this)
+    val next = region.strategy?.traverse(this) ?: return null
+    TerrasectInstr.traversal.count(TerrasectMetricEvent.TRAVERSAL_STEP, "region") {
+      next.region.name
+    }
+    return next
   }
 }

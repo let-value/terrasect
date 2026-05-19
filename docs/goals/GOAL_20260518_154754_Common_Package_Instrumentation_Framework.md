@@ -1,6 +1,6 @@
 # Goal: Common Package Instrumentation Framework
 
-Status: DONE — scoped instrumentation API complete
+Status: COMPLETE — scoped instrumentation API and curated semantic counter placement implemented
 
 Branch: `feature/common-instrumentation`
 Worktree: `/home/alex/terrasect/.worktrees/common-instrumentation`
@@ -39,18 +39,36 @@ Files in `common/src/main/kotlin/terrasect/instrumentation/`:
 - [x] Added scope-aware config gates and scope-inclusive snapshots.
 - [x] Added no-op/in-memory backend separation, thread-safe counters/timers, snapshots, and reset support.
 - [x] Added/updated tests for disabled counters/timers, lazy tags, scoped identity, separate tagged counters, scope gates, bound handles, timer stats, return values, exception propagation, manual timing, stable snapshots, and no-op backend behavior.
+- [x] Added the curated Terrasect scope/event vocabulary and cached scoped handles for business-code call sites.
+- [x] Introduced the first business-logic counter: `structure.applied` increments when structure constraints are applied in generation filtering and locate filtering.
+- [x] Integrated the rest of the curated counter set at semantic boundaries without adding broad/speculative metrics: traversal completion/step, chunk context creation/error/traversal/cache miss, climate applied/chunk-missing, noise router/function wrap/applied/chunk-missing, structure chunk-missing, and the explicit test/debug `structure.generated` recording helper.
+
+## Curated Call-Site Vocabulary
+
+Actual mod integration stayed narrow and used only the current curated counters:
+
+- Traversal: `traversal.completed`, `traversal.step` tagged by `region`.
+- Chunk context: `chunk.created`, `chunk.error`, `chunk.traverse`, `chunk.traverse.cache_miss` tagged by `dimension`.
+- Climate handler: `climate.applied`, `climate.chunk_missing`.
+- Noise handler: `noise.router.wrap`, `noise.function.wrap`, `noise.applied`, `noise.chunk_missing` tagged by `noise_key` where relevant.
+- Structure handler: `structure.applied`, `structure.chunk_missing`.
+- Structure generation/test signal: `structure.generated` tagged by `structure_id` and `location`; this is debug/test instrumentation, not an always-on production metric.
+
+Do not add strategy traversal counters or preserve legacy/speculative counter names for compatibility.
 
 ## Blockers
 
-None remaining. Earlier Claude Code delegation hit provider/turn limits and left a partial scaffold; Hermes completed the implementation directly in the existing dedicated worktree.
+No build blocker. Earlier Claude Code delegation hit provider/turn limits and left a partial scaffold; Hermes completed the framework API and the curated semantic counter placement directly in the existing dedicated worktree.
 
 ## Verification
 
 - `./gradlew spotlessApply` — PASS.
-- `./gradlew :common:test --rerun-tasks` — PASS after formatting.
+- `./gradlew :common:test --rerun-tasks` — PASS after scoped API implementation.
+- `./gradlew :common:test --rerun-tasks` — PASS after curated semantic counter placement.
+- `./gradlew spotlessApply` — PASS after curated semantic counter placement.
 - Reverted the unrelated Spotless change to `fabric/src/gametest/kotlin/terrasect/StructureConstraintStatisticsGameTest.kt`.
-- Final `git status --short` contains only intended instrumentation package/test changes and this goal file.
+- Final `git status --short` contains only intended instrumentation/business-counter/test changes and this goal file.
 
-## Final Status
+## Current Status
 
-DONE. The instrumentation framework now has the requested scoped logging-like API shape (`Instr`, `ScopedInstr`, `InstrScope`, `MetricEvent`, `InstrCounter`, `InstrTimer`), scope-aware runtime gates, scope-inclusive snapshots, manual batch timing support, and low-overhead disabled behavior for strategic instrumentation in common mod code.
+Framework API, curated metric vocabulary, and curated semantic counter placement are implemented and validated. Placement is intentionally narrow: counters are present only at traversal, chunk context, climate, noise, and structure boundaries from the approved vocabulary, plus an explicit test/debug helper for `structure.generated`.

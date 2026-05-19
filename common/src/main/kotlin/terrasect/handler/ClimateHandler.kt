@@ -10,6 +10,8 @@ import terrasect.extender.ClimateTargetPointExtender
 import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
+import terrasect.instrumentation.TerrasectInstr
+import terrasect.instrumentation.TerrasectMetricEvent
 
 private const val TRACE_BLOCK_X = 0
 private const val TRACE_BLOCK_Z = 0
@@ -58,6 +60,7 @@ object ClimateHandler {
     val chunk: ChunkContext? = noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
 
     if (chunk == null) {
+      TerrasectInstr.climate.count(TerrasectMetricEvent.CLIMATE_CHUNK_MISSING)
       ifOriginTrace(blockX, blockZ) {
         log.trace { "sample block=($blockX, $blockZ) quad=($quadX, $quadY, $quadZ) context=NULL" }
       }
@@ -118,6 +121,7 @@ object ClimateHandler {
     constraints.weirdness?.let { range ->
       extender.`terrasect$setWeirdness`(climate.weirdness.coerceIn(range.min, range.max))
     }
+    TerrasectInstr.climate.count(TerrasectMetricEvent.CLIMATE_APPLIED)
 
     originals?.let { o ->
       val count = appliedCount.incrementAndGet()
