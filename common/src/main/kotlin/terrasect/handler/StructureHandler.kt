@@ -33,12 +33,14 @@ object StructureHandler {
     val blockX = (chunkX shl 4) + 8
     val blockZ = (chunkZ shl 4) + 8
     if (chunkContext == null) {
-      TerrasectInstr.structure.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
+      var instr = TerrasectInstr.structure
+      instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     }
     val constraints =
       (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
         .structures ?: return null
-    TerrasectInstr.structure.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
+    var instr = TerrasectInstr.structure
+    instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     return lookup.getFilteredSets(constraints)
   }
 
@@ -57,9 +59,10 @@ object StructureHandler {
     val ctx =
       DimensionContext.get(ResourceKeyCompat.getKeyId(levelReader.dimension())) ?: return structures
     val lookup = ctx.structureLookup ?: return structures
-    TerrasectInstr.structure.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
+    var instr = TerrasectInstr.structure
+    instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return structures
-    TerrasectInstr.structure.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
+    instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     val filtered = lookup.filterStructuresForLocate(structures, constraints) ?: return structures
     return filtered.ifEmpty { null }
   }
@@ -76,7 +79,8 @@ object StructureHandler {
 
   @JvmStatic
   fun recordGeneratedStructure(structureId: String, location: String) {
-    TerrasectInstr.structure.count(
+    var instr = TerrasectInstr.structure
+    instr.count(
       TerrasectMetricEvent.STRUCTURE_GENERATED,
       "structure_id",
       { structureId },

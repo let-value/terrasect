@@ -21,7 +21,8 @@
     "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin",
     "structure.RandomSpreadStructurePlacementMixin",
-    "structure.StructurePlacementMixin"
+    "structure.StructurePlacementMixin",
+    "structure.StructureStartMixin"
   ],
   "injectors": {
     "defaultRequire": 1

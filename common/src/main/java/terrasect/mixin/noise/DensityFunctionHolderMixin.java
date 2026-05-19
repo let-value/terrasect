@@ -23,7 +23,6 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
         .ifPresent(
             key -> {
               this.terrasect$key = key.identifier().getPath();
-              NoiseHandler.logCapturedDensityKey(this.terrasect$key);
             });
   }
 
