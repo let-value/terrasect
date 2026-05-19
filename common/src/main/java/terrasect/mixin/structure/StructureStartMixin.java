@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import terrasect.compat.ResourceKeyCompat;
 import terrasect.handler.StructureHandler;
 
 @Mixin(StructureStart.class)
@@ -27,7 +28,7 @@ public abstract class StructureStartMixin {
             .registryAccess()
             .lookupOrThrow(Registries.STRUCTURE)
             .getResourceKey(structure)
-            .map(key -> key.identifier().toString())
+            .map(key -> ResourceKeyCompat.INSTANCE.getKeyId(key))
             .orElse(null);
     if (structureId == null) {
       return;
