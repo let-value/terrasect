@@ -285,6 +285,16 @@ private fun awaitStableGeneratedStructureStats(
   )
 }
 
+private fun isLocationInTargetArea(location: String): Boolean {
+  if (!location.startsWith("chunk=")) return false
+  val coords = location.removePrefix("chunk=").split(",")
+  if (coords.size != 2) return false
+  val x = coords[0].toIntOrNull() ?: return false
+  val z = coords[1].toIntOrNull() ?: return false
+  return x in GENERATED_CHUNK_BASE until GENERATED_CHUNK_BASE + GENERATED_CHUNK_SIZE &&
+    z in GENERATED_CHUNK_BASE until GENERATED_CHUNK_BASE + GENERATED_CHUNK_SIZE
+}
+
 private fun summarizeGeneratedStructureStats(
   caseName: String,
   snapshots: List<CounterSnapshot>,
@@ -298,12 +308,21 @@ private fun summarizeGeneratedStructureStats(
     "Expected generated-structure counters for $caseName, but the instrumentation snapshot was empty"
   }
 
+  // Filter to the target chunk area; each snapshot key in InMemoryBackend is unique per
+  // (structure_id, location), so +1L correctly counts each distinct placement once.
+  val filteredSnapshots =
+    generatedSnapshots.filter { snapshot ->
+      val location =
+        snapshot.id.tags.firstOrNull { it.key == "location" }?.value ?: return@filter false
+      isLocationInTargetArea(location)
+    }
+
   val groupedCounts = LinkedHashMap<String, Long>()
-  for (snapshot in generatedSnapshots) {
+  for (snapshot in filteredSnapshots) {
     val structureId =
       snapshot.id.tags.firstOrNull { tag -> tag.key == "structure_id" }?.value
         ?: error("Missing structure_id tag in $caseName snapshot: ${snapshot.id}")
-    groupedCounts[structureId] = (groupedCounts[structureId] ?: 0L) + snapshot.value
+    groupedCounts[structureId] = (groupedCounts[structureId] ?: 0L) + 1L
   }
 
   val orderedCounts =
@@ -313,8 +332,8 @@ private fun summarizeGeneratedStructureStats(
 
   return GeneratedStructureStats(
     caseName = caseName,
-    chunkArea = "10x10",
-    totalGenerated = generatedSnapshots.sumOf { it.value },
+    chunkArea = "${GENERATED_CHUNK_SIZE}x${GENERATED_CHUNK_SIZE}",
+    totalGenerated = filteredSnapshots.size.toLong(),
     structureCounts = orderedCounts,
   )
 }
@@ -328,6 +347,11 @@ object StructureConstraintStatisticsTest : FabricClientGameTest {
     MetricsConfig.enabled = true
     MetricsConfig.countersEnabled = true
     MetricsConfig.clearScopeOverrides()
+    for (scope in TerrasectInstrScope.entries) {
+      if (scope != TerrasectInstrScope.STRUCTURE) {
+        MetricsConfig.setScopeEnabled(scope, false)
+      }
+    }
     Instr.setBackend(InMemoryBackend())
 
     try {
