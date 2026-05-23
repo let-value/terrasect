@@ -1,8 +1,12 @@
 package terrasect.mixin.structure;
 
 import net.minecraft.core.registries.Registries;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,11 +21,15 @@ import terrasect.handler.StructureHandler;
 public abstract class StructureStartMixin {
   @Shadow public abstract Structure getStructure();
 
-  @Shadow public abstract ChunkPos getChunkPos();
-
   @Inject(method = "placeInChunk", at = @At("TAIL"))
   private void terrasect$recordGeneratedStructure(
-      StructureManager structureManager, CallbackInfo ci) {
+      WorldGenLevel world,
+      StructureManager structureManager,
+      ChunkGenerator chunkGenerator,
+      RandomSource random,
+      BoundingBox boundingBox,
+      ChunkPos chunkPos,
+      CallbackInfo ci) {
     Structure structure = getStructure();
     String structureId =
         structureManager
@@ -33,7 +41,6 @@ public abstract class StructureStartMixin {
     if (structureId == null) {
       return;
     }
-    ChunkPos chunkPos = getChunkPos();
     StructureHandler.recordGeneratedStructure(
         structureId, "chunk=" + chunkPos.x + "," + chunkPos.z);
   }

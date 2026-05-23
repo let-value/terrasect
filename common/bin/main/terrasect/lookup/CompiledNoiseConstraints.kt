@@ -1,0 +1,50 @@
+package terrasect.lookup
+
+import terrasect.definition.NoiseConstraints
+import terrasect.definition.Region
+import terrasect.handler.NoiseLogger
+
+private val log = NoiseLogger.registry
+
+class CompiledNoiseRegistry
+private constructor(private val constraints: java.util.IdentityHashMap<Region, NoiseConstraints>) {
+  fun get(region: Region): NoiseConstraints? = constraints[region]
+
+  fun isEmpty(): Boolean = constraints.isEmpty()
+
+  fun size(): Int = constraints.size
+
+  companion object {
+    fun build(root: Region): CompiledNoiseRegistry? {
+      val map = java.util.IdentityHashMap<Region, NoiseConstraints>()
+      collectRecursively(root, map)
+      return if (map.isEmpty()) {
+        log.debug { "build: no noise-constrained regions found under root=${root.name}" }
+        null
+      } else {
+        log.debug {
+          "build: ${map.size} noise-constrained region(s) under root=${root.name}: ${map.keys.joinToString { it.name }}"
+        }
+        CompiledNoiseRegistry(map)
+      }
+    }
+
+    private fun collectRecursively(
+      region: Region,
+      map: java.util.IdentityHashMap<Region, NoiseConstraints>,
+    ) {
+      if (!map.containsKey(region)) {
+        val noise = region.noise
+        if (noise != null && noise.hasAnyConstraints()) {
+          map[region] = noise
+          log.debug {
+            "collected region=${region.name} densityFunctions=[${noise.densityFunctions.keys.joinToString()}] noises=[${noise.noises.keys.joinToString()}] blendWidth=${noise.blendWidth}"
+          }
+        }
+      }
+      for (child in region.children) {
+        collectRecursively(child, map)
+      }
+    }
+  }
+}

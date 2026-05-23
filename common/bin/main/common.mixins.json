@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "package": "terrasect.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "climate.ClimateClimateSamplerMixin",
+    "climate.ClimateTargetPointMixin",
+    "climate.MultiNoiseBiomeSourceMixin",
+    "climate.NoiseChunkClimateSamplerMixin",
+    "noise.DensityFunctionHolderMixin",
+    "noise.NoiseChunkFunctionsMixin",
+    "preset.DedicatedServerPropertiesMixin",
+    "preset.DedicatedServerPropertiesWorldDimensionDataMixin",
+    "preset.DerivedLevelDataMixin",
+    "preset.MainMixin",
+    "preset.PrimaryLevelDataMixin",
+    "preset.WorldDimensionsMixin",
+    "scaffold.ChunkAccessMixin",
+    "scaffold.LevelMixin",
+    "scaffold.NoiseChunkMixin",
+    "structure.ChunkGeneratorLocateMixin",
+    "structure.ChunkGeneratorStructureMixin",
+    "structure.RandomSpreadStructurePlacementMixin",
+    "structure.StructurePlacementMixin",
+    "structure.StructureStartMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
