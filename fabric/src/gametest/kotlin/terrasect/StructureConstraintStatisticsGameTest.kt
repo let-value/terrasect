@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 
-private val LOGGER = LoggerFactory.getLogger("StructureConstraintStatisticsTest")
+private val log = LoggerFactory.getLogger("StructureConstraintStatisticsTest")
 
 private const val SEED = "structure-constraints"
 private const val DISABLED_PRESET = "__disabled__"
@@ -32,7 +32,7 @@ private const val VILLAGE_TAG = "minecraft:village"
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.also { LOGGER.info("[StructureConstraint][statistics] module dir = {}", it) }
+  classesRoot.parent.parent.parent.parent.also { log.info(" module dir = {}", it) }
 }
 
 private val GAME_TEST_RESOURCES_BASE: Path by lazy {
@@ -106,7 +106,7 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
         )
       )
     SnapshotFile.of(header, text).writeTo(snapshotFile)
-    LOGGER.info("[StructureConstraint][statistics][{}] snapshot {}", caseName, snapshotFile)
+    log.info("[{}] snapshot {}", caseName, snapshotFile)
   } else {
     val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
     if (stored != text) {
@@ -116,7 +116,7 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
           buildUnifiedDiff(stored, text)
       )
     }
-    LOGGER.info("[StructureConstraint][statistics][{}] snapshot matches {}", caseName, snapshotFile)
+    log.info("[{}] snapshot matches {}", caseName, snapshotFile)
   }
 }
 
@@ -276,8 +276,8 @@ private fun collectVillageStatistics(
             topStructures = topStructures,
           )
 
-        LOGGER.info(
-          "[StructureConstraint][statistics][{}] preset={} samples={} hits={} misses={} unique={} avgDist={}",
+        log.info(
+          "[{}] preset={} samples={} hits={} misses={} unique={} avgDist={}",
           caseName,
           presetId,
           samples,

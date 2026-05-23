@@ -18,7 +18,7 @@ import terrasect.definition.RegionRegistry
 import terrasect.handler.ClimateHandler
 import terrasect.handler.NoiseHandler
 
-private val LOGGER = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
+private val log = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
 private const val DISABLED_PRESET = "__disabled__"
 private const val SEED = "noise-narrative"
 private const val CUSTOM_PRESET_PREFIX = "noise_narrative_client_test"
@@ -92,9 +92,7 @@ private fun runSpawnChunk(
 ): Map<String, ColumnStats> {
   val originalPresetId = PresetRegistry.forcePresetId
   PresetRegistry.forcePresetId = presetId
-  NoiseHandler.resetOriginTrace()
-  ClimateHandler.resetOriginTrace()
-  LOGGER.info("[NoiseNarrative][{}] START preset={} trace=[{}]", scenarioName, presetId, trace)
+  log.info("[{}] START preset={} trace=[{}]", scenarioName, presetId, trace)
   val game =
     context
       .worldBuilder()
@@ -121,8 +119,8 @@ private fun runSpawnChunk(
 
     if (screenshotLabel != null) {
       val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")
-      LOGGER.info(
-        "[NoiseNarrative][{}] screenshot -> {}/{}.png",
+      log.info(
+        "[{}] screenshot -> {}/{}.png",
         scenarioName,
         screenshotDir,
         screenshotLabel,
@@ -167,8 +165,8 @@ private fun runSpawnChunk(
         val surfaces = columns.values.map { it.worldSurface }
         val groundCounts = countBlocks(columns) { it.groundBlock }
         val biomeCounts = countBlocks(columns) { it.biome }
-        LOGGER.info(
-          "[NoiseNarrative][{}] preset={} trace=[{}] surface={}-{} avg={} oceanFloor={}-{} avg={} ground=[{}] cover=[{}] biomes=[{}]",
+        log.info(
+          "[{}] preset={} trace=[{}] surface={}-{} avg={} oceanFloor={}-{} avg={} ground=[{}] cover=[{}] biomes=[{}]",
           scenarioName,
           presetId,
           trace,
@@ -220,8 +218,8 @@ private fun logColumnDiffs(
     val b = baseline[key] ?: continue
     if (b != c) {
       if (logged < 6) {
-        LOGGER.info(
-          "[NoiseNarrative][{}] column {} surface {}→{} ground {}→{} cover {}→{} biome {}→{}",
+        log.info(
+          "[{}] column {} surface {}→{} ground {}→{} cover {}→{} biome {}→{}",
           scenarioName,
           key,
           b.worldSurface,
@@ -238,13 +236,13 @@ private fun logColumnDiffs(
     }
   }
   if (logged == 0) {
-    LOGGER.warn(
-      "[NoiseNarrative][{}] NO columns changed — enable noise.handler/noise.handler.densityFunction trace logging and rerun to diagnose",
+    log.warn(
+      "[{}] NO columns changed — enable noise.handler/noise.handler.densityFunction trace logging and rerun to diagnose",
       scenarioName,
     )
   } else if (logged > 6) {
-    LOGGER.info(
-      "[NoiseNarrative][{}] … {} more columns changed (not shown)",
+    log.info(
+      "[{}] … {} more columns changed (not shown)",
       scenarioName,
       logged - 6,
     )
@@ -475,8 +473,8 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
         val coverCounts = countBlocks(candidate) { it.coverBlock }
         val biomeCounts = countBlocks(candidate) { it.biome }
 
-        LOGGER.info(
-          "[NoiseNarrative][{}] diffs: height={} ground={} cover={} biome={} / {} columns",
+        log.info(
+          "[{}] diffs: height={} ground={} cover={} biome={} / {} columns",
           scenario.name,
           diff.heightDiffs,
           diff.groundBlockDiffs,
@@ -488,8 +486,8 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
 
         val terrainChange =
           diff.heightDiffs > 0 || diff.groundBlockDiffs > 0 || diff.coverBlockDiffs > 0
-        LOGGER.info(
-          "[NoiseNarrative][{}] composition evidence: ground=[{}] cover=[{}] biomes=[{}]",
+        log.info(
+          "[{}] composition evidence: ground=[{}] cover=[{}] biomes=[{}]",
           scenario.name,
           formatCounts(groundCounts, 4),
           formatCounts(coverCounts, 4),

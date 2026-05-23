@@ -13,8 +13,6 @@ private var instr = TerrasectInstr.noise
 object NoiseHandler {
   private val pendingNoiseChunkCreation = ThreadLocal<ChunkAccessExtender?>()
 
-  fun resetOriginTrace() {}
-
   @JvmStatic
   fun beginNoiseChunkCreation(chunk: ChunkAccessExtender) {
     pendingNoiseChunkCreation.set(chunk)

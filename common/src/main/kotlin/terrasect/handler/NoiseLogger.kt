@@ -4,22 +4,22 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 class ScopedLogger(scope: String) {
-  @PublishedApi internal val logger: Logger = LoggerFactory.getLogger(scope)
+  @PublishedApi internal val log: Logger = LoggerFactory.getLogger(scope)
 
   inline fun trace(message: () -> String) {
-    if (logger.isTraceEnabled) logger.trace(message())
+    if (log.isTraceEnabled) log.trace(message())
   }
 
   inline fun debug(message: () -> String) {
-    if (logger.isDebugEnabled) logger.debug(message())
+    if (log.isDebugEnabled) log.debug(message())
   }
 
   inline fun info(message: () -> String) {
-    if (logger.isInfoEnabled) logger.info(message())
+    if (log.isInfoEnabled) log.info(message())
   }
 
   inline fun warn(message: () -> String) {
-    if (logger.isWarnEnabled) logger.warn(message())
+    if (log.isWarnEnabled) log.warn(message())
   }
 }
 

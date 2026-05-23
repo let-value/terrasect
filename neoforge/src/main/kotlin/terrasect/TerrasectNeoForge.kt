@@ -15,7 +15,7 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent
 class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
 
   companion object {
-    private val LOGGER = LogUtils.getLogger()
+    private val log = LogUtils.getLogger()
   }
 
   init {
@@ -24,22 +24,22 @@ class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
 
     NeoForge.EVENT_BUS.register(this)
 
-    LOGGER.info("Hello from ${Constants.MOD_NAME} on NeoForge!")
+    log.info("Hello from ${Constants.MOD_NAME} on NeoForge!")
   }
 
   private fun commonSetup(event: FMLCommonSetupEvent) {
-    LOGGER.info("${Constants.MOD_NAME} common setup")
+    log.info("${Constants.MOD_NAME} common setup")
 
     Terrasect.init()
   }
 
   private fun clientSetup(event: FMLClientSetupEvent) {
-    LOGGER.info("${Constants.MOD_NAME} client setup")
-    LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
+    log.info("${Constants.MOD_NAME} client setup")
+    log.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
   }
 
   @SubscribeEvent
   fun onServerStarting(event: ServerStartingEvent) {
-    LOGGER.info("${Constants.MOD_NAME} server starting")
+    log.info("${Constants.MOD_NAME} server starting")
   }
 }

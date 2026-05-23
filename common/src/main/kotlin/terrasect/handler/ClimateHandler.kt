@@ -15,8 +15,6 @@ import terrasect.instrumentation.TerrasectMetricEvent
 private var instr = TerrasectInstr.climate
 
 object ClimateHandler {
-  fun resetOriginTrace() {}
-
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
     if (dimensionContext.biomesClimate == null) return 0f to 0f
 
