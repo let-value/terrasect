@@ -7,6 +7,10 @@ import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.extender.ChunkAccessExtender
+import terrasect.instrumentation.TerrasectInstr
+import terrasect.instrumentation.TerrasectMetricEvent
+
+private val instr = TerrasectInstr.chunk
 
 class ChunkContext {
   var height: Int = 0
@@ -29,9 +33,17 @@ class ChunkContext {
   constructor(chunk: ChunkAccessExtender, position: ChunkPos) {
     val level: Level =
       chunk.`terrasect$getLevel`()
-        ?: throw IllegalStateException("Chunk is not attached to a level")
+        ?: run {
+          instr.count(TerrasectMetricEvent.CHUNK_ERROR, "dimension") { "unknown" }
+          throw IllegalStateException("Chunk is not attached to a level")
+        }
     val dimension = ResourceKeyCompat.getKeyId(level.dimension())
-    this.dimensionContext = DimensionContext.get(dimension) ?: return
+    this.dimensionContext =
+      DimensionContext.get(dimension)
+        ?: run {
+          instr.count(TerrasectMetricEvent.CHUNK_ERROR, "dimension") { dimension }
+          return
+        }
 
     val baseWidth = position.maxBlockX - position.minBlockX + 1
     val baseHeight = position.maxBlockZ - position.minBlockZ + 1
@@ -45,6 +57,7 @@ class ChunkContext {
     this.regions = PalettedGrid(width, height, originX, originZ)
     this.distances = FloatArray(width * height)
 
+    instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE, "dimension") { dimension }
     for (x in 0 until width) {
       for (z in 0 until height) {
         val blockX = originX + x
@@ -54,6 +67,7 @@ class ChunkContext {
         this.distances!![idx(blockX, blockZ)] = step.distance
       }
     }
+    instr.count(TerrasectMetricEvent.CHUNK_CREATED, "dimension") { dimension }
   }
 
   fun getDistance(blockX: Int, blockZ: Int): Float {
@@ -61,6 +75,7 @@ class ChunkContext {
       return distances!![idx(blockX, blockZ)]
     }
     val ctx = dimensionContext ?: return Float.NEGATIVE_INFINITY
+    instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") { ctx.dimensionId }
     return ctx.traverser.traverse(blockX, blockZ, cache).distance
   }
 
@@ -75,6 +90,7 @@ class ChunkContext {
     if (regions != null && inBounds(blockX, blockZ)) {
       return regions!!.get(blockX, blockZ)
     }
+    instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") { ctx.dimensionId }
     return ctx.traverser.traverse(blockX, blockZ, cache).region
   }
 }

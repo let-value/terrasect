@@ -2,11 +2,16 @@
 
 This folder stores compact summaries of completed delegated goals. Full discussion/history lives in Git and PR comments; future external-agent work should still start from a new self-contained `GOAL_*.md` file while it is active, then be compacted after completion.
 
-## Completed goals
+## Completed / active topic summaries
 
-- `GOAL_20260508_202347_Reborn_Documentation_Recovery.md` — Recovered workflow/process docs from stale `feature/automate-git-workflow`, closed stale PR #45, rebuilt documentation against `reborn`, opened PR #46, and identified follow-ups now lifted to blocked Kanban cards where non-duplicative.
-- `GOAL_20260508_204601_PR46_Knowledge_Base_Slimdown.md` — Addressed PR #46 feedback by slimming `docs/KNOWLEDGE_BASE.md` Section 7 to basic facts plus a `docs/PROJECT_MAP.md` link and moving/preserving detailed project context in `docs/PROJECT_MAP.md`.
-- `GOAL_20260509_025459_Claude_ConversationId_Test.md` — Verified that Claude Code print mode returns a usable `session_id` in JSON output even after an intentionally short, dummy run, and stored the id back into the goal file for future retry bookkeeping.
+- `GOAL_20260508_202347_Reborn_Documentation_Recovery.md` — Recovered and slimmed reborn documentation, closed stale PR #45, and opened/updated PR #46.
+- `GOAL_20260509_025459_Claude_ConversationId_Test.md` — Verified Claude Code JSON print-mode session-id capture for provider-limit recovery.
+- `GOAL_20260509_031936_Env_Verification.md` — Verified Java/Kotlin/Gradle/Spotless/test readiness and the working Java 21 invocation.
+- `GOAL_20260509_042553_agentic_development_guardrails.md` — Established agentic development guardrails and PR #48.
+- `GOAL_20260510_120622_Noise_Narrative_Constraint_Expansion.md` — Consolidated noise narrative constraints, observability, climate-router wrapping, and PR #50 review cleanup state.
+- `GOAL_20260510_141138_Headless_Gradle_Middleware.md` — Consolidated headless client GameTest crash diagnosis and Xvfb Gradle middleware.
+- `GOAL_20260516_070434_Structure_Constraints_Implementation_Retry.md` — Consolidated structure placement research, structure-constraints implementation, locate path, client GameTests, statistics follow-up, and PR #51 state.
+- `GOAL_20260518_154754_Common_Package_Instrumentation_Framework.md` — Consolidated common instrumentation API implementation and code-quality follow-up state.
 
 ## Historical stale-branch goals
 

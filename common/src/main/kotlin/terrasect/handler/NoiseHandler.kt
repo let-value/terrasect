@@ -1,35 +1,17 @@
 package terrasect.handler
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseRouter
 import terrasect.extender.ChunkAccessExtender
 import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
+import terrasect.instrumentation.TerrasectInstr
+import terrasect.instrumentation.TerrasectMetricEvent
 
-private const val TRACE_BLOCK_X = 0
-private const val TRACE_BLOCK_Z = 0
-private const val TRACE_PER_KEY_LIMIT = 8
-
-private val logDf = NoiseLogger.densityFunction
-private val logOrigin = NoiseLogger.originNoise
+private val instr = TerrasectInstr.noise
 
 object NoiseHandler {
   private val pendingNoiseChunkCreation = ThreadLocal<ChunkAccessExtender?>()
-  private val routerWrapCount = AtomicInteger()
-  private val climateRouterWrapCount = AtomicInteger()
-  private val modifyHitCount = AtomicInteger()
-  private val holderKeyLogCount = AtomicInteger()
-  private val missingHolderChunkLogCount = AtomicInteger()
-  private val originTraceCounts = ConcurrentHashMap<String, AtomicInteger>()
-
-  fun resetOriginTrace() {
-    originTraceCounts.clear()
-    modifyHitCount.set(0)
-    holderKeyLogCount.set(0)
-    missingHolderChunkLogCount.set(0)
-  }
 
   @JvmStatic
   fun beginNoiseChunkCreation(chunk: ChunkAccessExtender) {
@@ -45,31 +27,20 @@ object NoiseHandler {
 
   @JvmStatic
   fun wrapNoiseRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter =
-    wrapRouter("wrapNoiseRouter", routerWrapCount, router, chunk)
+    wrapRouter(router, chunk)
 
   @JvmStatic
   fun wrapClimateSamplerRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter =
-    wrapRouter("wrapClimateSamplerRouter", climateRouterWrapCount, router, chunk)
-
-  @JvmStatic
-  fun logCapturedDensityKey(key: String) {
-    val count = holderKeyLogCount.incrementAndGet()
-    if (count <= 24) logDf.trace { "captured density holder key=$key" }
-  }
-
-  @JvmStatic
-  fun logMissingDensityChunk(key: String) {
-    val count = missingHolderChunkLogCount.incrementAndGet()
-    if (count <= 24) logDf.trace { "skipped keyed value key=$key: chunk context missing" }
-  }
+    wrapRouter(router, chunk)
 
   @JvmStatic
   fun wrapDensity(function: DensityFunction, key: String?, chunk: ChunkContext?): DensityFunction {
     if (key == null || function is ChunkDensityFunction) return function
     if (chunk == null) {
-      logMissingDensityChunk(key)
+      instr.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING, "noise_key") { key }
       return function
     }
+    instr.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
     return ChunkDensityFunction(function, key, chunk, 1)
   }
 
@@ -84,53 +55,17 @@ object NoiseHandler {
   ): Double? {
     val region = chunk.getRegion(blockX, blockZ)
     if (region == null) {
-      ifOriginTrace(blockX, blockZ) {
-        trace(key, blockX, blockY, blockZ, original, null, "region=NULL")
-      }
       return null
     }
 
-    val noiseRegistry = chunk.dimensionContext?.noiseRegistry
-    if (noiseRegistry == null) {
-      ifOriginTrace(blockX, blockZ) {
-        trace(
-          key,
-          blockX,
-          blockY,
-          blockZ,
-          original,
-          null,
-          "region=${region.name} noiseRegistry=NULL",
-        )
-      }
-      return null
-    }
-
-    val constraints = noiseRegistry.get(region)
-    if (constraints == null) {
-      ifOriginTrace(blockX, blockZ) {
-        trace(
-          key,
-          blockX,
-          blockY,
-          blockZ,
-          original,
-          null,
-          "region=${region.name} constraints=NULL (region not in registry)",
-        )
-      }
-      return null
-    }
-
+    val noiseRegistry = chunk.dimensionContext?.noiseRegistry ?: return null
+    val constraints = noiseRegistry.get(region) ?: return null
     val transform =
       constraints.densityFunctions[key]
         ?: constraints.noises[key]
         ?: constraints.densityFunctions[key.substringAfterLast('/')]
         ?: constraints.noises[key.substringAfterLast('/')]
     if (transform == null) {
-      ifOriginTrace(blockX, blockZ) {
-        trace(key, blockX, blockY, blockZ, original, null, "region=${region.name} transform=NULL")
-      }
       return null
     }
 
@@ -138,40 +73,11 @@ object NoiseHandler {
     val sdfDist = chunk.getDistance(blockX, blockZ)
     val strength = getStrength(blendWidth, sdfDist)
     if (strength <= 0f) {
-      ifOriginTrace(blockX, blockZ) {
-        trace(
-          key,
-          blockX,
-          blockY,
-          blockZ,
-          original,
-          original,
-          "region=${region.name} strength=0 sdfDist=${sdfDist.fmt1()}",
-        )
-      }
       return original
     }
 
     val transformed = transform.apply(original)
-
-    val hitNum = modifyHitCount.incrementAndGet()
-    if (hitNum <= 24 || hitNum % 5_000_000 == 0) {
-      logDf.trace {
-        "CONSTRAINT HIT #$hitNum: key=$key block=($blockX, $blockY, $blockZ) region=${region.name} orig=${original.fmt4()} transformed=${transformed.fmt4()} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}"
-      }
-    }
-
-    ifOriginTrace(blockX, blockZ) {
-      trace(
-        key,
-        blockX,
-        blockY,
-        blockZ,
-        original,
-        transformed,
-        "hit=$hitNum region=${region.name} strength=${strength.fmt3()} sdfDist=${sdfDist.fmt1()}",
-      )
-    }
+    instr.count(TerrasectMetricEvent.NOISE_APPLIED, "noise_key") { key }
 
     if (strength >= 1f) return transformed
     return original + (transformed - original) * strength
@@ -183,27 +89,13 @@ object NoiseHandler {
     return (-sdfDist / blendWidth).coerceAtMost(1f)
   }
 
-  private fun wrapRouter(
-    label: String,
-    counter: AtomicInteger,
-    router: NoiseRouter,
-    chunk: ChunkContext?,
-  ): NoiseRouter {
+  private fun wrapRouter(router: NoiseRouter, chunk: ChunkContext?): NoiseRouter {
     if (chunk == null) {
-
-      val n = counter.incrementAndGet()
-      if (n <= 8 || n % 500 == 0) log.debug { "$label #$n skipped: chunkContext=NULL" }
-
+      instr.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING)
       return router
     }
 
-    val registry = chunk.dimensionContext?.noiseRegistry
-    val n = counter.incrementAndGet()
-    if (n <= 8 || n % 500 == 0) {
-      log.debug {
-        "$label #$n: dim=${chunk.dimensionContext?.dimensionId ?: "null"} hasRegistry=${registry != null} regionCount=${registry?.size() ?: 0}"
-      }
-    }
+    instr.count(TerrasectMetricEvent.NOISE_ROUTER_WRAP)
 
     return NoiseRouter(
       wrapDensityFunction(router.barrierNoise, "barrierNoise", chunk),
@@ -231,34 +123,7 @@ object NoiseHandler {
     scale: Int = 1,
   ): DensityFunction {
     if (function is ChunkDensityFunction) return function
+    instr.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
     return ChunkDensityFunction(function, key, chunk, scale)
   }
-
-  private inline fun ifOriginTrace(blockX: Int, blockZ: Int, action: () -> Unit) {
-    if (blockX == TRACE_BLOCK_X && blockZ == TRACE_BLOCK_Z) action()
-  }
-
-  private fun trace(
-    key: String,
-    blockX: Int,
-    blockY: Int,
-    blockZ: Int,
-    original: Double,
-    transformed: Double?,
-    status: String,
-  ) {
-    val bucket = if (status.startsWith("hit=")) "$key|hit" else "$key|$status"
-    val count = originTraceCounts.computeIfAbsent(bucket) { AtomicInteger() }.incrementAndGet()
-    if (count <= TRACE_PER_KEY_LIMIT) {
-      logOrigin.trace {
-        "sample #$count key=$key block=($blockX, $blockY, $blockZ) original=${original.fmt4()} transformed=${transformed?.fmt4() ?: "unchanged"} $status"
-      }
-    }
-  }
 }
-
-private fun Double.fmt4() = "%.4f".format(this)
-
-private fun Float.fmt3() = "%.3f".format(this)
-
-private fun Float.fmt1() = "%.1f".format(this)

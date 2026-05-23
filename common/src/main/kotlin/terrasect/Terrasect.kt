@@ -7,10 +7,9 @@ import terrasect.cache.RegionsCache
 object Terrasect {
   val cache = RegionsCache(400)
 
-  private val LOGGER: Logger = LoggerFactory.getLogger(Constants.MOD_ID)
+  private val log: Logger = LoggerFactory.getLogger(Constants.MOD_ID)
 
   fun init() {
-
-    LOGGER.info("Initializing ${Constants.MOD_NAME} common...")
+    log.info("Initializing ${Constants.MOD_NAME} common...")
   }
 }

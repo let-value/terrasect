@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 
-private val LOGGER = LoggerFactory.getLogger("StructureConstraintGameTest")
+private val log = LoggerFactory.getLogger("StructureConstraintGameTest")
 
 private const val SEED = "structure-constraints"
 private const val DISABLED_PRESET = "__disabled__"
@@ -135,8 +135,8 @@ private fun runStructureProbes(context: ClientGameTestContext, label: String, sc
               .sortedByDescending { it.value }
               .take(3)
               .joinToString { "${it.key.substringAfterLast(':')}×${it.value}" }
-          LOGGER.info(
-            "[StructureConstraint][{}] probe ({},{}) surface={}-{} blocks=[{}]",
+          log.info(
+            "[{}] probe ({},{}) surface={}-{} blocks=[{}]",
             label,
             x,
             z,
@@ -156,7 +156,7 @@ private fun runStructureProbes(context: ClientGameTestContext, label: String, sc
       )
     }
 
-    LOGGER.info("[StructureConstraint][{}] done — screenshots in {}", label, screenshotDir)
+    log.info("[{}] done — screenshots in {}", label, screenshotDir)
   } finally {
     game.close()
   }
@@ -194,10 +194,7 @@ private fun runLocateTest(
             }
             .toList()
         if (holders.isEmpty()) {
-          LOGGER.warn(
-            "[StructureConstraint][locate][{}] no matching structure holders in registry",
-            label,
-          )
+          log.warn("[{}] no matching structure holders in registry", label)
           result = LocateResult(null, null)
           return@FailableConsumer
         }
@@ -207,8 +204,8 @@ private fun runLocateTest(
         if (found != null) {
           val id = found.second.unwrapKey().map { it.identifier().toString() }.orElse("unknown")
           val pos = found.first
-          LOGGER.info(
-            "[StructureConstraint][locate][{}] found type={} at ({},{}) distance={}",
+          log.info(
+            "[{}] found type={} at ({},{}) distance={}",
             label,
             id,
             pos.x,
@@ -218,7 +215,7 @@ private fun runLocateTest(
           )
           result = LocateResult(id, pos)
         } else {
-          LOGGER.info("[StructureConstraint][locate][{}] not found within radius=1000", label)
+          log.info("[{}] not found within radius=1000", label)
           result = LocateResult(null, null)
         }
       }
@@ -249,7 +246,7 @@ private fun runLocateTest(
       context.takeScreenshot(
         TestScreenshotOptions.of(screenshotName).withDestinationDir(screenshotDir)
       )
-      LOGGER.info("[StructureConstraint][locate][{}] screenshot saved to {}", label, screenshotDir)
+      log.info("[{}] screenshot saved to {}", label, screenshotDir)
     }
     return locateResult
   } finally {
@@ -335,8 +332,8 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
       PresetRegistry.presets.remove(LOCATE_BLOCKED_PRESET)
     }
 
-    LOGGER.info(
-      "[StructureConstraint][locate] summary: vanilla={} dist={} | high_density={} dist={} | blocked={}",
+    log.info(
+      " summary: vanilla={} dist={} | high_density={} dist={} | blocked={}",
       vanillaResult.structureId,
       vanillaResult.distance,
       highDensityResult.structureId,
@@ -347,39 +344,39 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
 
     assertNotNull(
       vanillaResult.pos,
-      "[locate] vanilla should find a village within radius=200 but got null — " +
+      "vanilla should find a village within radius=200 but got null — " +
         "check that village structures exist in the test world registry.",
     )
     assertNotNull(
       highDensityResult.pos,
-      "[locate] high-density should find a village within radius=200 but got null — " +
+      "high-density should find a village within radius=200 but got null — " +
         "placement-only preset must not suppress locate results (no selection constraint set).",
     )
     assertTrue(
       vanillaResult.structureId?.startsWith("minecraft:village_") == true,
-      "[locate] vanilla should return a village-type structure id, got ${vanillaResult.structureId}",
+      "vanilla should return a village-type structure id, got ${vanillaResult.structureId}",
     )
     assertTrue(
       highDensityResult.structureId?.startsWith("minecraft:village_") == true,
-      "[locate] high-density should return a village-type structure id, got ${highDensityResult.structureId}",
+      "high-density should return a village-type structure id, got ${highDensityResult.structureId}",
     )
     assertEquals(
       vanillaResult.structureId,
       highDensityResult.structureId,
-      "[locate] vanilla and high-density should locate the same closest village type for the fixed seed",
+      "vanilla and high-density should locate the same closest village type for the fixed seed",
     )
     assertTrue(
       highDensityResult.distance < vanillaResult.distance,
-      "[locate] high-density preset should find a closer village than vanilla " +
+      "high-density preset should find a closer village than vanilla " +
         "(vanilla dist=${vanillaResult.distance}, high_density dist=${highDensityResult.distance})",
     )
     assertTrue(
       vanillaResult.distance >= 0,
-      "[locate] vanilla distance should be non-negative but was ${vanillaResult.distance}",
+      "vanilla distance should be non-negative but was ${vanillaResult.distance}",
     )
     assertNull(
       blockedResult.pos,
-      "[locate] selection-blocked preset (blockMods=minecraft) must not find any village " +
+      "selection-blocked preset (blockMods=minecraft) must not find any village " +
         "within radius=200, but found ${blockedResult.structureId} at ${blockedResult.pos} — " +
         "the locate mixin selection filter did not apply.",
     )
@@ -463,7 +460,7 @@ private fun runLocateAtPos(
             }
             .toList()
         if (holders.isEmpty()) {
-          LOGGER.warn("[StructureConstraint][locate][{}] no matching holders in registry", label)
+          log.warn("[{}] no matching holders in registry", label)
           result = LocateResult(null, null)
           return@FailableConsumer
         }
@@ -473,16 +470,10 @@ private fun runLocateAtPos(
         if (found != null) {
           val id = found.second.unwrapKey().map { it.identifier().toString() }.orElse("unknown")
           val pos = found.first
-          LOGGER.info(
-            "[StructureConstraint][locate][{}] found type={} at ({},{})",
-            label,
-            id,
-            pos.x,
-            pos.z,
-          )
+          log.info("[{}] found type={} at ({},{})", label, id, pos.x, pos.z)
           result = LocateResult(id, pos)
         } else {
-          LOGGER.info("[StructureConstraint][locate][{}] not found within radius=1000", label)
+          log.info("[{}] not found within radius=1000", label)
           result = LocateResult(null, null)
         }
       }
@@ -511,7 +502,7 @@ private fun runLocateAtPos(
     context.takeScreenshot(
       TestScreenshotOptions.of(screenshotName).withDestinationDir(screenshotDir)
     )
-    LOGGER.info("[StructureConstraint][locate][{}] screenshot at {} done", label, screenshotDir)
+    log.info("[{}] screenshot at {} done", label, screenshotDir)
     return locateResult
   } finally {
     game.close()
@@ -824,24 +815,20 @@ object StructureConstraintLocateRuinedPortalGameTest : FabricClientGameTest {
       PresetRegistry.forcePresetId = null
     }
 
-    LOGGER.info(
-      "[StructureConstraint][locate][ruined_portal] id={} dist={}",
-      result.structureId,
-      result.distance,
-    )
+    log.info("[ruined_portal] id={} dist={}", result.structureId, result.distance)
 
     assertNotNull(
       result.pos,
-      "[locate][ruined_portal] expected a ruined portal within radius=200 but got null",
+      "[ruined_portal] expected a ruined portal within radius=200 but got null",
     )
     assertTrue(
       result.structureId?.contains("ruined_portal") == true,
-      "[locate][ruined_portal] expected id containing ruined_portal, got ${result.structureId}",
+      "[ruined_portal] expected id containing ruined_portal, got ${result.structureId}",
     )
     assertEquals(
       RUINED_PORTAL_DISTANCE,
       result.distance,
-      "[locate][ruined_portal] horizontal distance from origin mismatch for fixed seed",
+      "[ruined_portal] horizontal distance from origin mismatch for fixed seed",
     )
   }
 }

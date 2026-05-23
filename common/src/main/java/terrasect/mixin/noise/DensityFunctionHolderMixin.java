@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import terrasect.extender.DensityFunctionHolderExtender;
-import terrasect.handler.NoiseHandler;
 
 @Mixin(targets = "net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder")
 public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender {
@@ -23,7 +22,6 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
         .ifPresent(
             key -> {
               this.terrasect$key = key.identifier().getPath();
-              NoiseHandler.logCapturedDensityKey(this.terrasect$key);
             });
   }
 

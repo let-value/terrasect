@@ -13,14 +13,13 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.levelgen.structure.Structure
 import org.apache.commons.lang3.function.FailableConsumer
-import org.slf4j.LoggerFactory
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 
-private val LOGGER = LoggerFactory.getLogger("StructureConstraintStatisticsTest")
+private val log = LoggerFactory.getLogger("StructureConstraintStatisticsTest")
 
 private const val SEED = "structure-constraints"
 private const val DISABLED_PRESET = "__disabled__"
@@ -32,7 +31,7 @@ private const val VILLAGE_TAG = "minecraft:village"
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.also { LOGGER.info("[StructureConstraint][statistics] module dir = {}", it) }
+  classesRoot.parent.parent.parent.parent.also { log.info("module dir = {}", it) }
 }
 
 private val GAME_TEST_RESOURCES_BASE: Path by lazy {
@@ -50,21 +49,20 @@ private data class StatisticsSnapshot(
   val averageDistance: Double,
   val topStructures: List<Pair<String, Int>>,
 ) {
-  fun toSnapshotText(): String =
-    buildString {
-      appendLine("case,$caseName")
-      appendLine("samples,$sampleCount")
-      appendLine("hits,$hitCount")
-      appendLine("misses,$missCount")
-      appendLine("unique_structures,$uniqueStructures")
-      appendLine("min_distance,$minDistance")
-      appendLine("max_distance,$maxDistance")
-      appendLine("average_distance,${"%.2f".format(averageDistance)}")
-      appendLine("top_structures,id,count")
-      for ((id, count) in topStructures) {
-        appendLine("$id,$count")
-      }
+  fun toSnapshotText(): String = buildString {
+    appendLine("case,$caseName")
+    appendLine("samples,$sampleCount")
+    appendLine("hits,$hitCount")
+    appendLine("misses,$missCount")
+    appendLine("unique_structures,$uniqueStructures")
+    appendLine("min_distance,$minDistance")
+    appendLine("max_distance,$maxDistance")
+    appendLine("average_distance,${"%.2f".format(averageDistance)}")
+    appendLine("top_structures,id,count")
+    for ((id, count) in topStructures) {
+      appendLine("$id,$count")
     }
+  }
 }
 
 private fun registerDensePreset() {
@@ -106,7 +104,7 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
         )
       )
     SnapshotFile.of(header, text).writeTo(snapshotFile)
-    LOGGER.info("[StructureConstraint][statistics][{}] snapshot {}", caseName, snapshotFile)
+    log.info("[{}] snapshot {}", caseName, snapshotFile)
   } else {
     val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
     if (stored != text) {
@@ -116,7 +114,7 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
           buildUnifiedDiff(stored, text)
       )
     }
-    LOGGER.info("[StructureConstraint][statistics][{}] snapshot matches {}", caseName, snapshotFile)
+    log.info("[{}] snapshot matches {}", caseName, snapshotFile)
   }
 }
 
@@ -222,7 +220,10 @@ private fun collectVillageStatistics(
           structReg
             .listElements()
             .filter { holder ->
-              holder.unwrapKey().map { key -> "village" in key.identifier().toString() }.orElse(false)
+              holder
+                .unwrapKey()
+                .map { key -> "village" in key.identifier().toString() }
+                .orElse(false)
             }
             .toList()
         check(holders.isNotEmpty()) { "Expected at least one village structure holder" }
@@ -251,9 +252,7 @@ private fun collectVillageStatistics(
             counts[id] = (counts[id] ?: 0) + 1
             val pos = found.first
             val distance =
-              sqrt(
-                  (pos.x.toLong() * pos.x.toLong() + pos.z.toLong() * pos.z.toLong()).toDouble()
-                )
+              sqrt((pos.x.toLong() * pos.x.toLong() + pos.z.toLong() * pos.z.toLong()).toDouble())
                 .toInt()
             minDistance = minOf(minDistance, distance)
             maxDistance = maxOf(maxDistance, distance)
@@ -276,8 +275,8 @@ private fun collectVillageStatistics(
             topStructures = topStructures,
           )
 
-        LOGGER.info(
-          "[StructureConstraint][statistics][{}] preset={} samples={} hits={} misses={} unique={} avgDist={}",
+        log.info(
+          "[{}] preset={} samples={} hits={} misses={} unique={} avgDist={}",
           caseName,
           presetId,
           samples,
@@ -300,7 +299,8 @@ private fun collectVillageStatistics(
 @Suppress("UnstableApiUsage")
 object StructureConstraintStatisticsTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
-    // todo will be refactored later, dont want to spend time on making this test work in the current state of the codebase
+    // todo will be refactored later, dont want to spend time on making this test work in the
+    // current state of the codebase
     if (!GameTestFilter.shouldRun(this::class) || true) return
 
     PresetRegistry.forcePresetId = DISABLED_PRESET
