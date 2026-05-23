@@ -1,0 +1,14 @@
+dynamic-directory: true
+snapshot-name: dense
+snapshot-number: 0
+test-class: terrasect.StructureConstraintStatisticsTest
+test-method: runTest
+
+case,dense
+chunk_area,10x10
+total_generated,720
+structure_id,count
+minecraft:mineshaft,291
+minecraft:trial_chambers,225
+minecraft:village_plains,197
+minecraft:ruined_portal,7
