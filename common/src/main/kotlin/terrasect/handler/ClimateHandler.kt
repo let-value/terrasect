@@ -12,6 +12,8 @@ import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
+private var instr = TerrasectInstr.climate
+
 object ClimateHandler {
   fun resetOriginTrace() {}
 
@@ -41,7 +43,7 @@ object ClimateHandler {
     val chunk: ChunkContext? = noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
 
     if (chunk == null) {
-      var instr = TerrasectInstr.climate
+      
       instr.count(TerrasectMetricEvent.CLIMATE_CHUNK_MISSING)
       return
     }
@@ -79,7 +81,6 @@ object ClimateHandler {
       extender.`terrasect$setWeirdness`(climate.weirdness.coerceIn(range.min, range.max))
     }
 
-    var instr = TerrasectInstr.climate
     instr.count(TerrasectMetricEvent.CLIMATE_APPLIED)
   }
 }

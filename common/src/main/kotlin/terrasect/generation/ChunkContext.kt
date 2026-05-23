@@ -10,6 +10,8 @@ import terrasect.extender.ChunkAccessExtender
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
+private var instr = TerrasectInstr.chunk
+
 class ChunkContext {
   var height: Int = 0
   var width: Int = 0
@@ -32,7 +34,7 @@ class ChunkContext {
     val level: Level =
       chunk.`terrasect$getLevel`()
         ?: run {
-          var instr = TerrasectInstr.chunk
+          
           instr.count(TerrasectMetricEvent.CHUNK_ERROR, "dimension") { "unknown" }
           throw IllegalStateException("Chunk is not attached to a level")
         }
@@ -40,7 +42,6 @@ class ChunkContext {
     this.dimensionContext =
       DimensionContext.get(dimension)
         ?: run {
-          var instr = TerrasectInstr.chunk
           instr.count(TerrasectMetricEvent.CHUNK_ERROR, "dimension") { dimension }
           return
         }
@@ -57,7 +58,6 @@ class ChunkContext {
     this.regions = PalettedGrid(width, height, originX, originZ)
     this.distances = FloatArray(width * height)
 
-    var instr = TerrasectInstr.chunk
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE, "dimension") { dimension }
     for (x in 0 until width) {
       for (z in 0 until height) {
@@ -76,7 +76,6 @@ class ChunkContext {
       return distances!![idx(blockX, blockZ)]
     }
     val ctx = dimensionContext ?: return Float.NEGATIVE_INFINITY
-    var instr = TerrasectInstr.chunk
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") {
       ctx.dimensionId
     }
@@ -94,7 +93,6 @@ class ChunkContext {
     if (regions != null && inBounds(blockX, blockZ)) {
       return regions!!.get(blockX, blockZ)
     }
-    var instr = TerrasectInstr.chunk
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") {
       ctx.dimensionId
     }

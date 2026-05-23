@@ -13,6 +13,8 @@ import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
+private var instr = TerrasectInstr.structure
+
 object StructureHandler {
   /**
    * Returns filtered structure sets for chunk creation. When a pre-built [ChunkContext] is
@@ -33,13 +35,12 @@ object StructureHandler {
     val blockX = (chunkX shl 4) + 8
     val blockZ = (chunkZ shl 4) + 8
     if (chunkContext == null) {
-      var instr = TerrasectInstr.structure
       instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     }
     val constraints =
       (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
         .structures ?: return null
-    var instr = TerrasectInstr.structure
+    
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     return lookup.getFilteredSets(constraints)
   }
@@ -59,7 +60,6 @@ object StructureHandler {
     val ctx =
       DimensionContext.get(ResourceKeyCompat.getKeyId(levelReader.dimension())) ?: return structures
     val lookup = ctx.structureLookup ?: return structures
-    var instr = TerrasectInstr.structure
     instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return structures
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
@@ -79,7 +79,6 @@ object StructureHandler {
 
   @JvmStatic
   fun recordGeneratedStructure(structureId: String, location: String) {
-    var instr = TerrasectInstr.structure
     instr.count(
       TerrasectMetricEvent.STRUCTURE_GENERATED,
       "structure_id",
