@@ -13,7 +13,7 @@ import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
-private var instr = TerrasectInstr.structure
+private val instr = TerrasectInstr.structure
 
 object StructureHandler {
   /**
@@ -40,7 +40,6 @@ object StructureHandler {
     val constraints =
       (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
         .structures ?: return null
-    
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     return lookup.getFilteredSets(constraints)
   }

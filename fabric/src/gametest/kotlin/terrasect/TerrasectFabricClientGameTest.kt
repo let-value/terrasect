@@ -15,8 +15,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
-import terrasect.handler.ClimateHandler
-import terrasect.handler.NoiseHandler
 
 private val log = LoggerFactory.getLogger("NoiseNarrativeFabricGameTest")
 private const val DISABLED_PRESET = "__disabled__"
@@ -119,12 +117,7 @@ private fun runSpawnChunk(
 
     if (screenshotLabel != null) {
       val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")
-      log.info(
-        "[{}] screenshot -> {}/{}.png",
-        scenarioName,
-        screenshotDir,
-        screenshotLabel,
-      )
+      log.info("[{}] screenshot -> {}/{}.png", scenarioName, screenshotDir, screenshotLabel)
       context.runOnClient(
         FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
       )
@@ -241,11 +234,7 @@ private fun logColumnDiffs(
       scenarioName,
     )
   } else if (logged > 6) {
-    log.info(
-      "[{}] … {} more columns changed (not shown)",
-      scenarioName,
-      logged - 6,
-    )
+    log.info("[{}] … {} more columns changed (not shown)", scenarioName, logged - 6)
   }
 }
 

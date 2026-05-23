@@ -25,7 +25,7 @@ private val PROBE_LOCATIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.also { log.info(" module dir = {}", it) }
+  classesRoot.parent.parent.parent.parent.also { log.info("module dir = {}", it) }
 }
 
 private val GAME_TEST_SCREENSHOTS_BASE: Path by lazy {
@@ -56,7 +56,7 @@ private fun diffAgainstVanilla(terrasectSimpleName: String) {
   val terrasectPath = snapshotPath(terrasectSimpleName)
 
   if (!vanillaPath.toFile().exists()) {
-    log.warn(" Vanilla snapshot not found at {} — skipping diff", vanillaPath)
+    log.warn("Vanilla snapshot not found at {} — skipping diff", vanillaPath)
     return
   }
 
@@ -75,11 +75,9 @@ private fun diffAgainstVanilla(terrasectSimpleName: String) {
 
   val diffLines = diffText.lines().count { it.isNotBlank() } - 1
   if (diffLines <= 0) {
-    log.warn(
-      " Terrasect produced NO terrain differences vs vanilla — is the preset active?"
-    )
+    log.warn("Terrasect produced NO terrain differences vs vanilla — is the preset active?")
   } else {
-    log.info(" {} column(s) differ vs vanilla", diffLines)
+    log.info("{} column(s) differ vs vanilla", diffLines)
   }
 
   val diffSnapshotPath =
@@ -95,7 +93,7 @@ private fun diffAgainstVanilla(terrasectSimpleName: String) {
       )
     )
   SnapshotFile.of(header, diffText).writeTo(diffSnapshotPath)
-  log.info(" Diff snapshot written to {}", diffSnapshotPath)
+  log.info("Diff snapshot written to {}", diffSnapshotPath)
 }
 
 private fun snapshotColumns(
@@ -127,7 +125,7 @@ private fun snapshotColumns(
       )
     SnapshotFile.of(header, text).writeTo(snapshotFile)
     val verb = if (update) "updated" else "created initially — commit it to SCM"
-    log.info(" Snapshot {} at {}", verb, snapshotFile)
+    log.info("Snapshot {} at {}", verb, snapshotFile)
   } else {
     val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
     if (stored != text) {
@@ -137,7 +135,7 @@ private fun snapshotColumns(
           buildUnifiedDiff(stored, text)
       )
     }
-    log.info(" Snapshot matches: {}", snapshotFile)
+    log.info("Snapshot matches: {}", snapshotFile)
   }
 }
 
@@ -283,7 +281,7 @@ private fun computeWorldDigest(
     }
 
     snapshotColumns(allColumns, snapshotDir, testClassName)
-    log.info(" {} complete", label)
+    log.info("{} complete", label)
   } finally {
     game.close()
   }

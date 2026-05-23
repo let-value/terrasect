@@ -194,10 +194,7 @@ private fun runLocateTest(
             }
             .toList()
         if (holders.isEmpty()) {
-          log.warn(
-            "[{}] no matching structure holders in registry",
-            label,
-          )
+          log.warn("[{}] no matching structure holders in registry", label)
           result = LocateResult(null, null)
           return@FailableConsumer
         }
@@ -347,39 +344,39 @@ object StructureConstraintLocateGameTest : FabricClientGameTest {
 
     assertNotNull(
       vanillaResult.pos,
-      " vanilla should find a village within radius=200 but got null — " +
+      "vanilla should find a village within radius=200 but got null — " +
         "check that village structures exist in the test world registry.",
     )
     assertNotNull(
       highDensityResult.pos,
-      " high-density should find a village within radius=200 but got null — " +
+      "high-density should find a village within radius=200 but got null — " +
         "placement-only preset must not suppress locate results (no selection constraint set).",
     )
     assertTrue(
       vanillaResult.structureId?.startsWith("minecraft:village_") == true,
-      " vanilla should return a village-type structure id, got ${vanillaResult.structureId}",
+      "vanilla should return a village-type structure id, got ${vanillaResult.structureId}",
     )
     assertTrue(
       highDensityResult.structureId?.startsWith("minecraft:village_") == true,
-      " high-density should return a village-type structure id, got ${highDensityResult.structureId}",
+      "high-density should return a village-type structure id, got ${highDensityResult.structureId}",
     )
     assertEquals(
       vanillaResult.structureId,
       highDensityResult.structureId,
-      " vanilla and high-density should locate the same closest village type for the fixed seed",
+      "vanilla and high-density should locate the same closest village type for the fixed seed",
     )
     assertTrue(
       highDensityResult.distance < vanillaResult.distance,
-      " high-density preset should find a closer village than vanilla " +
+      "high-density preset should find a closer village than vanilla " +
         "(vanilla dist=${vanillaResult.distance}, high_density dist=${highDensityResult.distance})",
     )
     assertTrue(
       vanillaResult.distance >= 0,
-      " vanilla distance should be non-negative but was ${vanillaResult.distance}",
+      "vanilla distance should be non-negative but was ${vanillaResult.distance}",
     )
     assertNull(
       blockedResult.pos,
-      " selection-blocked preset (blockMods=minecraft) must not find any village " +
+      "selection-blocked preset (blockMods=minecraft) must not find any village " +
         "within radius=200, but found ${blockedResult.structureId} at ${blockedResult.pos} — " +
         "the locate mixin selection filter did not apply.",
     )
@@ -473,13 +470,7 @@ private fun runLocateAtPos(
         if (found != null) {
           val id = found.second.unwrapKey().map { it.identifier().toString() }.orElse("unknown")
           val pos = found.first
-          log.info(
-            "[{}] found type={} at ({},{})",
-            label,
-            id,
-            pos.x,
-            pos.z,
-          )
+          log.info("[{}] found type={} at ({},{})", label, id, pos.x, pos.z)
           result = LocateResult(id, pos)
         } else {
           log.info("[{}] not found within radius=1000", label)
@@ -824,11 +815,7 @@ object StructureConstraintLocateRuinedPortalGameTest : FabricClientGameTest {
       PresetRegistry.forcePresetId = null
     }
 
-    log.info(
-      "[ruined_portal] id={} dist={}",
-      result.structureId,
-      result.distance,
-    )
+    log.info("[ruined_portal] id={} dist={}", result.structureId, result.distance)
 
     assertNotNull(
       result.pos,

@@ -4,7 +4,6 @@ import kotlin.math.max
 import kotlin.math.min
 import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Climate
-import terrasect.definition.ClimateRange
 import terrasect.extender.ClimateTargetPointExtender
 import terrasect.extender.NoiseChunkExtender
 import terrasect.generation.ChunkContext
@@ -12,7 +11,7 @@ import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
-private var instr = TerrasectInstr.climate
+private val instr = TerrasectInstr.climate
 
 object ClimateHandler {
   fun getInfluence(dimensionContext: DimensionContext, x: Int, z: Int): Pair<Float, Float> {
@@ -41,7 +40,6 @@ object ClimateHandler {
     val chunk: ChunkContext? = noiseChunk?.`terrasect$getChunk`()?.`terrasect$getContext`()
 
     if (chunk == null) {
-      
       instr.count(TerrasectMetricEvent.CLIMATE_CHUNK_MISSING)
       return
     }

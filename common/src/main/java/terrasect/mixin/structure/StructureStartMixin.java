@@ -19,7 +19,8 @@ import terrasect.handler.StructureHandler;
 
 @Mixin(StructureStart.class)
 public abstract class StructureStartMixin {
-  @Shadow public abstract Structure getStructure();
+  @Shadow
+  public abstract Structure getStructure();
 
   @Inject(method = "placeInChunk", at = @At("TAIL"))
   private void terrasect$recordGeneratedStructure(

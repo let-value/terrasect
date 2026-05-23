@@ -8,7 +8,7 @@ import terrasect.helpers.ChunkDensityFunction
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
 
-private var instr = TerrasectInstr.noise
+private val instr = TerrasectInstr.noise
 
 object NoiseHandler {
   private val pendingNoiseChunkCreation = ThreadLocal<ChunkAccessExtender?>()
@@ -37,7 +37,6 @@ object NoiseHandler {
   fun wrapDensity(function: DensityFunction, key: String?, chunk: ChunkContext?): DensityFunction {
     if (key == null || function is ChunkDensityFunction) return function
     if (chunk == null) {
-      
       instr.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING, "noise_key") { key }
       return function
     }
@@ -78,7 +77,6 @@ object NoiseHandler {
     }
 
     val transformed = transform.apply(original)
-    
     instr.count(TerrasectMetricEvent.NOISE_APPLIED, "noise_key") { key }
 
     if (strength >= 1f) return transformed
