@@ -171,12 +171,12 @@ class ScopedInstr(val scope: InstrScope) {
     get() = MetricsConfig.isTimerEnabled(scope)
 
   inline fun count(event: MetricEvent, delta: Long = 1) {
-    if (!MetricsConfig.isCounterEnabled(scope)) return
+    if (!MetricsConfig.isCounterEnabled(scope, event)) return
     Instr.currentBackend().counter(MetricId(scope.id, event.id)).increment(delta)
   }
 
   inline fun count(event: MetricEvent, key0: String, crossinline value0: () -> String) {
-    if (!MetricsConfig.isCounterEnabled(scope)) return
+    if (!MetricsConfig.isCounterEnabled(scope, event)) return
     Instr.currentBackend().counter(metricId(event, key0, value0())).increment()
   }
 
@@ -187,7 +187,7 @@ class ScopedInstr(val scope: InstrScope) {
     key1: String,
     crossinline value1: () -> String,
   ) {
-    if (!MetricsConfig.isCounterEnabled(scope)) return
+    if (!MetricsConfig.isCounterEnabled(scope, event)) return
     Instr.currentBackend().counter(metricId(event, key0, value0(), key1, value1())).increment()
   }
 
@@ -200,7 +200,7 @@ class ScopedInstr(val scope: InstrScope) {
     key2: String,
     crossinline value2: () -> String,
   ) {
-    if (!MetricsConfig.isCounterEnabled(scope)) return
+    if (!MetricsConfig.isCounterEnabled(scope, event)) return
     Instr.currentBackend()
       .counter(metricId(event, key0, value0(), key1, value1(), key2, value2()))
       .increment()

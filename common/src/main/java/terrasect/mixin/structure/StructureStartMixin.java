@@ -22,6 +22,9 @@ public abstract class StructureStartMixin {
   @Shadow
   public abstract Structure getStructure();
 
+  @Shadow
+  private ChunkPos chunkPos;
+
   @Inject(method = "placeInChunk", at = @At("TAIL"))
   private void terrasect$recordGeneratedStructure(
       WorldGenLevel world,
@@ -43,6 +46,8 @@ public abstract class StructureStartMixin {
       return;
     }
     StructureHandler.recordGeneratedStructure(
-        structureId, "chunk=" + chunkPos.x + "," + chunkPos.z);
+        structureId,
+        "chunk=" + chunkPos.x + "," + chunkPos.z,
+        "origin=" + this.chunkPos.x + "," + this.chunkPos.z);
   }
 }

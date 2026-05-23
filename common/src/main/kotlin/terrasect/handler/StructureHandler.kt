@@ -77,13 +77,25 @@ object StructureHandler {
   }
 
   @JvmStatic
-  fun recordGeneratedStructure(structureId: String, location: String) {
-    instr.count(
-      TerrasectMetricEvent.STRUCTURE_GENERATED,
-      "structure_id",
-      { structureId },
-      "location",
-      { location },
-    )
+  fun recordGeneratedStructure(structureId: String, location: String, origin: String? = null) {
+    if (origin == null) {
+      instr.count(
+        TerrasectMetricEvent.STRUCTURE_GENERATED,
+        "structure_id",
+        { structureId },
+        "location",
+        { location },
+      )
+    } else {
+      instr.count(
+        TerrasectMetricEvent.STRUCTURE_GENERATED,
+        "structure_id",
+        { structureId },
+        "location",
+        { location },
+        "origin",
+        { origin },
+      )
+    }
   }
 }

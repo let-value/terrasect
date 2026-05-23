@@ -6,6 +6,6 @@ test-method: runTest
 
 case,vanilla
 chunk_area,10x10
-total_generated,91
+total_generated,4
 structure_id,count
-minecraft:mineshaft,91
+minecraft:mineshaft,4

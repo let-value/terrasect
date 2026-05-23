@@ -10,19 +10,24 @@ object MetricsConfig {
   private val scopeEnabled = ConcurrentHashMap<String, Boolean>()
   private val scopeCountersEnabled = ConcurrentHashMap<String, Boolean>()
   private val scopeTimersEnabled = ConcurrentHashMap<String, Boolean>()
+  private val eventCountersEnabled = ConcurrentHashMap<String, Boolean>()
 
-  fun setScopeEnabled(scope: InstrScope, enabled: Boolean?) = set(scopeEnabled, scope, enabled)
+  fun setScopeEnabled(scope: InstrScope, enabled: Boolean?) = set(scopeEnabled, scope.id, enabled)
 
   fun setScopeCountersEnabled(scope: InstrScope, enabled: Boolean?) =
-    set(scopeCountersEnabled, scope, enabled)
+    set(scopeCountersEnabled, scope.id, enabled)
 
   fun setScopeTimersEnabled(scope: InstrScope, enabled: Boolean?) =
-    set(scopeTimersEnabled, scope, enabled)
+    set(scopeTimersEnabled, scope.id, enabled)
+
+  fun setEventCountersEnabled(event: MetricEvent, enabled: Boolean?) =
+    set(eventCountersEnabled, event.id, enabled)
 
   fun clearScopeOverrides() {
     scopeEnabled.clear()
     scopeCountersEnabled.clear()
     scopeTimersEnabled.clear()
+    eventCountersEnabled.clear()
   }
 
   @PublishedApi
@@ -37,17 +42,17 @@ object MetricsConfig {
       scopeCountersEnabled[scope.id] != false
 
   @PublishedApi
+  internal fun isCounterEnabled(scope: InstrScope, event: MetricEvent): Boolean =
+    isCounterEnabled(scope) && eventCountersEnabled[event.id] != false
+
+  @PublishedApi
   internal fun isTimerEnabled(scope: InstrScope): Boolean =
     enabled &&
       timersEnabled &&
       scopeEnabled[scope.id] != false &&
       scopeTimersEnabled[scope.id] != false
 
-  private fun set(map: ConcurrentHashMap<String, Boolean>, scope: InstrScope, enabled: Boolean?) {
-    if (enabled == null) {
-      map.remove(scope.id)
-    } else {
-      map[scope.id] = enabled
-    }
+  private fun set(map: ConcurrentHashMap<String, Boolean>, key: String, enabled: Boolean?) {
+    if (enabled == null) map.remove(key) else map[key] = enabled
   }
 }

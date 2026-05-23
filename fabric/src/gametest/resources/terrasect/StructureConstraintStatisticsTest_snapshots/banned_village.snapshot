@@ -6,9 +6,9 @@ test-method: runTest
 
 case,banned_village
 chunk_area,10x10
-total_generated,278
+total_generated,18
 structure_id,count
-minecraft:mineshaft,97
-minecraft:village_plains,95
-minecraft:trial_chambers,83
+minecraft:mineshaft,8
+minecraft:trial_chambers,4
 minecraft:ruined_portal,3
+minecraft:village_plains,3

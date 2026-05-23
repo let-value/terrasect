@@ -30,6 +30,7 @@ private const val BANNED_VILLAGE_PRESET = "structure_constraint_statistics_banne
 private const val GENERATED_CHUNK_BASE = 64
 private const val GENERATED_CHUNK_SIZE = 10
 private const val VILLAGE_TAG = "minecraft:village"
+private var lastGeneratedSnapshotDebug: String = ""
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
@@ -281,7 +282,7 @@ private fun awaitStableGeneratedStructureStats(
   }
   error(
     "Timed out waiting for generated-structure counters to settle in $caseName after " +
-      "$maxTicks ticks; last observed stats=$lastStats"
+      "$maxTicks ticks; last observed stats=$lastStats; snapshotDebug=$lastGeneratedSnapshotDebug"
   )
 }
 
@@ -308,17 +309,34 @@ private fun summarizeGeneratedStructureStats(
     "Expected generated-structure counters for $caseName, but the instrumentation snapshot was empty"
   }
 
-  // Filter to the target chunk area; each snapshot key in InMemoryBackend is unique per
-  // (structure_id, location), so +1L correctly counts each distinct placement once.
-  val filteredSnapshots =
-    generatedSnapshots.filter { snapshot ->
-      val location =
-        snapshot.id.tags.firstOrNull { it.key == "location" }?.value ?: return@filter false
-      isLocationInTargetArea(location)
-    }
+  // Filter to the target chunk area using the placed-chunk tag, then deduplicate by the logical
+  // structure origin/start location so repeated chunk callbacks for the same structure collapse.
+  val dedupedSnapshots = LinkedHashMap<String, CounterSnapshot>()
+  for (snapshot in generatedSnapshots) {
+    val location = snapshot.id.tags.firstOrNull { it.key == "location" }?.value ?: continue
+    if (!isLocationInTargetArea(location)) continue
+
+    val structureId =
+      snapshot.id.tags.firstOrNull { tag -> tag.key == "structure_id" }?.value
+        ?: error("Missing structure_id tag in $caseName snapshot: ${snapshot.id}")
+    val origin = snapshot.id.tags.firstOrNull { tag -> tag.key == "origin" }?.value ?: location
+    val dedupeKey = "$structureId|$origin"
+    dedupedSnapshots.putIfAbsent(dedupeKey, snapshot)
+  }
+
+  if (dedupedSnapshots.isEmpty() && generatedSnapshots.isNotEmpty()) {
+    val sampleTags =
+      generatedSnapshots.take(5).joinToString(prefix = "[", postfix = "]") { snapshot ->
+        snapshot.id.tags.joinToString(prefix = "{", postfix = "}") { tag -> "${tag.key}=${tag.value}" }
+      }
+    lastGeneratedSnapshotDebug =
+      "sample count=${generatedSnapshots.size} tags=$sampleTags"
+  } else {
+    lastGeneratedSnapshotDebug = ""
+  }
 
   val groupedCounts = LinkedHashMap<String, Long>()
-  for (snapshot in filteredSnapshots) {
+  for (snapshot in dedupedSnapshots.values) {
     val structureId =
       snapshot.id.tags.firstOrNull { tag -> tag.key == "structure_id" }?.value
         ?: error("Missing structure_id tag in $caseName snapshot: ${snapshot.id}")
@@ -333,7 +351,7 @@ private fun summarizeGeneratedStructureStats(
   return GeneratedStructureStats(
     caseName = caseName,
     chunkArea = "${GENERATED_CHUNK_SIZE}x${GENERATED_CHUNK_SIZE}",
-    totalGenerated = filteredSnapshots.size.toLong(),
+    totalGenerated = dedupedSnapshots.size.toLong(),
     structureCounts = orderedCounts,
   )
 }
@@ -350,6 +368,11 @@ object StructureConstraintStatisticsTest : FabricClientGameTest {
     for (scope in TerrasectInstrScope.entries) {
       if (scope != TerrasectInstrScope.STRUCTURE) {
         MetricsConfig.setScopeEnabled(scope, false)
+      }
+    }
+    for (event in TerrasectMetricEvent.entries) {
+      if (event != TerrasectMetricEvent.STRUCTURE_GENERATED) {
+        MetricsConfig.setEventCountersEnabled(event, false)
       }
     }
     Instr.setBackend(InMemoryBackend())
