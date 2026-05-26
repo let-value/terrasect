@@ -10,7 +10,7 @@ This folder stores compact summaries of completed delegated goals. Full discussi
 - `GOAL_20260509_042553_agentic_development_guardrails.md` — Established agentic development guardrails and PR #48.
 - `GOAL_20260510_120622_Noise_Narrative_Constraint_Expansion.md` — Consolidated noise narrative constraints, observability, climate-router wrapping, and PR #50 review cleanup state.
 - `GOAL_20260510_141138_Headless_Gradle_Middleware.md` — Consolidated headless client GameTest crash diagnosis and Xvfb Gradle middleware.
-- `GOAL_20260516_070434_Structure_Constraints_Implementation_Retry.md` — Consolidated structure placement research, structure-constraints implementation, locate path, client GameTests, statistics follow-up, and PR #51 state.
+- `GOAL_20260516_070434_Structure_Constraints_Implementation_Retry.md` — Consolidated structure placement research, structure-constraints implementation, locate path, client GameTests, PR #54 structure-statistics instrumentation follow-up, final verification, and merge-ready state.
 - `GOAL_20260518_154754_Common_Package_Instrumentation_Framework.md` — Consolidated common instrumentation API implementation and code-quality follow-up state.
 
 ## Historical stale-branch goals
