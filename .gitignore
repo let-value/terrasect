@@ -1,6 +1,18 @@
 # Ignore common IDE/build files
 .idea/
 *.iml
+.eclipse/
+**/.eclipse/
+.project
+**/.project
+.classpath
+**/.classpath
+.settings/
+**/.settings/
+.factorypath
+**/.factorypath
+.metadata/
+**/.metadata/
 .gradle/
 .kotlin/
 build/
