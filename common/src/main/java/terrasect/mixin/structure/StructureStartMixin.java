@@ -47,6 +47,6 @@ public abstract class StructureStartMixin {
     StructureHandler.recordGeneratedStructure(
         structureId,
         "chunk=" + chunkPos.x + "," + chunkPos.z,
-        "origin=" + this.chunkPos.x + "," + this.chunkPos.z);
+        "origin_chunk=" + this.chunkPos.x + "," + this.chunkPos.z);
   }
 }
