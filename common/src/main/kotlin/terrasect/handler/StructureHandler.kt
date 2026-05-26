@@ -37,9 +37,9 @@ object StructureHandler {
     if (chunkContext == null) {
       instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     }
-    val constraints =
-      (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
-        .structures ?: return null
+    val region =
+      chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region
+    val constraints = region.structures ?: return null
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     return lookup.getFilteredSets(constraints)
   }

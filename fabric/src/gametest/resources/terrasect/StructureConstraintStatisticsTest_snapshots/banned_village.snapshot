@@ -6,9 +6,11 @@ test-method: runTest
 
 case,banned_village
 chunk_area,10x10
-total_generated,18
+total_generated,4
 structure_id,count
-minecraft:mineshaft,8
-minecraft:trial_chambers,4
-minecraft:ruined_portal,3
-minecraft:village_plains,3
+minecraft:mineshaft,4
+structure_id,origin
+minecraft:mineshaft,origin=66,72
+minecraft:mineshaft,origin=71,61
+minecraft:mineshaft,origin=72,65
+minecraft:mineshaft,origin=74,71

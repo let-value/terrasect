@@ -1,4 +1,4 @@
-Status: DONE on branch `structure-constraint-statistics-instrumentation` in worktree `/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation`.
+Status: DONE after follow-up fix on branch `structure-constraint-statistics-instrumentation` in worktree `/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation`.
 
 Goal: address the latest active PR #54 review comments for `StructureConstraintStatisticsTest` and finish the instrumentation/statistics follow-up without hardcoding observed counts.
 
@@ -48,3 +48,19 @@ Update `StructureConstraintStatisticsGameTest` so it deduplicates logical struct
   - `dense` → `total_generated=18`
   - `banned_village` → `total_generated=18`
 - Confirmed the test passed with `BUILD SUCCESSFUL`.
+
+## Follow-up fix: stale zero counters and traversal instrumentation
+
+Root cause found from `./gradlew :fabric:runClientGameTest -Ptest=StructureConstraintStatisticsTest`: the banned-village case genuinely applied structure filtering (`structure.applied` counters present) and generated zero target-area village event values, but `InMemoryBackend.reset()` preserves metric identities with value `0`. The stats summarizer was deduplicating those zero-valued stale `structure.generated` counters from the dense case, so the banned snapshot/assertion reported villages that were not freshly generated.
+
+Changes made:
+- Filter `CounterSnapshot.value > 0` before generated-structure dedupe/counting.
+- Keep explicit village id block names alongside the village tag in the banned preset.
+- Enable narrow GameTest diagnostics for structure/chunk/traversal counters and log per-case summaries without adding noisy production chunk logs.
+- Regenerated snapshots after the corrected methodology: dense has 16 generated structures with 3 villages; banned_village has 4 mineshafts and 0 villages.
+
+Verification:
+- `./gradlew :fabric:compileGametestKotlin :common:compileKotlin` — PASS.
+- `./gradlew :fabric:runClientGameTest -Ptest=StructureConstraintStatisticsTest -PupdateSnapshots=true` — PASS; snapshots refreshed.
+- `./gradlew :fabric:runClientGameTest -Ptest=StructureConstraintStatisticsTest` — PASS.
+- Final instrumentation evidence from the passing non-update run (`/tmp/terrasect_structure_stats_final_reverify.log`): vanilla `target_village_event_values=0`, `total=4`; dense `target_village_event_values=134`, `total=16`; banned_village `structure.applied=1024`, `target_village_event_values=0`, `total=4`, proving constraints reached the generation path and the prior village count was stale counter identity bleed-through rather than a fresh village generation failure.

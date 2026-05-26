@@ -22,8 +22,7 @@ public abstract class StructureStartMixin {
   @Shadow
   public abstract Structure getStructure();
 
-  @Shadow
-  private ChunkPos chunkPos;
+  @Shadow private ChunkPos chunkPos;
 
   @Inject(method = "placeInChunk", at = @At("TAIL"))
   private void terrasect$recordGeneratedStructure(

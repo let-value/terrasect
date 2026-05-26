@@ -16,7 +16,6 @@ import terrasect.definition.RegionRegistry
 import terrasect.instrumentation.CounterSnapshot
 import terrasect.instrumentation.InMemoryBackend
 import terrasect.instrumentation.Instr
-import terrasect.instrumentation.MetricTag
 import terrasect.instrumentation.MetricsConfig
 import terrasect.instrumentation.TerrasectInstrScope
 import terrasect.instrumentation.TerrasectMetricEvent
@@ -30,6 +29,14 @@ private const val BANNED_VILLAGE_PRESET = "structure_constraint_statistics_banne
 private const val GENERATED_CHUNK_BASE = 64
 private const val GENERATED_CHUNK_SIZE = 10
 private const val VILLAGE_TAG = "minecraft:village"
+private val VILLAGE_STRUCTURE_IDS =
+  arrayOf(
+    "minecraft:village_desert",
+    "minecraft:village_plains",
+    "minecraft:village_savanna",
+    "minecraft:village_snowy",
+    "minecraft:village_taiga",
+  )
 private var lastGeneratedSnapshotDebug: String = ""
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
@@ -46,6 +53,7 @@ private data class GeneratedStructureStats(
   val chunkArea: String,
   val totalGenerated: Long,
   val structureCounts: List<Pair<String, Long>>,
+  val structureOrigins: List<Pair<String, String>>,
 ) {
   fun toSnapshotText(): String = buildString {
     appendLine("case,$caseName")
@@ -54,6 +62,10 @@ private data class GeneratedStructureStats(
     appendLine("structure_id,count")
     for ((id, count) in structureCounts) {
       appendLine("$id,$count")
+    }
+    appendLine("structure_id,origin")
+    for ((id, origin) in structureOrigins) {
+      appendLine("$id,$origin")
     }
   }
 }
@@ -74,7 +86,10 @@ private fun registerBannedVillagePreset() {
   PresetRegistry.presets[BANNED_VILLAGE_PRESET] =
     RegionRegistry().apply {
       setRoot("minecraft:overworld", "overworld_root")
-      region("overworld_root").structures { blockTags(VILLAGE_TAG) }
+      region("overworld_root").structures {
+        blockTags(VILLAGE_TAG)
+        blockNames(*VILLAGE_STRUCTURE_IDS)
+      }
     }
 }
 
@@ -86,7 +101,9 @@ private const val STRUCTURE_COUNT_TOLERANCE = 50L
 
 private fun parseGeneratedStructureSnapshot(text: String): GeneratedStructureStats {
   val lines = text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
-  require(lines.size >= 4) { "Invalid generated-structure snapshot: expected at least 4 lines, got ${lines.size}" }
+  require(lines.size >= 5) {
+    "Invalid generated-structure snapshot: expected at least 5 lines, got ${lines.size}"
+  }
 
   fun parsePair(line: String): Pair<String, String> {
     val idx = line.indexOf(',')
@@ -95,9 +112,13 @@ private fun parseGeneratedStructureSnapshot(text: String): GeneratedStructureSta
   }
 
   val (caseKey, caseName) = parsePair(lines[0])
-  require(caseKey == "case") { "Expected first snapshot line to start with 'case', got '${lines[0]}'" }
+  require(caseKey == "case") {
+    "Expected first snapshot line to start with 'case', got '${lines[0]}'"
+  }
   val (areaKey, chunkArea) = parsePair(lines[1])
-  require(areaKey == "chunk_area") { "Expected second snapshot line to start with 'chunk_area', got '${lines[1]}'" }
+  require(areaKey == "chunk_area") {
+    "Expected second snapshot line to start with 'chunk_area', got '${lines[1]}'"
+  }
   val (totalKey, totalValue) = parsePair(lines[2])
   require(totalKey == "total_generated") {
     "Expected third snapshot line to start with 'total_generated', got '${lines[2]}'"
@@ -106,10 +127,19 @@ private fun parseGeneratedStructureSnapshot(text: String): GeneratedStructureSta
     "Expected fourth snapshot line to be 'structure_id,count', got '${lines[3]}'"
   }
 
+  val originHeaderIdx = lines.indexOfFirst { it == "structure_id,origin" }
+  require(originHeaderIdx > 4) { "Expected 'structure_id,origin' section header in snapshot" }
+
   val counts =
-    lines.drop(4).map { line ->
+    lines.subList(4, originHeaderIdx).map { line ->
       val (id, countText) = parsePair(line)
       id to countText.toLong()
+    }
+
+  val origins =
+    lines.drop(originHeaderIdx + 1).map { line ->
+      val (id, origin) = parsePair(line)
+      id to origin
     }
 
   return GeneratedStructureStats(
@@ -117,6 +147,7 @@ private fun parseGeneratedStructureSnapshot(text: String): GeneratedStructureSta
     chunkArea = chunkArea,
     totalGenerated = totalValue.toLong(),
     structureCounts = counts,
+    structureOrigins = origins,
   )
 }
 
@@ -138,7 +169,8 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
     SnapshotFile.of(header, text).writeTo(snapshotFile)
     log.info("[{}] snapshot {}", caseName, snapshotFile)
   } else {
-    val expected = parseGeneratedStructureSnapshot(SnapshotFile.fromSnapshotFile(snapshotFile).snapshot())
+    val expected =
+      parseGeneratedStructureSnapshot(SnapshotFile.fromSnapshotFile(snapshotFile).snapshot())
     val actual = parseGeneratedStructureSnapshot(text)
     val errors = mutableListOf<String>()
 
@@ -163,12 +195,24 @@ private fun writeOrCompareSnapshot(caseName: String, text: String) {
     if (extra.isNotEmpty()) errors += "unexpected structure ids: ${extra.sorted().joinToString()}"
 
     for (structureId in expectedCounts.keys.intersect(actualCounts.keys)) {
-      val delta = kotlin.math.abs(expectedCounts.getValue(structureId) - actualCounts.getValue(structureId))
+      val delta =
+        kotlin.math.abs(expectedCounts.getValue(structureId) - actualCounts.getValue(structureId))
       if (delta > STRUCTURE_COUNT_TOLERANCE) {
         errors +=
           "$structureId differs by $delta (expected=${expectedCounts.getValue(structureId)} actual=${actualCounts.getValue(structureId)}, tolerance=$STRUCTURE_COUNT_TOLERANCE)"
       }
     }
+
+    val expectedOrigins = expected.structureOrigins.toSet()
+    val actualOrigins = actual.structureOrigins.toSet()
+    val missingOrigins = expectedOrigins - actualOrigins
+    val extraOrigins = actualOrigins - expectedOrigins
+    if (missingOrigins.isNotEmpty())
+      errors +=
+        "missing origins: ${missingOrigins.sortedWith(compareBy({ it.first }, { it.second })).joinToString { "${it.first}@${it.second}" }}"
+    if (extraOrigins.isNotEmpty())
+      errors +=
+        "unexpected origins: ${extraOrigins.sortedWith(compareBy({ it.first }, { it.second })).joinToString { "${it.first}@${it.second}" }}"
 
     if (errors.isNotEmpty()) {
       throw AssertionError(
@@ -245,6 +289,7 @@ private fun collectGeneratedStructureStats(
     )
 
     val stats = awaitStableGeneratedStructureStats(context, caseName)
+    logInstrumentationSummary(caseName, Instr.counterSnapshot())
     writeOrCompareSnapshot(caseName, stats.toSnapshotText())
 
     log.info(
@@ -302,7 +347,8 @@ private fun summarizeGeneratedStructureStats(
 ): GeneratedStructureStats {
   val generatedSnapshots =
     snapshots.filter {
-      it.id.scope == TerrasectInstrScope.STRUCTURE.id &&
+      it.value > 0L &&
+        it.id.scope == TerrasectInstrScope.STRUCTURE.id &&
         it.id.event == TerrasectMetricEvent.STRUCTURE_GENERATED.id
     }
   check(generatedSnapshots.isNotEmpty()) {
@@ -327,10 +373,11 @@ private fun summarizeGeneratedStructureStats(
   if (dedupedSnapshots.isEmpty() && generatedSnapshots.isNotEmpty()) {
     val sampleTags =
       generatedSnapshots.take(5).joinToString(prefix = "[", postfix = "]") { snapshot ->
-        snapshot.id.tags.joinToString(prefix = "{", postfix = "}") { tag -> "${tag.key}=${tag.value}" }
+        snapshot.id.tags.joinToString(prefix = "{", postfix = "}") { tag ->
+          "${tag.key}=${tag.value}"
+        }
       }
-    lastGeneratedSnapshotDebug =
-      "sample count=${generatedSnapshots.size} tags=$sampleTags"
+    lastGeneratedSnapshotDebug = "sample count=${generatedSnapshots.size} tags=$sampleTags"
   } else {
     lastGeneratedSnapshotDebug = ""
   }
@@ -348,11 +395,69 @@ private fun summarizeGeneratedStructureStats(
       .sortedWith(compareByDescending<Map.Entry<String, Long>> { it.value }.thenBy { it.key })
       .map { it.key to it.value }
 
+  val sortedOrigins =
+    dedupedSnapshots.keys
+      .map { key ->
+        val pipe = key.indexOf('|')
+        if (pipe < 0) key to "" else key.substring(0, pipe) to key.substring(pipe + 1)
+      }
+      .sortedWith(compareBy({ it.first }, { it.second }))
+
   return GeneratedStructureStats(
     caseName = caseName,
     chunkArea = "${GENERATED_CHUNK_SIZE}x${GENERATED_CHUNK_SIZE}",
     totalGenerated = dedupedSnapshots.size.toLong(),
     structureCounts = orderedCounts,
+    structureOrigins = sortedOrigins,
+  )
+}
+
+private fun logInstrumentationSummary(caseName: String, snapshots: List<CounterSnapshot>) {
+  val active = snapshots.filter { it.value > 0L }
+  val byEvent =
+    active
+      .groupBy { it.id.scope to it.id.event }
+      .map { (key, entries) -> key to entries.sumOf { it.value } }
+      .sortedWith(compareBy({ it.first.first }, { it.first.second }))
+      .joinToString { (key, value) -> "${key.first}/${key.second}=$value" }
+  val traversalRegions =
+    active
+      .filter {
+        it.id.scope == TerrasectInstrScope.TRAVERSAL.id &&
+          it.id.event == TerrasectMetricEvent.TRAVERSAL_STEP.id
+      }
+      .mapNotNull { snapshot ->
+        val region =
+          snapshot.id.tags.firstOrNull { tag -> tag.key == "region" }?.value
+            ?: return@mapNotNull null
+        region to snapshot.value
+      }
+      .sortedWith(compareByDescending<Pair<String, Long>> { it.second }.thenBy { it.first })
+      .take(8)
+      .joinToString { (region, value) -> "$region=$value" }
+  val villageGenerated =
+    active
+      .filter {
+        it.id.scope == TerrasectInstrScope.STRUCTURE.id &&
+          it.id.event == TerrasectMetricEvent.STRUCTURE_GENERATED.id &&
+          (it.id.tags
+            .firstOrNull { tag -> tag.key == "structure_id" }
+            ?.value
+            ?.startsWith("minecraft:village_") == true)
+      }
+      .filter { snapshot ->
+        val location =
+          snapshot.id.tags.firstOrNull { tag -> tag.key == "location" }?.value
+            ?: return@filter false
+        isLocationInTargetArea(location)
+      }
+      .sumOf { it.value }
+  log.info(
+    "[{}] instrumentation events={} traversal_regions={} target_village_event_values={}",
+    caseName,
+    byEvent.ifEmpty { "none" },
+    traversalRegions.ifEmpty { "none" },
+    villageGenerated,
   )
 }
 
@@ -365,13 +470,27 @@ object StructureConstraintStatisticsTest : FabricClientGameTest {
     MetricsConfig.enabled = true
     MetricsConfig.countersEnabled = true
     MetricsConfig.clearScopeOverrides()
+    val enabledScopes =
+      setOf(TerrasectInstrScope.STRUCTURE, TerrasectInstrScope.CHUNK, TerrasectInstrScope.TRAVERSAL)
     for (scope in TerrasectInstrScope.entries) {
-      if (scope != TerrasectInstrScope.STRUCTURE) {
+      if (scope !in enabledScopes) {
         MetricsConfig.setScopeEnabled(scope, false)
       }
     }
+    val enabledEvents =
+      setOf(
+        TerrasectMetricEvent.STRUCTURE_GENERATED,
+        TerrasectMetricEvent.STRUCTURE_APPLIED,
+        TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING,
+        TerrasectMetricEvent.CHUNK_CREATED,
+        TerrasectMetricEvent.CHUNK_ERROR,
+        TerrasectMetricEvent.CHUNK_TRAVERSE,
+        TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS,
+        TerrasectMetricEvent.TRAVERSAL_COMPLETED,
+        TerrasectMetricEvent.TRAVERSAL_STEP,
+      )
     for (event in TerrasectMetricEvent.entries) {
-      if (event != TerrasectMetricEvent.STRUCTURE_GENERATED) {
+      if (event !in enabledEvents) {
         MetricsConfig.setEventCountersEnabled(event, false)
       }
     }
@@ -400,15 +519,16 @@ object StructureConstraintStatisticsTest : FabricClientGameTest {
       PresetRegistry.forcePresetId = BANNED_VILLAGE_PRESET
       val bannedStats: GeneratedStructureStats
       try {
-        bannedStats = collectGeneratedStructureStats(context, "banned_village", BANNED_VILLAGE_PRESET)
+        bannedStats =
+          collectGeneratedStructureStats(context, "banned_village", BANNED_VILLAGE_PRESET)
       } finally {
         PresetRegistry.forcePresetId = null
         PresetRegistry.presets.remove(BANNED_VILLAGE_PRESET)
       }
 
-      val vanillaVillageCount = vanillaStats.countForStructure("minecraft:village")
-      val denseVillageCount = denseStats.countForStructure("minecraft:village")
-      val bannedVillageCount = bannedStats.countForStructure("minecraft:village")
+      val vanillaVillageCount = vanillaStats.countForStructurePrefix("minecraft:village_")
+      val denseVillageCount = denseStats.countForStructurePrefix("minecraft:village_")
+      val bannedVillageCount = bannedStats.countForStructurePrefix("minecraft:village_")
 
       assertTrue(
         denseStats.totalGenerated > vanillaStats.totalGenerated,
@@ -443,3 +563,6 @@ object StructureConstraintStatisticsTest : FabricClientGameTest {
 
 private fun GeneratedStructureStats.countForStructure(structureId: String): Long =
   structureCounts.firstOrNull { it.first == structureId }?.second ?: 0L
+
+private fun GeneratedStructureStats.countForStructurePrefix(prefix: String): Long =
+  structureCounts.filter { (id, _) -> id.startsWith(prefix) }.sumOf { it.second }

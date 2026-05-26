@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" ?>
 <launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
-    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_ATTR_USE_ARGFILE" value="false"/>
-    <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="net.neoforged.devlaunch.Main"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value=" @/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/build/moddev/clientRunProgramArgs.txt"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="neoforge"/>
-    <booleanAttribute key="org.eclipse.jdt.launching.STOP_IN_MAIN" value="false"/>
-    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value=" @/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/build/moddev/clientRunVmArgs.txt -Dfml.modFolders=terrasect%%/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/bin/main:terrasect%%/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/common/bin/main"/>
-    <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/run"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="neoforge"></stringAttribute>
+    <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="net.neoforged.devlaunch.Main"></stringAttribute>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value=" @/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/build/moddev/clientRunProgramArgs.txt"></stringAttribute>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value=" @/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/build/moddev/clientRunVmArgs.txt -Dfml.modFolders=terrasect%%/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/bin/main:terrasect%%/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/common/bin/main"></stringAttribute>
+    <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/home/alex/terrasect-worktrees/structure-constraint-statistics-instrumentation/neoforge/run"></stringAttribute>
+    <booleanAttribute key="org.eclipse.jdt.launching.STOP_IN_MAIN" value="false"></booleanAttribute>
+    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_ATTR_USE_ARGFILE" value="false"></booleanAttribute>
 </launchConfiguration>
