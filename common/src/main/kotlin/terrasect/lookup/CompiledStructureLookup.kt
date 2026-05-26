@@ -1,13 +1,15 @@
 package terrasect.lookup
 
 import net.minecraft.core.Holder
+import net.minecraft.core.RegistryAccess
+import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
+import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
 import terrasect.definition.StructureConstraints
-import terrasect.extender.RandomSpreadStructurePlacementExtender
 import terrasect.extender.StructurePlacementExtender
 import terrasect.handler.NoiseLogger
 
@@ -32,7 +34,9 @@ private constructor(
     val allowed = HashSet<Holder<Structure>>(structures.size)
     for (holder in structures) {
       val meta = index[holder.value()]
-      if (meta == null || selection.evaluate(meta.id, meta.tags)) {
+      val id = meta?.id ?: holder.unwrapKey().map { it.identifier().toString() }.orElse(null)
+      val tags = meta?.tags ?: emptySet()
+      if (selection.evaluate(id, tags)) {
         allowed.add(holder)
       }
     }
@@ -57,35 +61,38 @@ private constructor(
       val filtered =
         if (selection != null) {
           entries.filter { entry ->
-            val meta = index[entry.structure().value()]
-            meta == null || selection.evaluate(meta.id, meta.tags)
+            val holder = entry.structure()
+            val meta = index[holder.value()]
+            val id = meta?.id ?: holder.unwrapKey().map { it.identifier().toString() }.orElse(null)
+            val tags = meta?.tags ?: emptySet()
+            selection.evaluate(id, tags)
           }
         } else entries
 
       if (filtered.isEmpty()) continue
 
       val originalPlacement = set.placement()
-      val placementMutated =
-        hasPlacementOverrides && applyPlacementOverrides(originalPlacement, constraints)
+      val placement =
+        if (hasPlacementOverrides) placementWithOverrides(originalPlacement, constraints)
+        else originalPlacement
 
-      if (filtered.size == entries.size && !placementMutated) result.add(setHolder)
-      else result.add(Holder.direct(StructureSet(filtered, originalPlacement)))
+      if (filtered.size == entries.size && placement === originalPlacement) result.add(setHolder)
+      else result.add(Holder.direct(StructureSet(filtered, placement)))
     }
     structureLog.debug { "computeFilteredSets: ${allSets.size} → ${result.size} structure sets" }
     return result
   }
 
-  // Returns true if placement was mutated in place; false if values were already correct.
-  // Each unique StructureConstraints is pre-baked once, so a single placement instance is mutated
-  // at most once per constraint during build(). Worlds where two distinct regions demand different
-  // spacing/separation on the same structure set are not supported by this approach.
-  private fun applyPlacementOverrides(
+  // Returns the original placement when no override is needed, otherwise a copied placement with
+  // Terrasect's per-region spacing/separation/frequency applied. Do not mutate vanilla registry
+  // placements in place: the same StructureSet instances are reused across worlds and presets, so
+  // a dense test/world would otherwise leak its placement into later vanilla or banned scenarios.
+  private fun placementWithOverrides(
     placement: StructurePlacement,
     constraints: StructureConstraints,
-  ): Boolean {
-    if (placement !is RandomSpreadStructurePlacement) return false
+  ): StructurePlacement {
+    if (placement !is RandomSpreadStructurePlacement) return placement
     val ext = placement as StructurePlacementExtender
-    val rspExt = placement as RandomSpreadStructurePlacementExtender
     val newSpacing = constraints.spacing ?: placement.spacing()
     val newSeparation = minOf(constraints.separation ?: placement.separation(), newSpacing - 1)
     val newFrequency = constraints.frequency ?: ext.`terrasect$frequency`()
@@ -94,20 +101,30 @@ private constructor(
         newSeparation == placement.separation() &&
         newFrequency == ext.`terrasect$frequency`()
     )
-      return false
-    rspExt.`terrasect$setSpacing`(newSpacing)
-    rspExt.`terrasect$setSeparation`(newSeparation)
-    ext.`terrasect$setFrequency`(newFrequency)
-    return true
+      return placement
+    return RandomSpreadStructurePlacement(
+      ext.`terrasect$locateOffset`(),
+      ext.`terrasect$frequencyReductionMethod`(),
+      newFrequency,
+      ext.`terrasect$salt`(),
+      ext.`terrasect$exclusionZone`(),
+      newSpacing,
+      newSeparation,
+      placement.spreadType(),
+    )
   }
 
   companion object {
-    fun build(allSets: List<Holder<StructureSet>>, root: Region): CompiledStructureLookup? {
+    fun build(
+      allSets: List<Holder<StructureSet>>,
+      root: Region,
+      registry: RegistryAccess.Frozen,
+    ): CompiledStructureLookup? {
       if (!anyRegionHasStructures(root)) {
         structureLog.debug { "build: no structure-constrained regions under root=${root.name}" }
         return null
       }
-      val index = buildIndex(allSets)
+      val index = buildIndex(allSets, registry)
       val lookup = CompiledStructureLookup(allSets, index)
       // Pre-bake filtered sets for every unique StructureConstraints in the region tree so that
       // the per-chunk hot path (getFilteredSets) always hits the cache and never recomputes.
@@ -131,19 +148,24 @@ private constructor(
     }
 
     private fun buildIndex(
-      allSets: List<Holder<StructureSet>>
+      allSets: List<Holder<StructureSet>>,
+      registry: RegistryAccess.Frozen,
     ): java.util.IdentityHashMap<Structure, StructureEntry> {
       val index = java.util.IdentityHashMap<Structure, StructureEntry>()
+      val structureRegistry = registry.lookupOrThrow(Registries.STRUCTURE)
       for (setHolder in allSets) {
         for (entry in setHolder.value().structures()) {
           val holder = entry.structure()
           val structure = holder.value()
           if (!index.containsKey(structure)) {
-            val id = holder.unwrapKey().map { it.identifier().toString() }.orElse(null)
+            val key = holder.unwrapKey().or { structureRegistry.getResourceKey(structure) }
+            val id = key.map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
             val tags = HashSet<String>()
-            try {
-              holder.tags().forEach { tags.add(it.location().toString()) }
-            } catch (_: IllegalStateException) {}
+            key.ifPresent { resourceKey ->
+              structureRegistry.get(resourceKey).ifPresent { taggedHolder ->
+                taggedHolder.tags().forEach { tag -> tags.add(tag.location().toString()) }
+              }
+            }
             index[structure] = StructureEntry(id, tags)
           }
         }

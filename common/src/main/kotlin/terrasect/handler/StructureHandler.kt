@@ -37,9 +37,9 @@ object StructureHandler {
     if (chunkContext == null) {
       instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     }
-    val constraints =
-      (chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region)
-        .structures ?: return null
+    val region =
+      chunkContext?.getRegion(blockX, blockZ) ?: ctx.traverser.traverse(blockX, blockZ).region
+    val constraints = region.structures ?: return null
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     return lookup.getFilteredSets(constraints)
   }
@@ -77,13 +77,25 @@ object StructureHandler {
   }
 
   @JvmStatic
-  fun recordGeneratedStructure(structureId: String, location: String) {
-    instr.count(
-      TerrasectMetricEvent.STRUCTURE_GENERATED,
-      "structure_id",
-      { structureId },
-      "location",
-      { location },
-    )
+  fun recordGeneratedStructure(structureId: String, location: String, origin: String? = null) {
+    if (origin == null) {
+      instr.count(
+        TerrasectMetricEvent.STRUCTURE_GENERATED,
+        "structure_id",
+        { structureId },
+        "location",
+        { location },
+      )
+    } else {
+      instr.count(
+        TerrasectMetricEvent.STRUCTURE_GENERATED,
+        "structure_id",
+        { structureId },
+        "location",
+        { location },
+        "origin",
+        { origin },
+      )
+    }
   }
 }

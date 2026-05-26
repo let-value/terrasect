@@ -1,10 +1,10 @@
 dynamic-directory: true
-snapshot-name: vanilla
+snapshot-name: banned_village
 snapshot-number: 0
 test-class: terrasect.StructureConstraintStatisticsTest
 test-method: runTest
 
-case,vanilla
+case,banned_village
 chunk_area,10x10
 total_generated,4
 structure_id,count

@@ -15,8 +15,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import terrasect.extender.ChunkAccessExtender;
 import terrasect.handler.StructureHandler;
 
-@Mixin(targets = "net.minecraft.world.level.chunk.ChunkGenerator")
+@Mixin(net.minecraft.world.level.chunk.ChunkGenerator.class)
 public class ChunkGeneratorStructureMixin {
+
   @WrapOperation(
       method = "createStructures",
       at =

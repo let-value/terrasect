@@ -27,13 +27,15 @@ class DimensionContext(
   val sampler: Climate.Sampler,
   val biomesClimate: Climate.ParameterList<Holder<Biome>>?,
   allSets: List<Holder<StructureSet>>,
+  registry: RegistryAccess.Frozen,
 ) {
   val cache = RegionsCache(200, Terrasect.cache)
   val traverser = Traverser(seed, root)
   val locator = Locator(seed, root)
 
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
-  val structureLookup: CompiledStructureLookup? = CompiledStructureLookup.build(allSets, root)
+  val structureLookup: CompiledStructureLookup? =
+    CompiledStructureLookup.build(allSets, root, registry)
 
   init {
     log.debug {
@@ -72,7 +74,16 @@ class DimensionContext(
       val root = resolvedRegistry.buildTree(name)
 
       val dimensionContext =
-        DimensionContext(presetId, dimensionId, seed, root, sampler, biomesClimate, structureSets)
+        DimensionContext(
+          presetId,
+          dimensionId,
+          seed,
+          root,
+          sampler,
+          biomesClimate,
+          structureSets,
+          registry,
+        )
       map[dimensionId] = dimensionContext
       log.debug { "registered dim=$dimensionId" }
     }
