@@ -18,6 +18,7 @@
     "scaffold.ChunkAccessMixin",
     "scaffold.LevelMixin",
     "scaffold.NoiseChunkMixin",
+    "spawn.NaturalSpawnerMixin",
     "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin",
     "structure.RandomSpreadStructurePlacementMixin",
