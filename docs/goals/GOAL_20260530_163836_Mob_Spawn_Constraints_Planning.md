@@ -1,13 +1,15 @@
 # Mob Spawn Constraints Planning
 
-Status: REVIEW_READY
+Status: SUPERSEDED_BY_IMPLEMENTATION_PR
 
 Research step completed 2026-05-30 by claude-sonnet-4-6 (session e3fd5b47-83b3-44f2-9065-dbbabb0ba20c).
 Artifact: `docs/MOB_SPAWN_CONSTRAINTS_RESEARCH.md`
-Branch: `feature/mob-spawn-constraints-planning`
-PR: https://github.com/let-value/terrasect/pull/55
-Summary: Verified Minecraft 1.21.11 runtime and worldgen spawn call chains via `javap` inspection of the Fabric-loom mapped jar. After review, the preferred runtime strategy is an allocation-free wrap/redirect around `NaturalSpawner.spawnCategoryForPosition`'s `SpawnPredicate.test(...)` call, delegating directly to a Kotlin handler; avoid per-tick predicate wrapper allocation. Worldgen entry point remains `NoiseBasedChunkGenerator.spawnOriginalMobs`. Key open items before implementation: hot-path entity id/tag precompilation (`CompiledMobConstraints`), proto-chunk `ChunkContext` availability during worldgen, `WeightedList` ownership in `getMobsAt`, and custom-spawner coverage gaps.
-Verification: documentation-only change; no production code or tests modified. `git diff --check` passed before commit.
+Original branch: `feature/mob-spawn-constraints-planning`
+Original PR: https://github.com/let-value/terrasect/pull/55
+Consolidated branch: `feature/mob-spawn-constraints-implementation`
+Consolidated PR: https://github.com/let-value/terrasect/pull/56
+Summary: Verified Minecraft 1.21.11 runtime and worldgen spawn call chains via `javap` inspection of the Fabric-loom mapped jar. After review, the preferred runtime strategy is an allocation-free wrap/redirect around `NaturalSpawner.spawnCategoryForPosition`'s `SpawnPredicate.test(...)`, delegating directly to a Kotlin handler; avoid per-tick predicate wrapper allocation. Worldgen entry point remains `NoiseBasedChunkGenerator.spawnOriginalMobs`. Key open items before implementation: hot-path entity id/tag precompilation (`CompiledMobConstraints`), proto-chunk `ChunkContext` availability during worldgen, `WeightedList` ownership in `getMobsAt`, and custom-spawner coverage gaps.
+Verification: documentation-only change originally; after consolidation into the implementation branch, `./gradlew :common:test` passed.
 
 Worktree: `/home/alex/terrasect/.worktrees/mob-spawn-constraints-planning`
 

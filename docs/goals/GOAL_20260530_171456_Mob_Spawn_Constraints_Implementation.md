@@ -122,6 +122,7 @@ A correct result for this task will:
 - Retry count: 2
 - Blocked reason: none
 - Verification: `./gradlew :common:test` ✅
+- Consolidation: planning commits from `feature/mob-spawn-constraints-planning` were cherry-picked into `feature/mob-spawn-constraints-implementation`; PR #56 is the canonical deliverable and PR #55 is superseded.
 
 ---
 

@@ -1,8 +1,9 @@
 # Mob Spawn Constraints Research
 
-**Date:** 2026-05-30  
-**Branch:** `feature/mob-spawn-constraints-planning`  
-**Scope:** Research only. No production code modified.
+- **Date:** 2026-05-30
+- **Original branch:** `feature/mob-spawn-constraints-planning`
+- **Consolidated branch:** `feature/mob-spawn-constraints-implementation` / PR #56
+- **Scope:** Research only. No production code modified in the original planning PR.
 
 ---
 
