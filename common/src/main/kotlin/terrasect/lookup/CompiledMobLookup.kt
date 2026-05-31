@@ -11,7 +11,8 @@ private val log = NoiseLogger.registry
 
 class CompiledMobLookup
 private constructor(
-  private val decisions: java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>,
+  private val decisions:
+    java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>
 ) {
   fun allowSpawn(region: Region, entityType: EntityType<*>): Boolean {
     val regionDecisions = decisions[region] ?: return true
@@ -36,7 +37,8 @@ private constructor(
       root: Region,
       entityTypeIndex: java.util.IdentityHashMap<EntityType<*>, EntityTypeEntry>,
     ): java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>> {
-      val map = java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>()
+      val map =
+        java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>()
       val queue = ArrayDeque<Region>()
       queue.add(root)
       while (queue.isNotEmpty()) {

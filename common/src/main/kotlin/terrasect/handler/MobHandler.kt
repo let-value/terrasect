@@ -10,7 +10,12 @@ private val instr = TerrasectInstr.mob
 
 object MobHandler {
   @JvmStatic
-  fun allowSpawn(chunkAccess: ChunkAccess, blockX: Int, blockZ: Int, entityType: EntityType<*>): Boolean {
+  fun allowSpawn(
+    chunkAccess: ChunkAccess,
+    blockX: Int,
+    blockZ: Int,
+    entityType: EntityType<*>,
+  ): Boolean {
     val chunkContext = (chunkAccess as ChunkAccessExtender).`terrasect$getContext`() ?: return true
     val ctx = chunkContext.dimensionContext ?: return true
     val lookup = ctx.mobLookup ?: return true

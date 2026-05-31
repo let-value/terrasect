@@ -27,7 +27,8 @@ public class NaturalSpawnerMixin {
       BlockPos blockPos,
       ChunkAccess chunkAccess,
       Operation<Boolean> original) {
-    if (!MobHandler.allowSpawn(chunkAccess, blockPos.getX(), blockPos.getZ(), entityType)) return false;
+    if (!MobHandler.allowSpawn(chunkAccess, blockPos.getX(), blockPos.getZ(), entityType))
+      return false;
     return original.call(predicate, entityType, blockPos, chunkAccess);
   }
 }
