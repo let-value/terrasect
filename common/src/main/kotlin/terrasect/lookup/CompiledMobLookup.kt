@@ -21,37 +21,40 @@ private constructor(
 
   companion object {
     fun build(root: Region, registry: RegistryAccess.Frozen): CompiledMobLookup? {
-      if (!anyRegionHasMobs(root)) {
+      val mobRegions = ArrayList<Region>()
+      collectMobRegions(root, mobRegions)
+      if (mobRegions.isEmpty()) {
         log.debug { "build: no mob-constrained regions under root=${root.name}" }
         return null
       }
       val entityTypeIndex = buildEntityTypeIndex(registry)
-      val decisions = collectDecisions(root, entityTypeIndex)
+      val decisions = collectDecisions(mobRegions, entityTypeIndex)
       log.debug {
         "build: ${decisions.size} mob-constrained region(s) under root=${root.name}; ${entityTypeIndex.size} entity types indexed"
       }
       return CompiledMobLookup(decisions)
     }
 
+    private fun collectMobRegions(region: Region, mobRegions: MutableList<Region>) {
+      if (region.mobs != null) {
+        mobRegions += region
+      }
+      region.children.forEach { collectMobRegions(it, mobRegions) }
+    }
+
     private fun collectDecisions(
-      root: Region,
+      mobRegions: List<Region>,
       entityTypeIndex: java.util.IdentityHashMap<EntityType<*>, EntityTypeEntry>,
     ): java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>> {
       val map =
         java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>()
-      val queue = ArrayDeque<Region>()
-      queue.add(root)
-      while (queue.isNotEmpty()) {
-        val region = queue.removeFirst()
-        val mobs = region.mobs
-        if (mobs != null) {
-          val regionDecisions = java.util.IdentityHashMap<EntityType<*>, Boolean>()
-          entityTypeIndex.forEach { (entityType, entry) ->
-            regionDecisions[entityType] = mobs.evaluate(entry.id, entry.tags)
-          }
-          map[region] = regionDecisions
+      for (region in mobRegions) {
+        val mobs = region.mobs ?: continue
+        val regionDecisions = java.util.IdentityHashMap<EntityType<*>, Boolean>()
+        entityTypeIndex.forEach { (entityType, entry) ->
+          regionDecisions[entityType] = mobs.evaluate(entry.id, entry.tags)
         }
-        queue.addAll(region.children)
+        map[region] = regionDecisions
       }
       return map
     }
@@ -68,11 +71,6 @@ private constructor(
         index[holder.value()] = EntityTypeEntry(id, tags)
       }
       return index
-    }
-
-    private fun anyRegionHasMobs(region: Region): Boolean {
-      if (region.mobs != null) return true
-      return region.children.any { anyRegionHasMobs(it) }
     }
   }
 }

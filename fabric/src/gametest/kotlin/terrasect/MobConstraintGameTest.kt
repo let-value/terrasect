@@ -27,7 +27,6 @@ private val log = LoggerFactory.getLogger("MobConstraintGameTest")
 
 private const val SEED = "mob-constraints"
 private const val DISABLED_PRESET = "__disabled__"
-private const val BLOCK_ALL_PRESET = "mob_constraint_block_all"
 private const val BLOCK_ZOMBIE_PRESET = "mob_constraint_block_zombie"
 private const val SPAWN_WAIT_TICKS = 300
 
@@ -36,14 +35,6 @@ private val MOB_COUNT_AABB = AABB(-128.0, -64.0, -128.0, 128.0, 320.0, 128.0)
 private val SCREENSHOTS_BASE: Path by lazy {
   val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
   classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
-}
-
-private fun registerBlockAllPreset() {
-  PresetRegistry.presets[BLOCK_ALL_PRESET] =
-    RegionRegistry().apply {
-      setRoot("minecraft:overworld", "overworld_root")
-      region("overworld_root").mobs { blockMods("minecraft") }
-    }
 }
 
 private fun registerBlockZombiePreset() {
