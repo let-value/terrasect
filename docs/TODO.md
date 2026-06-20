@@ -15,3 +15,4 @@ Do not mark items done here — just delete them when the goal is completed. Com
 ---
 
 <!-- Add active tasks below this line -->
+- loot-generation-manipulation investigation: /home/alex/terrasect/.worktrees/loot-generation-manipulation/docs/goals/GOAL_20260620_065520_Loot_Generation_Manipulation_Investigation.md
