@@ -14,6 +14,7 @@ import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.Region
 import terrasect.handler.NoiseLogger
+import terrasect.lookup.CompiledLootLookup
 import terrasect.lookup.CompiledNoiseRegistry
 import terrasect.lookup.CompiledStructureLookup
 
@@ -36,10 +37,11 @@ class DimensionContext(
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
   val structureLookup: CompiledStructureLookup? =
     CompiledStructureLookup.build(allSets, root, registry)
+  val lootLookup: CompiledLootLookup? = CompiledLootLookup.build(root, registry)
 
   init {
     log.debug {
-      "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL"} structureLookup=${if (structureLookup != null) "ACTIVE" else "NULL"}"
+      "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL"} structureLookup=${if (structureLookup != null) "ACTIVE" else "NULL"} lootLookup=${if (lootLookup != null) "ACTIVE" else "NULL"}"
     }
   }
 
