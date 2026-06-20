@@ -83,6 +83,10 @@
       {
         "value": "terrasect.StructureConstraintStatisticsTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.MobConstraintBlockByNameGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
