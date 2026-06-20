@@ -11,6 +11,7 @@ class Region(
   val biomes: SelectionConstraints? = null,
   val structures: StructureConstraints? = null,
   val mobs: SelectionConstraints? = null,
+  val loot: SelectionConstraints? = null,
 ) {
   val bytes = name.toByteArray()
   val hasChildren = children.isNotEmpty()

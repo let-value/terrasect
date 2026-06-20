@@ -6,6 +6,7 @@ enum class TerrasectInstrScope(override val id: String) : InstrScope {
   NOISE("noise"),
   CHUNK("chunk"),
   TRAVERSAL("traversal"),
+  LOOT("loot"),
   MOB("mob"),
 }
 
@@ -25,6 +26,7 @@ enum class TerrasectMetricEvent(override val id: String) : MetricEvent {
   CHUNK_TRAVERSE_CACHE_MISS("chunk.traverse.cache_miss"),
   TRAVERSAL_COMPLETED("traversal.completed"),
   TRAVERSAL_STEP("traversal.step"),
+  LOOT_APPLIED("loot.applied"),
   MOB_APPLIED("mob.applied"),
 }
 
@@ -34,5 +36,6 @@ object TerrasectInstr {
   val noise: ScopedInstr = Instr.scoped(TerrasectInstrScope.NOISE)
   val chunk: ScopedInstr = Instr.scoped(TerrasectInstrScope.CHUNK)
   val traversal: ScopedInstr = Instr.scoped(TerrasectInstrScope.TRAVERSAL)
+  val loot: ScopedInstr = Instr.scoped(TerrasectInstrScope.LOOT)
   val mob: ScopedInstr = Instr.scoped(TerrasectInstrScope.MOB)
 }

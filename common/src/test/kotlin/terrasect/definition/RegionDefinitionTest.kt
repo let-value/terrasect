@@ -51,6 +51,23 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `loot constraints are propagated through buildTree`() {
+    registry.region("loot_test_root").loot {
+      allowNames("minecraft:diamond")
+      blockTags("c:tools")
+    }
+    registry.setRoot("overworld", "loot_test_root")
+
+    val root = registry.buildTree("loot_test_root")
+
+    assertAll(
+      { assertNotNull(root.loot) },
+      { assertEquals(setOf("minecraft:diamond"), root.loot!!.allowedNames) },
+      { assertEquals(setOf("c:tools"), root.loot!!.blockedTags) },
+    )
+  }
+
+  @Test
   fun `child region inherits narrative defaults but keeps its overrides`() {
     val worldDefaults =
       registry
