@@ -13,6 +13,7 @@ This folder stores compact summaries of completed delegated goals. Full discussi
 - `GOAL_20260516_070434_Structure_Constraints_Implementation_Retry.md` — Consolidated structure placement research, structure-constraints implementation, locate path, client GameTests, PR #54 structure-statistics instrumentation follow-up, final verification, and merge-ready state.
 - `GOAL_20260518_154754_Common_Package_Instrumentation_Framework.md` — Consolidated common instrumentation API implementation and code-quality follow-up state.
 - `GOAL_20260620_065520_Loot_Generation_Manipulation_Investigation.md` — Unpacked Minecraft loot generation, traced position flow through `LootContextParams.ORIGIN`, and identified Fabric/NeoForge loot-hook entrypoints for region-based loot manipulation.
+- `GOAL_20260620_071605_Loot_Generation_Manipulation_Hot_Path_and_Interop_Followup.md` — Follow-up investigation on allocation-free loot-hook execution and mod interoperability; concluded the hot path can remain allocation-free per drop via prebuilt item/tag indices, with only a per-event region lookup, and that modded items are handled through the same registry/tag path.
 
 ## Historical stale-branch goals
 
