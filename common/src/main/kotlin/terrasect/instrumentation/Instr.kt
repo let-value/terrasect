@@ -1,12 +1,9 @@
 package terrasect.instrumentation
 
-@Suppress("NOTHING_TO_INLINE")
 object Instr {
   @Volatile private var backend: MetricsBackend = InMemoryBackend()
 
   @PublishedApi internal fun currentBackend(): MetricsBackend = backend
-
-  val root: ScopedInstr = ScopedInstr(RootInstrScope)
 
   fun scoped(scope: InstrScope): ScopedInstr = ScopedInstr(scope)
 
@@ -15,10 +12,6 @@ object Instr {
   }
 
   fun getBackend(): MetricsBackend = backend
-
-  fun isCounterEnabled(): Boolean = root.isCounterEnabled
-
-  fun isTimingEnabled(): Boolean = root.isTimingEnabled
 
   fun counterSnapshot(): List<CounterSnapshot> = backend.counterSnapshots()
 
@@ -29,137 +22,6 @@ object Instr {
   fun timerSnapshotAndReset(): List<TimerSnapshot> = backend.timerSnapshotsAndReset()
 
   fun reset() = backend.reset()
-
-  inline fun count(event: MetricEvent, delta: Long = 1) = root.count(event, delta)
-
-  inline fun count(event: MetricEvent, key0: String, crossinline value0: () -> String) =
-    root.count(event, key0, value0)
-
-  inline fun count(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-  ) = root.count(event, key0, value0, key1, value1)
-
-  inline fun count(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    key2: String,
-    crossinline value2: () -> String,
-  ) = root.count(event, key0, value0, key1, value1, key2, value2)
-
-  inline fun <T> time(event: MetricEvent, block: () -> T): T = root.time(event, block)
-
-  inline fun <T> time(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    block: () -> T,
-  ): T = root.time(event, key0, value0, block)
-
-  inline fun <T> time(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    block: () -> T,
-  ): T = root.time(event, key0, value0, key1, value1, block)
-
-  inline fun <T> time(
-    event: MetricEvent,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    key2: String,
-    crossinline value2: () -> String,
-    block: () -> T,
-  ): T = root.time(event, key0, value0, key1, value1, key2, value2, block)
-
-  inline fun recordDurationNanos(event: MetricEvent, nanos: Long) =
-    root.recordDurationNanos(event, nanos)
-
-  inline fun recordDurationNanos(
-    event: MetricEvent,
-    nanos: Long,
-    key0: String,
-    crossinline value0: () -> String,
-  ) = root.recordDurationNanos(event, nanos, key0, value0)
-
-  inline fun recordDurationNanos(
-    event: MetricEvent,
-    nanos: Long,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-  ) = root.recordDurationNanos(event, nanos, key0, value0, key1, value1)
-
-  inline fun recordDurationNanos(
-    event: MetricEvent,
-    nanos: Long,
-    key0: String,
-    crossinline value0: () -> String,
-    key1: String,
-    crossinline value1: () -> String,
-    key2: String,
-    crossinline value2: () -> String,
-  ) = root.recordDurationNanos(event, nanos, key0, value0, key1, value1, key2, value2)
-
-  inline fun counter(event: MetricEvent): InstrCounter = root.counter(event)
-
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    noinline value0: () -> String,
-  ): InstrCounter = root.counter(event, key0, value0)
-
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    noinline value0: () -> String,
-    key1: String,
-    noinline value1: () -> String,
-  ): InstrCounter = root.counter(event, key0, value0, key1, value1)
-
-  inline fun counter(
-    event: MetricEvent,
-    key0: String,
-    noinline value0: () -> String,
-    key1: String,
-    noinline value1: () -> String,
-    key2: String,
-    noinline value2: () -> String,
-  ): InstrCounter = root.counter(event, key0, value0, key1, value1, key2, value2)
-
-  inline fun timer(event: MetricEvent): InstrTimer = root.timer(event)
-
-  inline fun timer(event: MetricEvent, key0: String, noinline value0: () -> String): InstrTimer =
-    root.timer(event, key0, value0)
-
-  inline fun timer(
-    event: MetricEvent,
-    key0: String,
-    noinline value0: () -> String,
-    key1: String,
-    noinline value1: () -> String,
-  ): InstrTimer = root.timer(event, key0, value0, key1, value1)
-
-  inline fun timer(
-    event: MetricEvent,
-    key0: String,
-    noinline value0: () -> String,
-    key1: String,
-    noinline value1: () -> String,
-    key2: String,
-    noinline value2: () -> String,
-  ): InstrTimer = root.timer(event, key0, value0, key1, value1, key2, value2)
 }
 
 @Suppress("NOTHING_TO_INLINE")

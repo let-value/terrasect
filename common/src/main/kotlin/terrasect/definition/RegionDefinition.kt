@@ -8,7 +8,6 @@ open class RegionDefinition(
   val originAnchor: Boolean = false,
   var budget: Long,
   val strategy: StrategySettings,
-  var adjacentTo: Set<String>? = null,
   var parent: String? = null,
   val children: MutableSet<String>? = null,
   val climate: ClimateConstraints? = null,
@@ -24,8 +23,6 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   var originAnchor = false
   var budget: Long? = null
   var strategy: StrategySettings? = null
-  val adjacentToLazy = lazy { setOf<String>() }
-  val adjacentTo by adjacentToLazy
   var parent: String? = null
   val childrenLazy = lazy { mutableSetOf<String>() }
   val children by childrenLazy
@@ -56,8 +53,6 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     parent = name
     registry.region(name).children.add(this.name)
   }
-
-  fun adjacentTo(vararg regionNames: String) = apply { adjacentTo.plus(regionNames) }
 
   fun child(name: String, consumer: (RegionBuilder) -> Unit) = apply {
     this.registry.region(name).apply(consumer).parent(name)
@@ -137,7 +132,6 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
       originAnchor = this.originAnchor,
       budget = budget ?: (this.budget ?: 0),
       strategy = this.strategy ?: Strategy.voronoi(),
-      adjacentTo = if (this.adjacentToLazy.isInitialized()) adjacentTo else null,
       parent = this.parent,
       children = if (this.childrenLazy.isInitialized()) this.children else null,
       climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,

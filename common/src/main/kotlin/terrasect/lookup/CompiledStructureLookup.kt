@@ -1,5 +1,7 @@
 package terrasect.lookup
 
+import java.util.IdentityHashMap
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.Registries
@@ -18,10 +20,10 @@ private val structureLog = NoiseLogger.registry
 class CompiledStructureLookup
 private constructor(
   private val allSets: List<Holder<StructureSet>>,
-  private val index: java.util.IdentityHashMap<Structure, StructureEntry>,
+  private val index: IdentityHashMap<Structure, StructureEntry>,
 ) {
   private val filteredCache =
-    java.util.concurrent.ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
+    ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
 
   fun getFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> =
     filteredCache.computeIfAbsent(constraints) { computeFilteredSets(it) }
@@ -150,8 +152,8 @@ private constructor(
     private fun buildIndex(
       allSets: List<Holder<StructureSet>>,
       registry: RegistryAccess.Frozen,
-    ): java.util.IdentityHashMap<Structure, StructureEntry> {
-      val index = java.util.IdentityHashMap<Structure, StructureEntry>()
+    ): IdentityHashMap<Structure, StructureEntry> {
+      val index = IdentityHashMap<Structure, StructureEntry>()
       val structureRegistry = registry.lookupOrThrow(Registries.STRUCTURE)
       for (setHolder in allSets) {
         for (entry in setHolder.value().structures()) {

@@ -10,10 +10,6 @@ interface MetricEvent {
   val id: String
 }
 
-data object RootInstrScope : InstrScope {
-  override val id: String = "terrasect"
-}
-
 /**
  * Low-cardinality metric tag.
  *

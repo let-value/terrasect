@@ -1,5 +1,6 @@
 package terrasect.lookup
 
+import java.util.IdentityHashMap
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.item.Item
@@ -11,7 +12,7 @@ private val log = NoiseLogger.registry
 
 class CompiledLootLookup
 private constructor(
-  private val decisions: java.util.IdentityHashMap<Region, java.util.IdentityHashMap<Item, Boolean>>
+  private val decisions: IdentityHashMap<Region, IdentityHashMap<Item, Boolean>>
 ) {
   fun allowDrop(region: Region, item: Item): Boolean {
     val regionDecisions = decisions[region] ?: return true
@@ -43,12 +44,12 @@ private constructor(
 
     private fun collectDecisions(
       lootRegions: List<Region>,
-      itemIndex: java.util.IdentityHashMap<Item, ItemEntry>,
-    ): java.util.IdentityHashMap<Region, java.util.IdentityHashMap<Item, Boolean>> {
-      val map = java.util.IdentityHashMap<Region, java.util.IdentityHashMap<Item, Boolean>>()
+      itemIndex: IdentityHashMap<Item, ItemEntry>,
+    ): IdentityHashMap<Region, IdentityHashMap<Item, Boolean>> {
+      val map = IdentityHashMap<Region, IdentityHashMap<Item, Boolean>>()
       for (region in lootRegions) {
         val loot = region.loot ?: continue
-        val regionDecisions = java.util.IdentityHashMap<Item, Boolean>()
+        val regionDecisions = IdentityHashMap<Item, Boolean>()
         itemIndex.forEach { (item, entry) ->
           regionDecisions[item] = loot.evaluate(entry.id, entry.tags)
         }
@@ -59,8 +60,8 @@ private constructor(
 
     private fun buildItemIndex(
       registry: RegistryAccess.Frozen
-    ): java.util.IdentityHashMap<Item, ItemEntry> {
-      val index = java.util.IdentityHashMap<Item, ItemEntry>()
+    ): IdentityHashMap<Item, ItemEntry> {
+      val index = IdentityHashMap<Item, ItemEntry>()
       val itemRegistry = registry.lookupOrThrow(Registries.ITEM)
       itemRegistry.listElements().forEach { holder ->
         val id = ResourceKeyCompat.getKeyId(holder.key())

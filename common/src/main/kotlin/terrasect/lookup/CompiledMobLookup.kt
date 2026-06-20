@@ -1,5 +1,6 @@
 package terrasect.lookup
 
+import java.util.IdentityHashMap
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.entity.EntityType
@@ -11,8 +12,7 @@ private val log = NoiseLogger.registry
 
 class CompiledMobLookup
 private constructor(
-  private val decisions:
-    java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>
+  private val decisions: IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>>
 ) {
   fun allowSpawn(region: Region, entityType: EntityType<*>): Boolean {
     val regionDecisions = decisions[region] ?: return true
@@ -44,13 +44,12 @@ private constructor(
 
     private fun collectDecisions(
       mobRegions: List<Region>,
-      entityTypeIndex: java.util.IdentityHashMap<EntityType<*>, EntityTypeEntry>,
-    ): java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>> {
-      val map =
-        java.util.IdentityHashMap<Region, java.util.IdentityHashMap<EntityType<*>, Boolean>>()
+      entityTypeIndex: IdentityHashMap<EntityType<*>, EntityTypeEntry>,
+    ): IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>> {
+      val map = IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>>()
       for (region in mobRegions) {
         val mobs = region.mobs ?: continue
-        val regionDecisions = java.util.IdentityHashMap<EntityType<*>, Boolean>()
+        val regionDecisions = IdentityHashMap<EntityType<*>, Boolean>()
         entityTypeIndex.forEach { (entityType, entry) ->
           regionDecisions[entityType] = mobs.evaluate(entry.id, entry.tags)
         }
@@ -61,8 +60,8 @@ private constructor(
 
     private fun buildEntityTypeIndex(
       registry: RegistryAccess.Frozen
-    ): java.util.IdentityHashMap<EntityType<*>, EntityTypeEntry> {
-      val index = java.util.IdentityHashMap<EntityType<*>, EntityTypeEntry>()
+    ): IdentityHashMap<EntityType<*>, EntityTypeEntry> {
+      val index = IdentityHashMap<EntityType<*>, EntityTypeEntry>()
       val entityTypeRegistry = registry.lookupOrThrow(Registries.ENTITY_TYPE)
       entityTypeRegistry.listElements().forEach { holder ->
         val id = ResourceKeyCompat.getKeyId(holder.key())
