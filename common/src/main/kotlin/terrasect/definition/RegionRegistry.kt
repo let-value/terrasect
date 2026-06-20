@@ -42,6 +42,7 @@ class RegionRegistry {
       biomes = definition.biomes,
       structures = definition.structures,
       mobs = definition.mobs,
+      loot = definition.loot,
     )
   }
 

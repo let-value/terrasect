@@ -17,6 +17,7 @@ open class RegionDefinition(
   val biomes: SelectionConstraints? = null,
   val structures: StructureConstraints? = null,
   val mobs: SelectionConstraints? = null,
+  val loot: SelectionConstraints? = null,
 )
 
 open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: String) {
@@ -40,6 +41,8 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   val structuresBuilder by structuresLazyBuilder
   val mobsLazyBuilder = lazy { SelectionConstraints.builder() }
   val mobsBuilder by mobsLazyBuilder
+  val lootLazyBuilder = lazy { SelectionConstraints.builder() }
+  val lootBuilder by lootLazyBuilder
 
   fun radius(radius: Long) = apply { this.budget = radius * radius }
 
@@ -85,6 +88,10 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     mobsBuilder.apply(consumer)
   }
 
+  inline fun loot(consumer: SelectionConstraints.Builder.() -> Unit) = apply {
+    lootBuilder.apply(consumer)
+  }
+
   fun copy(): RegionBuilder {
     return RegionBuilder(this.id, this.registry, this.name).also {
       it.budget = this.budget
@@ -113,6 +120,9 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     if (parent.mobsLazyBuilder.isInitialized()) {
       this.mobsBuilder.inheritParent(parent.mobsBuilder)
     }
+    if (parent.lootLazyBuilder.isInitialized()) {
+      this.lootBuilder.inheritParent(parent.lootBuilder)
+    }
     if (this.strategy == null) {
       this.strategy = parent.strategy
     }
@@ -137,6 +147,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
       structures =
         if (this.structuresLazyBuilder.isInitialized()) structuresBuilder.build() else null,
       mobs = if (this.mobsLazyBuilder.isInitialized()) mobsBuilder.build() else null,
+      loot = if (this.lootLazyBuilder.isInitialized()) lootBuilder.build() else null,
     )
   }
 }
