@@ -12,6 +12,7 @@ This folder stores compact summaries of completed delegated goals. Full discussi
 - `GOAL_20260510_141138_Headless_Gradle_Middleware.md` — Consolidated headless client GameTest crash diagnosis and Xvfb Gradle middleware.
 - `GOAL_20260516_070434_Structure_Constraints_Implementation_Retry.md` — Consolidated structure placement research, structure-constraints implementation, locate path, client GameTests, PR #54 structure-statistics instrumentation follow-up, final verification, and merge-ready state.
 - `GOAL_20260518_154754_Common_Package_Instrumentation_Framework.md` — Consolidated common instrumentation API implementation and code-quality follow-up state.
+- `GOAL_20260620_222000_Mob_Spawn_Constraints_Mixin_Split_Followup.md` — Consolidated the mob-spawn-constraints scope, cleanup, and mixin-split follow-up into one compact summary; the earlier June 20 mob goal files now act as short historical pointers.
 
 ## Historical stale-branch goals
 
