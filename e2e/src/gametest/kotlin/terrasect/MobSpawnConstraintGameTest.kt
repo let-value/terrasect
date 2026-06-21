@@ -35,8 +35,7 @@ private const val PLAYER_Y_OFFSET = 40.0
 private const val SPAWN_SETTLE_TICKS = 400
 
 private val SCREENSHOTS_BASE: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
+  e2eScreenshotsBase(object {}.javaClass)
 }
 
 private data class MobProbeResult(val zombieCount: Int, val mobCount: Int)
@@ -139,7 +138,7 @@ private fun runMobScenario(
       FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
     )
     context.waitTicks(10)
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
     context.waitTicks(SPAWN_SETTLE_TICKS)
 
     var result = MobProbeResult(0, 0)

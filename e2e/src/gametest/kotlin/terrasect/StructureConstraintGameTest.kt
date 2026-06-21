@@ -35,8 +35,7 @@ private const val RUINED_PORTAL_DISTANCE = 385
 private val PROBE_POSITIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
 
 private val SCREENSHOTS_BASE: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
+  e2eScreenshotsBase(object {}.javaClass)
 }
 
 private data class LocateResult(val structureId: String?, val pos: BlockPos?) {
@@ -104,7 +103,7 @@ private fun runStructureProbes(context: ClientGameTestContext, label: String, sc
       FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
     )
     context.waitTicks(5)
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
 
     for ((x, z) in PROBE_POSITIONS) {
       game.server.runOnServer(
@@ -113,8 +112,8 @@ private fun runStructureProbes(context: ClientGameTestContext, label: String, sc
         }
       )
       context.waitTicks(60)
-      game.clientWorld.waitForChunksDownload()
-      game.clientWorld.waitForChunksRender()
+      game.clientLevel.waitForChunksDownload()
+      game.clientLevel.waitForChunksRender()
 
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
@@ -241,8 +240,8 @@ private fun runLocateTest(
         }
       )
       context.waitTicks(5)
-      game.clientWorld.waitForChunksDownload()
-      game.clientWorld.waitForChunksRender()
+      game.clientLevel.waitForChunksDownload()
+      game.clientLevel.waitForChunksRender()
       context.takeScreenshot(
         TestScreenshotOptions.of(screenshotName).withDestinationDir(screenshotDir)
       )
@@ -497,8 +496,8 @@ private fun runLocateAtPos(
       }
     )
     context.waitTicks(5)
-    game.clientWorld.waitForChunksDownload()
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksDownload()
+    game.clientLevel.waitForChunksRender()
     context.takeScreenshot(
       TestScreenshotOptions.of(screenshotName).withDestinationDir(screenshotDir)
     )

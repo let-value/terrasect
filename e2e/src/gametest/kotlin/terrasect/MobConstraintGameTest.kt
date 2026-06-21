@@ -33,8 +33,7 @@ private const val SPAWN_WAIT_TICKS = 300
 private val MOB_COUNT_AABB = AABB(-128.0, -64.0, -128.0, 128.0, 320.0, 128.0)
 
 private val SCREENSHOTS_BASE: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
+  e2eScreenshotsBase(object {}.javaClass)
 }
 
 private fun registerBlockZombiePreset() {
@@ -108,17 +107,13 @@ private fun runMobSpawnProbe(
     context.waitTicks(10)
 
     // Midnight so sky-light drops to zero and hostile mobs can spawn on the surface
-    game.server.runOnServer(
-      FailableConsumer<MinecraftServer, Exception> { server ->
-        server.overworld().setDayTime(18000L)
-      }
-    )
+    game.server.runCommand("time set night")
 
     context.runOnClient(
       FailableConsumer<Minecraft, Exception> { client -> configureAerialMobCamera(client) }
     )
     context.waitTicks(10)
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
 
     // Natural-spawning window: server ticks loaded chunks, NaturalSpawner runs each tick
     context.waitTicks(SPAWN_WAIT_TICKS)

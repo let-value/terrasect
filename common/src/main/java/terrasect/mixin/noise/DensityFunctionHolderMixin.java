@@ -31,7 +31,25 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
           @At(
               value = "INVOKE",
               target =
-                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"))
+                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
+      require = 0)
+  private DensityFunction terrasect$propagateKeyFromMapAll(DensityFunction newHolder) {
+    return terrasect$propagateKey(newHolder);
+  }
+
+  @ModifyArg(
+      method = "mapChildren",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
+      require = 0)
+  private DensityFunction terrasect$propagateKeyFromMapChildren(DensityFunction newHolder) {
+    return terrasect$propagateKey(newHolder);
+  }
+
+  @Unique
   private DensityFunction terrasect$propagateKey(DensityFunction newHolder) {
     if (this.terrasect$key != null && newHolder instanceof DensityFunctionHolderExtender ext) {
       ext.terrasect$setKey(this.terrasect$key);

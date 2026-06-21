@@ -15,6 +15,9 @@ stonecutter parameters
 
     properties {
       tags(version, loader)
+      if (loader == "e2e") {
+        tags("fabric")
+      }
     }
 
     constants {
@@ -29,7 +32,7 @@ spotless {
   }
 
   kotlin {
-    target("common/src/**/*.kt", "fabric/src/**/*.kt", "neoforge/src/**/*.kt")
+    target("common/src/**/*.kt", "fabric/src/**/*.kt", "neoforge/src/**/*.kt", "e2e/src/**/*.kt")
     ktfmt().googleStyle()
   }
 

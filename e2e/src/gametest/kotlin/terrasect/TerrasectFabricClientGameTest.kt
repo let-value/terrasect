@@ -22,8 +22,7 @@ private const val SEED = "noise-narrative"
 private const val CUSTOM_PRESET_PREFIX = "noise_narrative_client_test"
 
 private val SCREENSHOTS_BASE: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.resolve("build/gametest-screenshots")
+  e2eScreenshotsBase(object {}.javaClass)
 }
 
 private data class ColumnStats(
@@ -113,7 +112,7 @@ private fun runSpawnChunk(
     )
 
     context.waitTicks(10)
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
 
     if (screenshotLabel != null) {
       val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")

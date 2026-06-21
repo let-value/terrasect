@@ -40,8 +40,7 @@ private val VILLAGE_STRUCTURE_IDS =
 private var lastGeneratedSnapshotDebug: String = ""
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.also { log.info("module dir = {}", it) }
+  e2eModuleDir(object {}.javaClass).also { log.info("module dir = {}", it) }
 }
 
 private val GAME_TEST_RESOURCES_BASE: Path by lazy {
@@ -275,7 +274,7 @@ private fun collectGeneratedStructureStats(
       .create()
   try {
     context.waitTicks(120)
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
     Instr.reset()
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->

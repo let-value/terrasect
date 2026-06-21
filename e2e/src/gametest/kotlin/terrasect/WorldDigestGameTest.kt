@@ -24,8 +24,7 @@ private const val SEED = "seed"
 private val PROBE_LOCATIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
 
 private val GAME_TEST_MODULE_DIR: Path by lazy {
-  val classesRoot = Path.of(object {}.javaClass.protectionDomain.codeSource.location.toURI())
-  classesRoot.parent.parent.parent.parent.also { log.info("module dir = {}", it) }
+  e2eModuleDir(object {}.javaClass).also { log.info("module dir = {}", it) }
 }
 
 private val GAME_TEST_SCREENSHOTS_BASE: Path by lazy {
@@ -213,7 +212,7 @@ private fun computeWorldDigest(
       }
     )
 
-    game.clientWorld.waitForChunksRender()
+    game.clientLevel.waitForChunksRender()
 
     val allColumns = LinkedHashMap<String, Pair<Int, Int>>()
 
@@ -225,8 +224,8 @@ private fun computeWorldDigest(
       )
 
       context.waitTicks(60)
-      game.clientWorld.waitForChunksDownload()
-      game.clientWorld.waitForChunksRender()
+      game.clientLevel.waitForChunksDownload()
+      game.clientLevel.waitForChunksRender()
 
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
