@@ -343,7 +343,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
         Scenario(
           name = "hilly_plains",
           trace =
-            "noise-only: dry-temperate inland + high erosion + PSL plateau lift → rolling plains lower than vanilla, above sea level",
+            "noise-only: dry-temperate inland + moderate erosion + lowered density → rolling plains below vanilla, above sea level",
           expectation = ScenarioExpectation.HILLY_PLAINS,
         ) {
           region("overworld_root").noise {
@@ -353,7 +353,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
             }
             noise("vegetation") {
               it.multiply(0.0)
-              it.add(0.0)
+              it.add(-0.5)
             }
             densityFunction("continents") {
               it.multiply(0.0)
@@ -367,14 +367,13 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
               it.multiply(0.0)
               it.add(0.25)
             }
-            densityFunction("preliminarySurfaceLevel") { it.add(10.0) }
-            densityFunction("finalDensity") { it.add(0.02) }
+            densityFunction("finalDensity") { it.add(-0.07) }
           }
         },
         Scenario(
           name = "flat_plains",
           trace =
-            "noise-only: dry-temperate inland + maximum erosion + PSL plateau lift → mountain frame flattened well below vanilla",
+            "noise-only: dry-temperate inland + high erosion + strongly lowered density → terrain flattened well below vanilla",
           expectation = ScenarioExpectation.FLAT_PLAINS,
         ) {
           region("overworld_root").noise {
@@ -384,7 +383,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
             }
             noise("vegetation") {
               it.multiply(0.0)
-              it.add(0.0)
+              it.add(-0.5)
             }
             densityFunction("continents") {
               it.multiply(0.0)
@@ -392,14 +391,13 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
             }
             densityFunction("erosion") {
               it.multiply(0.0)
-              it.add(0.2)
+              it.add(0.3)
             }
             densityFunction("ridges") {
               it.multiply(0.0)
               it.add(0.2)
             }
-            densityFunction("preliminarySurfaceLevel") { it.add(6.0) }
-            densityFunction("finalDensity") { it.add(0.02) }
+            densityFunction("finalDensity") { it.add(-0.15) }
           }
         },
         Scenario(

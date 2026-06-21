@@ -31,6 +31,9 @@ versions/
 # NeoForge-specific
 src/generated/
 
+# Generated Minecraft sources for LLM inspection (./gradlew unpackMinecraftSources[Yarn])
+minecraft/
+
 # Compiled files
 *.class
 

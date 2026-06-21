@@ -1,4 +1,5 @@
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
+import net.fabricmc.loom.task.GenerateSourcesTask
 
 plugins {
   id("dev.kikugie.loom-back-compat")
@@ -102,5 +103,14 @@ tasks {
     from(commonProject.sourceSets["main"].output) {
       exclude("META-INF/accesstransformer.cfg", "accesswideners/*.accesswidener")
     }
+  }
+
+  register<Sync>("unpackMinecraftSources") {
+    group = "minecraft sources"
+    description = "Unpack Mojang-mapped decompiled Minecraft sources to minecraft/${project.name}/"
+    dependsOn("genSourcesWithVineflower")
+    val genTask = named<GenerateSourcesTask>("genSourcesWithVineflower")
+    from(zipTree(genTask.flatMap { it.sourcesOutputJar }))
+    into(rootProject.file("minecraft/${project.name}"))
   }
 }

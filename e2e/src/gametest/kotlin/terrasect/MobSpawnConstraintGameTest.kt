@@ -6,12 +6,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
-import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.Difficulty
 import net.minecraft.world.entity.Mob
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
 import org.apache.commons.lang3.function.FailableConsumer
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,30 +23,15 @@ private val log = LoggerFactory.getLogger("MobSpawnConstraintGameTest")
 private const val SEED = "mob-spawn-constraints"
 private const val DISABLED_PRESET = "__disabled__"
 private const val BLOCKED_ZOMBIE_PRESET = "mob_spawn_constraint_blocked_zombie"
-private const val ROOM_MIN_X = -8
-private const val ROOM_MAX_X = 8
-private const val ROOM_MIN_Y = 96
-private const val ROOM_MAX_Y = 102
-private const val ROOM_MIN_Z = -8
-private const val ROOM_MAX_Z = 8
-private const val PLAYER_Y_OFFSET = 40.0
-private const val SPAWN_SETTLE_TICKS = 400
+private const val SPAWN_SETTLE_TICKS = 300
+
+private val MOB_COUNT_AABB = AABB(-128.0, -64.0, -128.0, 128.0, 320.0, 128.0)
 
 private val SCREENSHOTS_BASE: Path by lazy {
   e2eScreenshotsBase(object {}.javaClass)
 }
 
 private data class MobProbeResult(val zombieCount: Int, val mobCount: Int)
-
-private fun roomBounds() =
-  AABB(
-    ROOM_MIN_X + 0.5,
-    ROOM_MIN_Y + 1.0,
-    ROOM_MIN_Z + 0.5,
-    ROOM_MAX_X - 0.5,
-    ROOM_MAX_Y - 0.5,
-    ROOM_MAX_Z - 0.5,
-  )
 
 private fun registerBlockedZombiePreset() {
   PresetRegistry.presets[BLOCKED_ZOMBIE_PRESET] =
@@ -60,7 +43,7 @@ private fun registerBlockedZombiePreset() {
 
 private fun configureAerialCamera(client: Minecraft) {
   client.player?.let { player ->
-    player.xRot = 82f
+    player.xRot = 65f
     player.yRot = 0f
     player.abilities.mayfly = true
     player.abilities.flying = true
@@ -68,44 +51,7 @@ private fun configureAerialCamera(client: Minecraft) {
   }
 }
 
-private fun buildSpawnChamber(server: MinecraftServer) {
-  val level = server.overworld()
-  for (x in ROOM_MIN_X..ROOM_MAX_X) {
-    for (y in ROOM_MIN_Y..ROOM_MAX_Y) {
-      for (z in ROOM_MIN_Z..ROOM_MAX_Z) {
-        val shell =
-          x == ROOM_MIN_X ||
-            x == ROOM_MAX_X ||
-            y == ROOM_MIN_Y ||
-            y == ROOM_MAX_Y ||
-            z == ROOM_MIN_Z ||
-            z == ROOM_MAX_Z
-        level.setBlockAndUpdate(
-          BlockPos(x, y, z),
-          if (shell) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState(),
-        )
-      }
-    }
-  }
-}
-
-private fun teleportPlayerAboveChamber(server: MinecraftServer) {
-  server.playerList.players[0].teleportTo(0.5, ROOM_MAX_Y + PLAYER_Y_OFFSET, 0.5)
-}
-
-private fun countProbe(level: MinecraftServer): MobProbeResult {
-  val chamber = roomBounds()
-  val world = level.overworld()
-  var zombieCount = 0
-  val mobs = world.getEntitiesOfClass(Mob::class.java, chamber)
-  for (mob in mobs) {
-    if (BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString() == "minecraft:zombie") {
-      zombieCount++
-    }
-  }
-  return MobProbeResult(zombieCount = zombieCount, mobCount = mobs.size)
-}
-
+@Suppress("UnstableApiUsage")
 private fun runMobScenario(
   context: ClientGameTestContext,
   presetId: String?,
@@ -129,11 +75,11 @@ private fun runMobScenario(
   try {
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
-        buildSpawnChamber(server)
-        teleportPlayerAboveChamber(server)
+        server.playerList.players[0].teleportTo(8.0, 120.0, 8.0)
       }
     )
-    context.waitTicks(20)
+    context.waitTicks(10)
+    game.server.runCommand("time set midnight")
     context.runOnClient(
       FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
     )
@@ -144,13 +90,29 @@ private fun runMobScenario(
     var result = MobProbeResult(0, 0)
     game.server.runOnServer(
       FailableConsumer<MinecraftServer, Exception> { server ->
-        result = countProbe(server)
+        val level = server.overworld()
+        val mobs = level.getEntitiesOfClass(Mob::class.java, MOB_COUNT_AABB) { true }
+        var zombieCount = 0
+        for (mob in mobs) {
+          if (BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString() == "minecraft:zombie") {
+            zombieCount++
+          }
+        }
+        result = MobProbeResult(zombieCount = zombieCount, mobCount = mobs.size)
+        val top5 =
+          mobs
+            .groupingBy { BuiltInRegistries.ENTITY_TYPE.getKey(it.type).toString() }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .joinToString { "${it.key.substringAfterLast(':')}×${it.value}" }
         log.info(
-          "[{}] zombieCount={} mobCount={} bounds={}",
+          "[{}] zombieCount={} mobCount={} types=[{}]",
           scenarioName,
-          result.zombieCount,
-          result.mobCount,
-          roomBounds(),
+          zombieCount,
+          mobs.size,
+          top5.ifEmpty { "none" },
         )
       }
     )
@@ -192,18 +154,23 @@ object MobSpawnConstraintGameTest : FabricClientGameTest {
         screenshotLabel = "blocked_zombie",
       )
 
+    PresetRegistry.presets.remove(BLOCKED_ZOMBIE_PRESET)
+
     assertTrue(
       vanilla.zombieCount > 0,
-      "Vanilla baseline should spawn at least one zombie in the chamber",
+      "Vanilla baseline should spawn at least one zombie (got ${vanilla.zombieCount} zombies, " +
+        "${vanilla.mobCount} total mobs) — check seed '$SEED' and difficulty/time settings.",
     )
     assertEquals(
       0,
       blocked.zombieCount,
-      "Blocked scenario should suppress zombies in the chamber",
+      "blockNames(minecraft:zombie) must suppress all naturally-spawned zombies; " +
+        "found ${blocked.zombieCount} in the constrained world (${blocked.mobCount} total mobs).",
     )
     assertTrue(
       vanilla.zombieCount > blocked.zombieCount,
-      "Constrained world should spawn fewer zombies than vanilla",
+      "Constrained world should spawn fewer zombies than vanilla " +
+        "(vanilla=${vanilla.zombieCount}, blocked=${blocked.zombieCount})",
     )
   }
 }
