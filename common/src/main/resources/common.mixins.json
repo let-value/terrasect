@@ -6,6 +6,7 @@
     "climate.ClimateClimateSamplerMixin",
     "climate.ClimateTargetPointMixin",
     "climate.MultiNoiseBiomeSourceMixin",
+    "loot.LootTableMixin",
     "climate.NoiseChunkClimateSamplerMixin",
     "noise.DensityFunctionHolderMixin",
     "noise.NoiseChunkFunctionsMixin",

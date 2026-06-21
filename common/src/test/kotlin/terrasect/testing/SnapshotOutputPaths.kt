@@ -8,10 +8,14 @@ import org.junit.jupiter.api.Assertions.assertTrue
 
 object SnapshotOutputPaths {
   private const val COLLAPSED_PREFIX = "terrasect"
+  private const val VERSION_PROPERTY = "terrasect.minecraftVersion"
 
   @JvmStatic
   fun forTestClass(testClass: Class<*>, vararg segments: String?): File {
-    var path = Path.of("build", "test-snapshots").resolve(collapsedClassPath(testClass))
+    var path =
+      Path.of("build", "test-snapshots")
+        .resolve(minecraftVersion())
+        .resolve(collapsedClassPath(testClass))
     for (segment in segments) {
       if (segment.isNullOrEmpty()) {
         continue
@@ -35,6 +39,8 @@ object SnapshotOutputPaths {
       Path.of(packageName.replace('.', File.separatorChar)).resolve(testClass.simpleName)
     }
   }
+
+  @JvmStatic fun minecraftVersion(): String = System.getProperty(VERSION_PROPERTY, "unknown")
 }
 
 fun writeSnapshotPng(testClass: Class<*>, snapshotName: String, image: BufferedImage) {

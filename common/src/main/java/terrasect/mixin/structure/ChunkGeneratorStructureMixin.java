@@ -33,7 +33,9 @@ public class ChunkGeneratorStructureMixin {
     var sets = original.call(state);
     var chunkPos = chunkAccess.getPos();
     var chunkCtx = ((ChunkAccessExtender) chunkAccess).terrasect$getContext();
-    var filtered = StructureHandler.getFilteredSets(chunkCtx, dimensionKey, chunkPos.x, chunkPos.z);
+    var filtered =
+        StructureHandler.getFilteredSets(
+            chunkCtx, dimensionKey, chunkPos.getMinBlockX() >> 4, chunkPos.getMinBlockZ() >> 4);
     return filtered != null ? filtered : sets;
   }
 }
