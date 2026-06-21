@@ -22,8 +22,7 @@ private constructor(
   private val allSets: List<Holder<StructureSet>>,
   private val index: IdentityHashMap<Structure, StructureEntry>,
 ) {
-  private val filteredCache =
-    ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
+  private val filteredCache = ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
 
   fun getFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> =
     filteredCache.computeIfAbsent(constraints) { computeFilteredSets(it) }

@@ -28,8 +28,7 @@ public class NaturalSpawnerWorldGenMixin {
       BlockPos blockPos,
       CallbackInfoReturnable<Boolean> cir) {
     var chunkAccess = serverLevel.getChunk(blockPos);
-    if (!MobHandler.allowSpawn(
-        chunkAccess, blockPos.getX(), blockPos.getZ(), spawnerData.type())) {
+    if (!MobHandler.allowSpawn(chunkAccess, blockPos.getX(), blockPos.getZ(), spawnerData.type())) {
       cir.setReturnValue(false);
     }
   }

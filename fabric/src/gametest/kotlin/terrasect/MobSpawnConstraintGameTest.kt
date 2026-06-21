@@ -11,7 +11,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.Difficulty
 import net.minecraft.world.entity.Mob
-
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
 import org.apache.commons.lang3.function.FailableConsumer
@@ -162,7 +161,8 @@ private fun runMobScenario(
     )
     context.waitTicks(5)
     context.takeScreenshot(
-      TestScreenshotOptions.of(screenshotLabel).withDestinationDir(SCREENSHOTS_BASE.resolve("MobSpawnConstraintGameTest"))
+      TestScreenshotOptions.of(screenshotLabel)
+        .withDestinationDir(SCREENSHOTS_BASE.resolve("MobSpawnConstraintGameTest"))
     )
     return result
   } finally {

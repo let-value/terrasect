@@ -345,12 +345,11 @@ private fun summarizeGeneratedStructureStats(
   caseName: String,
   snapshots: List<CounterSnapshot>,
 ): GeneratedStructureStats {
-  val generatedSnapshots =
-    snapshots.filter {
-      it.value > 0L &&
-        it.id.scope == TerrasectInstrScope.STRUCTURE.id &&
-        it.id.event == TerrasectMetricEvent.STRUCTURE_GENERATED.id
-    }
+  val generatedSnapshots = snapshots.filter {
+    it.value > 0L &&
+      it.id.scope == TerrasectInstrScope.STRUCTURE.id &&
+      it.id.event == TerrasectMetricEvent.STRUCTURE_GENERATED.id
+  }
   check(generatedSnapshots.isNotEmpty()) {
     "Expected generated-structure counters for $caseName, but the instrumentation snapshot was empty"
   }
