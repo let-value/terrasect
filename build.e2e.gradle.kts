@@ -170,9 +170,7 @@ tasks {
 
   named<JavaExec>("runClientGameTest") {
     systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
-    if (project.hasProperty("test")) {
-      systemProperty("test", project.property("test").toString())
-    }
+    project.gradle.startParameter.projectProperties["test"]?.let { systemProperty("test", it) }
     if (System.getenv("DISPLAY").isNullOrBlank()) {
       dependsOn(startXvfb)
       finalizedBy(stopXvfb)
