@@ -21,12 +21,6 @@ version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-neoforge"
 
-repositories {
-  mavenCentral()
-  maven("https://jitpack.io") { name = "JitPack" }
-  maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
-}
-
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(prop("java").toInt())

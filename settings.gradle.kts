@@ -30,6 +30,9 @@ plugins {
 rootProject.name = "terrasect"
 
 stonecutter {
+  val latestProject = "26.2.x"
+  val latestVersion = "26.2"
+
   create(rootProject) {
     fun match(project: String, vararg loaders: String, version: String = project) {
       version("$project-common", version).buildscript("build.common.gradle.kts")
@@ -39,8 +42,12 @@ stonecutter {
     }
 
     match("1.21.11", "fabric", "neoforge")
-    match("26.2.x", "fabric", "neoforge", version = "26.2")
-    version("26.2.x-e2e", "26.2").buildscript("build.e2e.gradle.kts")
+    match(latestProject, "fabric", "neoforge", version = latestVersion)
     vcsVersion = "1.21.11-fabric"
+  }
+
+  create("e2e") {
+    version(latestProject, latestVersion).buildscript("../build.e2e.gradle.kts")
+    vcsVersion = latestProject
   }
 }

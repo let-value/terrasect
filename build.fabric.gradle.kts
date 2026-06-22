@@ -20,15 +20,6 @@ version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-fabric"
 
-repositories {
-  mavenCentral()
-  maven("https://jitpack.io") { name = "JitPack" }
-  exclusiveContent {
-    forRepository { maven("https://api.modrinth.com/maven") }
-    filter { includeGroup("maven.modrinth") }
-  }
-}
-
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(prop("java").toInt())

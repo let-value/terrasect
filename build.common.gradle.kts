@@ -22,11 +22,6 @@ version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-common"
 
-repositories {
-  mavenCentral()
-  maven("https://jitpack.io") { name = "JitPack" }
-}
-
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(prop("java").toInt())

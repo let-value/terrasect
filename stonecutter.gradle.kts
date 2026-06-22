@@ -5,8 +5,16 @@ plugins {
 
 stonecutter active "1.21.11-fabric"
 
-repositories {
-  mavenCentral()
+allprojects {
+  repositories {
+    mavenCentral()
+    maven("https://jitpack.io") { name = "JitPack" }
+    maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
+    exclusiveContent {
+      forRepository { maven("https://api.modrinth.com/maven") }
+      filter { includeGroup("maven.modrinth") }
+    }
+  }
 }
 
 stonecutter parameters

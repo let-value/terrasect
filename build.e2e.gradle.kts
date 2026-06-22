@@ -21,15 +21,6 @@ version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-e2e"
 
-repositories {
-  mavenCentral()
-  maven("https://jitpack.io") { name = "JitPack" }
-  exclusiveContent {
-    forRepository { maven("https://api.modrinth.com/maven") }
-    filter { includeGroup("maven.modrinth") }
-  }
-}
-
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(prop("java").toInt())
@@ -53,15 +44,17 @@ fabricApi {
 
 sourceSets {
   main {
-    kotlin.srcDirs(
-      fabricDir.resolve("src/main/kotlin"),
-      fabricDir.resolve("src/client/kotlin"),
+    kotlin.setSrcDirs(
+      listOf(
+        fabricDir.resolve("src/main/kotlin"),
+        fabricDir.resolve("src/client/kotlin"),
+      )
     )
-    resources.srcDir(fabricDir.resolve("src/main/resources"))
+    resources.setSrcDirs(listOf(fabricDir.resolve("src/main/resources")))
   }
   named("gametest") {
-    kotlin.srcDir(e2eDir.resolve("src/gametest/kotlin"))
-    resources.srcDir(e2eDir.resolve("src/gametest/resources"))
+    kotlin.setSrcDirs(listOf(e2eDir.resolve("src/gametest/kotlin")))
+    resources.setSrcDirs(listOf(e2eDir.resolve("src/gametest/resources")))
   }
 }
 
@@ -71,7 +64,6 @@ loom {
   mods {
     create(prop("mod.id")) {
       sourceSet(sourceSets["main"])
-      sourceSet(commonProject.sourceSets["main"])
     }
   }
 }
@@ -112,6 +104,10 @@ val resourceProps =
   )
 
 tasks {
+  test {
+    enabled = false
+  }
+
   named<ProcessResources>("processResources") {
     inputs.properties(resourceProps)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) {
@@ -170,6 +166,9 @@ tasks {
 
   named<JavaExec>("runClientGameTest") {
     systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
+    if (project.hasProperty("updateSnapshots")) {
+      systemProperty("updateSnapshots", "true")
+    }
     project.gradle.startParameter.projectProperties["test"]?.let { systemProperty("test", it) }
     if (System.getenv("DISPLAY").isNullOrBlank()) {
       dependsOn(startXvfb)
