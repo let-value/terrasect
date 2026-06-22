@@ -1,5 +1,6 @@
 package terrasect.gui
 
+// spotless:off
 //? if >=1.21.11 {
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.debug.DebugEntryCategory
@@ -59,3 +60,4 @@ class RegionDebugEntry : DebugScreenEntry {
 }
 //?} else
 /*class RegionDebugEntry*/
+// spotless:on

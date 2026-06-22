@@ -1,16 +1,15 @@
 package terrasect.client;
 
-import java.util.Optional;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.server.RegistryLayer;
-import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.WorldData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import terrasect.compat.ResourceKeyCompat;
 import terrasect.extender.PresetIdHolder;
 
 @Mixin(CreateWorldScreen.class)
@@ -35,7 +34,7 @@ public class CreateWorldScreenMixin {
   private void terrasect$rememberPresetIdFromWorldDataAndGenSettings(
       LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
       @Coerce Object worldDataAndGenSettings,
-      Optional<GameRules> gameRules,
+      @Coerce Object gameRules,
       CallbackInfoReturnable<Boolean> cir) {
     try {
       terrasect$rememberPresetId(
@@ -55,9 +54,9 @@ public class CreateWorldScreenMixin {
     CreateWorldScreen screen = (CreateWorldScreen) (Object) this;
     var worldType = screen.getUiState().getWorldType();
     var presetHolder = worldType.preset();
-    var presetId =
+    String presetId =
         presetHolder != null
-            ? presetHolder.unwrapKey().map(key -> key.identifier().toString()).orElse(null)
+            ? presetHolder.unwrapKey().map(ResourceKeyCompat.INSTANCE::getKeyId).orElse(null)
             : null;
     extender.terrasect$setPresetId(presetId);
   }

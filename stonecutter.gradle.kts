@@ -36,23 +36,13 @@ stonecutter parameters
 spotless {
   java {
     target("common/src/**/*.java")
+    toggleOffOn()
     googleJavaFormat()
   }
 
   kotlin {
-    target(
-      fileTree("common/src") {
-        include("**/*.kt")
-        exclude("main/kotlin/terrasect/compat/*Compat.kt")
-        exclude("main/kotlin/terrasect/gui/RegionDebugEntry.kt")
-      },
-      fileTree("fabric/src") {
-        include("**/*.kt")
-        exclude("client/kotlin/terrasect/TerrasectFabricClient.kt")
-      },
-      "neoforge/src/**/*.kt",
-      "e2e/src/**/*.kt",
-    )
+    target("common/src/**/*.kt", "fabric/src/**/*.kt", "neoforge/src/**/*.kt", "e2e/src/**/*.kt")
+    toggleOffOn()
     ktfmt().googleStyle()
   }
 

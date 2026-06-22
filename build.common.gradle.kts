@@ -14,20 +14,23 @@ fun prop(key: String): String = sc.properties[key]
 fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
 
 val commonDir = rootProject.file("common")
+val commonKotlinSrc = commonDir.resolve("src/main/kotlin")
 val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
-val processedCommonKotlinFiles =
-  listOf(
-      "terrasect/compat/ResourceKeyCompat.kt",
-      "terrasect/compat/LootContextCompat.kt",
-      "terrasect/compat/NoiseRouterCompat.kt",
-      "terrasect/gui/RegionDebugEntry.kt",
-    )
-    .map { path ->
-      sc.process(
-        commonDir.resolve("src/main/kotlin/$path"),
-        "build/processed/main/kotlin/${path.substringAfterLast("/")}",
-      )
-    }
+val commonJavaSrc = commonDir.resolve("src/main/java")
+val processedCommonJavaDir = layout.buildDirectory.dir("processed/main/java")
+
+project
+  .fileTree(commonKotlinSrc) { include("**/*.kt") }
+  .forEach { file ->
+    sc.process(file, "build/processed/main/kotlin/${file.relativeTo(commonKotlinSrc).path}")
+  }
+
+project
+  .fileTree(commonJavaSrc) { include("**/*.java") }
+  .forEach { file ->
+    sc.process(file, "build/processed/main/java/${file.relativeTo(commonJavaSrc).path}")
+  }
+
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 val generatedAccessConverterResources =
   layout.buildDirectory.dir("generated/accessConverter/resources")
@@ -48,15 +51,8 @@ kotlin {
 
 sourceSets {
   main {
-    java.srcDir(commonDir.resolve("src/main/java"))
-    kotlin.srcDir(commonDir.resolve("src/main/kotlin"))
+    java.srcDir(processedCommonJavaDir)
     kotlin.srcDir(processedCommonKotlinDir)
-    kotlin.exclude(
-      "terrasect/compat/ResourceKeyCompat.kt",
-      "terrasect/compat/LootContextCompat.kt",
-      "terrasect/compat/NoiseRouterCompat.kt",
-      "terrasect/gui/RegionDebugEntry.kt",
-    )
     resources.srcDir(commonDir.resolve("src/main/resources"))
     resources.srcDir(generatedAccessConverterResources)
   }

@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import terrasect.compat.ResourceKeyCompat;
 import terrasect.extender.PresetIdHolder;
 
 @Mixin(targets = "net.minecraft.server.dedicated.DedicatedServerProperties$WorldDimensionData")
@@ -33,7 +34,7 @@ public class DedicatedServerPropertiesWorldDimensionDataMixin {
       Holder.Reference<WorldPreset> reference,
       Holder<WorldPreset> holder) {
     this.terrasect$presetId =
-        holder.unwrapKey().map(key -> key.identifier().toString()).orElse(null);
+        holder.unwrapKey().map(ResourceKeyCompat.INSTANCE::getKeyId).orElse(null);
   }
 
   @Inject(method = "create", at = @At("RETURN"))

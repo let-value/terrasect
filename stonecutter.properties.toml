@@ -14,25 +14,6 @@ deps.zero_allocation_hashing = "0.27ea1"
 deps.caffeine = "3.2.3"
 deps.kbase58 = "0.4"
 
-["1.20.1"]
-java = "21"
-parchment.minecraft = "1.20.1"
-parchment.mappings = "2023.09.03"
-deps.neoform = "1.20.1"
-
-[fabric."1.20.1"]
-deps.fabric_loader = "0.18.4"
-deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
-deps.fabric_api = "0.92.9+1.20.1"
-
-[neoforge."1.20.1"]
-deps.neo_loader = "1.20.1-47.1.106"
-deps.kotlinforforge = "4.11.0"
-deps.kotlinforforge_range = "[4.11,)"
-deps.neo_version_range = "[47.1,)"
-deps.neo_minecraft_range = "[1.20.1]"
-deps.neo_loader_range = "[4,)"
-
 ["1.21"]
 java = "21"
 parchment.minecraft = "1.21"

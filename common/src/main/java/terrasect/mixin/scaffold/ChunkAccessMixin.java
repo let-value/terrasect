@@ -5,11 +5,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.levelgen.blending.BlendingData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import terrasect.extender.ChunkAccessExtender;
@@ -30,21 +30,38 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
     return this.terrasect$level;
   }
 
-  @Inject(method = "<init>", at = @At("RETURN"))
+  // >=1.21.11: constructor has PalettedContainerFactory parameter
+  @Inject(method = "<init>", at = @At("RETURN"), require = 0)
   private void terrasect$captureLevel(
       ChunkPos chunkPos,
       net.minecraft.world.level.chunk.UpgradeData upgradeData,
       LevelHeightAccessor levelHeightAccessor,
-      PalettedContainerFactory palettedContainerFactory,
+      @Coerce Object palettedContainerFactory,
       long inhabitedTime,
       LevelChunkSection[] sections,
       BlendingData blendingData,
       CallbackInfo ci) {
+    terrasect$doCapture(chunkPos, levelHeightAccessor);
+  }
 
+  // <1.21.11: constructor without PalettedContainerFactory
+  @Inject(method = "<init>", at = @At("RETURN"), require = 0)
+  private void terrasect$captureLevelLegacy(
+      ChunkPos chunkPos,
+      net.minecraft.world.level.chunk.UpgradeData upgradeData,
+      LevelHeightAccessor levelHeightAccessor,
+      long inhabitedTime,
+      LevelChunkSection[] sections,
+      BlendingData blendingData,
+      CallbackInfo ci) {
+    terrasect$doCapture(chunkPos, levelHeightAccessor);
+  }
+
+  @Unique
+  private void terrasect$doCapture(ChunkPos chunkPos, LevelHeightAccessor levelHeightAccessor) {
     if (levelHeightAccessor instanceof Level level) {
       this.terrasect$level = level;
     }
-
     terrasect$context = new ChunkContext(this, chunkPos);
   }
 

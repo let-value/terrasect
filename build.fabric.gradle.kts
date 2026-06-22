@@ -13,12 +13,15 @@ fun prop(key: String): String = sc.properties[key]
 
 val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
+val fabricClientKotlinSrc = fabricDir.resolve("src/client/kotlin")
 val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
-val processedFabricClientKotlinFile =
-  sc.process(
-    fabricDir.resolve("src/client/kotlin/terrasect/TerrasectFabricClient.kt"),
-    "build/processed/client/kotlin/TerrasectFabricClient.kt",
-  )
+
+project
+  .fileTree(fabricClientKotlinSrc) { include("**/*.kt") }
+  .forEach { file ->
+    sc.process(file, "build/processed/client/kotlin/${file.relativeTo(fabricClientKotlinSrc).path}")
+  }
+
 val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 
@@ -38,12 +41,8 @@ kotlin {
 
 sourceSets {
   main {
-    kotlin.srcDirs(
-      fabricDir.resolve("src/main/kotlin"),
-      fabricDir.resolve("src/client/kotlin"),
-    )
+    kotlin.srcDir(fabricDir.resolve("src/main/kotlin"))
     kotlin.srcDir(processedFabricClientKotlinDir)
-    kotlin.exclude("terrasect/TerrasectFabricClient.kt")
     resources.srcDir(fabricDir.resolve("src/main/resources"))
   }
 }

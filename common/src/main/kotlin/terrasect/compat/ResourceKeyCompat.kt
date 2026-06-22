@@ -14,4 +14,16 @@ object ResourceKeyCompat {
     //?}
     // spotless:on
   }
+
+  @Suppress("NOTHING_TO_INLINE")
+  inline fun getKeyPath(key: ResourceKey<*>): String {
+    // spotless:off
+    //? if >=1.21.11 {
+    return key.identifier().path
+    //?} else {
+    /*return key.location().path
+     */
+    //?}
+    // spotless:on
+  }
 }
