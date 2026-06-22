@@ -13,6 +13,12 @@ fun prop(key: String): String = sc.properties[key]
 
 val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
+val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
+val processedFabricClientKotlinFile =
+  sc.process(
+    fabricDir.resolve("src/client/kotlin/terrasect/TerrasectFabricClient.kt"),
+    "build/processed/client/kotlin/TerrasectFabricClient.kt",
+  )
 val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 
@@ -36,6 +42,8 @@ sourceSets {
       fabricDir.resolve("src/main/kotlin"),
       fabricDir.resolve("src/client/kotlin"),
     )
+    kotlin.srcDir(processedFabricClientKotlinDir)
+    kotlin.exclude("terrasect/TerrasectFabricClient.kt")
     resources.srcDir(fabricDir.resolve("src/main/resources"))
   }
 }

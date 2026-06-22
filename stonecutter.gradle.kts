@@ -40,7 +40,19 @@ spotless {
   }
 
   kotlin {
-    target("common/src/**/*.kt", "fabric/src/**/*.kt", "neoforge/src/**/*.kt", "e2e/src/**/*.kt")
+    target(
+      fileTree("common/src") {
+        include("**/*.kt")
+        exclude("main/kotlin/terrasect/compat/*Compat.kt")
+        exclude("main/kotlin/terrasect/gui/RegionDebugEntry.kt")
+      },
+      fileTree("fabric/src") {
+        include("**/*.kt")
+        exclude("client/kotlin/terrasect/TerrasectFabricClient.kt")
+      },
+      "neoforge/src/**/*.kt",
+      "e2e/src/**/*.kt",
+    )
     ktfmt().googleStyle()
   }
 

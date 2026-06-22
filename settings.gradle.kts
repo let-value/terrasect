@@ -41,6 +41,10 @@ stonecutter {
       }
     }
 
+    version("1.20.1-common", "1.20.1").buildscript("build.common.loom.gradle.kts")
+    version("1.20.1-fabric", "1.20.1").buildscript("build.fabric.gradle.kts")
+    match("1.21", "fabric", "neoforge")
+    match("1.21.1", "fabric", "neoforge")
     match("1.21.11", "fabric", "neoforge")
     match(latestProject, "fabric", "neoforge", version = latestVersion)
     vcsVersion = "1.21.11-fabric"

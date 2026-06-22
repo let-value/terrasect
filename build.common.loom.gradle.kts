@@ -2,16 +2,13 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
 plugins {
   `java-library`
+  id("dev.kikugie.loom-back-compat")
   id("org.jetbrains.kotlin.jvm")
-  id("net.neoforged.moddev")
-  id("dev.kikugie.fletching-table")
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()
 
 fun prop(key: String): String = sc.properties[key]
-
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
 
 val commonDir = rootProject.file("common")
 val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
@@ -28,9 +25,6 @@ val processedCommonKotlinFiles =
         "build/processed/main/kotlin/${path.substringAfterLast("/")}",
       )
     }
-val accessWidenerFile = "${sc.current.version}.accesswidener"
-val generatedAccessConverterResources =
-  layout.buildDirectory.dir("generated/accessConverter/resources")
 
 version = prop("mod.version")
 
@@ -58,7 +52,6 @@ sourceSets {
       "terrasect/gui/RegionDebugEntry.kt",
     )
     resources.srcDir(commonDir.resolve("src/main/resources"))
-    resources.srcDir(generatedAccessConverterResources)
   }
   test {
     kotlin.srcDir(commonDir.resolve("src/test/kotlin"))
@@ -66,24 +59,10 @@ sourceSets {
   }
 }
 
-fletchingTable {
-  accessConverter.register(sourceSets.main) {
-    add("accessconverters/$accessWidenerFile")
-  }
-}
-
-neoForge {
-  neoFormVersion = propOrNull("deps.neoform") ?: sc.current.version
-  propOrNull("parchment.mappings")?.let { mappings ->
-    parchment {
-      mappingsVersion = mappings
-      minecraftVersion = prop("parchment.minecraft")
-    }
-  }
-  addModdingDependenciesTo(sourceSets["test"])
-}
-
 dependencies {
+  minecraft("com.mojang:minecraft:${sc.current.version}")
+  loomx.applyMojangMappings()
+
   compileOnly("net.fabricmc:sponge-mixin:${prop("deps.mixin")}")
   compileOnly("io.github.llamalad7:mixinextras-common:${prop("deps.mixinextras")}")
   implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
@@ -99,20 +78,9 @@ dependencies {
 }
 
 tasks {
-  val generateAccessConverterWidener by
-    registering(Copy::class) {
-      from(commonDir.resolve("src/main/resources/accesswideners/$accessWidenerFile")) {
-        filter { line: String ->
-          if (line.startsWith("accessWidener v2 ")) "accessWidener v2 named" else line
-        }
-      }
-      into(generatedAccessConverterResources.map { it.dir("accessconverters") })
-    }
-
   named<ProcessResources>("processResources") {
-    dependsOn(generateAccessConverterWidener)
     includeEmptyDirs = false
-    exclude("accesswideners/*.accesswidener")
+    exclude("accesswideners/26.2.accesswidener")
   }
 
   test {
