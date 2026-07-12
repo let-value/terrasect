@@ -49,6 +49,8 @@ stonecutter {
   }
 
   create("e2e") {
+    version("1.21.11", "1.21.11").buildscript("../build.e2e.gradle.kts")
+    version("26.1.x", "26.1.2").buildscript("../build.e2e.gradle.kts")
     version(latestProject, latestVersion).buildscript("../build.e2e.gradle.kts")
     vcsVersion = latestProject
   }

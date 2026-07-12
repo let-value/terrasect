@@ -84,6 +84,28 @@ at build time by version string. `1.21.11` uses the `named` namespace; the moder
 `26.1` / `26.2` wideners use `official` (newer loom intermediary) with identical
 entries.
 
+## Client gametests (`e2e`)
+
+The `e2e` module is a separate Stonecutter tree of Fabric **client** gametests. Its
+matrix is **1.21.11 / 26.1 / 26.2** — a subset of the main matrix, because the
+Fabric client-gametest API (`fabric-client-gametest-api-v1`) does not exist on
+1.21.1. Note the 26.1 lane uses the real Mojang id **26.1.2** here (loom needs a
+concrete MC coordinate), whereas the neoform-based main tree labels it `26.1`.
+
+Two tiers:
+- **`e2e/src/gametest/kotlin`** — portable. `SmokeGameTest` creates one world at a
+  fixed seed with a spawn region carrying every constraint type (noise, climate,
+  height, structures, mobs, loot) and asserts generation succeeds. Runs on all
+  three e2e versions. This is the cross-version smoke test.
+- **`e2e/src/gametest-latest/kotlin`** — heavy tests (teleport probes, screenshots,
+  version-specific terrain snapshots, newer client-gametest API like
+  `clientLevel`). Compiled and entrypoint-registered **only on the latest**
+  version (`isLatestVersion` in `build.e2e.gradle.kts`, which also injects the
+  heavy `fabric-client-gametest` entrypoints into `fabric.mod.json`). Bumping the
+  latest target = update `isLatestVersion`.
+
+Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=SmokeGameTest`).
+
 ## Adding a version
 
 1. Add a `match(...)` line in `settings.gradle.kts`.
