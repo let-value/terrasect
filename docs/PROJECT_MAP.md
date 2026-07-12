@@ -53,7 +53,7 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 | Package | Contents |
 |---------|---------|
 | `cache/` | `RegionsCache` (Caffeine-backed, striped-key, two-level), `PalettedGrid<T>` |
-| `compat/` | `ResourceKeyCompat` — loader-agnostic dimension key helper |
+| `compat/` | Minecraft-**version** shims across the `>=1.21.11` fault line (`ResourceKeyCompat`, `SpawnCompat`, `LootContextCompat`, `NoiseRouterCompat`) — see `docs/MULTIVERSION.md` |
 | `definition/` | Region data model: `Region`, `RegionDefinition` (DSL builder), `RegionRegistry`, `ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`, `Strategy`, `PresetRegistry` |
 | `generation/` | Pipeline: `Address`, `ChunkContext`, `DimensionContext`, `Locator` + `LocateStep`, `Traverser` + `TraversalStep` |
 | `gui/` | `RegionDebugEntry` — debug overlay entry |
