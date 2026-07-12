@@ -105,6 +105,19 @@ Two tiers:
   latest target = update `isLatestVersion`.
 
 Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=SmokeGameTest`).
+On macOS/Windows this launches a real client window; the headless Xvfb path in
+`build.e2e.gradle.kts` is Linux-only.
+
+`SmokeGameTest` is the only runtime validation that the mixins actually *apply*
+across versions. Compilation is not enough: several mixins target Minecraft
+constructors/methods whose signatures diverge across versions, and an injector
+whose descriptor does not match its target crashes at apply time regardless of
+`require = 0`. Keep each such injector to the one signature that exists on its
+version — either Stonecutter-gate the variants (see `ChunkAccessMixin`,
+`CreateWorldScreenMixin`) or, when the old signature predates every supported
+target, delete it (see `LevelMixin`, `PrimaryLevelDataMixin`). Note the
+`createNewWorld` divergence is a `>=26.1` boundary, distinct from the compat
+layer's `>=1.21.11` line — mixin fault lines are per-target, not global.
 
 ## Adding a version
 

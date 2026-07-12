@@ -14,24 +14,17 @@ import terrasect.extender.PresetIdHolder;
 
 @Mixin(CreateWorldScreen.class)
 public class CreateWorldScreenMixin {
-  @Inject(
-      method =
-          "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/WorldData;)Z",
-      at = @At("HEAD"),
-      require = 0)
-  private void terrasect$rememberPresetIdFromWorldData(
-      LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
-      WorldData worldData,
-      CallbackInfoReturnable<Boolean> cir) {
-    terrasect$rememberPresetId(worldData);
-  }
-
+  // createNewWorld's second parameter changed from WorldData to
+  // LevelDataAndDimensions$WorldDataAndGenSettings (plus an Optional) in 26.x. Only the matching
+  // injector may be compiled per version — the other fails descriptor validation at apply time.
+  // spotless:off
+  //? if >=26.1 {
   @Inject(
       method =
           "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/LevelDataAndDimensions$WorldDataAndGenSettings;Ljava/util/Optional;)Z",
       at = @At("HEAD"),
       require = 0)
-  private void terrasect$rememberPresetIdFromWorldDataAndGenSettings(
+  private void terrasect$rememberPresetIdFromWorldData(
       LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
       @Coerce Object worldDataAndGenSettings,
       @Coerce Object gameRules,
@@ -45,6 +38,20 @@ public class CreateWorldScreenMixin {
           "Unable to read world data from createNewWorld arguments", exception);
     }
   }
+  //?} else {
+  /*@Inject(
+      method =
+          "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/WorldData;)Z",
+      at = @At("HEAD"),
+      require = 0)
+  private void terrasect$rememberPresetIdFromWorldData(
+      LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
+      WorldData worldData,
+      CallbackInfoReturnable<Boolean> cir) {
+    terrasect$rememberPresetId(worldData);
+  }
+  *///?}
+  // spotless:on
 
   private void terrasect$rememberPresetId(WorldData worldData) {
     if (!(worldData instanceof PresetIdHolder extender)) {
