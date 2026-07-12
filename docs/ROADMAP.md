@@ -53,8 +53,14 @@ for these paths; keep gametests for end-to-end validation.
 
 1. ~~Remove the dead `adjacentTo` machinery from `RegionBuilder`.~~ Done.
 2. Simplify constraints compilation and clean up `Compiled*Lookup` / `*Handler`
-   in place — no shared abstraction.
+   in place — no shared abstraction. Done: deduped the repeated selection-eval
+   block in `CompiledStructureLookup` (`selectionAllows`). The rest of the
+   lookup/constraints layer (`SelectionConstraints`, `CompiledNoise`, loot/mob
+   lookups) was reviewed and left as-is — already direct; the loot/mob
+   parallelism is intentional (see decision #2).
 3. Done: removed dead `Instr` facade (433 → 295 lines). Kept the `ScopedInstr`
    handle/timer surface as the perf-measurement substrate (decided).
-4. Add fast unit tests for loot, mob, and structure selection paths. (Tracked —
-   not yet implemented.)
+4. ~~Add fast unit tests for loot, mob, and structure selection paths.~~ Done:
+   `SelectionConstraintsTest` (the shared decision kernel for all three paths)
+   and `StructureConstraintsTest` (placement + inheritance). Registry-indexing
+   glue stays covered by gametests.
