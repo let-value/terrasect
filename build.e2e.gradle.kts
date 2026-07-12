@@ -22,6 +22,10 @@ val gametestModId = "${prop("mod.id")}-e2e"
 // compiled and entrypoint-registered only on the latest version; SmokeGameTest stays portable.
 val isLatestVersion = sc.current.version == "26.2"
 
+// The headless Xvfb workaround is only for Linux CI without a display; macOS/Windows have a real
+// display and must not engage it (`which Xvfb` would fail and there is no X server anyway).
+val isLinux = System.getProperty("os.name").orEmpty().lowercase().contains("linux")
+
 val heavyGametestEntrypoints =
   if (!isLatestVersion) ""
   else
@@ -172,10 +176,12 @@ tasks {
 
   val startXvfb by registering {
     onlyIf {
-      System.getenv("DISPLAY").isNullOrBlank() &&
+      isLinux &&
+        System.getenv("DISPLAY").isNullOrBlank() &&
         providers
           .exec {
             commandLine("which", "Xvfb")
+            isIgnoreExitValue = true
           }
           .standardOutput
           .asText
@@ -204,7 +210,7 @@ tasks {
       systemProperty("updateSnapshots", "true")
     }
     project.gradle.startParameter.projectProperties["test"]?.let { systemProperty("test", it) }
-    if (System.getenv("DISPLAY").isNullOrBlank()) {
+    if (isLinux && System.getenv("DISPLAY").isNullOrBlank()) {
       dependsOn(startXvfb)
       finalizedBy(stopXvfb)
       environment("DISPLAY", xvfbDisplay)

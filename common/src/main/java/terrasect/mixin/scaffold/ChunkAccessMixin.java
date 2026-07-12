@@ -30,7 +30,11 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
     return this.terrasect$level;
   }
 
-  // >=1.21.11: constructor has PalettedContainerFactory parameter
+  // The ChunkAccess constructor gained a PalettedContainerFactory parameter in 1.21.11. Only the
+  // matching injector may be compiled per version: an @Inject targeting <init> with a mismatched
+  // arg count fails descriptor validation at apply time (a hard crash) regardless of require.
+  // spotless:off
+  //? if >=1.21.11 {
   @Inject(method = "<init>", at = @At("RETURN"), require = 0)
   private void terrasect$captureLevel(
       ChunkPos chunkPos,
@@ -43,10 +47,9 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       CallbackInfo ci) {
     terrasect$doCapture(chunkPos, levelHeightAccessor);
   }
-
-  // <1.21.11: constructor without PalettedContainerFactory
-  @Inject(method = "<init>", at = @At("RETURN"), require = 0)
-  private void terrasect$captureLevelLegacy(
+  //?} else {
+  /*@Inject(method = "<init>", at = @At("RETURN"), require = 0)
+  private void terrasect$captureLevel(
       ChunkPos chunkPos,
       net.minecraft.world.level.chunk.UpgradeData upgradeData,
       LevelHeightAccessor levelHeightAccessor,
@@ -56,6 +59,8 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       CallbackInfo ci) {
     terrasect$doCapture(chunkPos, levelHeightAccessor);
   }
+  *///?}
+  // spotless:on
 
   @Unique
   private void terrasect$doCapture(ChunkPos chunkPos, LevelHeightAccessor levelHeightAccessor) {

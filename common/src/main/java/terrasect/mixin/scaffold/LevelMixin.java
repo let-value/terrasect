@@ -50,32 +50,6 @@ public class LevelMixin {
     terrasect$registerContext(server, levelData, dimension, seed);
   }
 
-  @Inject(
-      method =
-          "<init>(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;ZJLjava/util/List;Z)V",
-      at =
-          @At(
-              value = "INVOKE",
-              target =
-                  "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-              ordinal = 0,
-              shift = At.Shift.BEFORE),
-      require = 0)
-  private void terrasect$registerContextWithoutRandomSequences(
-      MinecraftServer server,
-      Executor executor,
-      LevelStorageSource.LevelStorageAccess storage,
-      ServerLevelData levelData,
-      ResourceKey<Level> dimension,
-      LevelStem levelStem,
-      boolean bl,
-      long seed,
-      List<CustomSpawner> spawners,
-      boolean bl2,
-      CallbackInfo ci) {
-    terrasect$registerContext(server, levelData, dimension, seed);
-  }
-
   private void terrasect$registerContext(
       MinecraftServer server, ServerLevelData levelData, ResourceKey<Level> dimension, long seed) {
     var level = (ServerLevel) (Object) this;
