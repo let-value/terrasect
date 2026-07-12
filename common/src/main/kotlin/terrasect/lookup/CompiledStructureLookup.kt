@@ -11,6 +11,7 @@ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStruct
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
+import terrasect.definition.SelectionConstraints
 import terrasect.definition.StructureConstraints
 import terrasect.extender.StructurePlacementExtender
 import terrasect.handler.NoiseLogger
@@ -34,10 +35,7 @@ private constructor(
     val selection = constraints.selection ?: return null
     val allowed = HashSet<Holder<Structure>>(structures.size)
     for (holder in structures) {
-      val meta = index[holder.value()]
-      val id = meta?.id ?: holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
-      val tags = meta?.tags ?: emptySet()
-      if (selection.evaluate(id, tags)) {
+      if (selectionAllows(selection, holder)) {
         allowed.add(holder)
       }
     }
@@ -46,6 +44,13 @@ private constructor(
       allowed.size == structures.size -> null
       else -> allowed
     }
+  }
+
+  private fun selectionAllows(selection: SelectionConstraints, holder: Holder<Structure>): Boolean {
+    val meta = index[holder.value()]
+    val id = meta?.id ?: holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
+    val tags = meta?.tags ?: emptySet()
+    return selection.evaluate(id, tags)
   }
 
   private fun computeFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> {
@@ -61,14 +66,7 @@ private constructor(
 
       val filtered =
         if (selection != null) {
-          entries.filter { entry ->
-            val holder = entry.structure()
-            val meta = index[holder.value()]
-            val id =
-              meta?.id ?: holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
-            val tags = meta?.tags ?: emptySet()
-            selection.evaluate(id, tags)
-          }
+          entries.filter { entry -> selectionAllows(selection, entry.structure()) }
         } else entries
 
       if (filtered.isEmpty()) continue
