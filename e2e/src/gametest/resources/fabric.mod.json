@@ -78,6 +78,10 @@
       {
         "value": "terrasect.LootConstraintBlockAllGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.ModCompatTerraBlenderBiomeGameTest",
+        "adapter": "kotlin"
       }
     ]
   },

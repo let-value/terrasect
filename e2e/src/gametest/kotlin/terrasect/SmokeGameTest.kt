@@ -2,6 +2,7 @@ package terrasect
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
@@ -18,6 +19,12 @@ private val log = LoggerFactory.getLogger("SmokeGameTest")
 
 private const val SEED = "terrasect-smoke"
 private const val SMOKE_PRESET = "smoke_all_constraints"
+
+// Third-party mods the e2e game is built against for compatibility coverage (see
+// build.e2e.gradle.kts). If one silently fails to load, every test in this run would still
+// "pass" against a vanilla-only environment without anyone noticing — assert their presence here
+// so a broken compat dependency fails loudly instead of quietly narrowing coverage.
+private val COMPAT_MOD_IDS = listOf("biomesoplenty", "terrablender", "distanthorizons")
 
 // Applies every constraint type the mod exposes to a single spawn region so one world generation
 // exercises the whole pipeline: noise/climate/height terrain shaping plus the mob/loot/structure
@@ -57,6 +64,14 @@ private fun registerSmokePreset() {
 object SmokeGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
+
+    val modStatus = COMPAT_MOD_IDS.associateWith { FabricLoader.getInstance().isModLoaded(it) }
+    log.info("smoke: compat mods {}", modStatus)
+    assertTrue(
+      modStatus.values.all { it },
+      "compat mods missing from the e2e game, breaking cross-mod coverage: " +
+        modStatus.filterValues { !it }.keys,
+    )
 
     val originalPresetId = PresetRegistry.forcePresetId
     registerSmokePreset()

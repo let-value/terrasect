@@ -76,6 +76,23 @@ dependencies {
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
 
+  // Third-party mod compatibility coverage — loaded alongside Terrasect in the e2e game so
+  // SmokeGameTest and targeted compat gametests exercise the real cross-mod registry/world-gen
+  // pipeline, not a mocked one. Runtime-only: Terrasect never references their classes, only
+  // their registered resource ids/tags via the existing SelectionConstraints machinery.
+  //
+  // Pinned by Modrinth *version id*, not the human version string: Modrinth lets a project reuse
+  // the same version string across loaders (e.g. Biomes O' Plenty's Fabric and NeoForge 26.2
+  // builds are both "26.1.2.0.42"), and the maven.modrinth proxy resolves the plain string
+  // ambiguously — it silently served the NeoForge jar for a `biomes-o-plenty:26.1.2.0.42`
+  // coordinate here. The version id is unique per file and resolves deterministically.
+  // GlitchCore is a hard runtime dependency of Biomes O' Plenty (shared utility library, not
+  // requested by name but required to load it).
+  modRuntimeOnly("maven.modrinth:glitchcore:${prop("deps.compat_glitchcore")}")
+  modRuntimeOnly("maven.modrinth:biomes-o-plenty:${prop("deps.compat_biomesoplenty")}")
+  modRuntimeOnly("maven.modrinth:terrablender:${prop("deps.compat_terrablender")}")
+  modRuntimeOnly("maven.modrinth:distanthorizons:${prop("deps.compat_distanthorizons")}")
+
   implementation(commonProject)
 
   add("gametestImplementation", sourceSets["main"].output)

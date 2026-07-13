@@ -80,6 +80,15 @@ deps.fabric_loader = "0.19.3"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.152.2+26.2"
 
+# Third-party mod compat coverage (e2e only). See docs/PROJECT_MAP.md for the version/loader
+# matrix — Regions Unexplored, Mekanism, and Alex's Caves are capped at 1.21.1 and/or
+# NeoForge-only upstream, so they're deferred until e2e gains NeoForge + multi-version runs.
+# Pinned by Modrinth version id (not version string) — see build.e2e.gradle.kts for why.
+deps.compat_glitchcore = "SDUCBYRU" # Fabric 26.2, GlitchCore 26.2.0.0.0 (BiomesOPlenty dependency)
+deps.compat_biomesoplenty = "n2GfIVr4" # Fabric 26.2, BiomesOPlenty 26.1.2.0.42
+deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
+deps.compat_distanthorizons = "gBf0SaV1" # Fabric+NeoForge 26.2, Distant Horizons 3.2.0-b-26.2
+
 [neoforge."26.2.x"]
 deps.neo_loader = "26.2.0.6-beta"
 deps.kotlinforforge = "6.3.0"
