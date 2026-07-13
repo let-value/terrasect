@@ -20,8 +20,9 @@ class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
   private val owner = shared ?: this
   private val stripes = Array(KEY_STRIPES) { Long2ObjectOpenHashMap<CacheKey>() }
   private val locks = Array(KEY_STRIPES) { ReentrantLock() }
-  private val keys: ThreadLocal<Long2ObjectOpenHashMap<CacheKey>> =
-    ThreadLocal.withInitial { Long2ObjectOpenHashMap(LOCAL_KEY_CACHE_SIZE) }
+  private val keys: ThreadLocal<Long2ObjectOpenHashMap<CacheKey>> = ThreadLocal.withInitial {
+    Long2ObjectOpenHashMap(LOCAL_KEY_CACHE_SIZE)
+  }
 
   private val hexLocal =
     Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, HexCellResult>()

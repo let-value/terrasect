@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import terrasect.compat.SpawnCompat;
 import terrasect.handler.MobHandler;
 
 @Mixin(net.minecraft.world.level.NaturalSpawner.class)
@@ -29,7 +30,7 @@ public class NaturalSpawnerWorldGenMixin {
       CallbackInfoReturnable<Boolean> cir) {
     var chunkAccess = serverLevel.getChunk(blockPos);
     if (!MobHandler.allowSpawn(
-        chunkAccess, blockPos.getX(), blockPos.getZ(), spawnerData.type())) {
+        chunkAccess, blockPos.getX(), blockPos.getZ(), SpawnCompat.INSTANCE.getType(spawnerData))) {
       cir.setReturnValue(false);
     }
   }

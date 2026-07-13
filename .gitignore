@@ -19,6 +19,7 @@ build/
 out/
 run/
 minecraft/
+versions/
 **/bin/
 
 # Mac system files
@@ -29,6 +30,9 @@ minecraft/
 
 # NeoForge-specific
 src/generated/
+
+# Generated Minecraft sources for LLM inspection (./gradlew unpackMinecraftSources[Yarn])
+minecraft/
 
 # Compiled files
 *.class

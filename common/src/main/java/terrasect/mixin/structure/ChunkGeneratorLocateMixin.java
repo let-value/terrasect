@@ -33,7 +33,9 @@ public class ChunkGeneratorLocateMixin {
       StructurePlacement structurePlacement,
       ChunkPos chunkPos,
       Operation<Pair<BlockPos, Holder<Structure>>> original) {
-    var resolved = StructureHandler.resolveLocateSet(set, levelReader, chunkPos.x, chunkPos.z);
+    var resolved =
+        StructureHandler.resolveLocateSet(
+            set, levelReader, chunkPos.getMinBlockX() >> 4, chunkPos.getMinBlockZ() >> 4);
     if (resolved == null) return null;
     return original.call(resolved, levelReader, structureManager, bl, structurePlacement, chunkPos);
   }
@@ -50,7 +52,9 @@ public class ChunkGeneratorLocateMixin {
       StructurePlacement structurePlacement,
       ChunkPos chunkPos,
       Operation<Pair<BlockPos, Holder<Structure>>> original) {
-    var resolved = StructureHandler.resolveLocateSet(set, levelReader, chunkPos.x, chunkPos.z);
+    var resolved =
+        StructureHandler.resolveLocateSet(
+            set, levelReader, chunkPos.getMinBlockX() >> 4, chunkPos.getMinBlockZ() >> 4);
     if (resolved == null) return null;
     return original.call(resolved, levelReader, structureManager, bl, structurePlacement, chunkPos);
   }

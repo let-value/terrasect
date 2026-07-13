@@ -22,8 +22,7 @@ private constructor(
   private val allSets: List<Holder<StructureSet>>,
   private val index: IdentityHashMap<Structure, StructureEntry>,
 ) {
-  private val filteredCache =
-    ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
+  private val filteredCache = ConcurrentHashMap<StructureConstraints, List<Holder<StructureSet>>>()
 
   fun getFilteredSets(constraints: StructureConstraints): List<Holder<StructureSet>> =
     filteredCache.computeIfAbsent(constraints) { computeFilteredSets(it) }
@@ -36,7 +35,7 @@ private constructor(
     val allowed = HashSet<Holder<Structure>>(structures.size)
     for (holder in structures) {
       val meta = index[holder.value()]
-      val id = meta?.id ?: holder.unwrapKey().map { it.identifier().toString() }.orElse(null)
+      val id = meta?.id ?: holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
       val tags = meta?.tags ?: emptySet()
       if (selection.evaluate(id, tags)) {
         allowed.add(holder)
@@ -65,7 +64,8 @@ private constructor(
           entries.filter { entry ->
             val holder = entry.structure()
             val meta = index[holder.value()]
-            val id = meta?.id ?: holder.unwrapKey().map { it.identifier().toString() }.orElse(null)
+            val id =
+              meta?.id ?: holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
             val tags = meta?.tags ?: emptySet()
             selection.evaluate(id, tags)
           }
@@ -160,7 +160,7 @@ private constructor(
           val holder = entry.structure()
           val structure = holder.value()
           if (!index.containsKey(structure)) {
-            val key = holder.unwrapKey().or { structureRegistry.getResourceKey(structure) }
+            val key = holder.unwrapKey()
             val id = key.map { ResourceKeyCompat.getKeyId(it) }.orElse(null)
             val tags = HashSet<String>()
             key.ifPresent { resourceKey ->

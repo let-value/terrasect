@@ -58,9 +58,7 @@ private constructor(
       return map
     }
 
-    private fun buildItemIndex(
-      registry: RegistryAccess.Frozen
-    ): IdentityHashMap<Item, ItemEntry> {
+    private fun buildItemIndex(registry: RegistryAccess.Frozen): IdentityHashMap<Item, ItemEntry> {
       val index = IdentityHashMap<Item, ItemEntry>()
       val itemRegistry = registry.lookupOrThrow(Registries.ITEM)
       itemRegistry.listElements().forEach { holder ->

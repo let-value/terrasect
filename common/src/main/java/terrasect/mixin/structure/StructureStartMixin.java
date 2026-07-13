@@ -34,19 +34,36 @@ public abstract class StructureStartMixin {
       ChunkPos chunkPos,
       CallbackInfo ci) {
     Structure structure = getStructure();
+    // spotless:off
+    //? if >=1.21.11 {
     String structureId =
         structureManager
             .registryAccess()
             .lookupOrThrow(Registries.STRUCTURE)
             .getResourceKey(structure)
-            .map(key -> ResourceKeyCompat.INSTANCE.getKeyId(key))
+            .map(ResourceKeyCompat.INSTANCE::getKeyId)
             .orElse(null);
+    //?} else {
+    /*String structureId =
+        structureManager
+            .registryAccess()
+            .lookupOrThrow(Registries.STRUCTURE)
+            .listElements()
+            .filter(h -> h.value() == structure)
+            .findFirst()
+            .map(h -> ResourceKeyCompat.INSTANCE.getKeyId(h.key()))
+            .orElse(null);*/
+    //?}
+    // spotless:on
     if (structureId == null) {
       return;
     }
     StructureHandler.recordGeneratedStructure(
         structureId,
-        "chunk=" + chunkPos.x + "," + chunkPos.z,
-        "origin_chunk=" + this.chunkPos.x + "," + this.chunkPos.z);
+        "chunk=" + (chunkPos.getMinBlockX() >> 4) + "," + (chunkPos.getMinBlockZ() >> 4),
+        "origin_chunk="
+            + (this.chunkPos.getMinBlockX() >> 4)
+            + ","
+            + (this.chunkPos.getMinBlockZ() >> 4));
   }
 }

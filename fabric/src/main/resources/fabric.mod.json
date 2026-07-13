@@ -14,6 +14,7 @@
   "license": "${mod_license}",
   "icon": "assets/terrasect/icon.png",
   "environment": "*",
+  "accessWidener": "accesswideners/${access_widener_file}",
   "entrypoints": {
     "main": [
       {
@@ -24,68 +25,6 @@
     "client": [
       {
         "value": "terrasect.TerrasectFabricClient",
-        "adapter": "kotlin"
-      }
-    ],
-    "fabric-client-gametest": [
-      {
-        "value": "terrasect.TerrasectFabricClientGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.VanillaWorldDigestTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.TerrasectWorldDigestTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintVanillaGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintHighDensityGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintLocateGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintLocateRuinedPortalGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByModGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByModGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByTagGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByTagGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintStatisticsTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.MobConstraintBlockByNameGameTest",
         "adapter": "kotlin"
       }
     ]

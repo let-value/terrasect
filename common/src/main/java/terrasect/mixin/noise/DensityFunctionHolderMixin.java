@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import terrasect.compat.ResourceKeyCompat;
 import terrasect.extender.DensityFunctionHolderExtender;
 
 @Mixin(targets = "net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder")
@@ -21,7 +22,7 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
         .unwrapKey()
         .ifPresent(
             key -> {
-              this.terrasect$key = key.identifier().getPath();
+              this.terrasect$key = ResourceKeyCompat.INSTANCE.getKeyPath(key);
             });
   }
 
@@ -31,7 +32,25 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
           @At(
               value = "INVOKE",
               target =
-                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"))
+                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
+      require = 0)
+  private DensityFunction terrasect$propagateKeyFromMapAll(DensityFunction newHolder) {
+    return terrasect$propagateKey(newHolder);
+  }
+
+  @ModifyArg(
+      method = "mapChildren",
+      at =
+          @At(
+              value = "INVOKE",
+              target =
+                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
+      require = 0)
+  private DensityFunction terrasect$propagateKeyFromMapChildren(DensityFunction newHolder) {
+    return terrasect$propagateKey(newHolder);
+  }
+
+  @Unique
   private DensityFunction terrasect$propagateKey(DensityFunction newHolder) {
     if (this.terrasect$key != null && newHolder instanceof DensityFunctionHolderExtender ext) {
       ext.terrasect$setKey(this.terrasect$key);

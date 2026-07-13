@@ -1,0 +1,7 @@
+dynamic-directory: false
+snapshot-name: storesSnapshotInDefaultDirectory_0
+snapshot-number: 0
+test-class: terrasect.testing.SnapshotLibraryTest
+test-method: storesSnapshotInDefaultDirectory
+
+hello snapshot

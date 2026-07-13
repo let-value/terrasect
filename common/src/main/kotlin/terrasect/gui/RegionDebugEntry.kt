@@ -1,5 +1,7 @@
 package terrasect.gui
 
+// spotless:off
+//? if >=1.21.11 {
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.debug.DebugEntryCategory
 import net.minecraft.client.gui.components.debug.DebugScreenDisplayer
@@ -9,6 +11,9 @@ import net.minecraft.world.level.chunk.LevelChunk
 import terrasect.compat.ResourceKeyCompat
 import terrasect.generation.DimensionContext
 
+//?}
+
+//? if >=1.21.11 {
 class RegionDebugEntry : DebugScreenEntry {
   override fun display(
     lines: DebugScreenDisplayer,
@@ -53,3 +58,6 @@ class RegionDebugEntry : DebugScreenEntry {
     return DebugEntryCategory.SCREEN_TEXT
   }
 }
+//?} else
+/*class RegionDebugEntry*/
+// spotless:on

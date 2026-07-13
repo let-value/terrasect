@@ -2,6 +2,7 @@ package terrasect.handler
 
 import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseRouter
+import terrasect.compat.NoiseRouterCompat
 import terrasect.extender.ChunkAccessExtender
 import terrasect.generation.ChunkContext
 import terrasect.helpers.ChunkDensityFunction
@@ -108,7 +109,11 @@ object NoiseHandler {
       wrapDensityFunction(router.erosion, "erosion", chunk),
       wrapDensityFunction(router.depth, "depth", chunk),
       wrapDensityFunction(router.ridges, "ridges", chunk),
-      wrapDensityFunction(router.preliminarySurfaceLevel, "preliminarySurfaceLevel", chunk),
+      wrapDensityFunction(
+        NoiseRouterCompat.surfaceFunction(router),
+        NoiseRouterCompat.SURFACE_FUNCTION_KEY,
+        chunk,
+      ),
       wrapDensityFunction(router.finalDensity, "finalDensity", chunk),
       wrapDensityFunction(router.veinToggle, "veinToggle", chunk),
       wrapDensityFunction(router.veinRidged, "veinRidged", chunk),
