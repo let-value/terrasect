@@ -12,6 +12,10 @@
   "entrypoints": {
     "fabric-client-gametest": [
       {
+        "value": "terrasect.SmokeGameTest",
+        "adapter": "kotlin"
+      },
+      {
         "value": "terrasect.TerrasectFabricClientGameTest",
         "adapter": "kotlin"
       },
