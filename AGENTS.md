@@ -43,6 +43,12 @@ The project uses **Gradle** as its build system.
   - **Update Snapshots:** Use the `-PupdateSnapshots=true` flag during testing to update reference snapshots.
 - **Mod IDs and Constants:** Centralized in `terrasect.Constants` within the `common` module.
 
+## Architecture decisions (standing, do not re-litigate)
+Settled by post-merge audit review; treat as authoritative unless the user explicitly revisits them.
+- **No shared compiled-selection kernel across mob/loot/structure.** `CompiledMobLookup`, `CompiledLootLookup`, and `CompiledStructureLookup` look structurally similar (region → registry-entry decision table) but must stay parallel, independent implementations. A shared abstraction would force cohesion between three domains that don't actually share rules and would couple their evolution. Tighten each in place instead.
+- **`RegionDefinition`/`RegionBuilder` mutability is intentional**, not a smell — no immutability rework.
+- **`common` is deliberately the "god module"** for this project — it's a mod, not loader harnesses. Shared logic, handlers, mixins, and builders belong there.
+
 ## Key Versions (from `gradle.properties`)
 - **Kotlin:** 2.3.0
 - **Java:** 21
