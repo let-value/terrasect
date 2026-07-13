@@ -95,8 +95,12 @@ concrete MC coordinate), whereas the neoform-based main tree labels it `26.1`.
 Two tiers:
 - **`e2e/src/gametest/kotlin`** — portable. `SmokeGameTest` creates one world at a
   fixed seed with a spawn region carrying every constraint type (noise, climate,
-  height, structures, mobs, loot) and asserts generation succeeds. Runs on all
-  three e2e versions. This is the cross-version smoke test.
+  height, structures, mobs, loot). It asserts that the dimension has a registered
+  `DimensionContext` with every compiled lookup active — not merely that
+  generation succeeded. This distinction matters: a version-specific mixin that
+  silently no-ops leaves the constraint pipeline inert while world-gen still looks
+  fine, so a "did it generate?" check passes on a mod that does nothing. Runs on
+  all three e2e versions.
 - **`e2e/src/gametest-latest/kotlin`** — heavy tests (teleport probes, screenshots,
   version-specific terrain snapshots, newer client-gametest API like
   `clientLevel`). Compiled and entrypoint-registered **only on the latest**
@@ -110,14 +114,43 @@ On macOS/Windows this launches a real client window; the headless Xvfb path in
 
 `SmokeGameTest` is the only runtime validation that the mixins actually *apply*
 across versions. Compilation is not enough: several mixins target Minecraft
-constructors/methods whose signatures diverge across versions, and an injector
-whose descriptor does not match its target crashes at apply time regardless of
-`require = 0`. Keep each such injector to the one signature that exists on its
-version — either Stonecutter-gate the variants (see `ChunkAccessMixin`,
-`CreateWorldScreenMixin`) or, when the old signature predates every supported
-target, delete it (see `LevelMixin`, `PrimaryLevelDataMixin`). Note the
-`createNewWorld` divergence is a `>=26.1` boundary, distinct from the compat
-layer's `>=1.21.11` line — mixin fault lines are per-target, not global.
+constructors/methods whose signatures diverge across versions. A mismatched
+injector either crashes at apply time or, with `require = 0`, silently no-ops —
+and `require` governs match count, not descriptor validity, so it does not save
+you from either failure mode.
+
+Rules for version-divergent injectors:
+- **Do not guess signatures from memory, and do not assume the old form is
+  "dead."** Newer Minecraft versions frequently *change* a signature rather than
+  only adding to it (e.g. 26.1 dropped `RandomSequences` from the `ServerLevel`
+  ctor, dropped `WorldOptions` from `PrimaryLevelData.parse`, and reverted
+  `setTagData` to `(CompoundTag, UUID)`). Verify the exact descriptor per target
+  against decompiled bytecode: `javap -p -cp <version>/minecraft-merged.jar
+  <FQCN>` (loom caches these under `~/.gradle/caches/fabric-loom/<version>/`).
+- **Stonecutter-gate one variant per version** with `//? if`/`//?} elif`/`//?}
+  else` so exactly the matching descriptor compiles. See `ChunkAccessMixin`,
+  `LevelMixin` (three-way: 1.21.1 / 1.21.11 / 26.1+), `PrimaryLevelDataMixin`,
+  `CreateWorldScreenMixin`.
+- Mixin fault lines are **per-mixin**, not global: some sit at `>=1.21.11`
+  (`ChunkAccess`), others at `>=26.1` (`createNewWorld`, `parse`, `setTagData`,
+  `ServerLevel`). They are unrelated to the compat layer's single `>=1.21.11`
+  API boundary.
+- **Fully-qualify any type referenced only by an inactive branch.** An inactive
+  Stonecutter branch is a `/* */` comment, so a type used *only* there has no
+  live reference — `spotlessApply` (google-java-format `removeUnusedImports`)
+  deletes its import, and the back-compat build then fails to compile once that
+  branch activates. Write the FQ name inline instead of importing (see
+  `ChunkAccessMixin`'s `net.minecraft.world.level.chunk.UpgradeData`,
+  `LevelMixin`'s `RandomSequences`/`@Coerce`/`@Nullable`,
+  `PrimaryLevelDataMixin`'s `WorldOptions`/`RegistryAccess`). A shared import is
+  fine only if the *active* branch also uses the type.
+- After changing any of these, `SmokeGameTest` must pass on **all three** e2e
+  versions — a green build proves nothing about apply-time behavior.
+
+Known gap: on 1.21.1, `CreateWorldScreen.createNewWorld` has no `WorldData`
+argument, so GUI preset capture is unwired there (presets loaded from disk still
+work via `PrimaryLevelDataMixin`). 1.21.1 has no client-gametest API, so this
+path is not smoke-covered.
 
 ## Adding a version
 

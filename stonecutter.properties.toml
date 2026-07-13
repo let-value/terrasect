@@ -5,6 +5,8 @@ mod.version = "1.0.0"
 mod.license = "All Rights Reserved"
 mod.authors = "LetValue"
 mod.description = "A multiloader Minecraft mod."
+# Newest version in the matrix. Heavy e2e client gametests compile/run only here.
+mod.latest = "26.2"
 
 deps.snapshot_tests = "1.11.0"
 loomx.loom_version = "1.17-SNAPSHOT"

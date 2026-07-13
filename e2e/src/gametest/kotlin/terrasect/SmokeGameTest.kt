@@ -6,10 +6,13 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.function.FailableConsumer
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.slf4j.LoggerFactory
+import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
+import terrasect.generation.DimensionContext
 
 private val log = LoggerFactory.getLogger("SmokeGameTest")
 
@@ -74,6 +77,8 @@ object SmokeGameTest : FabricClientGameTest {
       context.waitTicks(20)
 
       val surfaces = ArrayList<Int>(256)
+      lateinit var lookupStatus: Map<String, Boolean>
+      var dimensionId = ""
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
           val level = server.overworld()
@@ -82,22 +87,42 @@ object SmokeGameTest : FabricClientGameTest {
               surfaces.add(level.getHeight(Heightmap.Types.WORLD_SURFACE, bx, bz))
             }
           }
+          dimensionId = ResourceKeyCompat.getKeyId(level.dimension())
+          val context = DimensionContext.get(dimensionId)
+          lookupStatus =
+            linkedMapOf(
+              "context" to (context != null),
+              "noise" to (context?.noiseRegistry != null),
+              "structure" to (context?.structureLookup != null),
+              "mob" to (context?.mobLookup != null),
+              "loot" to (context?.lootLookup != null),
+            )
           log.info(
-            "smoke: spawn surfaces {}..{} avg={}",
+            "smoke: dim={} surfaces {}..{} avg={} pipeline={}",
+            dimensionId,
             surfaces.min(),
             surfaces.max(),
             "%.1f".format(surfaces.average()),
+            lookupStatus,
           )
         }
       )
 
       assertTrue(surfaces.size == 256, "expected 256 spawn columns, read ${surfaces.size}")
-      assertTrue(
-        surfaces.any { it > 0 },
-        "spawn chunk did not generate terrain above y=0 with all constraints applied " +
-          "(surfaces ${surfaces.min()}..${surfaces.max()})",
+      // The core guard: the spawn dimension must have a Terrasect context with every constraint
+      // type compiled. If a version-specific mixin silently no-ops, the context is absent or its
+      // lookups are null and the constraints are inert even though world-gen still "succeeds".
+      assertNotNull(
+        DimensionContext.get(dimensionId),
+        "no DimensionContext registered for $dimensionId — the ServerLevel mixin did not run, so " +
+          "every constraint is inert on this version",
       )
-      log.info("smoke: OK")
+      val inactive = lookupStatus.filterValues { !it }.keys
+      assertTrue(
+        inactive.isEmpty(),
+        "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$lookupStatus",
+      )
+      log.info("smoke: OK — all constraints active on $dimensionId")
     } finally {
       game.close()
       PresetRegistry.forcePresetId = originalPresetId

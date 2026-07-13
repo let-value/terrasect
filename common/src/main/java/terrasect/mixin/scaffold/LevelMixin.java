@@ -5,14 +5,12 @@ import java.util.concurrent.Executor;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.ServerLevelData;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,18 +21,19 @@ import terrasect.generation.DimensionContext;
 
 @Mixin(ServerLevel.class)
 public class LevelMixin {
+  // ServerLevel's constructor diverges across versions: 1.21.1 has a ChunkProgressListener param
+  // (removed in 1.21.11) plus a trailing RandomSequences; 1.21.11 keeps RandomSequences; 26.1+
+  // drop RandomSequences. Only the injector whose descriptor matches the running version may be
+  // compiled — a mismatch either crashes at apply time or (with require=0) silently no-ops, leaving
+  // every constraint inert. Descriptors verified against decompiled bytecode per version.
+  // spotless:off
+  //? if >=26.1 {
   @Inject(
       method =
-          "<init>(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;ZJLjava/util/List;ZLnet/minecraft/world/RandomSequences;)V",
-      at =
-          @At(
-              value = "INVOKE",
-              target =
-                  "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;",
-              ordinal = 0,
-              shift = At.Shift.BEFORE),
+          "<init>(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;ZJLjava/util/List;Z)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;", ordinal = 0, shift = At.Shift.BEFORE),
       require = 0)
-  private void terrasect$registerContextWithRandomSequences(
+  private void terrasect$captureContext(
       MinecraftServer server,
       Executor executor,
       LevelStorageSource.LevelStorageAccess storage,
@@ -45,10 +44,52 @@ public class LevelMixin {
       long seed,
       List<CustomSpawner> spawners,
       boolean bl2,
-      @Nullable RandomSequences randomSequences,
       CallbackInfo ci) {
     terrasect$registerContext(server, levelData, dimension, seed);
   }
+  //?} elif >=1.21.11 {
+  /*@Inject(
+      method = "<init>(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;ZJLjava/util/List;ZLnet/minecraft/world/RandomSequences;)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;", ordinal = 0, shift = At.Shift.BEFORE),
+      require = 0)
+  private void terrasect$captureContext(
+      MinecraftServer server,
+      Executor executor,
+      LevelStorageSource.LevelStorageAccess storage,
+      ServerLevelData levelData,
+      ResourceKey<Level> dimension,
+      LevelStem levelStem,
+      boolean bl,
+      long seed,
+      List<CustomSpawner> spawners,
+      boolean bl2,
+      @org.jetbrains.annotations.Nullable net.minecraft.world.RandomSequences randomSequences,
+      CallbackInfo ci) {
+    terrasect$registerContext(server, levelData, dimension, seed);
+  }
+  *///?} else {
+  /*@Inject(
+      method = "<init>(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;Lnet/minecraft/server/level/progress/ChunkProgressListener;ZJLjava/util/List;ZLnet/minecraft/world/RandomSequences;)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;getGeneratorState()Lnet/minecraft/world/level/chunk/ChunkGeneratorStructureState;", ordinal = 0, shift = At.Shift.BEFORE),
+      require = 0)
+  private void terrasect$captureContext(
+      MinecraftServer server,
+      Executor executor,
+      LevelStorageSource.LevelStorageAccess storage,
+      ServerLevelData levelData,
+      ResourceKey<Level> dimension,
+      LevelStem levelStem,
+      @org.spongepowered.asm.mixin.injection.Coerce Object chunkProgressListener,
+      boolean bl,
+      long seed,
+      List<CustomSpawner> spawners,
+      boolean bl2,
+      @org.jetbrains.annotations.Nullable net.minecraft.world.RandomSequences randomSequences,
+      CallbackInfo ci) {
+    terrasect$registerContext(server, levelData, dimension, seed);
+  }
+  *///?}
+  // spotless:on
 
   private void terrasect$registerContext(
       MinecraftServer server, ServerLevelData levelData, ResourceKey<Level> dimension, long seed) {

@@ -14,9 +14,12 @@ import terrasect.extender.PresetIdHolder;
 
 @Mixin(CreateWorldScreen.class)
 public class CreateWorldScreenMixin {
-  // createNewWorld's second parameter changed from WorldData to
-  // LevelDataAndDimensions$WorldDataAndGenSettings (plus an Optional) in 26.x. Only the matching
-  // injector may be compiled per version — the other fails descriptor validation at apply time.
+  // createNewWorld has three distinct signatures across the matrix (verified against decompiled
+  // bytecode): 26.1+ takes LevelDataAndDimensions$WorldDataAndGenSettings (+Optional); 1.21.11
+  // takes WorldData directly; 1.21.1 takes (SpecialWorldProperty, LayeredRegistryAccess, Lifecycle)
+  // with no WorldData argument at all. Only the matching injector may be compiled per version.
+  // 1.21.1 GUI preset capture is intentionally unwired here (no WorldData to stamp at this call
+  // site); presets loaded from disk are still handled by PrimaryLevelDataMixin.
   // spotless:off
   //? if >=26.1 {
   @Inject(
@@ -38,7 +41,7 @@ public class CreateWorldScreenMixin {
           "Unable to read world data from createNewWorld arguments", exception);
     }
   }
-  //?} else {
+  //?} elif >=1.21.11 {
   /*@Inject(
       method =
           "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/WorldData;)Z",

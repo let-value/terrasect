@@ -20,7 +20,8 @@ val gametestModId = "${prop("mod.id")}-e2e"
 // The heavy client gametests use client-gametest-API surface (e.g. clientLevel/waitForChunksRender)
 // that only exists on the latest target, and rely on version-specific terrain snapshots. They are
 // compiled and entrypoint-registered only on the latest version; SmokeGameTest stays portable.
-val isLatestVersion = sc.current.version == "26.2"
+// `mod.latest` (stonecutter.properties.toml) is the single source of truth for the newest version.
+val isLatestVersion = sc.current.version == prop("mod.latest")
 
 // The headless Xvfb workaround is only for Linux CI without a display; macOS/Windows have a real
 // display and must not engage it (`which Xvfb` would fail and there is no X server anyway).
