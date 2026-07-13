@@ -32,10 +32,6 @@
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.MobSpawnConstraintGameTest",
-        "adapter": "kotlin"
-      },
-      {
         "value": "terrasect.StructureConstraintVanillaGameTest",
         "adapter": "kotlin"
       },
