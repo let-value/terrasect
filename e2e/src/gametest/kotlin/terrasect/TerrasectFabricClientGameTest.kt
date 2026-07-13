@@ -4,11 +4,11 @@ import java.nio.file.Path
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
-import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.GameType
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.function.FailableConsumer
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -69,14 +69,41 @@ private fun registerSimpleRootPreset(id: String, configure: RegionRegistry.() ->
 
 private fun scenarioPresetId(name: String) = "${CUSTOM_PRESET_PREFIX}_$name"
 
-private fun configureAerialScreenshotCamera(client: Minecraft) {
-  client.player?.let { player ->
-    player.xRot = 65f
-    player.yRot = 0f
-    player.abilities.mayfly = true
-    player.abilities.flying = true
-    player.onUpdateAbilities()
-  }
+private const val SAMPLE_CENTER_X = 8.0
+private const val SAMPLE_CENTER_Z = 8.0
+private const val CAMERA_HEIGHT_ABOVE_SURFACE = 40.0
+
+/**
+ * Spectator mode ignores gravity and collision, so a single absolute teleport with the target
+ * rotation baked in is enough — no separate "fly so we don't fall" step and no client-side rotation
+ * patch-up needed. Looking straight down (pitch 90) from directly above (x, z) avoids the horizon
+ * entirely, so there's no fisheye/dome distortion in the shot. The camera height is derived from
+ * the actual terrain height at (x, z) rather than a fixed absolute y — a fixed y either clips
+ * through terrain on high scenarios or renders nothing but fog on low ones, since the
+ * fog/render-distance cutoff is a fixed radius from the camera, not from the terrain.
+ */
+private fun positionScreenshotCamera(
+  server: MinecraftServer,
+  x: Double = SAMPLE_CENTER_X,
+  z: Double = SAMPLE_CENTER_Z,
+  heightAboveSurface: Double = CAMERA_HEIGHT_ABOVE_SURFACE,
+  yaw: Float = 0f,
+  pitch: Float = 90f,
+) {
+  val player = server.playerList.players[0]
+  val level = server.overworld()
+  val surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, x.toInt(), z.toInt())
+  player.setGameMode(GameType.SPECTATOR)
+  player.teleportTo(
+    level,
+    x,
+    surfaceY + heightAboveSurface,
+    z,
+    emptySet(),
+    yaw,
+    pitch,
+    false,
+  )
 }
 
 @Suppress("UnstableApiUsage")
@@ -102,25 +129,14 @@ private fun runSpawnChunk(
 
   try {
     game.server.runOnServer(
-      FailableConsumer<MinecraftServer, Exception> { server ->
-        server.playerList.players[0].teleportTo(8.0, 120.0, -16.0)
-      }
+      FailableConsumer<MinecraftServer, Exception> { server -> positionScreenshotCamera(server) }
     )
-    context.waitTicks(10)
-    context.runOnClient(
-      FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
-    )
-
     context.waitTicks(10)
     game.clientLevel.waitForChunksRender()
 
     if (screenshotLabel != null) {
       val screenshotDir = SCREENSHOTS_BASE.resolve("NoiseNarrativeConstraintTest")
       log.info("[{}] screenshot -> {}/{}.png", scenarioName, screenshotDir, screenshotLabel)
-      context.runOnClient(
-        FailableConsumer<Minecraft, Exception> { client -> configureAerialScreenshotCamera(client) }
-      )
-      context.waitTicks(5)
       context.takeScreenshot(
         TestScreenshotOptions.of(screenshotLabel).withDestinationDir(screenshotDir)
       )
@@ -302,6 +318,14 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
               it.multiply(0.0)
               it.add(-0.8)
             }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("ridges") {
+              it.multiply(0.0)
+              it.add(0.0)
+            }
             densityFunction("fluidLevelFloodednessNoise") {
               it.multiply(0.0)
               it.add(1.0)
@@ -314,7 +338,7 @@ object TerrasectFabricClientGameTest : FabricClientGameTest {
               it.multiply(0.0)
               it.add(-1.0)
             }
-            densityFunction("finalDensity") { it.add(-0.4) }
+            densityFunction("finalDensity") { it.add(-1.2) }
           }
         },
         Scenario(
