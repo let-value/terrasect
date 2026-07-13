@@ -82,8 +82,8 @@ deps.fabric_api = "0.152.2+26.2"
 
 [neoforge."26.2.x"]
 deps.neo_loader = "26.2.0.6-beta"
-deps.kotlinforforge = "6.0.0"
-deps.kotlinforforge_range = "[6.0,)"
+deps.kotlinforforge = "6.3.0"
+deps.kotlinforforge_range = "[6.3,)"
 deps.neo_version_range = "[26.2,26.3)"
 deps.neo_minecraft_range = "[26.2,26.3)"
 deps.neo_loader_range = "[4,)"

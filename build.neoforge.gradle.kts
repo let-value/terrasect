@@ -57,6 +57,7 @@ neoForge {
   mods {
     create(prop("mod.id")) {
       sourceSet(sourceSets["main"])
+      sourceSet(commonProject.sourceSets["main"])
     }
   }
 }
