@@ -41,49 +41,10 @@ object NoiseHandler {
       instr.count(TerrasectMetricEvent.NOISE_CHUNK_MISSING, "noise_key") { key }
       return function
     }
-    instr.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
-    return ChunkDensityFunction(function, key, chunk, 1)
+    return wrap(function, key, chunk, 1)
   }
 
   @JvmStatic
-  fun modifyDensityValue(
-    key: String,
-    original: Double,
-    blockX: Int,
-    blockY: Int,
-    blockZ: Int,
-    chunk: ChunkContext,
-  ): Double? {
-    val region = chunk.getRegion(blockX, blockZ)
-    if (region == null) {
-      return null
-    }
-
-    val noiseRegistry = chunk.dimensionContext?.noiseRegistry ?: return null
-    val constraints = noiseRegistry.get(region) ?: return null
-    val transform =
-      constraints.densityFunctions[key]
-        ?: constraints.noises[key]
-        ?: constraints.densityFunctions[key.substringAfterLast('/')]
-        ?: constraints.noises[key.substringAfterLast('/')]
-    if (transform == null) {
-      return null
-    }
-
-    val blendWidth = constraints.blendWidth
-    val sdfDist = chunk.getDistance(blockX, blockZ)
-    val strength = getStrength(blendWidth, sdfDist)
-    if (strength <= 0f) {
-      return original
-    }
-
-    val transformed = transform.apply(original)
-    instr.count(TerrasectMetricEvent.NOISE_APPLIED, "noise_key") { key }
-
-    if (strength >= 1f) return transformed
-    return original + (transformed - original) * strength
-  }
-
   fun getStrength(blendWidth: Float, sdfDist: Float): Float {
     if (blendWidth <= 0f) return if (sdfDist < 0f) 1f else 0f
     if (sdfDist >= 0f) return 0f
@@ -126,9 +87,18 @@ object NoiseHandler {
     key: String,
     chunk: ChunkContext,
     scale: Int = 1,
+  ): DensityFunction = wrap(function, key, chunk, scale)
+
+  private fun wrap(
+    function: DensityFunction,
+    key: String,
+    chunk: ChunkContext,
+    scale: Int,
   ): DensityFunction {
     if (function is ChunkDensityFunction) return function
+    val registry = chunk.dimensionContext?.noiseRegistry ?: return function
+    val binding = registry.bind(key, key.substringAfterLast('/')) ?: return function
     instr.count(TerrasectMetricEvent.NOISE_FUNCTION_WRAP, "noise_key") { key }
-    return ChunkDensityFunction(function, key, chunk, scale)
+    return ChunkDensityFunction(function, binding, chunk, scale)
   }
 }

@@ -3,6 +3,8 @@ package terrasect.helpers
 import kotlin.math.abs
 
 class NoiseTransform(val operations: List<Operation>) {
+  private val ops: Array<Operation> = operations.toTypedArray()
+
   companion object {
     fun builder() = Builder()
   }
@@ -29,10 +31,13 @@ class NoiseTransform(val operations: List<Operation>) {
     val outputMin: Double,
     val outputMax: Double,
   ) : Operation {
+    private val degenerate = inputMax == inputMin
+    private val invRange = if (degenerate) 0.0 else 1.0 / (inputMax - inputMin)
+    private val outputSpan = outputMax - outputMin
+
     override fun apply(value: Double): Double {
-      val range = inputMax - inputMin
-      val t = if (range == 0.0) 0.5 else ((value - inputMin) / range).coerceIn(0.0, 1.0)
-      return outputMin + t * (outputMax - outputMin)
+      val t = if (degenerate) 0.5 else ((value - inputMin) * invRange).coerceIn(0.0, 1.0)
+      return outputMin + t * outputSpan
     }
   }
 
@@ -66,7 +71,11 @@ class NoiseTransform(val operations: List<Operation>) {
 
   fun apply(value: Double): Double {
     var out = value
-    for (op in operations) out = op.apply(out)
+    var i = 0
+    while (i < ops.size) {
+      out = ops[i].apply(out)
+      i++
+    }
     return out
   }
 

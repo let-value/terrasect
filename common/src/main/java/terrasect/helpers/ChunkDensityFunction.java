@@ -2,34 +2,51 @@ package terrasect.helpers;
 
 import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.world.level.levelgen.DensityFunction;
+import terrasect.definition.Region;
 import terrasect.generation.ChunkContext;
 import terrasect.handler.NoiseHandler;
+import terrasect.lookup.NoiseBinding;
+import terrasect.lookup.ResolvedNoise;
 
 public final class ChunkDensityFunction implements DensityFunction {
   public final DensityFunction wrapped;
-  public final String key;
+  public final NoiseBinding binding;
   public final ChunkContext chunk;
   public final int scale;
 
-  public ChunkDensityFunction(DensityFunction wrapped, String key, ChunkContext chunk, int scale) {
+  public ChunkDensityFunction(
+      DensityFunction wrapped, NoiseBinding binding, ChunkContext chunk, int scale) {
     this.wrapped = wrapped;
-    this.key = key;
+    this.binding = binding;
     this.chunk = chunk;
     this.scale = scale;
+  }
+
+  private double apply(double original, int blockX, int blockZ) {
+    Region region = chunk.getRegion(blockX, blockZ);
+    if (region == null) {
+      return original;
+    }
+    ResolvedNoise resolved = binding.get(region);
+    if (resolved == null) {
+      return original;
+    }
+    float strength =
+        NoiseHandler.getStrength(resolved.blendWidth, chunk.getDistance(blockX, blockZ));
+    if (strength <= 0f) {
+      return original;
+    }
+    double transformed = resolved.transform.apply(original);
+    if (strength >= 1f) {
+      return transformed;
+    }
+    return original + (transformed - original) * strength;
   }
 
   @Override
   public double compute(DensityFunction.FunctionContext context) {
     double original = wrapped.compute(context);
-    Double transformed =
-        NoiseHandler.modifyDensityValue(
-            key,
-            original,
-            context.blockX() * scale,
-            context.blockY(),
-            context.blockZ() * scale,
-            chunk);
-    return transformed != null ? transformed : original;
+    return apply(original, context.blockX() * scale, context.blockZ() * scale);
   }
 
   @Override
@@ -37,27 +54,17 @@ public final class ChunkDensityFunction implements DensityFunction {
     wrapped.fillArray(array, context);
     for (int index = 0; index < array.length; index++) {
       DensityFunction.FunctionContext sample = context.forIndex(index);
-      Double transformed =
-          NoiseHandler.modifyDensityValue(
-              key,
-              array[index],
-              sample.blockX() * scale,
-              sample.blockY(),
-              sample.blockZ() * scale,
-              chunk);
-      if (transformed != null) {
-        array[index] = transformed;
-      }
+      array[index] = apply(array[index], sample.blockX() * scale, sample.blockZ() * scale);
     }
   }
 
   public DensityFunction mapChildren(DensityFunction.Visitor visitor) {
-    return new ChunkDensityFunction(visitor.apply(wrapped), key, chunk, scale);
+    return new ChunkDensityFunction(visitor.apply(wrapped), binding, chunk, scale);
   }
 
   @Override
   public DensityFunction mapAll(DensityFunction.Visitor visitor) {
-    return new ChunkDensityFunction(wrapped.mapAll(visitor), key, chunk, scale);
+    return new ChunkDensityFunction(wrapped.mapAll(visitor), binding, chunk, scale);
   }
 
   @Override

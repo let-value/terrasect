@@ -4,8 +4,15 @@ import java.util.IdentityHashMap
 import terrasect.definition.NoiseConstraints
 import terrasect.definition.Region
 import terrasect.handler.NoiseLogger
+import terrasect.helpers.NoiseTransform
 
 private val log = NoiseLogger.registry
+
+class ResolvedNoise(@JvmField val transform: NoiseTransform, @JvmField val blendWidth: Float)
+
+class NoiseBinding(private val table: IdentityHashMap<Region, ResolvedNoise>) {
+  fun get(region: Region): ResolvedNoise? = table[region]
+}
 
 class CompiledNoiseRegistry
 private constructor(private val constraints: IdentityHashMap<Region, NoiseConstraints>) {
@@ -14,6 +21,15 @@ private constructor(private val constraints: IdentityHashMap<Region, NoiseConstr
   fun isEmpty(): Boolean = constraints.isEmpty()
 
   fun size(): Int = constraints.size
+
+  fun bind(key: String, shortKey: String): NoiseBinding? {
+    val table = IdentityHashMap<Region, ResolvedNoise>()
+    for ((region, noise) in constraints) {
+      val transform = noise.resolveTransform(key, shortKey) ?: continue
+      table[region] = ResolvedNoise(transform, noise.blendWidth)
+    }
+    return if (table.isEmpty()) null else NoiseBinding(table)
+  }
 
   companion object {
     fun build(root: Region): CompiledNoiseRegistry? {

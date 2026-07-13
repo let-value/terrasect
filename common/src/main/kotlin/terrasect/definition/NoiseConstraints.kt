@@ -15,6 +15,9 @@ class NoiseConstraints(
 
   fun hasAnyConstraints(): Boolean = noises.isNotEmpty() || densityFunctions.isNotEmpty()
 
+  fun resolveTransform(key: String, shortKey: String): NoiseTransform? =
+    densityFunctions[key] ?: noises[key] ?: densityFunctions[shortKey] ?: noises[shortKey]
+
   class Builder {
     private val noises = mutableMapOf<String, NoiseTransform>()
     private val densityFunctions = mutableMapOf<String, NoiseTransform>()
