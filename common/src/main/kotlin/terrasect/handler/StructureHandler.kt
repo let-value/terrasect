@@ -19,17 +19,19 @@ object StructureHandler {
   /**
    * Returns filtered structure sets for chunk creation. When a pre-built [ChunkContext] is
    * available it reads the region from the pre-computed grid, avoiding a re-traversal per chunk.
+   * [dimensionKey] is only consulted as a fallback when [chunkContext] is null; 1.21.1's
+   * `createStructures` doesn't expose a dimension key to the injection site, so it's null there.
    */
   @JvmStatic
   fun getFilteredSets(
     chunkContext: ChunkContext?,
-    dimensionKey: ResourceKey<Level>,
+    dimensionKey: ResourceKey<Level>?,
     chunkX: Int,
     chunkZ: Int,
   ): List<Holder<StructureSet>>? {
     val ctx =
       chunkContext?.dimensionContext
-        ?: DimensionContext.get(ResourceKeyCompat.getKeyId(dimensionKey))
+        ?: dimensionKey?.let { DimensionContext.get(ResourceKeyCompat.getKeyId(it)) }
         ?: return null
     val lookup = ctx.structureLookup ?: return null
     val blockX = (chunkX shl 4) + 8
@@ -56,10 +58,12 @@ object StructureHandler {
     chunkZ: Int,
   ): Set<Holder<Structure>>? {
     if (levelReader !is Level) return structures
-    val ctx =
-      DimensionContext.get(ResourceKeyCompat.getKeyId(levelReader.dimension())) ?: return structures
+    val ctx = DimensionContext.get(ResourceKeyCompat.getKeyId(levelReader.dimension()))
+    if (ctx == null) {
+      instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
+      return structures
+    }
     val lookup = ctx.structureLookup ?: return structures
-    instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
     val constraints = constraintsAt(ctx, chunkX, chunkZ) ?: return structures
     instr.count(TerrasectMetricEvent.STRUCTURE_APPLIED)
     val filtered = lookup.filterStructuresForLocate(structures, constraints) ?: return structures
