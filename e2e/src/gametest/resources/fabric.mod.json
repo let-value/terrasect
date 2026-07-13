@@ -74,6 +74,10 @@
       {
         "value": "terrasect.StructureConstraintStatisticsTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.LootConstraintBlockAllGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
