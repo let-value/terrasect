@@ -18,7 +18,6 @@ enum class TerrasectMetricEvent(override val id: String) : MetricEvent {
   CLIMATE_CHUNK_MISSING("climate.chunk_missing"),
   NOISE_ROUTER_WRAP("noise.router.wrap"),
   NOISE_FUNCTION_WRAP("noise.function.wrap"),
-  NOISE_APPLIED("noise.applied"),
   NOISE_CHUNK_MISSING("noise.chunk_missing"),
   CHUNK_CREATED("chunk.created"),
   CHUNK_ERROR("chunk.error"),

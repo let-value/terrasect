@@ -12,6 +12,10 @@
   "entrypoints": {
     "fabric-client-gametest": [
       {
+        "value": "terrasect.SmokeGameTest",
+        "adapter": "kotlin"
+      },
+      {
         "value": "terrasect.TerrasectFabricClientGameTest",
         "adapter": "kotlin"
       },
@@ -25,10 +29,6 @@
       },
       {
         "value": "terrasect.MobConstraintBlockByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.MobSpawnConstraintGameTest",
         "adapter": "kotlin"
       },
       {

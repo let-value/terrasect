@@ -14,24 +14,20 @@ import terrasect.extender.PresetIdHolder;
 
 @Mixin(CreateWorldScreen.class)
 public class CreateWorldScreenMixin {
-  @Inject(
-      method =
-          "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/WorldData;)Z",
-      at = @At("HEAD"),
-      require = 0)
-  private void terrasect$rememberPresetIdFromWorldData(
-      LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
-      WorldData worldData,
-      CallbackInfoReturnable<Boolean> cir) {
-    terrasect$rememberPresetId(worldData);
-  }
-
+  // createNewWorld has three distinct signatures across the matrix (verified against decompiled
+  // bytecode): 26.1+ takes LevelDataAndDimensions$WorldDataAndGenSettings (+Optional); 1.21.11
+  // takes WorldData directly; 1.21.1 takes (SpecialWorldProperty, LayeredRegistryAccess, Lifecycle)
+  // with no WorldData argument at all. Only the matching injector may be compiled per version.
+  // 1.21.1 GUI preset capture is intentionally unwired here (no WorldData to stamp at this call
+  // site); presets loaded from disk are still handled by PrimaryLevelDataMixin.
+  // spotless:off
+  //? if >=26.1 {
   @Inject(
       method =
           "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/LevelDataAndDimensions$WorldDataAndGenSettings;Ljava/util/Optional;)Z",
       at = @At("HEAD"),
       require = 0)
-  private void terrasect$rememberPresetIdFromWorldDataAndGenSettings(
+  private void terrasect$rememberPresetIdFromWorldData(
       LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
       @Coerce Object worldDataAndGenSettings,
       @Coerce Object gameRules,
@@ -45,6 +41,20 @@ public class CreateWorldScreenMixin {
           "Unable to read world data from createNewWorld arguments", exception);
     }
   }
+  //?} elif >=1.21.11 {
+  /*@Inject(
+      method =
+          "createNewWorld(Lnet/minecraft/core/LayeredRegistryAccess;Lnet/minecraft/world/level/storage/WorldData;)Z",
+      at = @At("HEAD"),
+      require = 0)
+  private void terrasect$rememberPresetIdFromWorldData(
+      LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
+      WorldData worldData,
+      CallbackInfoReturnable<Boolean> cir) {
+    terrasect$rememberPresetId(worldData);
+  }
+  *///?}
+  // spotless:on
 
   private void terrasect$rememberPresetId(WorldData worldData) {
     if (!(worldData instanceof PresetIdHolder extender)) {

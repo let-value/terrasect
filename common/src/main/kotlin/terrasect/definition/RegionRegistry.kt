@@ -20,30 +20,32 @@ class RegionRegistry {
       return Region.empty(name)
     }
 
-    val builder = draft.copy()
-    if (parent !== null) {
-      builder.inheritParent(parent)
+    try {
+      val builder = draft.copy()
+      if (parent !== null) {
+        builder.inheritParent(parent)
+      }
+
+      val children = draft.children.map { childName -> buildTree(childName, builder) }.toSet()
+
+      val definition = builder.build(children)
+
+      return Region(
+        name = definition.name,
+        budget = definition.budget,
+        children = children,
+        strategy = definition.strategy.build(builder, children),
+        climate = definition.climate,
+        height = definition.height,
+        noise = definition.noise,
+        biomes = definition.biomes,
+        structures = definition.structures,
+        mobs = definition.mobs,
+        loot = definition.loot,
+      )
+    } finally {
+      visiting.remove(name)
     }
-
-    val children = draft.children.map { childName -> buildTree(childName, builder) }.toSet()
-
-    val definition = builder.build(children)
-
-    visiting.remove(name)
-
-    return Region(
-      name = definition.name,
-      budget = definition.budget,
-      children = children,
-      strategy = definition.strategy.build(builder, children),
-      climate = definition.climate,
-      height = definition.height,
-      noise = definition.noise,
-      biomes = definition.biomes,
-      structures = definition.structures,
-      mobs = definition.mobs,
-      loot = definition.loot,
-    )
   }
 
   fun resolveDraft(name: String): RegionBuilder {

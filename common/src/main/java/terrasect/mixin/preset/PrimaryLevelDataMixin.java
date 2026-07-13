@@ -3,10 +3,8 @@ package terrasect.mixin.preset;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
 import java.util.UUID;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,29 +20,16 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
   @Unique private static final String TERRASECT_PRESET = "TerrasectPreset";
   @Unique @Nullable private String terrasect$presetId;
 
+  // 26.1 dropped the WorldOptions parameter from PrimaryLevelData.parse. Only the matching overload
+  // may be injected; verified against decompiled bytecode per version.
+  // spotless:off
+  //? if >=26.1 {
   @SuppressWarnings("deprecation")
   @Inject(
-      method =
-          "parse(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lnet/minecraft/world/level/levelgen/WorldOptions;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
+      method = "parse(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
       at = @At("RETURN"),
       require = 0)
-  private static void terrasect$readPresetIdWithWorldOptions(
-      Dynamic<?> dynamic,
-      LevelSettings levelSettings,
-      PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
-      WorldOptions worldOptions,
-      Lifecycle lifecycle,
-      CallbackInfoReturnable<PrimaryLevelData> cir) {
-    terrasect$readPresetId(dynamic, cir);
-  }
-
-  @SuppressWarnings("deprecation")
-  @Inject(
-      method =
-          "parse(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
-      at = @At("RETURN"),
-      require = 0)
-  private static void terrasect$readPresetIdWithoutWorldOptions(
+  private static void terrasect$capturePresetId(
       Dynamic<?> dynamic,
       LevelSettings levelSettings,
       PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
@@ -52,6 +37,23 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
       CallbackInfoReturnable<PrimaryLevelData> cir) {
     terrasect$readPresetId(dynamic, cir);
   }
+  //?} else {
+  /*@SuppressWarnings("deprecation")
+  @Inject(
+      method = "parse(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lnet/minecraft/world/level/levelgen/WorldOptions;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
+      at = @At("RETURN"),
+      require = 0)
+  private static void terrasect$capturePresetId(
+      Dynamic<?> dynamic,
+      LevelSettings levelSettings,
+      PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
+      net.minecraft.world.level.levelgen.WorldOptions worldOptions,
+      Lifecycle lifecycle,
+      CallbackInfoReturnable<PrimaryLevelData> cir) {
+    terrasect$readPresetId(dynamic, cir);
+  }
+  *///?}
+  // spotless:on
 
   @Unique
   private static void terrasect$readPresetId(
@@ -61,27 +63,31 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
     extender.terrasect$setPresetId(presetId.isEmpty() ? null : presetId);
   }
 
+  // setTagData's signature changed in 26.1 from (RegistryAccess, CompoundTag, CompoundTag) to
+  // (CompoundTag, UUID). Verified against decompiled bytecode per version.
+  // spotless:off
+  //? if >=26.1 {
   @Inject(
-      method =
-          "setTagData(Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/nbt/CompoundTag;)V",
+      method = "setTagData(Lnet/minecraft/nbt/CompoundTag;Ljava/util/UUID;)V",
       at = @At("TAIL"),
       require = 0)
-  private void terrasect$writePresetIdWithRegistryAccess(
-      RegistryAccess registryAccess,
+  private void terrasect$writePresetIdTag(CompoundTag compoundTag, UUID worldUuid, CallbackInfo ci) {
+    terrasect$writePresetId(compoundTag);
+  }
+  //?} else {
+  /*@Inject(
+      method = "setTagData(Lnet/minecraft/core/RegistryAccess;Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/nbt/CompoundTag;)V",
+      at = @At("TAIL"),
+      require = 0)
+  private void terrasect$writePresetIdTag(
+      net.minecraft.core.RegistryAccess registryAccess,
       CompoundTag compoundTag,
       @Nullable CompoundTag compoundTag2,
       CallbackInfo ci) {
     terrasect$writePresetId(compoundTag);
   }
-
-  @Inject(
-      method = "setTagData(Lnet/minecraft/nbt/CompoundTag;Ljava/util/UUID;)V",
-      at = @At("TAIL"),
-      require = 0)
-  private void terrasect$writePresetIdWithWorldUuid(
-      CompoundTag compoundTag, UUID worldUuid, CallbackInfo ci) {
-    terrasect$writePresetId(compoundTag);
-  }
+  *///?}
+  // spotless:on
 
   @Unique
   private void terrasect$writePresetId(CompoundTag compoundTag) {

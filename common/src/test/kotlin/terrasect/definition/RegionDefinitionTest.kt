@@ -68,6 +68,42 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `mob constraints are propagated through buildTree`() {
+    registry.region("mob_test_root").mobs {
+      blockNames("minecraft:zombie")
+      allowTags("c:passive")
+    }
+
+    val root = registry.buildTree("mob_test_root")
+
+    assertAll(
+      { assertNotNull(root.mobs) },
+      { assertEquals(setOf("minecraft:zombie"), root.mobs!!.blockedNames) },
+      { assertEquals(setOf("c:passive"), root.mobs!!.allowedTags) },
+    )
+  }
+
+  @Test
+  fun `visiting marker is cleared after a child build throws, so a later build is not permanently poisoned`() {
+    val throwingStrategy =
+      object : StrategySettings {
+        override fun build(builder: RegionBuilder, children: Set<Region>): Strategy =
+          throw IllegalStateException("boom")
+      }
+    registry.region("flaky").strategy(throwingStrategy)
+
+    assertThrows(IllegalStateException::class.java) { registry.buildTree("flaky") }
+
+    // Before the buildTree try/finally fix, the exception above left "flaky" stuck in the
+    // registry's internal `visiting` set, so this second (now-valid) build would incorrectly be
+    // treated as a self-cycle and silently return an empty region instead of throwing or building.
+    registry.region("flaky").strategy(HexStrategy.builder())
+    val region = registry.buildTree("flaky")
+
+    assertTrue(region.strategy is HexStrategy)
+  }
+
+  @Test
   fun `child region inherits narrative defaults but keeps its overrides`() {
     val worldDefaults =
       registry

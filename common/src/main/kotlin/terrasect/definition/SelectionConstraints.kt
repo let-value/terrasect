@@ -1,29 +1,25 @@
 package terrasect.definition
 
 class SelectionConstraints(
-  val allowedMods: Set<String>?,
-  val allowedTags: Set<String>?,
-  val allowedNames: Set<String>?,
-  val blockedMods: Set<String>?,
-  val blockedTags: Set<String>?,
-  val blockedNames: Set<String>?,
+  val allowedMods: Set<String>,
+  val allowedTags: Set<String>,
+  val allowedNames: Set<String>,
+  val blockedMods: Set<String>,
+  val blockedTags: Set<String>,
+  val blockedNames: Set<String>,
 ) {
   fun evaluate(resourceId: String?, tags: Set<String>?): Boolean {
-    if (blockedNames?.contains(resourceId) == true) return false
-    if (allowedNames?.contains(resourceId) == true) return true
+    if (blockedNames.contains(resourceId)) return false
+    if (allowedNames.contains(resourceId)) return true
 
     if (tags != null) {
-      if (blockedTags?.any(tags::contains) == true) {
-        return false
-      }
-      if (allowedTags?.any(tags::contains) == true) {
-        return true
-      }
+      if (blockedTags.any(tags::contains)) return false
+      if (allowedTags.any(tags::contains)) return true
     }
 
     val namespace = extractNamespace(resourceId)
-    if (blockedMods?.contains(namespace) == true) return false
-    if (allowedMods?.contains(namespace) == true) return true
+    if (blockedMods.contains(namespace)) return false
+    if (allowedMods.contains(namespace)) return true
 
     return true
   }
