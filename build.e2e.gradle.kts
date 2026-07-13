@@ -135,13 +135,16 @@ tasks {
 
   val xvfbDisplay = ":99"
   var xvfbProcess: Process? = null
+  val isLinux = System.getProperty("os.name").lowercase().contains("linux")
+  val needsXvfb = isLinux && System.getenv("DISPLAY").isNullOrBlank()
 
   val startXvfb by registering {
     onlyIf {
-      System.getenv("DISPLAY").isNullOrBlank() &&
+      needsXvfb &&
         providers
           .exec {
             commandLine("which", "Xvfb")
+            isIgnoreExitValue = true
           }
           .standardOutput
           .asText
@@ -170,7 +173,7 @@ tasks {
       systemProperty("updateSnapshots", "true")
     }
     project.gradle.startParameter.projectProperties["test"]?.let { systemProperty("test", it) }
-    if (System.getenv("DISPLAY").isNullOrBlank()) {
+    if (needsXvfb) {
       dependsOn(startXvfb)
       finalizedBy(stopXvfb)
       environment("DISPLAY", xvfbDisplay)
