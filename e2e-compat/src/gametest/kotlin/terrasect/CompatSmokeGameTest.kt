@@ -2,6 +2,7 @@ package terrasect
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.Heightmap
@@ -14,14 +15,23 @@ import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 import terrasect.generation.DimensionContext
 
-private val log = LoggerFactory.getLogger("SmokeGameTest")
+private val log = LoggerFactory.getLogger("CompatSmokeGameTest")
 
-private const val SEED = "terrasect-smoke"
-private const val SMOKE_PRESET = "smoke_all_constraints"
+private const val SEED = "terrasect-compat-smoke"
+private const val SMOKE_PRESET = "compat_smoke_all_constraints"
 
-// Applies every constraint type the mod exposes to a single spawn region so one world generation
-// exercises the whole pipeline: noise/climate/height terrain shaping plus the mob/loot/structure
-// lookup compilation that runs at world load.
+// Third-party mods present on every supported version's e2e-compat build (see
+// build.e2e-compat.gradle.kts). If one silently fails to load, this whole test run would still
+// "pass" against a vanilla-only environment without anyone noticing — assert their presence so a
+// broken compat dependency fails loudly instead of quietly narrowing coverage.
+// C2ME is deliberately NOT in this list: its 1.21.11 build has a jar-in-jar (c2me-base) that
+// fails to auto-extract under the Fabric Loader version pinned there, unrelated to Terrasect —
+// it's latest-only for now, and its own C2MECompatGameTest (also latest-only) covers it.
+private val COMPAT_MOD_IDS = listOf("biomesoplenty", "terrablender", "distanthorizons")
+
+// Same constraint set as e2e's SmokeGameTest (every constraint type on one region), run here
+// with the compat mods present to prove the full pipeline still activates when they're loaded —
+// distinct from e2e's own SmokeGameTest, which must keep passing with zero third-party mods.
 private fun registerSmokePreset() {
   PresetRegistry.presets[SMOKE_PRESET] =
     RegionRegistry().apply {
@@ -54,14 +64,22 @@ private fun registerSmokePreset() {
 }
 
 @Suppress("UnstableApiUsage")
-object SmokeGameTest : FabricClientGameTest {
+object CompatSmokeGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
+
+    val modStatus = COMPAT_MOD_IDS.associateWith { FabricLoader.getInstance().isModLoaded(it) }
+    log.info("compat smoke: compat mods {}", modStatus)
+    assertTrue(
+      modStatus.values.all { it },
+      "compat mods missing from the e2e-compat game, breaking cross-mod coverage: " +
+        modStatus.filterValues { !it }.keys,
+    )
 
     val originalPresetId = PresetRegistry.forcePresetId
     registerSmokePreset()
     PresetRegistry.forcePresetId = SMOKE_PRESET
-    log.info("smoke: creating world preset={} seed={}", SMOKE_PRESET, SEED)
+    log.info("compat smoke: creating world preset={} seed={}", SMOKE_PRESET, SEED)
 
     val game =
       context
@@ -98,7 +116,7 @@ object SmokeGameTest : FabricClientGameTest {
               "loot" to (context?.lootLookup != null),
             )
           log.info(
-            "smoke: dim={} surfaces {}..{} avg={} pipeline={}",
+            "compat smoke: dim={} surfaces {}..{} avg={} pipeline={}",
             dimensionId,
             surfaces.min(),
             surfaces.max(),
@@ -109,20 +127,18 @@ object SmokeGameTest : FabricClientGameTest {
       )
 
       assertTrue(surfaces.size == 256, "expected 256 spawn columns, read ${surfaces.size}")
-      // The core guard: the spawn dimension must have a Terrasect context with every constraint
-      // type compiled. If a version-specific mixin silently no-ops, the context is absent or its
-      // lookups are null and the constraints are inert even though world-gen still "succeeds".
       assertNotNull(
         DimensionContext.get(dimensionId),
-        "no DimensionContext registered for $dimensionId — the ServerLevel mixin did not run, so " +
-          "every constraint is inert on this version",
+        "no DimensionContext registered for $dimensionId with compat mods present — the ServerLevel " +
+          "mixin did not run, so every constraint is inert",
       )
       val inactive = lookupStatus.filterValues { !it }.keys
       assertTrue(
         inactive.isEmpty(),
-        "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$lookupStatus",
+        "constraint pipeline not fully applied on $dimensionId with compat mods present: " +
+          "inactive=$inactive status=$lookupStatus",
       )
-      log.info("smoke: OK — all constraints active on $dimensionId")
+      log.info("compat smoke: OK — all constraints active on $dimensionId with compat mods loaded")
     } finally {
       game.close()
       PresetRegistry.forcePresetId = originalPresetId

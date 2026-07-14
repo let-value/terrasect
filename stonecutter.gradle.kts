@@ -21,12 +21,7 @@ stonecutter parameters
   {
     val (version, loader) = current.project.split("-", limit = 2)
 
-    properties {
-      tags(version, loader)
-      if (loader == "e2e") {
-        tags("fabric")
-      }
-    }
+    properties { tags(version, loader) }
 
     constants {
       match(loader, "fabric", "neoforge")
@@ -41,7 +36,13 @@ spotless {
   }
 
   kotlin {
-    target("common/src/**/*.kt", "fabric/src/**/*.kt", "neoforge/src/**/*.kt", "e2e/src/**/*.kt")
+    target(
+      "common/src/**/*.kt",
+      "fabric/src/**/*.kt",
+      "neoforge/src/**/*.kt",
+      "e2e/src/**/*.kt",
+      "e2e-compat/src/**/*.kt",
+    )
     toggleOffOn()
     ktfmt().googleStyle()
   }

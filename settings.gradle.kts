@@ -52,4 +52,26 @@ stonecutter {
     version(latestProject, latestVersion).buildscript("../build.e2e.gradle.kts")
     vcsVersion = latestProject
   }
+
+  // Third-party mod compatibility coverage, kept out of `e2e` so the core test suite never
+  // requires a third-party mod jar to be resolvable/present. See build.e2e-compat.gradle.kts for
+  // the mod list.
+  //  - 1.21 and 1.21.1: `fabric-client-gametest-api-v1` was never backported into fabric-api for
+  //    those versions (confirmed against the newest available release for each, incl. 1.21.1's
+  //    2026-07-01 release) — no client gametest, compat or otherwise, can run there at all. This
+  //    is a permanent upstream limitation, not something fixable from this repo.
+  //  - 1.21.11: on this version, Loom must remap third-party mod jars (intermediary -> named),
+  //    and that remap step silently drops each mod's bundled Jar-in-Jar libraries
+  //    (META-INF/jars/*) instead of re-extracting them — unlike latest, where mods load
+  //    un-remapped straight from the Maven cache and Fabric Loader's own Jar-in-Jar extraction
+  //    handles it normally. GlitchCore/BiomesOPlenty/TerraBlender all bundle the same three
+  //    plain (non-Fabric-mod) libraries this way; worked around in build.e2e-compat.gradle.kts by
+  //    declaring those libraries as plain runtimeOnly dependencies, bypassing the mod-remap
+  //    pipeline entirely. C2ME's Jar-in-Jar entries are its own Fabric sub-mods (not plain
+  //    libraries) and can't be unbundled the same way, so it stays latest-only.
+  create("e2e-compat") {
+    version(latestProject, latestVersion).buildscript("../build.e2e-compat.gradle.kts")
+    version("1.21.11", "1.21.11").buildscript("../build.e2e-compat.gradle.kts")
+    vcsVersion = latestProject
+  }
 }

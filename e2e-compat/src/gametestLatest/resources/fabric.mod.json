@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "${gametest_mod_id}",
+  "version": "${version}",
+  "name": "${mod_name} E2E Compat Tests",
+  "description": "Third-party mod compatibility client game tests for ${mod_name}.",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "license": "${mod_license}",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      {
+        "value": "terrasect.CompatSmokeGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.BiomesOPlentyCompatGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.TerraBlenderCompatGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.DistantHorizonsCompatGameTest",
+        "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.C2MECompatGameTest",
+        "adapter": "kotlin"
+      }
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=${java_version}",
+    "fabric-api": ">=${fabric_api_version}",
+    "fabric-language-kotlin": ">=${fabric_kotlin_version}",
+    "terrasect": "*"
+  }
+}

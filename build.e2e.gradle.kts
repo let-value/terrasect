@@ -13,9 +13,23 @@ fun prop(key: String): String = sc.properties[key]
 val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
 val e2eDir = rootProject.file("e2e")
+val fabricClientKotlinSrc = fabricDir.resolve("src/client/kotlin")
+val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
 val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 val gametestModId = "${prop("mod.id")}-e2e"
+
+// `fabric/src/client/kotlin` is Stonecutter-gated (`//? if`) canonical source — the raw directory
+// only reflects whichever version is currently checked out (`stonecutter active` in the root
+// stonecutter.gradle.kts), not necessarily whatever version this e2e instance targets. The real
+// `:<version>-fabric` project resolves this the same way (see build.fabric.gradle.kts): run each
+// file through `sc.process` per target version before using it as a source dir, instead of
+// compiling the raw directory directly.
+project
+  .fileTree(fabricClientKotlinSrc) { include("**/*.kt") }
+  .forEach { file ->
+    sc.process(file, "build/processed/client/kotlin/${file.relativeTo(fabricClientKotlinSrc).path}")
+  }
 
 version = prop("mod.version")
 
@@ -44,12 +58,7 @@ fabricApi {
 
 sourceSets {
   main {
-    kotlin.setSrcDirs(
-      listOf(
-        fabricDir.resolve("src/main/kotlin"),
-        fabricDir.resolve("src/client/kotlin"),
-      )
-    )
+    kotlin.setSrcDirs(listOf(fabricDir.resolve("src/main/kotlin"), processedFabricClientKotlinDir))
     resources.setSrcDirs(listOf(fabricDir.resolve("src/main/resources")))
   }
   named("gametest") {
@@ -75,23 +84,6 @@ dependencies {
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
-
-  // Third-party mod compatibility coverage — loaded alongside Terrasect in the e2e game so
-  // SmokeGameTest and targeted compat gametests exercise the real cross-mod registry/world-gen
-  // pipeline, not a mocked one. Runtime-only: Terrasect never references their classes, only
-  // their registered resource ids/tags via the existing SelectionConstraints machinery.
-  //
-  // Pinned by Modrinth *version id*, not the human version string: Modrinth lets a project reuse
-  // the same version string across loaders (e.g. Biomes O' Plenty's Fabric and NeoForge 26.2
-  // builds are both "26.1.2.0.42"), and the maven.modrinth proxy resolves the plain string
-  // ambiguously — it silently served the NeoForge jar for a `biomes-o-plenty:26.1.2.0.42`
-  // coordinate here. The version id is unique per file and resolves deterministically.
-  // GlitchCore is a hard runtime dependency of Biomes O' Plenty (shared utility library, not
-  // requested by name but required to load it).
-  modRuntimeOnly("maven.modrinth:glitchcore:${prop("deps.compat_glitchcore")}")
-  modRuntimeOnly("maven.modrinth:biomes-o-plenty:${prop("deps.compat_biomesoplenty")}")
-  modRuntimeOnly("maven.modrinth:terrablender:${prop("deps.compat_terrablender")}")
-  modRuntimeOnly("maven.modrinth:distanthorizons:${prop("deps.compat_distanthorizons")}")
 
   implementation(commonProject)
 
@@ -150,50 +142,13 @@ tasks {
     }
   }
 
-  val xvfbDisplay = ":99"
-  var xvfbProcess: Process? = null
-  val isLinux = System.getProperty("os.name").lowercase().contains("linux")
-  val needsXvfb = isLinux && System.getenv("DISPLAY").isNullOrBlank()
-
-  val startXvfb by registering {
-    onlyIf {
-      needsXvfb &&
-        providers
-          .exec {
-            commandLine("which", "Xvfb")
-            isIgnoreExitValue = true
-          }
-          .standardOutput
-          .asText
-          .get()
-          .isNotBlank()
-    }
-    doLast {
-      xvfbProcess =
-        ProcessBuilder("Xvfb", xvfbDisplay, "-screen", "0", "1920x1080x24")
-          .redirectErrorStream(true)
-          .start()
-      Thread.sleep(500)
-    }
-  }
-
-  val stopXvfb by registering {
-    doLast {
-      xvfbProcess?.destroy()
-      xvfbProcess = null
-    }
-  }
-
   named<JavaExec>("runClientGameTest") {
     systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
     if (project.hasProperty("updateSnapshots")) {
       systemProperty("updateSnapshots", "true")
     }
     project.gradle.startParameter.projectProperties["test"]?.let { systemProperty("test", it) }
-    if (needsXvfb) {
-      dependsOn(startXvfb)
-      finalizedBy(stopXvfb)
-      environment("DISPLAY", xvfbDisplay)
-    }
   }
 }
+
+apply(from = rootProject.file("gradle/xvfb.gradle.kts"))

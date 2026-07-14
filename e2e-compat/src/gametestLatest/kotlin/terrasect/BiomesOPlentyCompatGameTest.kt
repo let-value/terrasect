@@ -10,10 +10,10 @@ import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 
-private val log = LoggerFactory.getLogger("ModCompatGameTest")
+private val log = LoggerFactory.getLogger("BiomesOPlentyCompatGameTest")
 
-private const val SEED = "terrasect-modcompat"
-private const val COMPAT_PRESET = "mod_compat_climate_constrained"
+private const val SEED = "terrasect-bop-compat"
+private const val COMPAT_PRESET = "bop_compat_climate_constrained"
 
 // Same climate window the smoke preset uses to force the noise/climate pipeline to actually
 // reshape terrain, rather than passing through untouched vanilla generation.
@@ -29,15 +29,15 @@ private fun registerCompatPreset() {
     }
 }
 
-// Biomes O' Plenty registers its overworld biomes with TerraBlender, which injects them into the
-// vanilla biome-region multi-noise layout at world load. The real compat risk isn't "does BOP
-// load" (SmokeGameTest already covers that) — it's whether Terrasect's own climate-constraint
-// mixins, which reshape the same temperature/humidity/continentalness inputs TerraBlender's
-// regions are keyed on, end up starving BOP's regions out of the generated world entirely.
+// Biomes O' Plenty's unique surface area, from Terrasect's perspective, is the ~70 overworld
+// biomes it registers via TerraBlender. The real compat risk isn't "does BOP load" (covered by
+// CompatSmokeGameTest) — it's whether Terrasect's own climate-constraint mixins, which reshape
+// the same temperature/humidity/continentalness inputs TerraBlender's regions are keyed on, end
+// up starving BOP's regions out of the generated world entirely.
 // Evidence: a biomesoplenty-namespaced biome is actually reachable via the real biome source
 // under a Terrasect climate constraint, sampled without materializing chunks.
 @Suppress("UnstableApiUsage")
-object ModCompatTerraBlenderBiomeGameTest : FabricClientGameTest {
+object BiomesOPlentyCompatGameTest : FabricClientGameTest {
   override fun runTest(context: ClientGameTestContext) {
     if (!GameTestFilter.shouldRun(this::class)) return
 
@@ -79,11 +79,7 @@ object ModCompatTerraBlenderBiomeGameTest : FabricClientGameTest {
               }
             }
           }
-          log.info(
-            "modcompat: sampled={} biomesoplenty biome found={}",
-            sampled,
-            found ?: "none",
-          )
+          log.info("bop compat: sampled={} biomesoplenty biome found={}", sampled, found ?: "none")
         }
       )
 
@@ -93,7 +89,7 @@ object ModCompatTerraBlenderBiomeGameTest : FabricClientGameTest {
           "climate constraint (sampled $sampled points) — TerraBlender's region injection may be " +
           "getting starved out by Terrasect's climate-constraint pipeline",
       )
-      log.info("modcompat: OK — found {}", found)
+      log.info("bop compat: OK — found {}", found)
     } finally {
       game.close()
       PresetRegistry.forcePresetId = originalPresetId
