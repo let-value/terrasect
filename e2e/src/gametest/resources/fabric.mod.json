@@ -16,69 +16,9 @@
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.TerrasectFabricClientGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.VanillaWorldDigestTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.TerrasectWorldDigestTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.MobConstraintBlockByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintVanillaGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintHighDensityGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintLocateGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByModGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByModGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByTagGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByTagGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintBanByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintAllowByNameGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintLocateRuinedPortalGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.StructureConstraintStatisticsTest",
-        "adapter": "kotlin"
-      },
-      {
         "value": "terrasect.LootConstraintBlockAllGameTest",
         "adapter": "kotlin"
-      }
+      }${heavy_gametest_entrypoints}
     ]
   },
   "depends": {

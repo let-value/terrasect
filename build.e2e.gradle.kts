@@ -31,6 +31,35 @@ project
     sc.process(file, "build/processed/client/kotlin/${file.relativeTo(fabricClientKotlinSrc).path}")
   }
 
+// The heavy client gametests use client-gametest-API surface (e.g. clientLevel/waitForChunksRender)
+// that only exists on the latest target, and rely on version-specific terrain snapshots. They are
+// compiled and entrypoint-registered only on the latest version; SmokeGameTest and
+// LootConstraintBlockAllGameTest stay portable.
+// `mod.latest` (stonecutter.properties.toml) is the single source of truth for the newest version.
+val isLatestVersion = sc.current.version == prop("mod.latest")
+
+val heavyGametestEntrypoints =
+  if (!isLatestVersion) ""
+  else
+    listOf(
+        "TerrasectFabricClientGameTest",
+        "VanillaWorldDigestTest",
+        "TerrasectWorldDigestTest",
+        "MobConstraintBlockByNameGameTest",
+        "StructureConstraintVanillaGameTest",
+        "StructureConstraintHighDensityGameTest",
+        "StructureConstraintLocateGameTest",
+        "StructureConstraintBanByModGameTest",
+        "StructureConstraintAllowByModGameTest",
+        "StructureConstraintBanByTagGameTest",
+        "StructureConstraintAllowByTagGameTest",
+        "StructureConstraintBanByNameGameTest",
+        "StructureConstraintAllowByNameGameTest",
+        "StructureConstraintLocateRuinedPortalGameTest",
+        "StructureConstraintStatisticsTest",
+      )
+      .joinToString("") { ",\n      { \"value\": \"terrasect.$it\", \"adapter\": \"kotlin\" }" }
+
 version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-e2e"
@@ -62,7 +91,12 @@ sourceSets {
     resources.setSrcDirs(listOf(fabricDir.resolve("src/main/resources")))
   }
   named("gametest") {
-    kotlin.setSrcDirs(listOf(e2eDir.resolve("src/gametest/kotlin")))
+    kotlin.setSrcDirs(
+      buildList {
+        add(e2eDir.resolve("src/gametest/kotlin"))
+        if (isLatestVersion) add(e2eDir.resolve("src/gametest-latest/kotlin"))
+      }
+    )
     resources.setSrcDirs(listOf(e2eDir.resolve("src/gametest/resources")))
   }
 }
@@ -110,6 +144,7 @@ val resourceProps =
     "fabric_api_version" to prop("deps.fabric_api"),
     "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
     "access_widener_file" to accessWidenerFile,
+    "heavy_gametest_entrypoints" to heavyGametestEntrypoints,
   )
 
 tasks {

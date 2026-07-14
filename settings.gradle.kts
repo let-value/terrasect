@@ -41,14 +41,16 @@ stonecutter {
       }
     }
 
-    match("1.21", "fabric", "neoforge")
     match("1.21.1", "fabric", "neoforge")
     match("1.21.11", "fabric", "neoforge")
+    match("26.1.x", "fabric", "neoforge", version = "26.1")
     match(latestProject, "fabric", "neoforge", version = latestVersion)
     vcsVersion = "1.21.11-fabric"
   }
 
   create("e2e") {
+    version("1.21.11", "1.21.11").buildscript("../build.e2e.gradle.kts")
+    version("26.1.x", "26.1.2").buildscript("../build.e2e.gradle.kts")
     version(latestProject, latestVersion).buildscript("../build.e2e.gradle.kts")
     vcsVersion = latestProject
   }
