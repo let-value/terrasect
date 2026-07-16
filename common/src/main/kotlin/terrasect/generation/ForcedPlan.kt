@@ -51,10 +51,18 @@ class ForcedPlan(val sites: List<ForcedSite>) {
   }
 }
 
-// Budgets must already be sorted descending: getSites orders its result by descending radius, so
-// index alignment between the requested budgets and the returned sites depends on it.
-fun buildForcedPlan(seed: Long, sdf: Sdf2, budgets: LongArray): ForcedPlan {
-  val bounds = estimateBounds(sdf)
+// Budgets must be sorted descending (getSites enforces it): sites are returned in budget order,
+// so index alignment between the requested budgets and the returned sites depends on it. The
+// origin must be a deterministic point of the region instance the sdf describes — estimateBounds
+// searches (and clamps its flood fill) around it, so a far-off origin yields garbage bounds.
+fun buildForcedPlan(
+  seed: Long,
+  sdf: Sdf2,
+  budgets: LongArray,
+  originX: Int,
+  originZ: Int,
+): ForcedPlan {
+  val bounds = estimateBounds(sdf, originX, originZ)
   val sites: List<Site> = getSites(seed, sdf, bounds, budgets)
   return ForcedPlan(
     sites.mapIndexed { index, site -> ForcedSite(index, site.x, site.z, site.radius) }

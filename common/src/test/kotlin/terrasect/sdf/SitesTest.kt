@@ -21,7 +21,7 @@ class SitesTest {
     val radius = 100f
     val sdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
+    val budgets = longArrayOf(5000, 3000, 1000, 500, 300, 200, 100)
     val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -34,7 +34,7 @@ class SitesTest {
     val apothem = 100f
     val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
+    val budgets = longArrayOf(5000, 3000, 1000, 500, 300, 200, 100)
     val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -46,7 +46,7 @@ class SitesTest {
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
     val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
     val bounds = estimateBounds(sdf)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000)
+    val budgets = longArrayOf(1000, 500, 300, 200, 100)
     val sites = getSites(SEED, sdf, bounds, budgets)
     drawSdf(image, sdf)
     drawSites(image, sites)
@@ -62,8 +62,8 @@ class SitesTest {
 
     val budgets =
       longArrayOf(
-        (area * 0.3).roundToLong(),
         (area * 0.5).roundToLong(),
+        (area * 0.3).roundToLong(),
         (area * 0.2).roundToLong(),
       )
 
@@ -78,7 +78,7 @@ class SitesTest {
   fun `should place sites when sdf has no interior`() {
     val sdf: Sdf2 = { _, _ -> 1f }
     val bounds = estimateBounds(sdf)
-    val budgets = longArrayOf(500, 100, 200)
+    val budgets = longArrayOf(500, 200, 100)
 
     val sites = getSites(SEED, sdf, bounds, budgets)
 

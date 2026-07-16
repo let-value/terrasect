@@ -63,6 +63,8 @@ class HexStrategy(
 
     val distance = step.sdf(step.x, step.z)
     step.distance = max(step.distance, distance)
+    step.centerX = cell.centerX
+    step.centerZ = cell.centerZ
     step.region = if (cell.isGap && ringRegion != null) ringRegion else children
 
     return step

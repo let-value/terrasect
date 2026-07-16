@@ -75,7 +75,7 @@ class StructureConstraintsTest {
       listOf(
         ForcedStructure("minecraft:village_plains", null),
         ForcedStructure("mymod:castle", 40000),
-        ForcedStructure("minecraft:pillager_outpost", 2500),
+        ForcedStructure("minecraft:pillager_outpost", 7854),
       ),
       constraints.forced,
     )

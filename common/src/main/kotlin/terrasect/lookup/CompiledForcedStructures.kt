@@ -105,7 +105,13 @@ private constructor(
   private fun planFor(spec: ForcedRegionSpec, step: TraversalStep): ForcedPlan {
     val instanceHash = hasher.hashBytes(step.id, 0, step.id.position())
     return plans.get(instanceHash) {
-      buildForcedPlan(hasher.hashLong(instanceHash xor seed), step.sdf, spec.budgets)
+      buildForcedPlan(
+        hasher.hashLong(instanceHash xor seed),
+        step.sdf,
+        spec.budgets,
+        step.centerX,
+        step.centerZ,
+      )
     }
   }
 

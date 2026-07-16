@@ -32,17 +32,19 @@ class SurroundStrategy(
     id: ByteBuffer,
     parentSdf: SdfCompose,
     cache: RegionsCache?,
+    originX: Int = 0,
+    originZ: Int = 0,
   ): SurroundOriginResult {
     if (cache == null) {
-      return getOrigin(parentSdf.bake())
+      return getOrigin(parentSdf.bake(), originX, originZ)
     }
 
     val key = cache.getKey(id)
-    return cache.surround.getOrCompute(key) { getOrigin(parentSdf.bake()) }
+    return cache.surround.getOrCompute(key) { getOrigin(parentSdf.bake(), originX, originZ) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    val origin = getCachedOrigin(step.id, step.sdf, step.cache)
+    val origin = getCachedOrigin(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     val isCenter =
       surroundDistance(
         step.x,
@@ -77,6 +79,8 @@ class SurroundStrategy(
     val distance = step.sdf(step.x, step.z)
     step.distance = max(step.distance, distance)
 
+    step.centerX = origin.centerX
+    step.centerZ = origin.centerZ
     step.region = if (isCenter) center else surround
 
     return step
@@ -137,8 +141,8 @@ class SurroundStrategy(
 
   companion object {
 
-    fun getOrigin(parentSdf: Sdf2): SurroundOriginResult {
-      val bounds = estimateBounds(parentSdf)
+    fun getOrigin(parentSdf: Sdf2, originX: Int = 0, originZ: Int = 0): SurroundOriginResult {
+      val bounds = estimateBounds(parentSdf, originX, originZ)
       val centerX = (bounds.minX + bounds.maxX) / 2
       val centerZ = (bounds.minZ + bounds.maxZ) / 2
 

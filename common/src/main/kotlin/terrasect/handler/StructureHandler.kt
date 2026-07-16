@@ -16,6 +16,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.StructureConstraints
 import terrasect.extender.ChunkAccessExtender
+import terrasect.extender.ChunkGeneratorStructureStateExtender
 import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
@@ -32,6 +33,7 @@ object StructureHandler {
    */
   @JvmStatic
   fun getFilteredSets(
+    state: ChunkGeneratorStructureState,
     chunkContext: ChunkContext?,
     dimensionKey: ResourceKey<Level>?,
     chunkX: Int,
@@ -39,6 +41,7 @@ object StructureHandler {
   ): List<Holder<StructureSet>>? {
     val ctx =
       chunkContext?.dimensionContext
+        ?: (state as ChunkGeneratorStructureStateExtender).`terrasect$getDimensionContext`()
         ?: dimensionKey?.let { DimensionContext.get(ResourceKeyCompat.getKeyId(it)) }
         ?: return null
     val blockX = (chunkX shl 4) + 8
@@ -49,7 +52,8 @@ object StructureHandler {
     val forced = ctx.forcedStructures
     val constraints: StructureConstraints?
     if (forced != null) {
-      val decision = forced.query(ctx.traverser, ctx.cache, chunkX, chunkZ)
+      val decision =
+        chunkContext?.getForcedDecision() ?: forced.query(ctx.traverser, ctx.cache, chunkX, chunkZ)
       if (decision.banned) {
         instr.count(TerrasectMetricEvent.STRUCTURE_BANNED)
         return emptyList()
@@ -83,13 +87,20 @@ object StructureHandler {
     chunk: ChunkAccess,
     dimensionKey: ResourceKey<Level>?,
   ) {
+    val chunkContext = (chunk as ChunkAccessExtender).`terrasect$getContext`()
+    val chunkPos = chunk.pos
     val ctx =
-      (chunk as ChunkAccessExtender).`terrasect$getContext`()?.dimensionContext
+      chunkContext?.dimensionContext
+        ?: (state as ChunkGeneratorStructureStateExtender).`terrasect$getDimensionContext`()
         ?: dimensionKey?.let { DimensionContext.get(ResourceKeyCompat.getKeyId(it)) }
         ?: return
+    if (chunkContext == null) {
+      instr.count(TerrasectMetricEvent.STRUCTURE_CHUNK_MISSING)
+    }
     val forced = ctx.forcedStructures ?: return
-    val chunkPos = chunk.pos
-    val decision = forced.query(ctx.traverser, ctx.cache, chunkPos.x, chunkPos.z)
+    val decision =
+      chunkContext?.getForcedDecision()
+        ?: forced.query(ctx.traverser, ctx.cache, chunkPos.x, chunkPos.z)
     if (decision.starts.isEmpty()) return
     val sectionPos = SectionPos.bottomOf(chunk)
     for (start in decision.starts) {

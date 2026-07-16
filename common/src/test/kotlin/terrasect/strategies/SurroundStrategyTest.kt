@@ -66,6 +66,24 @@ class SurroundStrategyTest {
   }
 
   @Test
+  fun `should find surround origin in far parent instance`() {
+    val originX = 500_000
+    val originZ = -300_000
+    val radius = 100f
+    val parentSdf: Sdf2 =
+      translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, originX, originZ)
+
+    val origin = SurroundStrategy.getOrigin(parentSdf, originX, originZ)
+
+    assertTrue(abs(origin.centerX - originX) <= 8) {
+      "far surround centerX=${origin.centerX} expected near $originX"
+    }
+    assertTrue(abs(origin.centerZ - originZ) <= 8) {
+      "far surround centerZ=${origin.centerZ} expected near $originZ"
+    }
+  }
+
+  @Test
   fun `should allocate surround area by budgets`() {
     val radius = 100f
     val parentSdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)

@@ -19,7 +19,7 @@ class ForcedPlanTest {
   @Test
   fun `sites align with descending budgets by index`() {
     val budgets = longArrayOf(50000, 20000, 5000)
-    val plan = buildForcedPlan(SEED, circle, budgets)
+    val plan = buildForcedPlan(SEED, circle, budgets, 1000, 1000)
 
     assertEquals(3, plan.sites.size)
     for ((index, site) in plan.sites.withIndex()) {
@@ -32,7 +32,7 @@ class ForcedPlanTest {
 
   @Test
   fun `sites land inside the region sdf`() {
-    val plan = buildForcedPlan(SEED, circle, longArrayOf(30000, 30000, 10000))
+    val plan = buildForcedPlan(SEED, circle, longArrayOf(30000, 30000, 10000), 1000, 1000)
     for (site in plan.sites) {
       assertTrue(circle(site.blockX, site.blockZ) <= 0f) {
         "site at ${site.blockX},${site.blockZ} is outside the region"
@@ -41,9 +41,22 @@ class ForcedPlanTest {
   }
 
   @Test
+  fun `sites land inside a region instance far from the world origin`() {
+    val farCircle: Sdf2 =
+      translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - 800f }, 500_000, -300_000)
+    val plan = buildForcedPlan(SEED, farCircle, longArrayOf(30000, 10000), 500_000, -300_000)
+    assertEquals(2, plan.sites.size)
+    for (site in plan.sites) {
+      assertTrue(farCircle(site.blockX, site.blockZ) <= 0f) {
+        "site at ${site.blockX},${site.blockZ} is outside the far region"
+      }
+    }
+  }
+
+  @Test
   fun `plan is deterministic for the same seed and budgets`() {
-    val a = buildForcedPlan(SEED, circle, longArrayOf(30000, 10000))
-    val b = buildForcedPlan(SEED, circle, longArrayOf(30000, 10000))
+    val a = buildForcedPlan(SEED, circle, longArrayOf(30000, 10000), 1000, 1000)
+    val b = buildForcedPlan(SEED, circle, longArrayOf(30000, 10000), 1000, 1000)
     assertEquals(
       a.sites.map { Triple(it.blockX, it.blockZ, it.radius) },
       b.sites.map { Triple(it.blockX, it.blockZ, it.radius) },
@@ -52,7 +65,7 @@ class ForcedPlanTest {
 
   @Test
   fun `start chunk maps back to the site`() {
-    val plan = buildForcedPlan(SEED, circle, longArrayOf(30000))
+    val plan = buildForcedPlan(SEED, circle, longArrayOf(30000), 1000, 1000)
     val site = plan.sites.single()
     assertEquals(listOf(site), plan.startsAt(site.chunkX, site.chunkZ))
     assertTrue(plan.startsAt(site.chunkX + 100, site.chunkZ).isEmpty())
@@ -60,7 +73,7 @@ class ForcedPlanTest {
 
   @Test
   fun `chunks touching the site radius are banned and distant chunks are not`() {
-    val plan = buildForcedPlan(SEED, circle, longArrayOf(80000))
+    val plan = buildForcedPlan(SEED, circle, longArrayOf(80000), 1000, 1000)
     val site = plan.sites.single()
 
     assertTrue(plan.isBanned(site.chunkX, site.chunkZ))
@@ -73,7 +86,7 @@ class ForcedPlanTest {
 
   @Test
   fun `every block within radius falls in a banned chunk`() {
-    val plan = buildForcedPlan(SEED, circle, longArrayOf(20000))
+    val plan = buildForcedPlan(SEED, circle, longArrayOf(20000), 1000, 1000)
     val site = plan.sites.single()
     val reach = site.radius.toInt()
     var z = site.blockZ - reach

@@ -13,10 +13,10 @@ class SelectionConstraintsTest {
   }
 
   @Test
-  fun `allow-list is non-exclusive - unlisted names still pass`() {
+  fun `allow-list is exclusive - unlisted names are rejected`() {
     val constraints = SelectionConstraints.builder().allowNames("minecraft:village").build()
     assertTrue(constraints.evaluate("minecraft:village", emptySet()))
-    assertTrue(constraints.evaluate("minecraft:pillager_outpost", emptySet()))
+    assertFalse(constraints.evaluate("minecraft:pillager_outpost", emptySet()))
   }
 
   @Test
@@ -85,10 +85,19 @@ class SelectionConstraintsTest {
   }
 
   @Test
-  fun `allow-list mod is non-exclusive - other mods still pass when no block applies`() {
+  fun `allow-list mod is exclusive - other mods are rejected`() {
     val constraints = SelectionConstraints.builder().allowMods("towntalk").build()
     assertTrue(constraints.evaluate("towntalk:market", emptySet()))
-    assertTrue(constraints.evaluate("minecraft:village", emptySet()))
+    assertFalse(constraints.evaluate("minecraft:village", emptySet()))
+  }
+
+  @Test
+  fun `allow rule at any level makes unmatched entries fail across levels`() {
+    val constraints =
+      SelectionConstraints.builder().allowNames("towntalk:market").allowMods("terrasect").build()
+    assertTrue(constraints.evaluate("towntalk:market", emptySet()))
+    assertTrue(constraints.evaluate("terrasect:shrine", emptySet()))
+    assertFalse(constraints.evaluate("minecraft:village", emptySet()))
   }
 
   @Test

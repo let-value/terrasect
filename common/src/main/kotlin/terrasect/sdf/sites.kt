@@ -1,10 +1,10 @@
 package terrasect.sdf
 
+import java.util.Random
 import kotlin.math.PI
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import kotlin.random.Random
 
 data class Site(val x: Int, val z: Int, val radius: Float)
 
@@ -18,9 +18,14 @@ const val relaxationStep = 4
 const val relaxationMove = 0.6f
 
 fun getSites(seed: Long, sdf: Sdf2, bounds: SdfBounds, budgets: LongArray): List<Site> {
+  for (i in 1 until budgets.size) {
+    require(budgets[i] <= budgets[i - 1]) { "budgets must be sorted descending" }
+  }
+  // java.util.Random's algorithm is fixed by its spec, so site layouts survive Kotlin/JDK
+  // upgrades; kotlin.random.Random documents that its seeded sequence may change between versions.
   val rng = Random(seed)
 
-  val radii = budgets.map { sqrt(it.coerceAtLeast(0) / PI).toFloat() }.sortedDescending()
+  val radii = budgets.map { sqrt(it.coerceAtLeast(0) / PI).toFloat() }
   val sites = ArrayList<Site>(radii.size)
 
   fun compositeSdf(x: Int, z: Int): Float {
@@ -40,17 +45,20 @@ fun getSites(seed: Long, sdf: Sdf2, bounds: SdfBounds, budgets: LongArray): List
     return minDist
   }
 
+  val spanX = bounds.maxX - bounds.minX
+  val spanZ = bounds.maxZ - bounds.minZ
+
   for (radius in radii) {
-    var bestX = rng.nextInt(bounds.minX, bounds.maxX)
-    var bestY = rng.nextInt(bounds.minZ, bounds.maxZ)
+    var bestX = bounds.minX + rng.nextInt(spanX)
+    var bestY = bounds.minZ + rng.nextInt(spanZ)
     var bestPenalty = Float.POSITIVE_INFINITY
     var bestClearance = Float.NEGATIVE_INFINITY
     var streak = 0
     val greatClearance = radius * greatClearanceFactor
 
     for (i in 0 until attempts) {
-      val x = rng.nextInt(bounds.minX, bounds.maxX)
-      val z = rng.nextInt(bounds.minZ, bounds.maxZ)
+      val x = bounds.minX + rng.nextInt(spanX)
+      val z = bounds.minZ + rng.nextInt(spanZ)
 
       val dist = sdf(x, z)
       val boundaryClearance = -dist

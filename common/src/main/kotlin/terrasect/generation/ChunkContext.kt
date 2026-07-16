@@ -9,6 +9,7 @@ import terrasect.definition.Region
 import terrasect.extender.ChunkAccessExtender
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
+import terrasect.lookup.ForcedChunkDecision
 
 private val instr = TerrasectInstr.chunk
 
@@ -17,10 +18,13 @@ class ChunkContext {
   var width: Int = 0
   var originZ: Int = 0
   var originX: Int = 0
+  var chunkX: Int = 0
+  var chunkZ: Int = 0
   var dimensionContext: DimensionContext? = null
   var cache: RegionsCache? = null
   var regions: PalettedGrid<Region>? = null
   var distances: FloatArray? = null
+  private var forcedDecision: ForcedChunkDecision? = null
 
   constructor()
 
@@ -40,6 +44,8 @@ class ChunkContext {
           return
         }
 
+    this.chunkX = position.x
+    this.chunkZ = position.z
     val baseWidth = position.maxBlockX - position.minBlockX + 1
     val baseHeight = position.maxBlockZ - position.minBlockZ + 1
     val padding = baseWidth * 1
@@ -78,6 +84,15 @@ class ChunkContext {
     val localX = blockX - originX
     val localZ = blockZ - originZ
     return localX >= 0 && localX < width && localZ >= 0 && localZ < height
+  }
+
+  fun getForcedDecision(): ForcedChunkDecision? {
+    val ctx = dimensionContext ?: return null
+    val forced = ctx.forcedStructures ?: return null
+    forcedDecision?.let {
+      return it
+    }
+    return forced.query(ctx.traverser, cache, chunkX, chunkZ).also { forcedDecision = it }
   }
 
   fun getRegion(blockX: Int, blockZ: Int): Region? {

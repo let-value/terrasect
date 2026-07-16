@@ -23,7 +23,7 @@ class VoronoiStrategyTest {
   fun `should render voronoi cells in circle`() {
     val radius = 100f
     val sdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
+    val budgets = longArrayOf(5000, 3000, 1000, 500, 300, 200, 100)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -37,7 +37,7 @@ class VoronoiStrategyTest {
   fun `should render voronoi distance in circle`() {
     val radius = 100f
     val sdf: Sdf2 = translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, CX, CZ)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
+    val budgets = longArrayOf(5000, 3000, 1000, 500, 300, 200, 100)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -63,7 +63,7 @@ class VoronoiStrategyTest {
   fun `should render voronoi cells in hex`() {
     val apothem = 100f
     val sdf: Sdf2 = translate({ x, z -> hexDistance(x, z, apothem) }, CX, CZ)
-    val budgets = longArrayOf(500, 100, 200, 300, 1000, 5000, 3000)
+    val budgets = longArrayOf(5000, 3000, 1000, 500, 300, 200, 100)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -77,7 +77,7 @@ class VoronoiStrategyTest {
   fun `should render voronoi cells in banana`() {
     val sdf: Sdf2 = translate({ x, z -> bananaSdf(x, z) }, CX, CZ)
 
-    val budgets = longArrayOf(500, 100, 200, 300, 1000)
+    val budgets = longArrayOf(1000, 500, 300, 200, 100)
     val sites = VoronoiStrategy.getSites(SEED, sdf, budgets)
 
     val image = BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB)
@@ -85,6 +85,20 @@ class VoronoiStrategyTest {
     drawSdf(image, sdf, insideColor = null)
     drawSites(image, sites)
     writeSnapshotPng(VoronoiStrategyTest::class.java, "banana-cells.png", image)
+  }
+
+  @Test
+  fun `should place voronoi sites in far parent instance`() {
+    val originX = 500_000
+    val originZ = -300_000
+    val radius = 100f
+    val sdf: Sdf2 =
+      translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, originX, originZ)
+    val budgets = longArrayOf(5000, 3000, 1000)
+
+    val sites = VoronoiStrategy.getSites(SEED, sdf, budgets, originX, originZ)
+
+    assertTrue(sites.all { sdf(it.x, it.z) <= 0f }) { "far voronoi sites escaped parent sdf" }
   }
 
   @Test

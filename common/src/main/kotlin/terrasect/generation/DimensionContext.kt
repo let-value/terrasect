@@ -62,7 +62,7 @@ class DimensionContext(
       seed: Long,
       sampler: Climate.Sampler,
       biomesClimate: Climate.ParameterList<Holder<Biome>>?,
-    ) {
+    ): DimensionContext? {
       val dimensionId = ResourceKeyCompat.getKeyId(dimension)
       log.debug {
         "register called: preset=$presetId force=${PresetRegistry.forcePresetId} dim=$dimensionId"
@@ -71,12 +71,12 @@ class DimensionContext(
       if (resolvedRegistry == null) {
         log.debug { "no preset resolved — noise constraints disabled for $dimensionId" }
         map.remove(dimensionId)
-        return
+        return null
       }
       val name = resolvedRegistry.getRoot(dimensionId)
       if (name == null) {
         log.debug { "no root region for dim=$dimensionId in preset=$presetId" }
-        return
+        return null
       }
       val root = resolvedRegistry.buildTree(name)
 
@@ -93,6 +93,7 @@ class DimensionContext(
         )
       map[dimensionId] = dimensionContext
       log.debug { "registered dim=$dimensionId" }
+      return dimensionContext
     }
 
     fun get(dimensionId: String): DimensionContext? = map[dimensionId]

@@ -1,6 +1,7 @@
 package terrasect
 
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.chunk.ChunkAccess
 import org.slf4j.LoggerFactory
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
@@ -15,6 +16,8 @@ object ServerSmokeGuard {
   private val log = LoggerFactory.getLogger("ServerSmokeGameTest")
 
   const val SMOKE_PRESET = "server_smoke_all_constraints"
+
+  const val FORCED_ID = "minecraft:village_plains"
 
   // Only force the preset when the gametest launch explicitly asks for it, so a preset is never
   // forced onto unrelated runs (e.g. a client-gametest launch that also loads this mod).
@@ -47,6 +50,7 @@ object ServerSmokeGuard {
             allowMods("minecraft")
             spacing(24)
             separation(8)
+            force(FORCED_ID)
           }
           .mobs { blockNames("minecraft:zombie") }
           .loot { blockTags("c:foods") }
@@ -78,6 +82,7 @@ object ServerSmokeGuard {
       linkedMapOf(
         "noise" to (context.noiseRegistry != null),
         "structure" to (context.structureLookup != null),
+        "forced" to (context.forcedStructures != null),
         "mob" to (context.mobLookup != null),
         "loot" to (context.lootLookup != null),
       )
@@ -85,6 +90,46 @@ object ServerSmokeGuard {
     check(inactive.isEmpty()) {
       "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$status"
     }
+    assertForcedStart(level, context)
     log.info("server smoke: OK — all constraints active on {} status={}", dimensionId, status)
+  }
+
+  // Forced placement rides entirely on the chunk-context capture on versions without a dimension
+  // key at the createStructures injection site (1.21.1); if that capture silently no-ops, the
+  // feature is inert with no crash, so every version must prove the planned start really exists.
+  private fun assertForcedStart(level: ServerLevel, context: DimensionContext) {
+    val forced = context.forcedStructures!!
+    val start = forced.sitesAt(context.traverser, context.cache, 0, 0).single()
+    val chunk = getStructureStartsChunk(level, start.site.chunkX, start.site.chunkZ)
+    val structureStart = chunk.getStartForStructure(start.entry.holder.value())
+    check(structureStart != null && structureStart.isValid) {
+      "forced ${start.entry.id} StructureStart missing at its planned chunk " +
+        "(${start.site.chunkX},${start.site.chunkZ}) — forced placement is inert on this version"
+    }
+    log.info(
+      "server smoke: forced {} start confirmed at chunk ({},{})",
+      start.entry.id,
+      start.site.chunkX,
+      start.site.chunkZ,
+    )
+  }
+
+  private fun getStructureStartsChunk(level: ServerLevel, chunkX: Int, chunkZ: Int): ChunkAccess {
+    val statusClass =
+      try {
+        Class.forName("net.minecraft.world.level.chunk.status.ChunkStatus")
+      } catch (_: ClassNotFoundException) {
+        Class.forName("net.minecraft.world.level.chunk.ChunkStatus")
+      }
+    val structureStarts = statusClass.getField("STRUCTURE_STARTS").get(null)
+    val getChunk =
+      level.javaClass.getMethod(
+        "getChunk",
+        Int::class.javaPrimitiveType,
+        Int::class.javaPrimitiveType,
+        statusClass,
+        Boolean::class.javaPrimitiveType,
+      )
+    return getChunk.invoke(level, chunkX, chunkZ, structureStarts, true) as ChunkAccess
   }
 }

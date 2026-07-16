@@ -1,5 +1,8 @@
 package terrasect.definition
 
+import kotlin.math.PI
+import kotlin.math.ceil
+
 data class ForcedStructure(val name: String, val budget: Long?)
 
 class StructureConstraints(
@@ -62,7 +65,7 @@ class StructureConstraints(
     }
 
     fun forceRadius(name: String, radius: Long) = apply {
-      forced.add(ForcedStructure(name, radius * radius))
+      forced.add(ForcedStructure(name, ceil(PI * radius * radius).toLong()))
     }
 
     // Same-region duplication (RegionBuilder.copy) keeps forced entries; parent→child
