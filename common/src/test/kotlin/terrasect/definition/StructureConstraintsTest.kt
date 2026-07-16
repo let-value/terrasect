@@ -63,6 +63,33 @@ class StructureConstraintsTest {
   }
 
   @Test
+  fun `force collects entries with optional budgets`() {
+    val constraints =
+      StructureConstraints.builder()
+        .force("minecraft:village_plains")
+        .force("mymod:castle", budget = 40000)
+        .forceRadius("minecraft:pillager_outpost", 50)
+        .build()
+
+    assertEquals(
+      listOf(
+        ForcedStructure("minecraft:village_plains", null),
+        ForcedStructure("mymod:castle", 40000),
+        ForcedStructure("minecraft:pillager_outpost", 2500),
+      ),
+      constraints.forced,
+    )
+  }
+
+  @Test
+  fun `forced structures are not inherited from parent`() {
+    val parent = StructureConstraints.builder().force("mymod:castle")
+    val child = StructureConstraints.builder().force("mymod:tower").inheritParent(parent).build()
+
+    assertEquals(listOf(ForcedStructure("mymod:tower", null)), child.forced)
+  }
+
+  @Test
   fun `child without any selection call stays selection-free even if parent has one`() {
     // inheritParent only pulls in the parent's selection when the parent actually configured one;
     // it should not force every child into having a (trivially empty) SelectionConstraints.

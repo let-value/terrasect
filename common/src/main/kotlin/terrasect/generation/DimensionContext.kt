@@ -14,6 +14,7 @@ import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.Region
 import terrasect.handler.NoiseLogger
+import terrasect.lookup.CompiledForcedStructures
 import terrasect.lookup.CompiledLootLookup
 import terrasect.lookup.CompiledMobLookup
 import terrasect.lookup.CompiledNoiseRegistry
@@ -38,6 +39,8 @@ class DimensionContext(
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
   val structureLookup: CompiledStructureLookup? =
     CompiledStructureLookup.build(allSets, root, registry)
+  val forcedStructures: CompiledForcedStructures? =
+    CompiledForcedStructures.build(seed, root, registry)
   val lootLookup: CompiledLootLookup? = CompiledLootLookup.build(root, registry)
   val mobLookup: CompiledMobLookup? = CompiledMobLookup.build(root, registry)
 

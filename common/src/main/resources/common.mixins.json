@@ -21,8 +21,10 @@
     "scaffold.NoiseChunkMixin",
     "spawn.NaturalSpawnerRuntimeMixin",
     "spawn.NaturalSpawnerWorldGenMixin",
+    "structure.ChunkGeneratorForcedMixin",
     "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin",
+    "structure.JigsawStructureAccessor",
     "structure.RandomSpreadStructurePlacementMixin",
     "structure.StructurePlacementMixin",
     "structure.StructureStartMixin"

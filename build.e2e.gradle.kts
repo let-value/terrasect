@@ -68,6 +68,7 @@ val heavyClientTests =
     "StructureConstraintAllowByNameGameTest",
     "StructureConstraintLocateRuinedPortalGameTest",
     "StructureConstraintStatisticsTest",
+    "ForcedStructureGameTest",
   )
 
 fun kotlinEntry(value: String) =

@@ -84,6 +84,25 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `forced structures survive buildTree on the declaring region only`() {
+    registry.region("forced_root").structures { force("mymod:castle", budget = 40000) }
+    registry.region("forced_child").apply {
+      structuresBuilder
+      parent("forced_root")
+    }
+
+    val root = registry.buildTree("forced_root")
+
+    assertAll(
+      { assertEquals(listOf(ForcedStructure("mymod:castle", 40000)), root.structures!!.forced) },
+      {
+        val child = root.children.single { it.name == "forced_child" }
+        assertTrue(child.structures!!.forced.isEmpty())
+      },
+    )
+  }
+
+  @Test
   fun `visiting marker is cleared after a child build throws, so a later build is not permanently poisoned`() {
     val throwingStrategy =
       object : StrategySettings {
