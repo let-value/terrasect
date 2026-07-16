@@ -24,6 +24,9 @@ class NoiseConstraints(
     private var blendWidth: Float = DEFAULT_BLEND_WIDTH
     private var blendWidthExplicit: Boolean = false
 
+    val hasExplicitBlendWidth: Boolean
+      get() = blendWidthExplicit
+
     fun noise(name: String, transform: NoiseTransform) = apply { noises[name] = transform }
 
     fun noise(name: String, consumer: (NoiseTransform.Builder) -> Unit) = apply {

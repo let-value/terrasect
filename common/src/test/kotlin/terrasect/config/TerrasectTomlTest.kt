@@ -8,13 +8,17 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import terrasect.compat.NoiseRouterCompat
+import terrasect.definition.NoiseConstraints
 import terrasect.definition.PresetRegistry
+import terrasect.definition.RegionRegistry
+import terrasect.definition.Strategy
 import terrasect.helpers.NoiseTransform
 import terrasect.instrumentation.MetricsConfig
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectInstrScope
 import terrasect.instrumentation.TerrasectMetricEvent
 import terrasect.strategies.SubdivisionStrategy
+import terrasect.strategies.SurroundStrategy
 
 class TerrasectTomlTest {
   @Test
@@ -81,6 +85,7 @@ class TerrasectTomlTest {
           config.instrumentation.events[TerrasectMetricEvent.STRUCTURE_GENERATED],
         )
       },
+      { assertEquals(config, TerrasectToml.parseConfig(TerrasectTomlWriter.write(config))) },
     )
   }
 
@@ -157,6 +162,89 @@ class TerrasectTomlTest {
   }
 
   @Test
+  fun `typed preset serializer round trips builder properties`() {
+    val preset =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "root")
+        region("root")
+          .budget(500)
+          .originAnchor()
+          .strategy(Strategy.subdivision())
+          .climate {
+            temperature(-10000, 10000)
+            humidity(100)
+            continentalness(-200, 300)
+            erosion(400)
+            depth(-500, 600)
+            weirdness(700)
+            precipitation("rain")
+            climatePreset("minecraft:normal")
+          }
+          .height { exact(64) }
+          .noise {
+            blendWidth(NoiseConstraints.DEFAULT_BLEND_WIDTH)
+            noise("test") {
+              it
+                .clamp(-2.0, 2.0)
+                .add(1.0)
+                .multiply(2.0)
+                .remap(-2.0, 6.0, 0.0, 1.0)
+                .abs()
+                .square()
+                .cube()
+                .halfNegative()
+                .quarterNegative()
+                .invert()
+                .squeeze()
+            }
+            densityFunction("continents") { it.add(0.2) }
+          }
+          .biomes {
+            allowMods("minecraft")
+            allowTags("minecraft:is_forest")
+            allowNames("minecraft:desert")
+            blockMods("example")
+            blockTags("minecraft:is_ocean")
+            blockNames("minecraft:plains")
+          }
+          .structures {
+            allowMods("minecraft")
+            spacing(24)
+            separation(8)
+            frequency(0.75f)
+            force("example:ruin")
+            force("example:castle", 40000)
+            forceRadius("example:tower", 5)
+          }
+          .mobs { blockNames() }
+          .loot { blockTags("c:foods") }
+        region("leaf").parent("root").radius(5)
+        region("surround").strategy(Strategy.surround("band"))
+        region("band").parent("surround").radius(2)
+      }
+
+    val registry = TerrasectToml.parsePreset(TerrasectTomlWriter.write(preset))
+    val draft = registry.drafts.getValue("root")
+    val root = registry.buildTree("root")
+    assertAll(
+      { assertEquals(500L, draft.budget) },
+      { assertTrue(draft.originAnchor) },
+      { assertTrue(root.strategy is SubdivisionStrategy) },
+      { assertEquals(-10000L, root.climate!!.temperature!!.min) },
+      { assertEquals(64, root.height!!.minY) },
+      { assertEquals(setOf("minecraft"), root.biomes!!.allowedMods) },
+      { assertEquals(3, root.structures!!.forced.size) },
+      { assertEquals(5L, root.structures!!.forced[2].radius) },
+      { assertEquals(setOf("c:foods"), root.loot!!.blockedTags) },
+      { assertEquals(11, root.noise!!.noises.getValue("test").operations.size) },
+      { assertEquals(5L, registry.drafts.getValue("leaf").radius) },
+      { assertNotNull(root.mobs) },
+      { assertTrue(registry.drafts.getValue("root").noiseBuilder.hasExplicitBlendWidth) },
+      { assertTrue(registry.drafts.getValue("surround").strategy is SurroundStrategy.Builder) },
+    )
+  }
+
+  @Test
   fun `region declaration order does not change strategy ids`() {
     val first =
       TerrasectToml.parsePreset(
@@ -225,8 +313,14 @@ class TerrasectTomlTest {
       setOf("config.toml", "example.toml", "climate_debug.toml"),
       created.map { it.fileName.toString() }.toSet(),
     )
-    assertNull(TerrasectToml.parseConfig(Files.readString(directory.resolve("config.toml"))).preset)
-    TerrasectToml.parsePreset(Files.readString(directory.resolve("example.toml")))
+    val configContents = Files.readString(directory.resolve("config.toml"))
+    val config = TerrasectToml.parseConfig(configContents)
+    assertNull(config.preset)
+    assertTrue(configContents.contains("Preset file name without .toml."))
+    val example = TerrasectToml.parsePreset(Files.readString(directory.resolve("example.toml")))
+    assertEquals(150L * 150L, example.drafts.getValue("overworld").budget)
+    val volcanicNoise = example.resolveDraft("volcanic").build().noise!!
+    assertEquals(3, volcanicNoise.densityFunctions.size)
     TerrasectToml.parsePreset(Files.readString(directory.resolve("climate_debug.toml")))
     assertTrue(
       Files.readString(directory.resolve("example.toml"))

@@ -66,6 +66,10 @@ maps to `RegionBuilder.budget`; they cannot be used together. Supported strategy
 `voronoi`, `subdivision`, and `surround`. Hex accepts `tiling` and `ring_region`; surround requires
 `surround_region`.
 
+Code-defined presets use the same model in the other direction. Pass a `RegionRegistry` populated
+through its existing region builders to `TerrasectTomlWriter.write` to produce schema-compatible
+TOML; parsing that TOML reconstructs a `RegionRegistry` through the corresponding builder calls.
+
 Region sub-tables map directly to the corresponding builders:
 
 - `climate`: `temperature`, `humidity`, `continentalness`, `erosion`, `depth`, `weirdness`,

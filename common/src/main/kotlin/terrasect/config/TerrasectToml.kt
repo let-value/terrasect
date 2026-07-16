@@ -15,7 +15,7 @@ class TerrasectConfigException(message: String, cause: Throwable? = null) :
   IllegalArgumentException(message, cause)
 
 object TerrasectToml {
-  private const val SCHEMA_VERSION = 1L
+  internal const val SCHEMA_VERSION = 1L
 
   fun parseConfig(input: String, source: String = "config.toml"): TerrasectConfig {
     val root = parse(input, source)

@@ -5,24 +5,93 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import terrasect.compat.NoiseRouterCompat
+import terrasect.definition.RegionRegistry
+import terrasect.definition.Strategy
+import terrasect.instrumentation.TerrasectInstrScope
+import terrasect.instrumentation.TerrasectMetricEvent
 
 object DefaultConfigFiles {
   const val CONFIG_FILE = "config.toml"
 
-  private val presets =
-    mapOf(
-      "example.toml" to examplePreset(),
-      "climate_debug.toml" to climateDebugPreset(),
+  private val defaultConfig =
+    TerrasectConfig(
+      instrumentation =
+        InstrumentationConfig(
+          scopes =
+            mapOf(TerrasectInstrScope.TRAVERSAL to InstrumentationScopeConfig(enabled = false)),
+          events = mapOf(TerrasectMetricEvent.TRAVERSAL_STEP to false),
+        )
     )
+
+  private val examplePreset =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "overworld")
+      region("overworld")
+        .radius(150)
+        .originAnchor()
+        .strategy(Strategy.hex("border").tiling())
+        .structures {
+          allowMods("minecraft")
+          spacing(24)
+          separation(8)
+          frequency(1.0f)
+          forceRadius("minecraft:village_plains", 96)
+        }
+        .mobs { blockNames("minecraft:zombie") }
+        .loot { blockTags("c:foods") }
+      region("cell").parent("overworld").strategy(Strategy.voronoi())
+      region("border").parent("overworld").radius(12)
+      region("cold_forest")
+        .parent("cell")
+        .radius(75)
+        .climate {
+          temperature(-10000, -2000)
+          humidity(4000, 10000)
+          precipitation("snow")
+          climatePreset("minecraft:normal")
+        }
+        .height { range(60, 200) }
+        .biomes { allowTags("minecraft:is_taiga") }
+      region("volcanic")
+        .parent("cell")
+        .radius(45)
+        .climate { temperature(8000).humidity(-3000) }
+        .noise {
+          blendWidth(24.0f)
+          densityFunction("continents") { it.multiply(0.0).add(0.35) }
+          densityFunction(NoiseRouterCompat.SURFACE_FUNCTION_KEY) { it.add(12.0) }
+          densityFunction("finalDensity") { it.add(0.02) }
+        }
+    }
+
+  private val climateDebugPreset =
+    RegionRegistry().apply {
+      setRoot("minecraft:overworld", "hex")
+      region("hex").radius(150).strategy(Strategy.hex().tiling())
+      region("cell").parent("hex").strategy(Strategy.voronoi())
+      region("cold").parent("cell").radius(30).climate {
+        temperature(-10000).humidity(5000)
+      }
+      region("temperate").parent("cell").radius(45).climate {
+        temperature(0).humidity(0)
+      }
+      region("hot").parent("cell").radius(75).climate {
+        temperature(10000).humidity(-5000)
+      }
+    }
+
+  private val presets =
+    mapOf("example.toml" to examplePreset, "climate_debug.toml" to climateDebugPreset)
 
   fun ensurePresent(directory: Path): List<Path> {
     Files.createDirectories(directory)
     val existingPresets = presetFiles(directory)
     val created = mutableListOf<Path>()
-    writeNew(directory.resolve(CONFIG_FILE), defaultConfig())?.let(created::add)
+    writeNew(directory.resolve(CONFIG_FILE), TerrasectTomlWriter.write(defaultConfig))
+      ?.let(created::add)
     if (existingPresets.isEmpty()) {
-      for ((name, contents) in presets) {
-        writeNew(directory.resolve(name), contents)?.let(created::add)
+      for ((name, preset) in presets) {
+        writeNew(directory.resolve(name), TerrasectTomlWriter.write(preset))?.let(created::add)
       }
     }
     return created
@@ -47,149 +116,4 @@ object DefaultConfigFiles {
     } catch (_: FileAlreadyExistsException) {
       null
     }
-
-  private fun defaultConfig() =
-    """
-    # Preset file name without .toml. Leave empty to keep Terrasect inactive.
-    preset = ""
-
-    [logging]
-    load_summary = true
-    validation_warnings = true
-    registry_debug = false
-
-    [instrumentation]
-    enabled = false
-    counters = false
-    timers = false
-
-    [instrumentation.scopes]
-    traversal = false
-
-    [instrumentation.events]
-    "traversal.step" = false
-    """
-      .trimIndent() + "\n"
-
-  private fun examplePreset() =
-    """
-    schema = 1
-
-    [roots]
-    "minecraft:overworld" = "overworld"
-
-    [regions.overworld]
-    radius = 150
-    origin_anchor = true
-
-    [regions.overworld.strategy]
-    type = "hex"
-    tiling = true
-    ring_region = "border"
-
-    [regions.overworld.structures]
-    allow_mods = ["minecraft"]
-    spacing = 24
-    separation = 8
-    frequency = 1.0
-    force = [{ name = "minecraft:village_plains", radius = 96 }]
-
-    [regions.overworld.mobs]
-    block_names = ["minecraft:zombie"]
-
-    [regions.overworld.loot]
-    block_tags = ["c:foods"]
-
-    [regions.cell]
-    parent = "overworld"
-
-    [regions.cell.strategy]
-    type = "voronoi"
-
-    [regions.border]
-    parent = "overworld"
-    radius = 12
-
-    [regions.cold_forest]
-    parent = "cell"
-    radius = 75
-
-    [regions.cold_forest.climate]
-    temperature = [-10000, -2000]
-    humidity = [4000, 10000]
-    precipitation = "snow"
-    climate_preset = "minecraft:normal"
-
-    [regions.cold_forest.height]
-    range = [60, 200]
-
-    [regions.cold_forest.biomes]
-    allow_tags = ["minecraft:is_taiga"]
-
-    [regions.volcanic]
-    parent = "cell"
-    radius = 45
-
-    [regions.volcanic.climate]
-    temperature = 8000
-    humidity = -3000
-
-    [regions.volcanic.noise]
-    blend_width = 24.0
-
-    [regions.volcanic.noise.density_functions]
-    continents = [
-      { op = "multiply", factor = 0.0 },
-      { op = "add", value = 0.35 },
-    ]
-    "${NoiseRouterCompat.SURFACE_FUNCTION_KEY}" = [{ op = "add", value = 12.0 }]
-    finalDensity = [{ op = "add", value = 0.02 }]
-    """
-      .trimIndent() + "\n"
-
-  private fun climateDebugPreset() =
-    """
-    schema = 1
-
-    [roots]
-    "minecraft:overworld" = "hex"
-
-    [regions.hex]
-    radius = 150
-
-    [regions.hex.strategy]
-    type = "hex"
-    tiling = true
-
-    [regions.cell]
-    parent = "hex"
-
-    [regions.cell.strategy]
-    type = "voronoi"
-
-    [regions.cold]
-    parent = "cell"
-    radius = 30
-
-    [regions.cold.climate]
-    temperature = -10000
-    humidity = 5000
-
-    [regions.temperate]
-    parent = "cell"
-    radius = 45
-
-    [regions.temperate.climate]
-    temperature = 0
-    humidity = 0
-
-    [regions.hot]
-    parent = "cell"
-    radius = 75
-
-    [regions.hot.climate]
-    temperature = 10000
-    humidity = -5000
-    """
-      .trimIndent() + "\n"
 }

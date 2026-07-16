@@ -21,6 +21,7 @@ open class RegionDefinition(
 
 open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: String) {
   var originAnchor = false
+  var radius: Long? = null
   var budget: Long? = null
   var strategy: StrategySettings? = null
   var parent: String? = null
@@ -41,9 +42,15 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   val lootLazyBuilder = lazy { SelectionConstraints.builder() }
   val lootBuilder by lootLazyBuilder
 
-  fun radius(radius: Long) = apply { this.budget = radius * radius }
+  fun radius(radius: Long) = apply {
+    this.radius = radius
+    this.budget = radius * radius
+  }
 
-  fun budget(budget: Long) = apply { this.budget = budget }
+  fun budget(budget: Long) = apply {
+    this.radius = null
+    this.budget = budget
+  }
 
   fun originAnchor() = apply { originAnchor = true }
 
@@ -89,6 +96,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
 
   fun copy(): RegionBuilder {
     return RegionBuilder(this.id, this.registry, this.name).also {
+      it.radius = this.radius
       it.budget = this.budget
       it.inheritParent(this)
       if (this.structuresLazyBuilder.isInitialized()) {
