@@ -1,7 +1,10 @@
 package terrasect
 
+import java.nio.file.Path
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
 import net.minecraft.core.registries.Registries
 import net.minecraft.server.MinecraftServer
@@ -14,12 +17,25 @@ import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 import terrasect.generation.DimensionContext
+import terrasect.generation.ForcedSite
 
 private val log = LoggerFactory.getLogger("ForcedStructureGameTest")
 
 private const val SEED = "forced-structures"
 private const val FORCED_PRESET = "forced_structure_village"
 private const val FORCED_ID = "minecraft:village_plains"
+
+private val SCREENSHOTS_BASE: Path by lazy { e2eScreenshotsBase(object {}.javaClass) }
+
+private fun configureAerialCamera(client: Minecraft) {
+  client.player?.let { player ->
+    player.xRot = 65f
+    player.yRot = 0f
+    player.abilities.mayfly = true
+    player.abilities.flying = true
+    player.onUpdateAbilities()
+  }
+}
 
 private fun registerForcedPreset() {
   PresetRegistry.presets[FORCED_PRESET] =
@@ -52,9 +68,46 @@ object ForcedStructureGameTest : FabricClientGameTest {
           }
           .create()
       try {
+        var siteX = 0
+        var siteZ = 0
         game.server.runOnServer(
-          FailableConsumer<MinecraftServer, Exception> { server -> runAssertions(server) }
+          FailableConsumer<MinecraftServer, Exception> { server ->
+            val site = runAssertions(server)
+            siteX = site.blockX
+            siteZ = site.blockZ
+          }
         )
+
+        game.server.runCommand("time set noon")
+        game.server.runOnServer(
+          FailableConsumer<MinecraftServer, Exception> { server ->
+            server.playerList.players[0].teleportTo(siteX + 0.5, 160.0, siteZ + 0.5)
+          }
+        )
+        context.runOnClient(
+          FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
+        )
+        context.waitTicks(20)
+        game.clientLevel.waitForChunksRender()
+        game.server.runOnServer(
+          FailableConsumer<MinecraftServer, Exception> { server ->
+            server.playerList.players[0].teleportTo(siteX + 0.5, 160.0, siteZ + 0.5)
+          }
+        )
+        context.runOnClient(
+          FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
+        )
+        context.waitTicks(20)
+        game.clientLevel.waitForChunksRender()
+        context.runOnClient(
+          FailableConsumer<Minecraft, Exception> { client -> configureAerialCamera(client) }
+        )
+        context.waitTicks(5)
+        val screenshotDir = SCREENSHOTS_BASE.resolve("ForcedStructureTest")
+        context.takeScreenshot(
+          TestScreenshotOptions.of("forced_village").withDestinationDir(screenshotDir)
+        )
+        log.info("screenshot -> {}/forced_village.png", screenshotDir)
       } finally {
         game.close()
       }
@@ -64,7 +117,7 @@ object ForcedStructureGameTest : FabricClientGameTest {
     }
   }
 
-  private fun runAssertions(server: MinecraftServer) {
+  private fun runAssertions(server: MinecraftServer): ForcedSite {
     val level = server.overworld()
     val ctx = DimensionContext.get("minecraft:overworld")
     assertNotNull(ctx, "DimensionContext must be active for the forced preset")
@@ -134,5 +187,6 @@ object ForcedStructureGameTest : FabricClientGameTest {
       site.chunkX,
       site.chunkZ,
     )
+    return site
   }
 }
