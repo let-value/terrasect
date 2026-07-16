@@ -131,8 +131,8 @@ dependencies {
     // BiomesOPlenty, and TerraBlender all bundle the same three plain (non-Fabric-mod) library
     // jars this way, so they crash at init with ClassNotFoundException for nightconfig/typetools.
     // Declaring the same libraries directly bypasses the mod-remap pipeline entirely.
-    runtimeOnly("com.electronwill.night-config:core:3.6.7")
-    runtimeOnly("com.electronwill.night-config:toml:3.6.7")
+    runtimeOnly("com.electronwill.night-config:core:${prop("deps.night_config")}")
+    runtimeOnly("com.electronwill.night-config:toml:${prop("deps.night_config")}")
     runtimeOnly("net.jodah:typetools:0.6.3")
   }
   // C2ME rewrites chunk generation/loading to run concurrently — the most likely mod to expose
@@ -147,6 +147,7 @@ dependencies {
   }
 
   implementation(commonProject)
+  embedded("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 
   add("gametestImplementation", sourceSets["main"].output)
   add("gametestImplementation", commonProject)

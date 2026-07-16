@@ -8,6 +8,7 @@ import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import net.neoforged.fml.loading.FMLPaths
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.server.ServerStartingEvent
 
@@ -30,7 +31,7 @@ class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
   private fun commonSetup(event: FMLCommonSetupEvent) {
     log.info("${Constants.MOD_NAME} common setup")
 
-    Terrasect.init()
+    Terrasect.init(FMLPaths.CONFIGDIR.get())
   }
 
   private fun clientSetup(event: FMLClientSetupEvent) {

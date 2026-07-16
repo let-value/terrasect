@@ -55,6 +55,7 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 | `cache/` | `RegionsCache` (Caffeine-backed, striped-key, two-level), `PalettedGrid<T>` |
 | `compat/` | Minecraft-**version** shims across the `>=1.21.11` fault line (`ResourceKeyCompat`, `SpawnCompat`, `LootContextCompat`, `NoiseRouterCompat`) — see `docs/MULTIVERSION.md` |
 | `definition/` | Region data model: `Region`, `RegionDefinition` (DSL builder), `RegionRegistry`, `ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`, `Strategy`, `PresetRegistry` |
+| `config/` | Strict TOML schema/parser, default config generation, preset registration, and runtime config application |
 | `generation/` | Pipeline: `Address`, `ChunkContext`, `DimensionContext`, `Locator` + `LocateStep`, `Traverser` + `TraversalStep` |
 | `gui/` | `RegionDebugEntry` — debug overlay entry |
 | `handler/` | `ClimateHandler`, `NoiseHandler` — hot-path Minecraft integration |
@@ -71,7 +72,7 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 ## 3. Loader Modules
 
 The loader modules are intentionally minimal. All game logic is in `common/`. The loaders only provide:
-- Mod entry point (calling `Terrasect.init()`)
+- Mod entry point (calling `Terrasect.init(configRoot)`)
 - Loader-specific lifecycle hooks
 - Game test integration (Fabric only)
 

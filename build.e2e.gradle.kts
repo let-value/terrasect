@@ -162,6 +162,7 @@ dependencies {
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
+  embedded("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 
   val commonDep =
     if (legacyLoomCommon) project(path = commonProject.path, configuration = "namedElements")

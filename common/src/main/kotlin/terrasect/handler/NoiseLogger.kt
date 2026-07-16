@@ -2,8 +2,12 @@ package terrasect.handler
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import terrasect.config.ConfigLogging
 
-class ScopedLogger(scope: String) {
+class ScopedLogger(
+  scope: String,
+  @PublishedApi internal val debugEnabled: () -> Boolean = { true },
+) {
   @PublishedApi internal val log: Logger = LoggerFactory.getLogger(scope)
 
   inline fun trace(message: () -> String) {
@@ -11,7 +15,7 @@ class ScopedLogger(scope: String) {
   }
 
   inline fun debug(message: () -> String) {
-    if (log.isDebugEnabled) log.debug(message())
+    if (debugEnabled() && log.isDebugEnabled) log.debug(message())
   }
 
   inline fun info(message: () -> String) {
@@ -25,7 +29,7 @@ class ScopedLogger(scope: String) {
 
 object NoiseLogger {
   val root = ScopedLogger("noise")
-  val registry = ScopedLogger("noise.registry")
+  val registry = ScopedLogger("noise.registry") { ConfigLogging.registryDebug }
   val dimension = ScopedLogger("noise.dimension")
   val context = ScopedLogger("noise.dimension.context")
   val handler = ScopedLogger("noise.handler")

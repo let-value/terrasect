@@ -85,6 +85,8 @@ dependencies {
   implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
   implementation("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
   implementation("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  compileOnly("com.electronwill.night-config:core:${prop("deps.night_config")}")
+  compileOnly("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 
   testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -92,6 +94,7 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter")
   testImplementation("de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}")
   testImplementation("com.github.spullara.mustache.java:compiler:0.9.10")
+  testImplementation("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 }
 
 tasks {

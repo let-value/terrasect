@@ -15,6 +15,7 @@ deps.mixinextras = "0.5.0"
 deps.zero_allocation_hashing = "0.27ea1"
 deps.caffeine = "3.2.3"
 deps.kbase58 = "0.4"
+deps.night_config = "3.8.3"
 
 ["1.20.1"]
 java = "17"

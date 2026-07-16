@@ -1,6 +1,7 @@
 package terrasect
 
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.loader.api.FabricLoader
 import org.slf4j.LoggerFactory
 
 object TerrasectFabric : ModInitializer {
@@ -9,6 +10,6 @@ object TerrasectFabric : ModInitializer {
   override fun onInitialize() {
     log.info("Hello from ${Constants.MOD_NAME} on Fabric!")
 
-    Terrasect.init()
+    Terrasect.init(FabricLoader.getInstance().configDir)
   }
 }
