@@ -8,6 +8,15 @@ class SelectionConstraints(
   val blockedTags: Set<String>,
   val blockedNames: Set<String>,
 ) {
+  private val hasAllowRules =
+    allowedMods.isNotEmpty() || allowedTags.isNotEmpty() || allowedNames.isNotEmpty()
+
+  /**
+   * Rules are checked by specificity: name, then tag, then mod. Within a tier block beats allow,
+   * but a match at a more specific tier wins over any broader rule — allowNames(x) admits x even
+   * when blockMods covers its namespace. Any allow rule at any tier makes the allow-list exclusive:
+   * entries matching no rule are rejected. With no rules at all everything passes.
+   */
   fun evaluate(resourceId: String?, tags: Set<String>?): Boolean {
     if (blockedNames.contains(resourceId)) return false
     if (allowedNames.contains(resourceId)) return true
@@ -21,7 +30,7 @@ class SelectionConstraints(
     if (blockedMods.contains(namespace)) return false
     if (allowedMods.contains(namespace)) return true
 
-    return true
+    return !hasAllowRules
   }
 
   companion object {

@@ -30,7 +30,6 @@ private fun registerCompatPreset() {
           humidity(0, 800)
         }
         .structures {
-          allowMods("minecraft")
           spacing(16)
           separation(8)
         }

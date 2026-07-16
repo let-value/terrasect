@@ -11,7 +11,6 @@ import net.minecraft.gametest.framework.GameTestHelper
 class ServerSmokeGameTest : FabricGameTest {
   @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
   fun pipeline(helper: GameTestHelper) {
-    ServerSmokeGuard.assertPipeline(helper.level)
-    helper.succeed()
+    helper.succeedWhen { ServerSmokeGuard.assertPipeline(helper.level) }
   }
 }

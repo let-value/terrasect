@@ -54,7 +54,6 @@ private fun registerSmokePreset() {
           }
         }
         .structures {
-          allowMods("minecraft")
           spacing(24)
           separation(8)
         }

@@ -21,18 +21,20 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
     id: ByteBuffer,
     parentSdf: Sdf2,
     cache: RegionsCache?,
+    originX: Int = 0,
+    originZ: Int = 0,
   ): List<Site> {
     if (cache == null) {
-      return getSites(seed, parentSdf, budgets)
+      return getSites(seed, parentSdf, budgets, originX, originZ)
     }
 
     val key = cache.getKey(id)
-    return cache.voronoi.getOrCompute(key) { getSites(seed, parentSdf, budgets) }
+    return cache.voronoi.getOrCompute(key) { getSites(seed, parentSdf, budgets, originX, originZ) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
     val seed = getCellSeed(step.traverser.seed, step.id)
-    val sites = getCachedSites(seed, step.id, step.sdf, step.cache)
+    val sites = getCachedSites(seed, step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     val index = getCellIndex(step.x, step.z, sites)
 
     writeId(step.id, seed, index)
@@ -45,6 +47,8 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
     val dist = step.sdf(step.x, step.z)
 
     step.distance = max(step.distance, dist)
+    step.centerX = sites[index].x
+    step.centerZ = sites[index].z
     step.region = children[index]
 
     return step
@@ -59,7 +63,7 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
 
     val newPosition = step.id.position()
     step.id.position(originalPosition)
-    val sites = getCachedSites(seed, step.id, step.sdf, step.cache)
+    val sites = getCachedSites(seed, step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     step.id.position(newPosition)
 
     if (index !in sites.indices) {
@@ -111,8 +115,14 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
       return cellSeed.toInt()
     }
 
-    fun getSites(cellSeed: Int, parentSdf: Sdf2, budgets: LongArray): List<Site> {
-      val bounds = estimateBounds(parentSdf)
+    fun getSites(
+      cellSeed: Int,
+      parentSdf: Sdf2,
+      budgets: LongArray,
+      originX: Int = 0,
+      originZ: Int = 0,
+    ): List<Site> {
+      val bounds = estimateBounds(parentSdf, originX, originZ)
       return getSites(cellSeed.toLong(), parentSdf, bounds, budgets)
     }
 

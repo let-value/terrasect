@@ -27,17 +27,21 @@ class SubdivisionStrategy(
     id: ByteBuffer,
     parentSdf: Sdf2,
     cache: RegionsCache?,
+    originX: Int = 0,
+    originZ: Int = 0,
   ): SubdivisionSplit {
     if (cache == null) {
-      return getSplit(parentSdf, budgets)
+      return getSplit(parentSdf, budgets, originX, originZ)
     }
 
     val key = cache.getKey(id)
-    return cache.subdivision.getOrCompute(key) { getSplit(parentSdf, budgets) }
+    return cache.subdivision.getOrCompute(key) {
+      getSplit(parentSdf, budgets, originX, originZ)
+    }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
-    val split = getCachedSplit(step.id, step.sdf, step.cache)
+    val split = getCachedSplit(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
 
@@ -52,6 +56,11 @@ class SubdivisionStrategy(
     val dist = step.sdf(step.x, step.z)
     step.distance = max(step.distance, dist)
 
+    if (split.axis == 0) {
+      step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
+    } else {
+      step.centerZ = ((sdf.lo + sdf.hi) / 2f).toInt()
+    }
     step.region = children[index]
 
     return step
@@ -66,7 +75,7 @@ class SubdivisionStrategy(
 
     val newPosition = step.id.position()
     step.id.position(originalPosition)
-    val split = getCachedSplit(step.id, step.sdf, step.cache)
+    val split = getCachedSplit(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     step.id.position(newPosition)
 
     val sdf = SubdivisionCellSdf()
@@ -75,7 +84,7 @@ class SubdivisionStrategy(
     sdf.hi = split.edges[index + 1]
     step.sdf.append(sdf)
 
-    val bounds = estimateBounds(step.sdf)
+    val bounds = estimateBounds(step.sdf, step.centerX, step.centerZ)
     if (split.axis == 0) {
       step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
       step.centerZ = (bounds.minZ + bounds.maxZ) / 2
@@ -110,8 +119,13 @@ class SubdivisionStrategy(
 
   companion object {
 
-    fun getSplit(parentSdf: Sdf2, budgets: LongArray): SubdivisionSplit {
-      val bounds = estimateBounds(parentSdf)
+    fun getSplit(
+      parentSdf: Sdf2,
+      budgets: LongArray,
+      originX: Int = 0,
+      originZ: Int = 0,
+    ): SubdivisionSplit {
+      val bounds = estimateBounds(parentSdf, originX, originZ)
       val splitX = bounds.width >= bounds.height
       val axis = if (splitX) 0 else 1
       val axisMin = if (splitX) bounds.minX else bounds.minZ

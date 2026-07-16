@@ -61,6 +61,24 @@ class SubdivisionStrategyTest {
   }
 
   @Test
+  fun `should split far parent instance around its origin`() {
+    val originX = 500_000
+    val originZ = -300_000
+    val radius = 100f
+    val parentSdf: Sdf2 =
+      translate({ x, z -> hypot(x.toFloat(), z.toFloat()) - radius }, originX, originZ)
+
+    val split = SubdivisionStrategy.getSplit(parentSdf, budgets, originX, originZ)
+    val min = split.edges.first()
+    val max = split.edges.last()
+
+    val origin = if (split.axis == 0) originX.toFloat() else originZ.toFloat()
+    assertTrue(origin in min..max) {
+      "far subdivision split did not cover the parent origin: axis=${split.axis} min=$min max=$max"
+    }
+  }
+
+  @Test
   fun `should allocate subdivision area by budget in rectangle sdf`() {
     val halfWidth = 120
     val halfHeight = 80

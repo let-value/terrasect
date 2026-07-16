@@ -19,12 +19,19 @@ import terrasect.handler.StructureHandler;
 public class ChunkGeneratorStructureMixin {
 
   private static List<Holder<StructureSet>> terrasect$filter(
-      List<Holder<StructureSet>> sets, ChunkAccess chunkAccess, ResourceKey<Level> dimensionKey) {
+      List<Holder<StructureSet>> sets,
+      ChunkGeneratorStructureState state,
+      ChunkAccess chunkAccess,
+      ResourceKey<Level> dimensionKey) {
     var chunkPos = chunkAccess.getPos();
     var chunkCtx = ((ChunkAccessExtender) chunkAccess).terrasect$getContext();
     var filtered =
         StructureHandler.getFilteredSets(
-            chunkCtx, dimensionKey, chunkPos.getMinBlockX() >> 4, chunkPos.getMinBlockZ() >> 4);
+            state,
+            chunkCtx,
+            dimensionKey,
+            chunkPos.getMinBlockX() >> 4,
+            chunkPos.getMinBlockZ() >> 4);
     return filtered != null ? filtered : sets;
   }
 
@@ -46,7 +53,7 @@ public class ChunkGeneratorStructureMixin {
       Operation<List<Holder<StructureSet>>> original,
       @Local(argsOnly = true) ChunkAccess chunkAccess,
       @Local(argsOnly = true) ResourceKey<Level> dimensionKey) {
-    return terrasect$filter(original.call(state), chunkAccess, dimensionKey);
+    return terrasect$filter(original.call(state), state, chunkAccess, dimensionKey);
   }
   //?} else {
   /*@WrapOperation(
@@ -60,7 +67,7 @@ public class ChunkGeneratorStructureMixin {
       ChunkGeneratorStructureState state,
       Operation<List<Holder<StructureSet>>> original,
       @Local(argsOnly = true) ChunkAccess chunkAccess) {
-    return terrasect$filter(original.call(state), chunkAccess, null);
+    return terrasect$filter(original.call(state), state, chunkAccess, null);
   }
   *///?}
   // spotless:on

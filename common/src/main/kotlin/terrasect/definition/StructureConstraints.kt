@@ -1,10 +1,16 @@
 package terrasect.definition
 
+import kotlin.math.PI
+import kotlin.math.ceil
+
+data class ForcedStructure(val name: String, val budget: Long?)
+
 class StructureConstraints(
   val selection: SelectionConstraints?,
   val spacing: Int?,
   val separation: Int?,
   val frequency: Float?,
+  val forced: List<ForcedStructure>,
 ) {
   companion object {
     fun builder(): Builder = Builder()
@@ -16,6 +22,7 @@ class StructureConstraints(
     private var spacing: Int? = null
     private var separation: Int? = null
     private var frequency: Float? = null
+    private val forced = mutableListOf<ForcedStructure>()
 
     fun allowMods(vararg mods: String) = apply {
       hasSelection = true
@@ -53,6 +60,18 @@ class StructureConstraints(
 
     fun frequency(frequency: Float) = apply { this.frequency = frequency }
 
+    fun force(name: String, budget: Long? = null) = apply {
+      forced.add(ForcedStructure(name, budget))
+    }
+
+    fun forceRadius(name: String, radius: Long) = apply {
+      forced.add(ForcedStructure(name, ceil(PI * radius * radius).toLong()))
+    }
+
+    // Same-region duplication (RegionBuilder.copy) keeps forced entries; parent→child
+    // inheritance must not, otherwise every child cell would spawn its own copy.
+    fun copyForced(source: Builder) = apply { forced.addAll(source.forced) }
+
     fun inheritParent(parent: Builder) = apply {
       if (parent.hasSelection) {
         hasSelection = true
@@ -69,6 +88,7 @@ class StructureConstraints(
         spacing = spacing,
         separation = separation,
         frequency = frequency,
+        forced = forced.toList(),
       )
   }
 }

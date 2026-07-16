@@ -91,6 +91,9 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     return RegionBuilder(this.id, this.registry, this.name).also {
       it.budget = this.budget
       it.inheritParent(this)
+      if (this.structuresLazyBuilder.isInitialized()) {
+        it.structuresBuilder.copyForced(this.structuresBuilder)
+      }
     }
   }
 

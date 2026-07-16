@@ -37,6 +37,11 @@ class TraversalStep(val traverser: Traverser) {
   var region: Region = traverser.root
   var x: Int = 0
   var z: Int = 0
+  // Canonical point of the current region instance, set by the parent strategy on descent.
+  // Deterministic per instance (unlike x/z) so cached plans derived from it are stable; it may
+  // fall slightly outside the instance (surround rings), which estimateBounds tolerates.
+  var centerX: Int = 0
+  var centerZ: Int = 0
   var distance: Float = Float.NEGATIVE_INFINITY
 
   fun reset(x: Int, z: Int, cache: RegionsCache? = null) {
@@ -47,6 +52,8 @@ class TraversalStep(val traverser: Traverser) {
     this.region = traverser.root
     this.x = x
     this.z = z
+    this.centerX = 0
+    this.centerZ = 0
     this.distance = Float.NEGATIVE_INFINITY
   }
 
