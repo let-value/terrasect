@@ -8,18 +8,9 @@
     "${mod_authors}"
   ],
   "license": "${mod_license}",
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
-    "fabric-client-gametest": [
-      {
-        "value": "terrasect.SmokeGameTest",
-        "adapter": "kotlin"
-      },
-      {
-        "value": "terrasect.LootConstraintBlockAllGameTest",
-        "adapter": "kotlin"
-      }${heavy_gametest_entrypoints}
-    ]
+${gametest_entrypoints}
   },
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",

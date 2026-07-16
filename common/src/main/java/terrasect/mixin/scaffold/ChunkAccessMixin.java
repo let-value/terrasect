@@ -30,9 +30,11 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
     return this.terrasect$level;
   }
 
-  // The ChunkAccess constructor gained a PalettedContainerFactory parameter in 1.21.11. Only the
-  // matching injector may be compiled per version: an @Inject targeting <init> with a mismatched
-  // arg count fails descriptor validation at apply time (a hard crash) regardless of require.
+  // The ChunkAccess constructor's fourth parameter is a biome Registry through 1.21.1, replaced by
+  // a PalettedContainerFactory in 1.21.11. Only the injector whose descriptor matches the running
+  // version may be compiled: an @Inject targeting <init> with a mismatched arg list fails
+  // descriptor
+  // validation at apply time (a hard crash) regardless of require.
   // spotless:off
   //? if >=1.21.11 {
   @Inject(method = "<init>", at = @At("RETURN"), require = 0)
@@ -53,6 +55,7 @@ public class ChunkAccessMixin implements ChunkAccessExtender {
       ChunkPos chunkPos,
       net.minecraft.world.level.chunk.UpgradeData upgradeData,
       LevelHeightAccessor levelHeightAccessor,
+      @Coerce Object biomeRegistry,
       long inhabitedTime,
       LevelChunkSection[] sections,
       BlendingData blendingData,

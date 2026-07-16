@@ -16,6 +16,14 @@ deps.zero_allocation_hashing = "0.27ea1"
 deps.caffeine = "3.2.3"
 deps.kbase58 = "0.4"
 
+["1.20.1"]
+java = "17"
+
+[fabric."1.20.1"]
+deps.fabric_loader = "0.16.14"
+deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
+deps.fabric_api = "0.92.6+1.20.1"
+
 ["1.21.1"]
 java = "21"
 parchment.minecraft = "1.21.1"
@@ -74,6 +82,18 @@ deps.neoform = "26.1.2-1"
 deps.fabric_loader = "0.19.3"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.154.2+26.1.2"
+
+# Third-party mod compat coverage (e2e-compat only). Pinned by Modrinth version id, not version
+# string — see build.e2e-compat.gradle.kts for why.
+deps.compat_glitchcore = "WNtSATXw" # Fabric 26.1.2, GlitchCore 26.1.2.0.2 (BiomesOPlenty dependency)
+deps.compat_biomesoplenty = "8MVwdPgG" # Fabric 26.1.2, BiomesOPlenty 26.1.2.0.22
+deps.compat_terrablender = "NIXt6lha" # Fabric 26.1.2, TerraBlender 26.1.2.0.3
+deps.compat_distanthorizons = "c0SAW45X" # Fabric+NeoForge 26.1.2, Distant Horizons 3.2.0-b-26.1.2
+# Currently unused: build.e2e-compat.gradle.kts skips c2me outside latest — its Jar-in-Jar bundles
+# are its own Fabric sub-mods (not plain libraries), so they can't be recovered the same way the
+# GlitchCore/BiomesOPlenty/TerraBlender jar-in-jar libraries are. Kept pinned in case that's ever
+# unbundled upstream.
+deps.compat_c2me = "h6qi8QiJ" # Fabric 26.1.2, C2ME 0.4.0-alpha.0.31+26.1.2
 
 [neoforge."26.1.x"]
 deps.neo_loader = "26.1.2.78"

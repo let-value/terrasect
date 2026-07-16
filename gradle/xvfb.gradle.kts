@@ -37,10 +37,15 @@ val stopXvfb by tasks.registering {
   }
 }
 
-tasks.named<JavaExec>("runClientGameTest") {
-  if (needsXvfb) {
-    dependsOn(startXvfb)
-    finalizedBy(stopXvfb)
-    environment("DISPLAY", xvfbDisplay)
+// Old-paradigm versions expose `runGametest` (headless server) instead of `runClientGameTest`;
+// wrap whichever task this version actually has. Server gametests don't need a display, but the
+// Xvfb wrap is harmless there and keeps a single code path.
+tasks
+  .matching { it.name == "runClientGameTest" || it.name == "runGameTest" }
+  .configureEach {
+    if (needsXvfb) {
+      dependsOn(startXvfb)
+      finalizedBy(stopXvfb)
+      (this as JavaExec).environment("DISPLAY", xvfbDisplay)
+    }
   }
-}

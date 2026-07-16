@@ -10,6 +10,12 @@
   "license": "${mod_license}",
   "environment": "client",
   "entrypoints": {
+    "client": [
+      {
+        "value": "terrasect.CompatGameTestExit",
+        "adapter": "kotlin"
+      }
+    ],
     "fabric-client-gametest": [
       {
         "value": "terrasect.CompatSmokeGameTest",

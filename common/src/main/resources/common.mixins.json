@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "terrasect.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "${mixin_compat_level}",
   "mixins": [
     "climate.ClimateClimateSamplerMixin",
     "climate.ClimateTargetPointMixin",

@@ -1,0 +1,90 @@
+package terrasect
+
+import net.minecraft.server.level.ServerLevel
+import org.slf4j.LoggerFactory
+import terrasect.compat.ResourceKeyCompat
+import terrasect.definition.PresetRegistry
+import terrasect.definition.RegionRegistry
+import terrasect.generation.DimensionContext
+
+// Version- and loader-agnostic body of the server smoke gametest. The registration wrappers differ
+// per gametest paradigm (old @GameTest/FabricGameTest vs new GameTestInstance) and per loader
+// (Fabric vs NeoForge), but they all force the same preset at mod init and run the same assertion,
+// so the actual guard lives here and is shared across every variant.
+object ServerSmokeGuard {
+  private val log = LoggerFactory.getLogger("ServerSmokeGameTest")
+
+  const val SMOKE_PRESET = "server_smoke_all_constraints"
+
+  // Only force the preset when the gametest launch explicitly asks for it, so a preset is never
+  // forced onto unrelated runs (e.g. a client-gametest launch that also loads this mod).
+  const val FORCE_PROPERTY = "terrasect.serverSmoke"
+
+  // Mirror of the client SmokeGameTest preset: every constraint type on one spawn region so a
+  // single world generation exercises noise/climate/height plus mob/loot/structure lookup building.
+  fun registerPreset() {
+    PresetRegistry.presets[SMOKE_PRESET] =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "overworld_root")
+        region("overworld_root")
+          .climate {
+            temperature(-200, 400)
+            humidity(0, 800)
+            precipitation("rain")
+          }
+          .height { range(60, 200) }
+          .noise {
+            densityFunction("continents") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+            densityFunction("erosion") {
+              it.multiply(0.0)
+              it.add(0.2)
+            }
+          }
+          .structures {
+            allowMods("minecraft")
+            spacing(24)
+            separation(8)
+          }
+          .mobs { blockNames("minecraft:zombie") }
+          .loot { blockTags("c:foods") }
+      }
+  }
+
+  // Called from a mod initializer: registers the preset and forces it before any world loads, so
+  // the server's overworld builds the full Terrasect pipeline. Gated on FORCE_PROPERTY.
+  fun installIfRequested() {
+    if (System.getProperty(FORCE_PROPERTY).isNullOrBlank()) return
+    registerPreset()
+    PresetRegistry.forcePresetId = SMOKE_PRESET
+    log.info("server smoke: forced preset={}", SMOKE_PRESET)
+  }
+
+  // The core guard, shared by every registration variant: the spawn dimension must have a Terrasect
+  // context with every constraint type compiled. If a version-specific mixin silently no-ops, the
+  // context is absent or its lookups are null and the constraints are inert even though world-gen
+  // still "succeeds".
+  fun assertPipeline(level: ServerLevel) {
+    val dimensionId = ResourceKeyCompat.getKeyId(level.dimension())
+    val context =
+      DimensionContext.get(dimensionId)
+        ?: error(
+          "no DimensionContext registered for $dimensionId — the ServerLevel mixin did not run, so " +
+            "every constraint is inert on this version"
+        )
+    val status =
+      linkedMapOf(
+        "noise" to (context.noiseRegistry != null),
+        "structure" to (context.structureLookup != null),
+        "mob" to (context.mobLookup != null),
+        "loot" to (context.lootLookup != null),
+      )
+    val inactive = status.filterValues { !it }.keys
+    check(inactive.isEmpty()) {
+      "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$status"
+    }
+    log.info("server smoke: OK — all constraints active on {} status={}", dimensionId, status)
+  }
+}

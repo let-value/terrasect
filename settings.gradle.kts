@@ -21,6 +21,18 @@ pluginManagement {
   }
 }
 
+buildscript {
+  repositories {
+    gradlePluginPortal()
+  }
+  dependencies {
+    // Shared parent-classloader copy so Loom and ModDevGradle apply the same IdeaExtPlugin class
+    // instead of each bundling its own; without this, idea-ext 1.2's second application crashes
+    // IntelliJ sync with "Cannot add extension with name 'settings'".
+    classpath("gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.2")
+  }
+}
+
 plugins {
   id("dev.kikugie.stonecutter")
   id("dev.kikugie.loom-back-compat")
@@ -41,6 +53,10 @@ stonecutter {
       }
     }
 
+    // Sub-1.20.2: NeoForm has no release, so common uses the Loom-based build.common-legacy script
+    // instead of the MDG/NeoForm build.common script the other versions share.
+    version("1.20.1-common", "1.20.1").buildscript("build.common-legacy.gradle.kts")
+    version("1.20.1-fabric", "1.20.1").buildscript("build.fabric.gradle.kts")
     match("1.21.1", "fabric", "neoforge")
     match("1.21.11", "fabric", "neoforge")
     match("26.1.x", "fabric", "neoforge", version = "26.1")
@@ -49,6 +65,10 @@ stonecutter {
   }
 
   create("e2e") {
+    // 1.20.1 and 1.21.1 predate the client-gametest API; they run the old-paradigm server smoke
+    // gametest instead (see build.e2e.gradle.kts).
+    version("1.20.1", "1.20.1").buildscript("../build.e2e.gradle.kts")
+    version("1.21.1", "1.21.1").buildscript("../build.e2e.gradle.kts")
     version("1.21.11", "1.21.11").buildscript("../build.e2e.gradle.kts")
     version("26.1.x", "26.1.2").buildscript("../build.e2e.gradle.kts")
     version(latestProject, latestVersion).buildscript("../build.e2e.gradle.kts")
@@ -73,6 +93,7 @@ stonecutter {
   //    libraries) and can't be unbundled the same way, so it stays latest-only.
   create("e2e-compat") {
     version(latestProject, latestVersion).buildscript("../build.e2e-compat.gradle.kts")
+    version("26.1.x", "26.1.2").buildscript("../build.e2e-compat.gradle.kts")
     version("1.21.11", "1.21.11").buildscript("../build.e2e-compat.gradle.kts")
     vcsVersion = latestProject
   }

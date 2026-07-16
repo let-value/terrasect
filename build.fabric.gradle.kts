@@ -25,6 +25,13 @@ project
 val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 
+// Sub-1.20.2 builds common with Loom (build.common-legacy) since NeoForm has no release there.
+// Loom remaps that common's default artifact to intermediary, so consuming it normally puts
+// intermediary-targeted mixins on a Mojang-mapped dev runtime and every mixin silently fails to
+// apply. Consume its `namedElements` (un-remapped) variant instead. Newer commons are MDG-built
+// (never remapped), so they're consumed directly.
+val legacyLoomCommon = sc.current.version == "1.20.1"
+
 version = prop("mod.version")
 
 base.archivesName = "${prop("mod.id")}-fabric"
@@ -65,7 +72,17 @@ dependencies {
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
 
-  implementation(commonProject)
+  if (legacyLoomCommon) {
+    implementation(project(path = commonProject.path, configuration = "namedElements"))
+    // `namedElements` carries only the un-remapped jar, not common's transitive runtime libraries,
+    // so pull common's third-party runtime deps explicitly (same version props). Newer commons
+    // bring these transitively via the plain project dependency.
+    runtimeOnly("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+    runtimeOnly("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+    runtimeOnly("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  } else {
+    implementation(commonProject)
+  }
 }
 
 val resourceProps =

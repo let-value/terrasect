@@ -20,8 +20,10 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
   @Unique private static final String TERRASECT_PRESET = "TerrasectPreset";
   @Unique @Nullable private String terrasect$presetId;
 
-  // 26.1 dropped the WorldOptions parameter from PrimaryLevelData.parse. Only the matching overload
-  // may be injected; verified against decompiled bytecode per version.
+  // PrimaryLevelData.parse changed signature across versions: 26.1 dropped the WorldOptions
+  // parameter; 1.20.1 (pre-1.21) additionally carries DataFixer/version/CompoundTag/LevelVersion
+  // parameters. Only the overload matching the target version may be injected; verified against
+  // decompiled bytecode per version.
   // spotless:off
   //? if >=26.1 {
   @SuppressWarnings("deprecation")
@@ -37,7 +39,7 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
       CallbackInfoReturnable<PrimaryLevelData> cir) {
     terrasect$readPresetId(dynamic, cir);
   }
-  //?} else {
+  //?} elif >=1.21.1 {
   /*@SuppressWarnings("deprecation")
   @Inject(
       method = "parse(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lnet/minecraft/world/level/levelgen/WorldOptions;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
@@ -46,6 +48,25 @@ public class PrimaryLevelDataMixin implements PresetIdHolder {
   private static void terrasect$capturePresetId(
       Dynamic<?> dynamic,
       LevelSettings levelSettings,
+      PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
+      net.minecraft.world.level.levelgen.WorldOptions worldOptions,
+      Lifecycle lifecycle,
+      CallbackInfoReturnable<PrimaryLevelData> cir) {
+    terrasect$readPresetId(dynamic, cir);
+  }
+  *///?} else {
+  /*@SuppressWarnings("deprecation")
+  @Inject(
+      method = "parse(Lcom/mojang/serialization/Dynamic;Lcom/mojang/datafixers/DataFixer;ILnet/minecraft/nbt/CompoundTag;Lnet/minecraft/world/level/LevelSettings;Lnet/minecraft/world/level/storage/LevelVersion;Lnet/minecraft/world/level/storage/PrimaryLevelData$SpecialWorldProperty;Lnet/minecraft/world/level/levelgen/WorldOptions;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/storage/PrimaryLevelData;",
+      at = @At("RETURN"),
+      require = 0)
+  private static void terrasect$capturePresetId(
+      Dynamic<?> dynamic,
+      com.mojang.datafixers.DataFixer dataFixer,
+      int version,
+      CompoundTag worldData,
+      LevelSettings levelSettings,
+      net.minecraft.world.level.storage.LevelVersion levelVersion,
       PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
       net.minecraft.world.level.levelgen.WorldOptions worldOptions,
       Lifecycle lifecycle,

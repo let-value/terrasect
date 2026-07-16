@@ -58,7 +58,8 @@ public class DedicatedServerPropertiesWorldDimensionDataMixin {
               target =
                   "Lnet/minecraft/world/level/levelgen/presets/WorldPreset;createWorldDimensions()Lnet/minecraft/world/level/levelgen/WorldDimensions;",
               shift = At.Shift.BEFORE),
-      locals = LocalCapture.CAPTURE_FAILSOFT)
+      locals = LocalCapture.CAPTURE_FAILSOFT,
+      require = 0)
   private void terrasect$capturePresetId(
       net.minecraft.core.RegistryAccess provider,
       CallbackInfoReturnable<WorldDimensions> cir,

@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "terrasect.client",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "${mixin_compat_level}",
   "client": [
     "CreateWorldScreenMixin"
   ],
