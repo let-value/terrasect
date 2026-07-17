@@ -79,6 +79,8 @@ internal class Table(private val config: UnmodifiableConfig, val path: String) {
     return number.toFloat()
   }
 
+  fun requiredFloat(key: String): Float = float(key) ?: fail(key, "value is required")
+
   fun requiredDouble(key: String): Double {
     val value = raw(key) ?: fail(key, "value is required")
     return asDouble(key, value)

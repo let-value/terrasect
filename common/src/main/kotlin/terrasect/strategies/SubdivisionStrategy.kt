@@ -65,7 +65,7 @@ class SubdivisionStrategy(
     }
 
     val split = getCachedSplit(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
-    val v = if (split.axis == 0) step.x else step.z
+    val v = if (split.axis == 0) step.qx else step.qz
     val index = getChildIndex(v, split)
 
     writeId(step.id, index)
@@ -74,7 +74,7 @@ class SubdivisionStrategy(
     sdf.axis = split.axis
     sdf.lo = split.edges[index]
     sdf.hi = split.edges[index + 1]
-    step.sdf.append(sdf)
+    step.append(sdf)
 
     val dist = step.sdf(step.x, step.z)
     step.distance = max(step.distance, dist)
@@ -90,15 +90,15 @@ class SubdivisionStrategy(
   }
 
   private fun traverseTiled(step: TraversalStep): TraversalStep {
-    val periodIndex = floor(step.x / period).toInt()
-    val offset = step.x - periodIndex * period
+    val periodIndex = floor(step.qx / period).toInt()
+    val offset = step.qx - periodIndex * period
     val index = getStripeIndex(offset)
 
     writeTileId(step.id, periodIndex, index)
 
     val sdf = cellSdfRef.get()
     applyStripe(sdf, periodIndex, index)
-    step.sdf.append(sdf)
+    step.append(sdf)
 
     val dist = step.sdf(step.x, step.z)
     step.distance = max(step.distance, dist)
@@ -148,7 +148,7 @@ class SubdivisionStrategy(
     sdf.axis = split.axis
     sdf.lo = split.edges[index]
     sdf.hi = split.edges[index + 1]
-    step.sdf.append(sdf)
+    step.append(sdf)
 
     val bounds = estimateBounds(step.sdf, step.centerX, step.centerZ)
     if (split.axis == 0) {
@@ -173,7 +173,7 @@ class SubdivisionStrategy(
 
     val sdf = SubdivisionCellSdf()
     applyStripe(sdf, periodIndex, index)
-    step.sdf.append(sdf)
+    step.append(sdf)
 
     step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
     step.region = children[index]

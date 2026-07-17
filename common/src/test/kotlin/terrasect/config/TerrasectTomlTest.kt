@@ -17,7 +17,10 @@ import terrasect.instrumentation.MetricsConfig
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectInstrScope
 import terrasect.instrumentation.TerrasectMetricEvent
+import terrasect.sdf.Decoration
+import terrasect.sdf.SiteMetric
 import terrasect.strategies.ArchipelagoStrategy
+import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
 import terrasect.strategies.VoronoiStrategy
@@ -271,6 +274,37 @@ class TerrasectTomlTest {
       { assertTrue(ocean.strategy is ArchipelagoStrategy) },
       { assertEquals("sea", (ocean.strategy as ArchipelagoStrategy).sea.name) },
       { assertEquals(120L, (ocean.strategy as ArchipelagoStrategy).sea.budget) },
+    )
+  }
+
+  @Test
+  fun `decorations and strategy looks round trip through toml`() {
+    val preset =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "land")
+        region("land")
+          .strategy(Strategy.voronoi().tiling().metric(SiteMetric.CHEBYSHEV))
+          .decoration(Decoration.warp(12f, 48f, 3))
+          .decoration(Decoration.stripes(16f, 6f, 30f))
+        region("meadow").parent("land").radius(30).strategy(Strategy.hex(null).rounding(10f))
+        region("cell").parent("meadow").radius(10)
+      }
+
+    val toml = TerrasectTomlWriter.write(preset)
+    val registry = TerrasectToml.parsePreset(toml)
+    val land = registry.buildTree("land")
+    val meadow = land.strategy!!.targets.first { it.name == "meadow" }
+
+    assertAll(
+      { assertEquals(SiteMetric.CHEBYSHEV, (land.strategy as VoronoiStrategy).metric) },
+      {
+        assertEquals(
+          listOf(Decoration.warp(12f, 48f, 3), Decoration.stripes(16f, 6f, 30f)),
+          land.decorations,
+        )
+      },
+      { assertEquals(10f, (meadow.strategy as HexStrategy).rounding) },
+      { assertEquals(toml, TerrasectTomlWriter.write(registry)) },
     )
   }
 

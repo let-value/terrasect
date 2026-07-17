@@ -3,7 +3,6 @@ package terrasect.strategies
 import java.nio.ByteBuffer
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
 import terrasect.cache.RegionsCache
@@ -22,6 +21,7 @@ class VoronoiStrategy(
   val children: Array<Region>,
   val budgets: LongArray,
   val tiling: Boolean = false,
+  val metric: SiteMetric = SiteMetric.EUCLIDEAN,
 ) : Strategy {
   override val targets = children.toList()
   override val tiled: Boolean
@@ -61,7 +61,7 @@ class VoronoiStrategy(
   fun ownerCell(scatter: HexScatter, x: Int, z: Int): TiledCell {
     val coord = scatter.coordOf(x, z)
     val neighborhood = neighborhood(scatter, coord.first(), coord.second())
-    val index = getCellIndex(x, z, neighborhood.sites)
+    val index = getCellIndex(x, z, neighborhood.sites, metric)
     return neighborhood.cells[index]
   }
 
@@ -88,14 +88,15 @@ class VoronoiStrategy(
 
     val seed = getCellSeed(step.traverser.seed, step.id)
     val sites = getCachedSites(seed, step.id, step.sdf, step.cache, step.centerX, step.centerZ)
-    val index = getCellIndex(step.x, step.z, sites)
+    val index = getCellIndex(step.qx, step.qz, sites, metric)
 
     writeId(step.id, seed, index)
 
     val sdf = cellSdfRef.get()
     sdf.sites = sites
     sdf.index = index
-    step.sdf.append(sdf)
+    sdf.metric = metric
+    step.append(sdf)
 
     val dist = step.sdf(step.x, step.z)
 
@@ -109,7 +110,7 @@ class VoronoiStrategy(
 
   private fun traverseTiled(step: TraversalStep): TraversalStep {
     val scatter = scatter(step.traverser.seed)
-    val owner = ownerCell(scatter, step.x, step.z)
+    val owner = ownerCell(scatter, step.qx, step.qz)
     val neighborhood = neighborhood(scatter, owner.q, owner.r)
 
     writeTileId(step.id, owner.q, owner.r)
@@ -117,7 +118,8 @@ class VoronoiStrategy(
     val sdf = cellSdfRef.get()
     sdf.sites = neighborhood.sites
     sdf.index = neighborhood.centerIndex
-    step.sdf.append(sdf)
+    sdf.metric = metric
+    step.append(sdf)
 
     val dist = step.sdf(step.x, step.z)
     step.distance = max(step.distance, dist)
@@ -154,7 +156,8 @@ class VoronoiStrategy(
     val sdf = VoronoiCellSdf()
     sdf.sites = sites
     sdf.index = index
-    step.sdf.append(sdf)
+    sdf.metric = metric
+    step.append(sdf)
 
     val site = sites[index]
     step.centerX = site.x
@@ -173,7 +176,8 @@ class VoronoiStrategy(
     val sdf = VoronoiCellSdf()
     sdf.sites = neighborhood.sites
     sdf.index = neighborhood.centerIndex
-    step.sdf.append(sdf)
+    sdf.metric = metric
+    step.append(sdf)
 
     step.centerX = owner.site.x
     step.centerZ = owner.site.z
@@ -310,15 +314,18 @@ class VoronoiStrategy(
       return getSites(cellSeed.toLong(), parentSdf, bounds, budgets)
     }
 
-    fun getCellIndex(x: Int, z: Int, sites: List<Site>): Int {
+    fun getCellIndex(
+      x: Int,
+      z: Int,
+      sites: List<Site>,
+      metric: SiteMetric = SiteMetric.EUCLIDEAN,
+    ): Int {
       var closestIndex = 0
       var closestPower = Float.POSITIVE_INFINITY
 
       for (i in sites.indices) {
         val site = sites[i]
-        val dx = x - site.x
-        val dz = z - site.z
-        val dist = hypot(dx.toDouble(), dz.toDouble()).toFloat()
+        val dist = metric.distance((x - site.x).toFloat(), (z - site.z).toFloat())
         val power = dist - site.radius
         if (power < closestPower) {
           closestPower = power
@@ -334,13 +341,16 @@ class VoronoiStrategy(
 
   class Builder : StrategySettings {
     var tiling = false
+    var metric = SiteMetric.EUCLIDEAN
 
     fun tiling(value: Boolean = true) = apply { this.tiling = value }
+
+    fun metric(value: SiteMetric) = apply { this.metric = value }
 
     override fun build(builder: RegionBuilder, children: Set<Region>): VoronoiStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.sortedByDescending { it }.toLongArray()
-      return VoronoiStrategy(builder.id, sortedChildren.toTypedArray(), budgets, tiling)
+      return VoronoiStrategy(builder.id, sortedChildren.toTypedArray(), budgets, tiling, metric)
     }
   }
 }

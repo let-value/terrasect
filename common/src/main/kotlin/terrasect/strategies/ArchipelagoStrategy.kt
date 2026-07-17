@@ -51,20 +51,20 @@ class ArchipelagoStrategy(
   override fun traverse(step: TraversalStep): TraversalStep {
     val seed = VoronoiStrategy.getCellSeed(step.traverser.seed, step.id)
     val placed = getCachedIslands(seed, step.id, step.sdf, step.cache, step.centerX, step.centerZ)
-    val slot = islandSlotAt(step.x, step.z, placed)
+    val slot = islandSlotAt(step.qx, step.qz, placed)
 
     writeId(step.id, seed, slot)
 
     if (slot >= 0) {
       val island = placed[slot].island
-      step.sdf.append(island)
+      step.append(island)
       step.centerX = island.centerX
       step.centerZ = island.centerZ
       step.region = islands[placed[slot].childIndex]
     } else {
       val seaSdf = seaSdfRef.get()
       seaSdf.islands = placed.map { it.island }
-      step.sdf.append(seaSdf)
+      step.append(seaSdf)
       step.region = sea
     }
 
@@ -89,7 +89,7 @@ class ArchipelagoStrategy(
     if (slot == SEA_INDEX) {
       val seaSdf = ArchipelagoSeaSdf()
       seaSdf.islands = placed.map { it.island }
-      step.sdf.append(seaSdf)
+      step.append(seaSdf)
       step.region = sea
       return step
     }
@@ -99,7 +99,7 @@ class ArchipelagoStrategy(
     }
 
     val island = placed[slot].island
-    step.sdf.append(island)
+    step.append(island)
     step.centerX = island.centerX
     step.centerZ = island.centerZ
     step.region = islands[placed[slot].childIndex]

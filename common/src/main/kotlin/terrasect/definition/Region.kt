@@ -1,10 +1,13 @@
 package terrasect.definition
 
+import terrasect.sdf.Decoration
+
 class Region(
   val name: String,
   val budget: Long,
   val children: Set<Region>,
   val strategy: Strategy? = null,
+  val decorations: List<Decoration> = emptyList(),
   val climate: ClimateConstraints? = null,
   val height: HeightConstraints? = null,
   val noise: NoiseConstraints? = null,
