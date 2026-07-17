@@ -50,8 +50,8 @@ class SurroundStrategy(
     val origin = getCachedOrigin(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     val isCenter =
       surroundDistance(
-        step.x,
-        step.z,
+        step.qx,
+        step.qz,
         origin.parent,
         origin.centerX,
         origin.centerZ,
@@ -68,7 +68,7 @@ class SurroundStrategy(
       sdf.centerZ = origin.centerZ
       sdf.scale = scale
       sdf.smoothing = smoothing
-      step.sdf.append(sdf)
+      step.append(sdf)
     } else {
       val sdf = surroundSdfRef.get()
       sdf.parent = origin.parent
@@ -76,7 +76,7 @@ class SurroundStrategy(
       sdf.centerZ = origin.centerZ
       sdf.scale = scale
       sdf.smoothing = smoothing
-      step.sdf.append(sdf)
+      step.append(sdf)
     }
 
     val distance = step.sdf(step.x, step.z)
@@ -103,7 +103,7 @@ class SurroundStrategy(
       sdf.centerZ = origin.centerZ
       sdf.scale = scale
       sdf.smoothing = smoothing
-      step.sdf.append(sdf)
+      step.append(sdf)
     } else {
       val sdf = SurroundCellSdf()
       sdf.parent = parent
@@ -111,7 +111,7 @@ class SurroundStrategy(
       sdf.centerZ = origin.centerZ
       sdf.scale = scale
       sdf.smoothing = smoothing
-      step.sdf.append(sdf)
+      step.append(sdf)
     }
 
     step.centerX = origin.centerX

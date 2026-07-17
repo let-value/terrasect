@@ -171,6 +171,7 @@ class Locator(val seed: Long, val root: Region) {
       val parent = path[i].region
       val child = path[i + 1].region
       val start = step.id.position()
+      step.enter(parent)
       when (descend(step, sources, parent, child)) {
         true -> used++
         false -> parent.strategy?.resolve(step, child) ?: return null
@@ -183,6 +184,7 @@ class Locator(val seed: Long, val root: Region) {
     val strategy = region.strategy
     val ownTarget = strategy?.targets?.firstOrNull()
     if (strategy != null && ownTarget != null) {
+      step.enter(region)
       if (strategy.tiled) {
         when (descend(step, sources, region, null)) {
           true -> used++
@@ -280,6 +282,9 @@ class LocateStep(val locator: Locator) {
   var centerX: Int = 0
   var centerZ: Int = 0
   var ambiguous: Boolean = false
+  var domainChain: List<terrasect.sdf.DomainDecoration> = emptyList()
+  var layerOps: List<terrasect.sdf.LayerDecoration> = emptyList()
+  private var enteredPosition = -1
 
   fun reset(id: ByteBuffer, cache: RegionsCache? = null) {
     this.id = id
@@ -290,11 +295,48 @@ class LocateStep(val locator: Locator) {
     this.centerX = 0
     this.centerZ = 0
     this.ambiguous = false
+    this.domainChain = emptyList()
+    this.layerOps = emptyList()
+    this.enteredPosition = -1
+  }
+
+  fun append(sdf: Sdf2) {
+    if (domainChain.isEmpty() && layerOps.isEmpty()) {
+      this.sdf.append(sdf)
+    } else {
+      this.sdf.append(terrasect.sdf.DecoratedSdf(sdf, domainChain, layerOps))
+    }
+  }
+
+  fun enter(region: Region) {
+    val position = id.position()
+    if (position == enteredPosition) {
+      return
+    }
+    enteredPosition = position
+    if (region.decorations.isEmpty()) {
+      layerOps = emptyList()
+      return
+    }
+
+    var seed = prefixSeed(locator.seed, id)
+    val ops = ArrayList<terrasect.sdf.LayerDecoration>()
+    var chain = domainChain
+    for (decoration in region.decorations) {
+      when (val instance = decoration.instantiate(seed, centerX, centerZ)) {
+        is terrasect.sdf.DomainDecoration -> chain = chain + instance
+        is terrasect.sdf.LayerDecoration -> ops += instance
+      }
+      seed = seed * 31 + 17
+    }
+    domainChain = chain
+    layerOps = ops
   }
 
   fun next(): LocateStep? {
     val strategyId = peekStrategyId() ?: return null
     val strategy = locator.resolve(region, strategyId) ?: return null
+    enter(region)
     return strategy.locate(this)
   }
 

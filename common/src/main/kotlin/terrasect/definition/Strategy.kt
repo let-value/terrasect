@@ -3,6 +3,7 @@ package terrasect.definition
 import java.nio.ByteBuffer
 import terrasect.generation.LocateStep
 import terrasect.generation.TraversalStep
+import terrasect.strategies.ArchipelagoStrategy
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
@@ -41,5 +42,7 @@ interface Strategy {
     fun subdivision() = SubdivisionStrategy.builder()
 
     fun surround(surroundRegionName: String) = SurroundStrategy.builder(surroundRegionName)
+
+    fun archipelago(seaRegionName: String) = ArchipelagoStrategy.builder(seaRegionName)
   }
 }

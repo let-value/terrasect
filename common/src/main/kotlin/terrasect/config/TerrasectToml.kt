@@ -10,6 +10,8 @@ import terrasect.definition.StructureConstraints
 import terrasect.helpers.NoiseTransform
 import terrasect.instrumentation.TerrasectInstrScope
 import terrasect.instrumentation.TerrasectMetricEvent
+import terrasect.sdf.Decoration
+import terrasect.sdf.SiteMetric
 
 class TerrasectConfigException(message: String, cause: Throwable? = null) :
   IllegalArgumentException(message, cause)
@@ -57,6 +59,7 @@ object TerrasectToml {
         "budget",
         "origin_anchor",
         "strategy",
+        "decorations",
         "climate",
         "height",
         "noise",
@@ -188,6 +191,7 @@ object TerrasectToml {
       warning("${table.path}.origin_anchor is accepted but currently has no runtime effect")
     }
     table.table("strategy")?.let { applyStrategy(builder, it, regionNames) }
+    table.raw("decorations")?.let { applyDecorations(builder, table, it) }
     table.table("climate")?.let { applyClimate(builder, it, warning) }
     table.table("height")?.let {
       warning("${it.path} is accepted but currently has no runtime effect")
@@ -207,19 +211,36 @@ object TerrasectToml {
     val type = table.requiredString("type").lowercase()
     when (type) {
       "hex" -> {
-        table.rejectUnknown("type", "tiling", "ring_region")
+        table.rejectUnknown("type", "tiling", "ring_region", "rounding")
         val ring = table.string("ring_region")
         if (ring != null && ring !in regionNames)
           table.fail("ring_region", "unknown region '$ring'")
-        builder.strategy(Strategy.hex(ring).tiling(table.boolean("tiling") ?: true))
+        val hex = Strategy.hex(ring).tiling(table.boolean("tiling") ?: true)
+        table.float("rounding")?.let(hex::rounding)
+        builder.strategy(hex)
       }
       "voronoi" -> {
-        table.rejectUnknown("type")
-        builder.strategy(Strategy.voronoi())
+        table.rejectUnknown("type", "tiling", "metric")
+        val voronoi = Strategy.voronoi().tiling(table.boolean("tiling") ?: false)
+        table.string("metric")?.let { name ->
+          val metric =
+            SiteMetric.entries.find { it.name.equals(name, ignoreCase = true) }
+              ?: table.fail("metric", "unknown metric '$name'")
+          voronoi.metric(metric)
+        }
+        builder.strategy(voronoi)
       }
       "subdivision" -> {
-        table.rejectUnknown("type")
-        builder.strategy(Strategy.subdivision())
+        table.rejectUnknown("type", "tiling")
+        builder.strategy(Strategy.subdivision().tiling(table.boolean("tiling") ?: false))
+      }
+      "archipelago" -> {
+        table.rejectUnknown("type", "sea_region")
+        val sea = table.requiredString("sea_region")
+        if (sea !in regionNames) {
+          table.fail("sea_region", "unknown region '$sea'")
+        }
+        builder.strategy(Strategy.archipelago(sea))
       }
       "surround" -> {
         table.rejectUnknown("type", "surround_region")
@@ -230,6 +251,66 @@ object TerrasectToml {
         builder.strategy(Strategy.surround(surround))
       }
       else -> table.fail("type", "unknown strategy '$type'")
+    }
+  }
+
+  private fun applyDecorations(builder: RegionBuilder, table: Table, raw: Any?) {
+    for ((index, config) in table.asTableList("decorations", raw).withIndex()) {
+      val entry = Table(config, "${table.path}.decorations[$index]")
+      val type = entry.requiredString("type").lowercase()
+      val decoration =
+        when (type) {
+          "warp" -> {
+            entry.rejectUnknown("type", "amplitude", "scale", "octaves")
+            Decoration.warp(
+              entry.requiredFloat("amplitude"),
+              entry.requiredFloat("scale"),
+              entry.int("octaves") ?: 2,
+            )
+          }
+          "dither" -> {
+            entry.rejectUnknown("type", "width", "scale")
+            Decoration.dither(entry.requiredFloat("width"), entry.float("scale") ?: 8f)
+          }
+          "swirl" -> {
+            entry.rejectUnknown("type", "strength", "radius")
+            Decoration.swirl(entry.requiredFloat("strength"), entry.requiredFloat("radius"))
+          }
+          "ripple" -> {
+            entry.rejectUnknown("type", "amplitude", "wavelength")
+            Decoration.ripple(entry.requiredFloat("amplitude"), entry.requiredFloat("wavelength"))
+          }
+          "shear" -> {
+            entry.rejectUnknown("type", "x", "z")
+            Decoration.shear(entry.float("x") ?: 0f, entry.float("z") ?: 0f)
+          }
+          "terrace" -> {
+            entry.rejectUnknown("type", "step")
+            Decoration.terrace(entry.requiredFloat("step"))
+          }
+          "gap" -> {
+            entry.rejectUnknown("type", "width")
+            Decoration.gap(entry.requiredFloat("width"))
+          }
+          "onion" -> {
+            entry.rejectUnknown("type", "thickness")
+            Decoration.onion(entry.requiredFloat("thickness"))
+          }
+          "stripes" -> {
+            entry.rejectUnknown("type", "width", "gap", "angle")
+            Decoration.stripes(
+              entry.requiredFloat("width"),
+              entry.requiredFloat("gap"),
+              entry.float("angle") ?: 0f,
+            )
+          }
+          "rings" -> {
+            entry.rejectUnknown("type", "width", "gap")
+            Decoration.rings(entry.requiredFloat("width"), entry.requiredFloat("gap"))
+          }
+          else -> entry.fail("type", "unknown decoration '$type'")
+        }
+      builder.decoration(decoration)
     }
   }
 

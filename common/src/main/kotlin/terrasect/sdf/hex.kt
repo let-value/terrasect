@@ -52,10 +52,27 @@ fun hexDistance(px: Int, pz: Int, apothem: Float): Float {
   return max(d, x) - apothem
 }
 
-class HexCellSdf(var centerX: Int = 0, var centerZ: Int = 0, var apothem: Float = 0f) : Sdf2 {
+// Positive rounding blends the two half-plane distances with smoothMax, softening the hexagon's
+// corners. Ownership still uses the crisp hex grid, so rounded corners read as small gaps.
+fun hexDistance(px: Int, pz: Int, apothem: Float, rounding: Float): Float {
+  if (rounding <= 0f) {
+    return hexDistance(px, pz, apothem)
+  }
+  val x = abs(px).toFloat()
+  val z = abs(pz)
+  val d = (x * 0.5f + z * SIN60)
+  return smoothMax(d, x, rounding) - apothem
+}
+
+class HexCellSdf(
+  var centerX: Int = 0,
+  var centerZ: Int = 0,
+  var apothem: Float = 0f,
+  var rounding: Float = 0f,
+) : Sdf2 {
 
   override fun invoke(x: Int, z: Int): Float {
-    return hexDistance(x - centerX, z - centerZ, apothem)
+    return hexDistance(x - centerX, z - centerZ, apothem, rounding)
   }
 }
 
@@ -64,13 +81,14 @@ class HexGapSdf(
   var centerZ: Int = 0,
   var apothem: Float = 0f,
   var gap: Float = 0f,
+  var rounding: Float = 0f,
 ) : Sdf2 {
 
   override fun invoke(x: Int, z: Int): Float {
     val dx = x - centerX
     val dz = z - centerZ
-    val outer = hexDistance(dx, dz, apothem + gap)
-    val inner = hexDistance(dx, dz, apothem)
+    val outer = hexDistance(dx, dz, apothem + gap, rounding)
+    val inner = hexDistance(dx, dz, apothem, rounding)
     return max(outer, -inner)
   }
 }

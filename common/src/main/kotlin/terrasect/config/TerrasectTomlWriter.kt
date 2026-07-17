@@ -15,6 +15,9 @@ import terrasect.definition.SelectionConstraints
 import terrasect.definition.StrategySettings
 import terrasect.definition.StructureConstraints
 import terrasect.helpers.NoiseTransform
+import terrasect.sdf.Decoration
+import terrasect.sdf.SiteMetric
+import terrasect.strategies.ArchipelagoStrategy
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
@@ -102,6 +105,9 @@ object TerrasectTomlWriter {
       }
       if (builder.originAnchor) value("origin_anchor", true)
       builder.strategy?.let { strategy -> table("strategy") { strategy(strategy) } }
+      if (builder.decorations.isNotEmpty()) {
+        value("decorations", builder.decorations.map { inlineTable { decoration(it) } })
+      }
       if (builder.climateLazyBuilder.isInitialized()) {
         table("climate") { climate(builder.climateBuilder.build()) }
       }
@@ -133,14 +139,82 @@ object TerrasectTomlWriter {
           value("type", "hex")
           value("tiling", strategy.tiling)
           optional("ring_region", strategy.ringRegionName)
+          if (strategy.rounding != 0f) value("rounding", strategy.rounding)
         }
-        is VoronoiStrategy.Builder -> value("type", "voronoi")
-        is SubdivisionStrategy.Builder -> value("type", "subdivision")
+        is VoronoiStrategy.Builder -> {
+          value("type", "voronoi")
+          if (strategy.tiling) value("tiling", true)
+          if (strategy.metric != SiteMetric.EUCLIDEAN) {
+            value("metric", strategy.metric.name.lowercase())
+          }
+        }
+        is SubdivisionStrategy.Builder -> {
+          value("type", "subdivision")
+          if (strategy.tiling) value("tiling", true)
+        }
         is SurroundStrategy.Builder -> {
           value("type", "surround")
           value("surround_region", strategy.surroundRegionName)
         }
+        is ArchipelagoStrategy.Builder -> {
+          value("type", "archipelago")
+          value("sea_region", strategy.seaRegionName)
+        }
         else -> error("Unsupported strategy settings: ${strategy.javaClass.name}")
+      }
+    }
+
+    private fun CommentedConfig.decoration(decoration: Decoration) {
+      when (decoration) {
+        is Decoration.Warp -> {
+          value("type", "warp")
+          value("amplitude", decoration.amplitude)
+          value("scale", decoration.scale)
+          if (decoration.octaves != 2) value("octaves", decoration.octaves)
+        }
+        is Decoration.Dither -> {
+          value("type", "dither")
+          value("width", decoration.width)
+          if (decoration.scale != 8f) value("scale", decoration.scale)
+        }
+        is Decoration.Swirl -> {
+          value("type", "swirl")
+          value("strength", decoration.strength)
+          value("radius", decoration.radius)
+        }
+        is Decoration.Ripple -> {
+          value("type", "ripple")
+          value("amplitude", decoration.amplitude)
+          value("wavelength", decoration.wavelength)
+        }
+        is Decoration.Shear -> {
+          value("type", "shear")
+          if (decoration.x != 0f) value("x", decoration.x)
+          if (decoration.z != 0f) value("z", decoration.z)
+        }
+        is Decoration.Terrace -> {
+          value("type", "terrace")
+          value("step", decoration.step)
+        }
+        is Decoration.Gap -> {
+          value("type", "gap")
+          value("width", decoration.width)
+        }
+        is Decoration.Onion -> {
+          value("type", "onion")
+          value("thickness", decoration.thickness)
+        }
+        is Decoration.Stripes -> {
+          value("type", "stripes")
+          value("width", decoration.width)
+          value("gap", decoration.gap)
+          if (decoration.angle != 0f) value("angle", decoration.angle)
+        }
+        is Decoration.Rings -> {
+          value("type", "rings")
+          value("width", decoration.width)
+          value("gap", decoration.gap)
+        }
       }
     }
 

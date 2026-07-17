@@ -1,6 +1,7 @@
 package terrasect.definition
 
 import kotlin.math.max
+import terrasect.sdf.Decoration
 
 open class RegionDefinition(
   val registry: RegionRegistry,
@@ -8,6 +9,7 @@ open class RegionDefinition(
   val originAnchor: Boolean = false,
   var budget: Long,
   val strategy: StrategySettings,
+  val decorations: List<Decoration> = emptyList(),
   var parent: String? = null,
   val children: MutableSet<String>? = null,
   val climate: ClimateConstraints? = null,
@@ -24,6 +26,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   var radius: Long? = null
   var budget: Long? = null
   var strategy: StrategySettings? = null
+  val decorations = mutableListOf<Decoration>()
   var parent: String? = null
   val childrenLazy = lazy { mutableSetOf<String>() }
   val children by childrenLazy
@@ -55,6 +58,8 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   fun originAnchor() = apply { originAnchor = true }
 
   fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
+
+  fun decoration(decoration: Decoration) = apply { decorations += decoration }
 
   fun parent(name: String) = apply {
     parent = name
@@ -98,6 +103,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
     return RegionBuilder(this.id, this.registry, this.name).also {
       it.radius = this.radius
       it.budget = this.budget
+      it.decorations += this.decorations
       it.inheritParent(this)
       if (this.structuresLazyBuilder.isInitialized()) {
         it.structuresBuilder.copyForced(this.structuresBuilder)
@@ -143,6 +149,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
       originAnchor = this.originAnchor,
       budget = budget ?: (this.budget ?: 0),
       strategy = this.strategy ?: Strategy.voronoi(),
+      decorations = this.decorations.toList(),
       parent = this.parent,
       children = if (this.childrenLazy.isInitialized()) this.children else null,
       climate = if (this.climateLazyBuilder.isInitialized()) climateBuilder.build() else null,

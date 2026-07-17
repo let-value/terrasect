@@ -23,6 +23,7 @@ class HexStrategy(
   val tiling: Boolean,
   val children: Region,
   val ringRegion: Region? = null,
+  val rounding: Float = 0f,
 ) : Strategy {
   override val targets = listOfNotNull(children, ringRegion)
   override val tiled = true
@@ -33,12 +34,12 @@ class HexStrategy(
   fun getCachedCell(step: TraversalStep, apothem: Float, gap: Float): HexCellResult {
     val skipCache = tiling || step.cache == null
     if (skipCache) {
-      return getCell(step.x, step.z, apothem, gap)
+      return getCell(step.qx, step.qz, apothem, gap)
     }
 
     val cache = step.cache!!
     val key = cache.getKey(step.id)
-    return cache.hex.getOrCompute(key) { getCell(step.x, step.z, apothem, gap) }
+    return cache.hex.getOrCompute(key) { getCell(step.qx, step.qz, apothem, gap) }
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
@@ -55,13 +56,15 @@ class HexStrategy(
       sdf.centerZ = cell.centerZ
       sdf.apothem = apothem
       sdf.gap = gap
-      step.sdf.append(sdf)
+      sdf.rounding = rounding
+      step.append(sdf)
     } else {
       val sdf = cellSdfRef.get()
       sdf.centerX = cell.centerX
       sdf.centerZ = cell.centerZ
       sdf.apothem = apothem
-      step.sdf.append(sdf)
+      sdf.rounding = rounding
+      step.append(sdf)
     }
 
     val distance = step.sdf(step.x, step.z)
@@ -88,13 +91,15 @@ class HexStrategy(
       sdf.centerZ = cell.centerZ
       sdf.apothem = apothem
       sdf.gap = gap
-      step.sdf.append(sdf)
+      sdf.rounding = rounding
+      step.append(sdf)
     } else {
       val sdf = HexCellSdf()
       sdf.centerX = cell.centerX
       sdf.centerZ = cell.centerZ
       sdf.apothem = apothem
-      step.sdf.append(sdf)
+      sdf.rounding = rounding
+      step.append(sdf)
     }
 
     step.centerX = cell.centerX
@@ -178,17 +183,20 @@ class HexStrategy(
 
   class Builder(var ringRegionName: String? = null) : StrategySettings {
     var tiling = true
+    var rounding = 0f
 
     fun ringRegionName(ringRegionName: String?) = apply { this.ringRegionName = ringRegionName }
 
     fun tiling(value: Boolean = true) = apply { this.tiling = value }
+
+    fun rounding(value: Float) = apply { this.rounding = value }
 
     override fun build(builder: RegionBuilder, children: Set<Region>): HexStrategy {
       val region =
         children.asSequence().filter { it.name != ringRegionName }.maxByOrNull { it.budget }
           ?: Region.empty("${builder.name}_center")
       val ringRegion = ringRegionName?.let { builder.registry.buildTree(it) }
-      return HexStrategy(builder.id, tiling, region, ringRegion)
+      return HexStrategy(builder.id, tiling, region, ringRegion, rounding)
     }
   }
 }
