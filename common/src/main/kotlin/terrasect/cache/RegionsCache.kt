@@ -9,6 +9,7 @@ import kotlin.concurrent.withLock
 import net.openhft.hashing.LongHashFunction
 import terrasect.sdf.Site
 import terrasect.strategies.HexCellResult
+import terrasect.strategies.PlacedIsland
 import terrasect.strategies.SubdivisionSplit
 import terrasect.strategies.SurroundOriginResult
 
@@ -32,11 +33,14 @@ class RegionsCache(val maximumSize: Long = 10, shared: RegionsCache? = null) {
     Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SubdivisionSplit>()
   private val surroundLocal =
     Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, SurroundOriginResult>()
+  private val archipelagoLocal =
+    Caffeine.newBuilder().maximumSize(maximumSize).build<CacheKey, List<PlacedIsland>>()
 
   val hex = LayeredCache(hexLocal, shared?.hexLocal)
   val voronoi = LayeredCache(voronoiLocal, shared?.voronoiLocal)
   val subdivision = LayeredCache(subdivisionLocal, shared?.subdivisionLocal)
   val surround = LayeredCache(surroundLocal, shared?.surroundLocal)
+  val archipelago = LayeredCache(archipelagoLocal, shared?.archipelagoLocal)
 
   fun getKey(id: ByteBuffer): CacheKey {
     val len = id.position()
