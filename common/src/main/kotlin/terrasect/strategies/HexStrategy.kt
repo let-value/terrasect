@@ -24,6 +24,9 @@ class HexStrategy(
   val children: Region,
   val ringRegion: Region? = null,
 ) : Strategy {
+  override val targets = listOfNotNull(children, ringRegion)
+  override val tiled = true
+
   val cellSdfRef: ThreadLocal<HexCellSdf> = ThreadLocal.withInitial { HexCellSdf() }
   val gapSdfRef: ThreadLocal<HexGapSdf> = ThreadLocal.withInitial { HexGapSdf() }
 
@@ -99,6 +102,25 @@ class HexStrategy(
     step.region = if (cell.isGap && ringRegion != null) ringRegion else children
 
     return step
+  }
+
+  override fun resolve(step: LocateStep, child: Region): LocateStep? {
+    val isGap = ringRegion != null && child === ringRegion
+    if (!isGap && child !== children) {
+      return null
+    }
+
+    val apothem = areaToApothem(children.budget)
+    val gap = if (ringRegion != null) areaToApothem(ringRegion.budget) else 0f
+    val cell = getCell(step.centerX, step.centerZ, apothem, gap)
+    cell.isGap = isGap
+
+    val position = step.id.position()
+    writeId(step.id, cell)
+    step.id.position(position)
+    step.ambiguous = true
+
+    return locate(step)
   }
 
   fun writeId(buffer: ByteBuffer, cell: HexCellResult) {

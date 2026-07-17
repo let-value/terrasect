@@ -79,6 +79,8 @@ object SmokeGameTest : FabricClientGameTest {
       val surfaces = ArrayList<Int>(256)
       lateinit var lookupStatus: Map<String, Boolean>
       var dimensionId = ""
+      var commandRegistered = false
+      var commandResult = 0
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
           val level = server.overworld()
@@ -97,6 +99,14 @@ object SmokeGameTest : FabricClientGameTest {
               "mob" to (context?.mobLookup != null),
               "loot" to (context?.lootLookup != null),
             )
+          val dispatcher = server.commands.dispatcher
+          commandRegistered = dispatcher.root.getChild("ts") != null
+          if (commandRegistered) {
+            val commandSource = server.createCommandSourceStack()
+            commandResult =
+              dispatcher.execute("ts locate .overworld_root", commandSource) +
+                dispatcher.execute("ts query", commandSource)
+          }
           log.info(
             "smoke: dim={} surfaces {}..{} avg={} pipeline={}",
             dimensionId,
@@ -121,6 +131,14 @@ object SmokeGameTest : FabricClientGameTest {
       assertTrue(
         inactive.isEmpty(),
         "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$lookupStatus",
+      )
+      assertTrue(
+        commandRegistered,
+        "'/ts' is not in the vanilla dispatcher — the Commands mixin did not run on this version",
+      )
+      assertTrue(
+        commandResult == 2,
+        "'/ts locate .overworld_root' or '/ts query' failed on $dimensionId",
       )
       log.info("smoke: OK — all constraints active on $dimensionId")
     } finally {

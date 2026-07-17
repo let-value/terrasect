@@ -14,6 +14,8 @@ import terrasect.sdf.*
 
 class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val budgets: LongArray) :
   Strategy {
+  override val targets = children.toList()
+
   val cellSdfRef: ThreadLocal<VoronoiCellSdf> = ThreadLocal.withInitial { VoronoiCellSdf() }
 
   private fun getCachedSites(
@@ -57,6 +59,9 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
   override fun locate(step: LocateStep): LocateStep? {
     val originalPosition = step.id.position()
     val (seed, index) = readId(step.id) ?: return null
+    if (index == Strategy.SELF_INDEX) {
+      return step
+    }
     if (index !in children.indices) {
       return null
     }
@@ -81,6 +86,24 @@ class VoronoiStrategy(override val id: Byte, val children: Array<Region>, val bu
     step.region = children[index]
 
     return step
+  }
+
+  override fun resolve(step: LocateStep, child: Region): LocateStep? {
+    val index = children.indexOfFirst { it === child }
+    if (index < 0) {
+      return null
+    }
+
+    val seed = getCellSeed(step.locator.seed, step.id)
+    val position = step.id.position()
+    writeId(step.id, seed, index)
+    step.id.position(position)
+
+    return locate(step)
+  }
+
+  override fun writeSelf(step: LocateStep, buffer: ByteBuffer) {
+    writeId(buffer, getCellSeed(step.locator.seed, buffer), Strategy.SELF_INDEX)
   }
 
   fun writeId(buffer: ByteBuffer, seed: Int, index: Int) {

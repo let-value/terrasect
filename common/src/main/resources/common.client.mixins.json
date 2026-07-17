@@ -3,7 +3,8 @@
   "package": "terrasect.client",
   "compatibilityLevel": "${mixin_compat_level}",
   "client": [
-    "CreateWorldScreenMixin"
+    "CreateWorldScreenMixin",
+    "DebugScreenEntriesInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

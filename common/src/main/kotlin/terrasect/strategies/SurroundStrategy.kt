@@ -15,6 +15,7 @@ data class SurroundOriginResult(
   var centerX: Int = 0,
   var centerZ: Int = 0,
   var isCenter: Boolean = false,
+  var isSelf: Boolean = false,
   var parent: Sdf2 = EmptySdf,
 )
 
@@ -25,6 +26,8 @@ class SurroundStrategy(
   val scale: Float,
   val smoothing: Float,
 ) : Strategy {
+  override val targets = listOf(center, surround)
+
   val centerSdfRef: ThreadLocal<CenterCellSdf> = ThreadLocal.withInitial { CenterCellSdf() }
   val surroundSdfRef: ThreadLocal<SurroundCellSdf> = ThreadLocal.withInitial { SurroundCellSdf() }
 
@@ -88,6 +91,9 @@ class SurroundStrategy(
 
   override fun locate(step: LocateStep): LocateStep? {
     val origin = readId(step.id) ?: return null
+    if (origin.isSelf) {
+      return step
+    }
     val parent = step.sdf.bake()
 
     if (origin.isCenter) {
@@ -115,6 +121,27 @@ class SurroundStrategy(
     return step
   }
 
+  override fun resolve(step: LocateStep, child: Region): LocateStep? {
+    val isCenter = child === center
+    if (!isCenter && child !== surround) {
+      return null
+    }
+
+    val origin = getCachedOrigin(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
+    val position = step.id.position()
+    writeId(step.id, origin, isCenter)
+    step.id.position(position)
+
+    return locate(step)
+  }
+
+  override fun writeSelf(step: LocateStep, buffer: ByteBuffer) {
+    buffer.put(id)
+    buffer.putInt(0)
+    buffer.putInt(0)
+    buffer.put(SELF_MARKER)
+  }
+
   fun writeId(buffer: ByteBuffer, origin: SurroundOriginResult, isCenter: Boolean) {
     buffer.put(id)
     buffer.putInt(origin.centerX)
@@ -131,15 +158,21 @@ class SurroundStrategy(
 
       val centerX = buffer.getInt()
       val centerZ = buffer.getInt()
-      val isCenter = buffer.get() == 0.toByte()
+      val marker = buffer.get()
 
-      return SurroundOriginResult(centerX, centerZ, isCenter)
+      return SurroundOriginResult(
+        centerX,
+        centerZ,
+        isCenter = marker == 0.toByte(),
+        isSelf = marker == SELF_MARKER,
+      )
     } catch (_: Exception) {
       return null
     }
   }
 
   companion object {
+    private const val SELF_MARKER: Byte = 2
 
     fun getOrigin(parentSdf: Sdf2, originX: Int = 0, originZ: Int = 0): SurroundOriginResult {
       val bounds = estimateBounds(parentSdf, originX, originZ)

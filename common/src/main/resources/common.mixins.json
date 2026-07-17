@@ -8,6 +8,7 @@
     "climate.MultiNoiseBiomeSourceMixin",
     "loot.LootTableMixin",
     "climate.NoiseChunkClimateSamplerMixin",
+    "command.CommandsMixin",
     "noise.DensityFunctionHolderMixin",
     "noise.NoiseChunkFunctionsMixin",
     "preset.DedicatedServerPropertiesMixin",

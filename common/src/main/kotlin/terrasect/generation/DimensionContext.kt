@@ -36,6 +36,10 @@ class DimensionContext(
   val traverser = Traverser(seed, root)
   val locator = Locator(seed, root)
 
+  fun query(selector: String, x: Int, z: Int): LocatorResult? {
+    return locator.query(selector, traverser.traverse(x, z, cache).id, cache)
+  }
+
   val noiseRegistry: CompiledNoiseRegistry? = CompiledNoiseRegistry.build(root)
   val structureLookup: CompiledStructureLookup? =
     CompiledStructureLookup.build(allSets, root, registry)

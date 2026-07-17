@@ -90,8 +90,26 @@ object ServerSmokeGuard {
     check(inactive.isEmpty()) {
       "constraint pipeline not fully applied on $dimensionId: inactive=$inactive status=$status"
     }
+    assertCommand(level)
     assertForcedStart(level, context)
     log.info("server smoke: OK — all constraints active on {} status={}", dimensionId, status)
+  }
+
+  // The /ts command rides on an ungated Commands constructor mixin; if it silently fails to apply
+  // on a version, the command is just absent with no crash, so every version must prove it both
+  // registered in the vanilla dispatcher and executes.
+  private fun assertCommand(level: ServerLevel) {
+    val server = level.server
+    val dispatcher = server.commands.dispatcher
+    checkNotNull(dispatcher.root.getChild("ts")) {
+      "'/ts' is not in the vanilla dispatcher — the Commands mixin did not run on this version"
+    }
+    val source = server.createCommandSourceStack()
+    check(dispatcher.execute("ts locate .overworld_root", source) == 1) {
+      "'/ts locate .overworld_root' failed"
+    }
+    check(dispatcher.execute("ts query", source) == 1) { "'/ts query' failed" }
+    log.info("server smoke: /ts locate and /ts query confirmed")
   }
 
   // Forced placement rides entirely on the chunk-context capture on versions without a dimension

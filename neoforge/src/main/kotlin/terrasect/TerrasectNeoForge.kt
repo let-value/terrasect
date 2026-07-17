@@ -11,6 +11,7 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLPaths
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.server.ServerStartingEvent
+import terrasect.gui.RegionDebugEntry
 
 @Mod(Constants.MOD_ID)
 class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
@@ -37,6 +38,7 @@ class TerrasectNeoForge(modEventBus: IEventBus, modContainer: ModContainer) {
   private fun clientSetup(event: FMLClientSetupEvent) {
     log.info("${Constants.MOD_NAME} client setup")
     log.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
+    event.enqueueWork { RegionDebugEntry.register() }
   }
 
   @SubscribeEvent

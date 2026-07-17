@@ -6,8 +6,10 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.debug.DebugEntryCategory
 import net.minecraft.client.gui.components.debug.DebugScreenDisplayer
 import net.minecraft.client.gui.components.debug.DebugScreenEntry
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunk
+import terrasect.client.DebugScreenEntriesInvoker
 import terrasect.compat.ResourceKeyCompat
 import terrasect.generation.DimensionContext
 
@@ -15,6 +17,15 @@ import terrasect.generation.DimensionContext
 
 //? if >=1.21.11 {
 class RegionDebugEntry : DebugScreenEntry {
+  companion object {
+    @JvmStatic
+    fun register(): Identifier =
+      DebugScreenEntriesInvoker.`terrasect$register`(
+        Identifier.fromNamespaceAndPath("terrasect", "region"),
+        RegionDebugEntry(),
+      )
+  }
+
   override fun display(
     lines: DebugScreenDisplayer,
     level: Level?,
@@ -58,6 +69,11 @@ class RegionDebugEntry : DebugScreenEntry {
     return DebugEntryCategory.SCREEN_TEXT
   }
 }
-//?} else
-/*class RegionDebugEntry*/
+//?} else {
+/*class RegionDebugEntry {
+  companion object {
+    @JvmStatic fun register() {}
+  }
+}
+*///?}
 // spotless:on
