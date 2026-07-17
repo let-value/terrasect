@@ -17,8 +17,10 @@ import terrasect.instrumentation.MetricsConfig
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectInstrScope
 import terrasect.instrumentation.TerrasectMetricEvent
+import terrasect.strategies.ArchipelagoStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
+import terrasect.strategies.VoronoiStrategy
 
 class TerrasectTomlTest {
   @Test
@@ -241,6 +243,34 @@ class TerrasectTomlTest {
       { assertNotNull(root.mobs) },
       { assertTrue(registry.drafts.getValue("root").noiseBuilder.hasExplicitBlendWidth) },
       { assertTrue(registry.drafts.getValue("surround").strategy is SurroundStrategy.Builder) },
+    )
+  }
+
+  @Test
+  fun `tiling strategies round trip through toml`() {
+    val preset =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "land")
+        region("land").strategy(Strategy.voronoi().tiling())
+        region("meadow").parent("land").radius(30).strategy(Strategy.subdivision().tiling())
+        region("stripe").parent("meadow").radius(10)
+        region("ocean").parent("land").radius(20).strategy(Strategy.archipelago("sea"))
+        region("volcano").parent("ocean").radius(8)
+        region("sea").budget(120)
+      }
+
+    val toml = TerrasectTomlWriter.write(preset)
+    val registry = TerrasectToml.parsePreset(toml)
+    val land = registry.buildTree("land")
+    val meadow = land.children.first { it.name == "meadow" }
+    val ocean = land.children.first { it.name == "ocean" }
+
+    assertAll(
+      { assertTrue((land.strategy as VoronoiStrategy).tiling) },
+      { assertTrue((meadow.strategy as SubdivisionStrategy).tiling) },
+      { assertTrue(ocean.strategy is ArchipelagoStrategy) },
+      { assertEquals("sea", (ocean.strategy as ArchipelagoStrategy).sea.name) },
+      { assertEquals(120L, (ocean.strategy as ArchipelagoStrategy).sea.budget) },
     )
   }
 

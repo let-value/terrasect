@@ -214,12 +214,20 @@ object TerrasectToml {
         builder.strategy(Strategy.hex(ring).tiling(table.boolean("tiling") ?: true))
       }
       "voronoi" -> {
-        table.rejectUnknown("type")
-        builder.strategy(Strategy.voronoi())
+        table.rejectUnknown("type", "tiling")
+        builder.strategy(Strategy.voronoi().tiling(table.boolean("tiling") ?: false))
       }
       "subdivision" -> {
-        table.rejectUnknown("type")
-        builder.strategy(Strategy.subdivision())
+        table.rejectUnknown("type", "tiling")
+        builder.strategy(Strategy.subdivision().tiling(table.boolean("tiling") ?: false))
+      }
+      "archipelago" -> {
+        table.rejectUnknown("type", "sea_region")
+        val sea = table.requiredString("sea_region")
+        if (sea !in regionNames) {
+          table.fail("sea_region", "unknown region '$sea'")
+        }
+        builder.strategy(Strategy.archipelago(sea))
       }
       "surround" -> {
         table.rejectUnknown("type", "surround_region")

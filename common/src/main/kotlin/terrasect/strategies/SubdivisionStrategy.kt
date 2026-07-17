@@ -1,7 +1,9 @@
 package terrasect.strategies
 
 import java.nio.ByteBuffer
+import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.sqrt
 import terrasect.cache.RegionsCache
 import terrasect.definition.Region
 import terrasect.definition.RegionBuilder
@@ -20,8 +22,23 @@ class SubdivisionStrategy(
   override val id: Byte,
   val children: Array<Region>,
   val budgets: LongArray,
+  val tiling: Boolean = false,
 ) : Strategy {
   override val targets = children.toList()
+  override val tiled: Boolean
+    get() = tiling
+
+  // The repeating stripe pattern is scaled so one period-long square patch realizes every child
+  // budget exactly: width_i = budget_i / sqrt(total budget), period = sqrt(total budget).
+  val period = sqrt(budgets.sum().coerceAtLeast(1).toDouble()).toFloat()
+  val stripeEdges =
+    FloatArray(budgets.size + 1).also { edges ->
+      var cumulative = 0f
+      for (i in budgets.indices) {
+        cumulative += budgets[i] / period
+        edges[i + 1] = cumulative
+      }
+    }
 
   val cellSdfRef: ThreadLocal<SubdivisionCellSdf> = ThreadLocal.withInitial { SubdivisionCellSdf() }
 
@@ -43,6 +60,10 @@ class SubdivisionStrategy(
   }
 
   override fun traverse(step: TraversalStep): TraversalStep {
+    if (tiling) {
+      return traverseTiled(step)
+    }
+
     val split = getCachedSplit(step.id, step.sdf, step.cache, step.centerX, step.centerZ)
     val v = if (split.axis == 0) step.x else step.z
     val index = getChildIndex(v, split)
@@ -68,7 +89,47 @@ class SubdivisionStrategy(
     return step
   }
 
+  private fun traverseTiled(step: TraversalStep): TraversalStep {
+    val periodIndex = floor(step.x / period).toInt()
+    val offset = step.x - periodIndex * period
+    val index = getStripeIndex(offset)
+
+    writeTileId(step.id, periodIndex, index)
+
+    val sdf = cellSdfRef.get()
+    applyStripe(sdf, periodIndex, index)
+    step.sdf.append(sdf)
+
+    val dist = step.sdf(step.x, step.z)
+    step.distance = max(step.distance, dist)
+
+    step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
+    step.region = children[index]
+
+    return step
+  }
+
+  private fun applyStripe(sdf: SubdivisionCellSdf, periodIndex: Int, index: Int) {
+    val start = periodIndex * period
+    sdf.axis = 0
+    sdf.lo = start + stripeEdges[index]
+    sdf.hi = start + stripeEdges[index + 1]
+  }
+
+  private fun getStripeIndex(offset: Float): Int {
+    for (i in 1 until stripeEdges.size) {
+      if (offset <= stripeEdges[i]) {
+        return i - 1
+      }
+    }
+    return stripeEdges.size - 2
+  }
+
   override fun locate(step: LocateStep): LocateStep? {
+    if (tiling) {
+      return locateTiled(step)
+    }
+
     val originalPosition = step.id.position()
     val index = readId(step.id) ?: return null
     if (index == Strategy.SELF_INDEX) {
@@ -103,6 +164,23 @@ class SubdivisionStrategy(
     return step
   }
 
+  private fun locateTiled(step: LocateStep): LocateStep? {
+    val tile = readTileId(step.id) ?: return null
+    val (periodIndex, index) = tile
+    if (index !in children.indices) {
+      return null
+    }
+
+    val sdf = SubdivisionCellSdf()
+    applyStripe(sdf, periodIndex, index)
+    step.sdf.append(sdf)
+
+    step.centerX = ((sdf.lo + sdf.hi) / 2f).toInt()
+    step.region = children[index]
+
+    return step
+  }
+
   override fun resolve(step: LocateStep, child: Region): LocateStep? {
     val index = children.indexOfFirst { it === child }
     if (index < 0) {
@@ -110,6 +188,14 @@ class SubdivisionStrategy(
     }
 
     val position = step.id.position()
+    if (tiling) {
+      val periodIndex = floor(step.centerX / period).toInt()
+      writeTileId(step.id, periodIndex, index)
+      step.id.position(position)
+      step.ambiguous = true
+      return locate(step)
+    }
+
     writeId(step.id, index)
     step.id.position(position)
 
@@ -125,6 +211,12 @@ class SubdivisionStrategy(
     buffer.putInt(index)
   }
 
+  fun writeTileId(buffer: ByteBuffer, periodIndex: Int, index: Int) {
+    buffer.put(id)
+    buffer.putInt(periodIndex)
+    buffer.putInt(index)
+  }
+
   fun readId(buffer: ByteBuffer): Int? {
     try {
       val strategyId = buffer.get()
@@ -134,6 +226,21 @@ class SubdivisionStrategy(
 
       val index = buffer.getInt()
       return index
+    } catch (_: Exception) {
+      return null
+    }
+  }
+
+  fun readTileId(buffer: ByteBuffer): Pair<Int, Int>? {
+    try {
+      val strategyId = buffer.get()
+      if (strategyId != id) {
+        return null
+      }
+
+      val periodIndex = buffer.getInt()
+      val index = buffer.getInt()
+      return periodIndex to index
     } catch (_: Exception) {
       return null
     }
@@ -184,10 +291,14 @@ class SubdivisionStrategy(
   }
 
   class Builder : StrategySettings {
+    var tiling = false
+
+    fun tiling(value: Boolean = true) = apply { this.tiling = value }
+
     override fun build(builder: RegionBuilder, children: Set<Region>): SubdivisionStrategy {
       val sortedChildren = children.sortedByDescending { it.budget }
       val budgets = sortedChildren.map { it.budget }.toLongArray()
-      return SubdivisionStrategy(builder.id, sortedChildren.toTypedArray(), budgets)
+      return SubdivisionStrategy(builder.id, sortedChildren.toTypedArray(), budgets, tiling)
     }
   }
 }

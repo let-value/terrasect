@@ -15,6 +15,7 @@ import terrasect.definition.SelectionConstraints
 import terrasect.definition.StrategySettings
 import terrasect.definition.StructureConstraints
 import terrasect.helpers.NoiseTransform
+import terrasect.strategies.ArchipelagoStrategy
 import terrasect.strategies.HexStrategy
 import terrasect.strategies.SubdivisionStrategy
 import terrasect.strategies.SurroundStrategy
@@ -128,11 +129,21 @@ object TerrasectTomlWriter {
           value("tiling", strategy.tiling)
           optional("ring_region", strategy.ringRegionName)
         }
-        is VoronoiStrategy.Builder -> value("type", "voronoi")
-        is SubdivisionStrategy.Builder -> value("type", "subdivision")
+        is VoronoiStrategy.Builder -> {
+          value("type", "voronoi")
+          if (strategy.tiling) value("tiling", true)
+        }
+        is SubdivisionStrategy.Builder -> {
+          value("type", "subdivision")
+          if (strategy.tiling) value("tiling", true)
+        }
         is SurroundStrategy.Builder -> {
           value("type", "surround")
           value("surround_region", strategy.surroundRegionName)
+        }
+        is ArchipelagoStrategy.Builder -> {
+          value("type", "archipelago")
+          value("sea_region", strategy.seaRegionName)
         }
         else -> error("Unsupported strategy settings: ${strategy.javaClass.name}")
       }
