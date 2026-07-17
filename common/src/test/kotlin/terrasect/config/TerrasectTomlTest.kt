@@ -132,7 +132,7 @@ class TerrasectTomlTest {
       },
       { assertEquals(setOf("minecraft:zombie"), root.mobs!!.blockedNames) },
       { assertEquals(setOf("c:foods"), root.loot!!.blockedTags) },
-      { assertEquals(5, warnings.size) },
+      { assertEquals(4, warnings.size) },
     )
 
     val noise = root.noise!!

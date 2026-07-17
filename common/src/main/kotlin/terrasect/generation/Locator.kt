@@ -6,6 +6,7 @@ import terrasect.definition.Region
 import terrasect.definition.Strategy
 import terrasect.sdf.Sdf2
 import terrasect.sdf.SdfCompose
+import terrasect.sdf.translate
 
 data class Qualifier(val name: String, val address: String)
 
@@ -20,6 +21,12 @@ data class LocatorResult(
 )
 
 class Locator(val seed: Long, val root: Region) {
+  // Generator-space translation of the origin anchor, mirroring Traverser.offset. Results are
+  // reported in world space (center and sdf shifted by -offset) so `/ts` output lines up with the
+  // player's coordinates once anchoring moves world (0, 0) onto the anchor's center.
+  var offsetX: Int = 0
+  var offsetZ: Int = 0
+
   private class Node(val region: Region, val parent: Node?)
 
   // Each id fragment belongs to the region whose strategy wrote it (the writer); the instance of
@@ -350,12 +357,15 @@ class LocateStep(val locator: Locator) {
 
   fun result(region: Region = this.region, chain: List<Qualifier> = emptyList()): LocatorResult {
     val baked = sdf.bake()
+    val distance = baked(centerX, centerZ)
+    val offsetX = locator.offsetX
+    val offsetZ = locator.offsetZ
     return LocatorResult(
       region = region,
-      centerX = centerX,
-      centerZ = centerZ,
-      sdf = baked,
-      distance = baked(centerX, centerZ),
+      centerX = centerX - offsetX,
+      centerZ = centerZ - offsetZ,
+      sdf = if (offsetX == 0 && offsetZ == 0) baked else translate(baked, -offsetX, -offsetZ),
+      distance = distance,
       ambiguous = ambiguous,
       chain = chain,
     )

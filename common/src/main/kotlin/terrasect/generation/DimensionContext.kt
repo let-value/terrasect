@@ -49,9 +49,34 @@ class DimensionContext(
   val mobLookup: CompiledMobLookup? = CompiledMobLookup.build(root, registry)
 
   init {
+    anchorOrigin()
     log.debug {
       "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL"} structureLookup=${if (structureLookup != null) "ACTIVE" else "NULL"} lootLookup=${if (lootLookup != null) "ACTIVE" else "NULL"} mobLookup=${if (mobLookup != null) "ACTIVE" else "NULL"}"
     }
+  }
+
+  // Locate the region marked as origin anchor and shift the traverser so its center sits at world
+  // (0, 0). Reuses the locator's canonical resolution — the same path `/ts locate` walks — so the
+  // anchored instance is deterministic and matches what queries report. The query runs before the
+  // offsets are set, so its center is still in generator space; the locator then reports every
+  // later result in the shifted world space.
+  private fun anchorOrigin() {
+    val anchor = findAnchor(root) ?: return
+    val located = locator.query(".${anchor.name}", null, cache) ?: return
+    traverser.offsetX = located.centerX
+    traverser.offsetZ = located.centerZ
+    locator.offsetX = located.centerX
+    locator.offsetZ = located.centerZ
+    log.debug {
+      "anchored dim=$dimensionId region=${anchor.name} offset=(${located.centerX}, ${located.centerZ})"
+    }
+  }
+
+  private fun findAnchor(region: Region): Region? {
+    if (region.originAnchor) {
+      return region
+    }
+    return region.children.firstNotNullOfOrNull { findAnchor(it) }
   }
 
   companion object {

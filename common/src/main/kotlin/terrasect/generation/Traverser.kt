@@ -25,9 +25,15 @@ fun prefixSeed(seed: Long, id: ByteBuffer): Long {
 class Traverser(val seed: Long, val root: Region) {
   val iterator: ThreadLocal<TraversalStep> = ThreadLocal.withInitial { TraversalStep(this) }
 
+  // Generator-space translation applied to every incoming world coordinate so that a region marked
+  // as the origin anchor renders at world (0, 0). Set once by DimensionContext from the anchor's
+  // located center; zero means no anchoring.
+  var offsetX: Int = 0
+  var offsetZ: Int = 0
+
   fun iterate(x: Int, z: Int, cache: RegionsCache? = null): TraversalStep {
     val step = this.iterator.get()
-    step.reset(x, z, cache)
+    step.reset(x + offsetX, z + offsetZ, cache)
 
     return step
   }

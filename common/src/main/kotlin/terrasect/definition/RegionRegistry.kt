@@ -36,6 +36,7 @@ class RegionRegistry {
         children = children,
         strategy = definition.strategy.build(builder, children),
         decorations = definition.decorations,
+        originAnchor = definition.originAnchor,
         climate = definition.climate,
         height = definition.height,
         noise = definition.noise,

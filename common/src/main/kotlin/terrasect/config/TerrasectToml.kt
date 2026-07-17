@@ -188,7 +188,6 @@ object TerrasectToml {
     budget?.let(builder::budget)
     if (table.boolean("origin_anchor") == true) {
       builder.originAnchor()
-      warning("${table.path}.origin_anchor is accepted but currently has no runtime effect")
     }
     table.table("strategy")?.let { applyStrategy(builder, it, regionNames) }
     table.raw("decorations")?.let { applyDecorations(builder, table, it) }

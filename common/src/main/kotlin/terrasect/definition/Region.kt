@@ -8,6 +8,7 @@ class Region(
   val children: Set<Region>,
   val strategy: Strategy? = null,
   val decorations: List<Decoration> = emptyList(),
+  val originAnchor: Boolean = false,
   val climate: ClimateConstraints? = null,
   val height: HeightConstraints? = null,
   val noise: NoiseConstraints? = null,
