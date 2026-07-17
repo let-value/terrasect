@@ -245,6 +245,20 @@ class TerrasectTomlTest {
   }
 
   @Test
+  fun `single region serializer emits region keys at top level`() {
+    val registry = TerrasectToml.parsePreset(fullPreset())
+    val toml = TerrasectTomlWriter.write(registry.resolveDraft("root"))
+
+    assertAll(
+      { assertTrue("budget = 500" in toml) },
+      { assertTrue("[strategy]" in toml) },
+      { assertTrue("[climate]" in toml) },
+      { assertTrue("schema" !in toml) },
+      { assertTrue("[regions" !in toml) },
+    )
+  }
+
+  @Test
   fun `region declaration order does not change strategy ids`() {
     val first =
       TerrasectToml.parsePreset(

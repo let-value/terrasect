@@ -26,6 +26,8 @@ object TerrasectTomlWriter {
 
   fun write(preset: RegionRegistry): String = Document().apply { preset(preset) }.write()
 
+  fun write(region: RegionBuilder): String = Document().apply { region(region) }.write()
+
   private class Document {
     private val root = CommentedConfig.inMemory()
     private val inlineTables: MutableSet<UnmodifiableConfig> =
@@ -75,6 +77,10 @@ object TerrasectTomlWriter {
       root.table("regions") {
         for ((name, builder) in preset.drafts.toSortedMap()) table(name) { region(builder) }
       }
+    }
+
+    fun region(builder: RegionBuilder) {
+      root.region(builder)
     }
 
     fun write(commentedKey: String? = null, comment: String? = null): String {
