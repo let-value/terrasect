@@ -151,7 +151,18 @@ sourceSets {
         }
       }
     )
-    resources.setSrcDirs(listOf(e2eDir.resolve("src/gametest/resources")))
+    // Old-paradigm versions carry a gametest-only mixin (GameTestServerWorldOptionsMixin) that
+    // turns structure generation on for the vanilla gametest server; mixins must be Java.
+    java.setSrcDirs(
+      if (oldGametestParadigm) listOf(e2eDir.resolve("src/gametest-server-old/java"))
+      else emptyList<File>()
+    )
+    resources.setSrcDirs(
+      buildList {
+        add(e2eDir.resolve("src/gametest/resources"))
+        if (oldGametestParadigm) add(e2eDir.resolve("src/gametest-server-old/resources"))
+      }
+    )
   }
 }
 
@@ -212,6 +223,7 @@ val resourceProps =
     "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
     "access_widener_file" to accessWidenerFile,
     "gametest_entrypoints" to gametestEntrypoints,
+    "gametest_mixins" to (if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\"" else ""),
   )
 
 tasks {

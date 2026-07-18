@@ -89,8 +89,10 @@ jobs:
           cache-read-only: false
           cache-cleanup: on-success
 
+      # One retry: fabric's waitForWorldLoad has a fixed tick budget and a cold 2-core runner can
+      # blow it while preparing the spawn area; the second attempt reuses the warm daemon/assets.
       - name: Run smoke gametest
-        run: ./gradlew ${{ matrix.task }} ${{ matrix.args }}
+        run: ./gradlew ${{ matrix.task }} ${{ matrix.args }} || ./gradlew ${{ matrix.task }} ${{ matrix.args }}
 
       - name: Upload logs on failure
         if: failure()
