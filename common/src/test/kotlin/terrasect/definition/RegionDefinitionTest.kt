@@ -51,6 +51,35 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `archetype expands into region constraints at buildTree`() {
+    registry.region("sea").archetype(Archetype.ocean())
+
+    val region = registry.buildTree("sea")
+
+    assertAll(
+      { assertNotNull(region.climate?.continentalness) },
+      // ocean pushes continentalness fully negative (below sea level)
+      { assertTrue(region.climate!!.continentalness!!.max < 0) },
+      // and reshapes the terrain via the continents density function
+      { assertTrue(region.noise!!.densityFunctions.containsKey("continents")) },
+    )
+  }
+
+  @Test
+  fun `explicit region constraints win over the archetype`() {
+    registry.region("shelf").archetype(Archetype.ocean()).climate { continentalness(1234, 5678) }
+
+    val region = registry.buildTree("shelf")
+
+    assertAll(
+      { assertEquals(1234, region.climate!!.continentalness!!.min) },
+      { assertEquals(5678, region.climate!!.continentalness!!.max) },
+      // the archetype still fills the terrain lever the region left unset
+      { assertTrue(region.noise!!.densityFunctions.containsKey("continents")) },
+    )
+  }
+
+  @Test
   fun `loot constraints are propagated through buildTree`() {
     registry.region("loot_test_root").loot {
       allowNames("minecraft:diamond")

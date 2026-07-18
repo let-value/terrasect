@@ -27,6 +27,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   var budget: Long? = null
   var strategy: StrategySettings? = null
   val decorations = mutableListOf<Decoration>()
+  var archetype: Archetype? = null
   var parent: String? = null
   val childrenLazy = lazy { mutableSetOf<String>() }
   val children by childrenLazy
@@ -60,6 +61,29 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
   fun strategy(strategy: StrategySettings) = apply { this.strategy = strategy }
 
   fun decoration(decoration: Decoration) = apply { decorations += decoration }
+
+  fun archetype(archetype: Archetype) = apply { this.archetype = archetype }
+
+  // Expand the archetype into this region's constraints, filling only what the region left unset so
+  // explicit settings always win. Applied once at build time (see RegionRegistry.buildTree), before
+  // parent inheritance, giving precedence explicit > archetype > inherited-from-parent.
+  fun applyArchetype() = apply {
+    val archetype = this.archetype ?: return@apply
+    val scratch = RegionBuilder(id, registry, name)
+    archetype.apply(scratch)
+    if (scratch.climateLazyBuilder.isInitialized()) {
+      climateBuilder.inheritParent(scratch.climateBuilder)
+    }
+    if (scratch.noiseLazyBuilder.isInitialized()) {
+      noiseBuilder.inheritParent(scratch.noiseBuilder)
+    }
+    if (scratch.heightLazyBuilder.isInitialized()) {
+      heightBuilder.inheritParent(scratch.heightBuilder)
+    }
+    if (scratch.biomesLazyBuilder.isInitialized()) {
+      biomesBuilder.inheritParent(scratch.biomesBuilder)
+    }
+  }
 
   fun parent(name: String) = apply {
     parent = name
@@ -104,6 +128,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
       it.radius = this.radius
       it.budget = this.budget
       it.decorations += this.decorations
+      it.archetype = this.archetype
       it.inheritParent(this)
       if (this.structuresLazyBuilder.isInitialized()) {
         it.structuresBuilder.copyForced(this.structuresBuilder)

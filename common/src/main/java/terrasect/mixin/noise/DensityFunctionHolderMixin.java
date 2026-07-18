@@ -1,12 +1,12 @@
 package terrasect.mixin.noise;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import terrasect.compat.ResourceKeyCompat;
 import terrasect.extender.DensityFunctionHolderExtender;
@@ -26,36 +26,21 @@ public class DensityFunctionHolderMixin implements DensityFunctionHolderExtender
             });
   }
 
-  @ModifyArg(
-      method = "mapAll",
-      at =
-          @At(
-              value = "INVOKE",
-              target =
-                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
+  // Vanilla rebuilds this HolderHolder when a tree is remapped (e.g. NoiseChunk's per-chunk
+  // mapAll),
+  // producing a keyless `Holder.direct` copy. Stamp our captured key onto that rebuilt holder so a
+  // constrained function keeps its identity everywhere it is referenced — not only as a top-level
+  // NoiseRouter field but also nested inside finalDensity's spline coordinates. That is what lets a
+  // continents/erosion/depth pin compose into the terrain instead of only shifting biome climate.
+  @ModifyReturnValue(
+      method = {"mapAll", "mapChildren"},
+      at = @At("RETURN"),
       require = 0)
-  private DensityFunction terrasect$propagateKeyFromMapAll(DensityFunction newHolder) {
-    return terrasect$propagateKey(newHolder);
-  }
-
-  @ModifyArg(
-      method = "mapChildren",
-      at =
-          @At(
-              value = "INVOKE",
-              target =
-                  "Lnet/minecraft/world/level/levelgen/DensityFunction$Visitor;apply(Lnet/minecraft/world/level/levelgen/DensityFunction;)Lnet/minecraft/world/level/levelgen/DensityFunction;"),
-      require = 0)
-  private DensityFunction terrasect$propagateKeyFromMapChildren(DensityFunction newHolder) {
-    return terrasect$propagateKey(newHolder);
-  }
-
-  @Unique
-  private DensityFunction terrasect$propagateKey(DensityFunction newHolder) {
-    if (this.terrasect$key != null && newHolder instanceof DensityFunctionHolderExtender ext) {
+  private DensityFunction terrasect$propagateKey(DensityFunction rebuilt) {
+    if (this.terrasect$key != null && rebuilt instanceof DensityFunctionHolderExtender ext) {
       ext.terrasect$setKey(this.terrasect$key);
     }
-    return newHolder;
+    return rebuilt;
   }
 
   @Override

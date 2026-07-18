@@ -22,6 +22,7 @@ class RegionRegistry {
 
     try {
       val builder = draft.copy()
+      builder.applyArchetype()
       if (parent !== null) {
         builder.inheritParent(parent)
       }

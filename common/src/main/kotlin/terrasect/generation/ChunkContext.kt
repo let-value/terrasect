@@ -2,7 +2,6 @@ package terrasect.generation
 
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
-import terrasect.cache.PalettedGrid
 import terrasect.cache.RegionsCache
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.Region
@@ -14,16 +13,18 @@ import terrasect.lookup.ForcedChunkDecision
 private val instr = TerrasectInstr.chunk
 
 class ChunkContext {
-  var height: Int = 0
-  var width: Int = 0
-  var originZ: Int = 0
-  var originX: Int = 0
+  @JvmField var height: Int = 0
+  @JvmField var width: Int = 0
+  @JvmField var originZ: Int = 0
+  @JvmField var originX: Int = 0
   var chunkX: Int = 0
   var chunkZ: Int = 0
   var dimensionContext: DimensionContext? = null
   var cache: RegionsCache? = null
-  var regions: PalettedGrid<Region>? = null
-  var distances: FloatArray? = null
+  // Flat region grid indexed by idx(x, z); the density-function hot path reads it and `distances`
+  // together off a single index, so both are exposed as fields rather than behind an accessor.
+  @JvmField var regions: Array<Region?>? = null
+  @JvmField var distances: FloatArray? = null
   private var forcedDecision: ForcedChunkDecision? = null
 
   constructor()
@@ -48,15 +49,21 @@ class ChunkContext {
     this.chunkZ = position.z
     val baseWidth = position.maxBlockX - position.minBlockX + 1
     val baseHeight = position.maxBlockZ - position.minBlockZ + 1
-    val padding = baseWidth * 1
+    // A thin border covers density/climate samples that spill a cell past the chunk edge; anything
+    // further falls back to a live traverse in getRegion/getDistance. Padding by a full chunk (the
+    // old baseWidth) traversed a 48x48 grid per 16x16 chunk — 9x the work for a border almost never
+    // read.
+    val padding = 2
     this.originX = position.minBlockX - padding
     this.originZ = position.minBlockZ - padding
     this.width = baseWidth + padding * 2
     this.height = baseHeight + padding * 2
 
     this.cache = RegionsCache(6, dimensionContext!!.cache)
-    this.regions = PalettedGrid(width, height, originX, originZ)
-    this.distances = FloatArray(width * height)
+    val regions = arrayOfNulls<Region>(width * height)
+    val distances = FloatArray(width * height)
+    this.regions = regions
+    this.distances = distances
 
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE, "dimension") { dimension }
     for (x in 0 until width) {
@@ -64,16 +71,18 @@ class ChunkContext {
         val blockX = originX + x
         val blockZ = originZ + z
         val step = dimensionContext!!.traverser.traverse(blockX, blockZ, cache)
-        this.regions!!.add(blockX, blockZ, step.region)
-        this.distances!![idx(blockX, blockZ)] = step.distance
+        val cell = idx(blockX, blockZ)
+        regions[cell] = step.region
+        distances[cell] = step.distance
       }
     }
     instr.count(TerrasectMetricEvent.CHUNK_CREATED, "dimension") { dimension }
   }
 
   fun getDistance(blockX: Int, blockZ: Int): Float {
+    val distances = this.distances
     if (distances != null && inBounds(blockX, blockZ)) {
-      return distances!![idx(blockX, blockZ)]
+      return distances[idx(blockX, blockZ)]
     }
     val ctx = dimensionContext ?: return Float.NEGATIVE_INFINITY
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") { ctx.dimensionId }
@@ -97,8 +106,9 @@ class ChunkContext {
 
   fun getRegion(blockX: Int, blockZ: Int): Region? {
     val ctx = dimensionContext ?: return null
+    val regions = this.regions
     if (regions != null && inBounds(blockX, blockZ)) {
-      return regions!!.get(blockX, blockZ)
+      return regions[idx(blockX, blockZ)]
     }
     instr.count(TerrasectMetricEvent.CHUNK_TRAVERSE_CACHE_MISS, "dimension") { ctx.dimensionId }
     return ctx.traverser.traverse(blockX, blockZ, cache).region

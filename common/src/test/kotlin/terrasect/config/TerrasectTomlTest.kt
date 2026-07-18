@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import terrasect.compat.NoiseRouterCompat
+import terrasect.definition.Archetype
 import terrasect.definition.NoiseConstraints
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
@@ -318,6 +319,27 @@ class TerrasectTomlTest {
         )
       },
       { assertEquals(10f, (meadow.strategy as HexStrategy).rounding) },
+      { assertEquals(toml, TerrasectTomlWriter.write(registry)) },
+    )
+  }
+
+  @Test
+  fun `archetypes round trip through toml`() {
+    val preset =
+      RegionRegistry().apply {
+        setRoot("minecraft:overworld", "sea")
+        region("sea").radius(400).archetype(Archetype.ocean(0.9f))
+        region("plains").parent("sea").radius(100).archetype(Archetype.flatlands())
+      }
+
+    val toml = TerrasectTomlWriter.write(preset)
+    val registry = TerrasectToml.parsePreset(toml)
+
+    assertAll(
+      // non-default parameter is preserved
+      { assertEquals(Archetype.Ocean(0.9f), registry.drafts.getValue("sea").archetype) },
+      // default parameter is omitted from toml and restored to the default
+      { assertEquals(Archetype.Flatlands(0.7f), registry.drafts.getValue("plains").archetype) },
       { assertEquals(toml, TerrasectTomlWriter.write(registry)) },
     )
   }

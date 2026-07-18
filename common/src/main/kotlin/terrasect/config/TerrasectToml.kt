@@ -2,6 +2,7 @@ package terrasect.config
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig
 import com.electronwill.nightconfig.toml.TomlParser
+import terrasect.definition.Archetype
 import terrasect.definition.RegionBuilder
 import terrasect.definition.RegionRegistry
 import terrasect.definition.SelectionConstraints
@@ -60,6 +61,7 @@ object TerrasectToml {
         "origin_anchor",
         "strategy",
         "decorations",
+        "archetype",
         "climate",
         "height",
         "noise",
@@ -191,6 +193,7 @@ object TerrasectToml {
     }
     table.table("strategy")?.let { applyStrategy(builder, it, regionNames) }
     table.raw("decorations")?.let { applyDecorations(builder, table, it) }
+    table.table("archetype")?.let { applyArchetype(builder, it) }
     table.table("climate")?.let { applyClimate(builder, it, warning) }
     table.table("height")?.let {
       warning("${it.path} is accepted but currently has no runtime effect")
@@ -311,6 +314,31 @@ object TerrasectToml {
         }
       builder.decoration(decoration)
     }
+  }
+
+  private fun applyArchetype(builder: RegionBuilder, table: Table) {
+    val type = table.requiredString("type").lowercase()
+    val archetype =
+      when (type) {
+        "ocean" -> {
+          table.rejectUnknown("type", "depth")
+          Archetype.ocean(table.float("depth") ?: 0.6f)
+        }
+        "landlocked" -> {
+          table.rejectUnknown("type", "shore")
+          Archetype.landlocked(table.float("shore") ?: 0.3f)
+        }
+        "flatlands" -> {
+          table.rejectUnknown("type", "strength")
+          Archetype.flatlands(table.float("strength") ?: 0.7f)
+        }
+        "highlands" -> {
+          table.rejectUnknown("type", "strength")
+          Archetype.highlands(table.float("strength") ?: 0.7f)
+        }
+        else -> table.fail("type", "unknown archetype '$type'")
+      }
+    builder.archetype(archetype)
   }
 
   private fun applyClimate(builder: RegionBuilder, table: Table, warning: (String) -> Unit) {

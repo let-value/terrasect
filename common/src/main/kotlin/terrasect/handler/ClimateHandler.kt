@@ -44,7 +44,7 @@ object ClimateHandler {
       return
     }
 
-    val region = chunk.regions?.get(blockX, blockZ)
+    val region = chunk.getRegion(blockX, blockZ)
     if (region == null) {
       return
     }

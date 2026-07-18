@@ -22,17 +22,45 @@ public final class ChunkDensityFunction implements DensityFunction {
     this.scale = scale;
   }
 
+  // Region rarely changes between adjacent samples, so remember the last resolution to skip the
+  // per-sample IdentityHashMap lookup for runs of the same region.
+  private Region cachedRegion;
+  private ResolvedNoise cachedResolved;
+
   private double apply(double original, int blockX, int blockZ) {
-    Region region = chunk.getRegion(blockX, blockZ);
+    Region region;
+    float distance;
+    // Read region and distance off a single grid index; both are populated together per cell.
+    Region[] regions = chunk.regions;
+    int localX = blockX - chunk.originX;
+    int localZ = blockZ - chunk.originZ;
+    if (regions != null
+        && localX >= 0
+        && localX < chunk.width
+        && localZ >= 0
+        && localZ < chunk.height) {
+      int cell = localX * chunk.height + localZ;
+      region = regions[cell];
+      distance = chunk.distances[cell];
+    } else {
+      region = chunk.getRegion(blockX, blockZ);
+      distance = chunk.getDistance(blockX, blockZ);
+    }
     if (region == null) {
       return original;
     }
-    ResolvedNoise resolved = binding.get(region);
+    ResolvedNoise resolved;
+    if (region == cachedRegion) {
+      resolved = cachedResolved;
+    } else {
+      resolved = binding.get(region);
+      cachedRegion = region;
+      cachedResolved = resolved;
+    }
     if (resolved == null) {
       return original;
     }
-    float strength =
-        NoiseHandler.getStrength(resolved.blendWidth, chunk.getDistance(blockX, blockZ));
+    float strength = NoiseHandler.getStrength(resolved.blendWidth, distance);
     if (strength <= 0f) {
       return original;
     }

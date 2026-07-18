@@ -70,6 +70,10 @@ val heavyClientTests =
     "StructureConstraintStatisticsTest",
     "ForcedStructureGameTest",
     "OriginAnchorGameTest",
+    "OceanArchetypeGameTest",
+    "LandlockedArchetypeGameTest",
+    "FlatlandsArchetypeGameTest",
+    "HighlandsArchetypeGameTest",
   )
 
 fun kotlinEntry(value: String) =

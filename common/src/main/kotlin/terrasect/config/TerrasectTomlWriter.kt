@@ -6,6 +6,7 @@ import com.electronwill.nightconfig.toml.TomlWriter
 import java.io.StringWriter
 import java.util.Collections
 import java.util.IdentityHashMap
+import terrasect.definition.Archetype
 import terrasect.definition.ClimateConstraints
 import terrasect.definition.HeightConstraints
 import terrasect.definition.NoiseConstraints
@@ -107,6 +108,9 @@ object TerrasectTomlWriter {
       builder.strategy?.let { strategy -> table("strategy") { strategy(strategy) } }
       if (builder.decorations.isNotEmpty()) {
         value("decorations", builder.decorations.map { inlineTable { decoration(it) } })
+      }
+      builder.archetype?.let { archetype ->
+        value("archetype", inlineTable { archetype(archetype) })
       }
       if (builder.climateLazyBuilder.isInitialized()) {
         table("climate") { climate(builder.climateBuilder.build()) }
@@ -214,6 +218,27 @@ object TerrasectTomlWriter {
           value("type", "rings")
           value("width", decoration.width)
           value("gap", decoration.gap)
+        }
+      }
+    }
+
+    private fun CommentedConfig.archetype(archetype: Archetype) {
+      when (archetype) {
+        is Archetype.Ocean -> {
+          value("type", "ocean")
+          if (archetype.depth != 0.6f) value("depth", archetype.depth)
+        }
+        is Archetype.Landlocked -> {
+          value("type", "landlocked")
+          if (archetype.shore != 0.3f) value("shore", archetype.shore)
+        }
+        is Archetype.Flatlands -> {
+          value("type", "flatlands")
+          if (archetype.strength != 0.7f) value("strength", archetype.strength)
+        }
+        is Archetype.Highlands -> {
+          value("type", "highlands")
+          if (archetype.strength != 0.7f) value("strength", archetype.strength)
         }
       }
     }
