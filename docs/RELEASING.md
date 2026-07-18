@@ -22,8 +22,6 @@ Publishes each version+loader jar as its own platform version via mc-publish, wi
 Secrets:
 - `MODRINTH_TOKEN` — Modrinth PAT with version-create scope.
 - `CURSEFORGE_TOKEN` — CurseForge API token.
-
-Variables:
 - `MODRINTH_PROJECT_ID` — Modrinth project id or slug.
 - `CURSEFORGE_PROJECT_ID` — CurseForge numeric project id.
 

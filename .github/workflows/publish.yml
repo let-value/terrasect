@@ -83,7 +83,7 @@ jobs:
         if: inputs.target == 'modrinth' || inputs.target == 'both'
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: dist/terrasect-${{ matrix.loader }}-*+${{ matrix.mc }}.jar
           name: "Terrasect ${{ steps.meta.outputs.mod_version }} (${{ matrix.loader }} ${{ matrix.mc }})"
@@ -97,7 +97,7 @@ jobs:
         if: inputs.target == 'curseforge' || inputs.target == 'both'
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           files: dist/terrasect-${{ matrix.loader }}-*+${{ matrix.mc }}.jar
           name: "Terrasect ${{ steps.meta.outputs.mod_version }} (${{ matrix.loader }} ${{ matrix.mc }})"
