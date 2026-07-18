@@ -273,6 +273,20 @@ tasks {
     .configureEach {
       this as JavaExec
       systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
+      if (name == "runClientGameTest") {
+        // Menu-background blur renders a full-res gaussian PostChain every frame; on software GL
+        // (llvmpipe under Xvfb on CI) that pins the render thread, and the client-gametest phaser
+        // ticks client/server/test in lockstep, so world creation stalls indefinitely. Written
+        // after the clearRunDirectory dependency so it survives into the launch.
+        val optionsFile = layout.buildDirectory.file("run/clientGameTest/options.txt")
+        doFirst {
+          val file = optionsFile.get().asFile
+          file.parentFile.mkdirs()
+          if (!file.exists()) {
+            file.writeText("menuBackgroundBlurriness:0\n")
+          }
+        }
+      }
       if (name == "runGameTest") {
         // Force the smoke preset for this launch only, so the dedicated server's overworld builds
         // the full pipeline without affecting any other run.

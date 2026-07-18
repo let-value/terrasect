@@ -2,10 +2,10 @@ name: CI
 
 on:
   pull_request:
-  # Pushes to the long-lived branches keep the Gradle caches warm: PR runs can read caches
-  # created on their base branch, but caches written inside a PR are invisible to other PRs.
+  # Pushes to main keep the Gradle caches warm: PR runs can read caches created on their base
+  # branch, but caches written inside a PR are invisible to other PRs.
   push:
-    branches: [main, reborn]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
