@@ -22,6 +22,9 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Release runs are rare: read whatever cache the branches seeded, never write.
+          cache-read-only: true
 
       - name: Build all loader jars
         run: >

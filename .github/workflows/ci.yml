@@ -2,8 +2,10 @@ name: CI
 
 on:
   pull_request:
+  # Pushes to the long-lived branches keep the Gradle caches warm: PR runs can read caches
+  # created on their base branch, but caches written inside a PR are invisible to other PRs.
   push:
-    branches: [main]
+    branches: [main, reborn]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +28,11 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Default is read-only off the default branch, which would re-download Minecraft,
+          # NeoForm, and all dependencies on every single run.
+          cache-read-only: false
+          cache-cleanup: on-success
 
       - name: Spotless, unit tests, all loader jars
         run: >
@@ -76,6 +83,11 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Default is read-only off the default branch, which would re-download Minecraft,
+          # NeoForm, and all dependencies on every single run.
+          cache-read-only: false
+          cache-cleanup: on-success
 
       - name: Run smoke gametest
         run: ./gradlew ${{ matrix.task }} ${{ matrix.args }}
