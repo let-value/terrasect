@@ -1,0 +1,108 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag holding the built jars (e.g. v1.0.0)"
+        required: true
+      target:
+        description: "Where to publish"
+        type: choice
+        options:
+          - both
+          - modrinth
+          - curseforge
+        default: both
+      version-type:
+        description: "Release channel"
+        type: choice
+        options:
+          - release
+          - beta
+          - alpha
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: ${{ matrix.loader }} ${{ matrix.mc }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: "1.20.1", loader: fabric }
+          - { mc: "1.21.1", loader: fabric }
+          - { mc: "1.21.1", loader: neoforge }
+          - { mc: "1.21.11", loader: fabric }
+          - { mc: "1.21.11", loader: neoforge }
+          - { mc: "26.1", loader: fabric }
+          - { mc: "26.1", loader: neoforge }
+          - { mc: "26.2", loader: fabric }
+          - { mc: "26.2", loader: neoforge }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read mod version
+        id: meta
+        run: |
+          MOD_VERSION=$(sed -n 's/^mod\.version = "\(.*\)"/\1/p' stonecutter.properties.toml)
+          echo "mod_version=$MOD_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download jar from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.tag }}" --repo "$GITHUB_REPOSITORY" \
+            --pattern "terrasect-${{ matrix.loader }}-*+${{ matrix.mc }}.jar" --dir dist
+          ls -l dist
+
+      - name: Resolve dependency list
+        id: deps
+        run: |
+          if [ "${{ matrix.loader }}" = "fabric" ]; then
+            {
+              echo "list<<EOF"
+              echo "fabric-api(required)"
+              echo "fabric-language-kotlin(required)"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "list<<EOF"
+              echo "kotlin-for-forge(required)"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to Modrinth
+        if: inputs.target == 'modrinth' || inputs.target == 'both'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: dist/terrasect-${{ matrix.loader }}-*+${{ matrix.mc }}.jar
+          name: "Terrasect ${{ steps.meta.outputs.mod_version }} (${{ matrix.loader }} ${{ matrix.mc }})"
+          version: "${{ steps.meta.outputs.mod_version }}+${{ matrix.mc }}-${{ matrix.loader }}"
+          version-type: ${{ inputs.version-type }}
+          loaders: ${{ matrix.loader }}
+          game-versions: ${{ matrix.mc }}
+          dependencies: ${{ steps.deps.outputs.list }}
+
+      - name: Publish to CurseForge
+        if: inputs.target == 'curseforge' || inputs.target == 'both'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: dist/terrasect-${{ matrix.loader }}-*+${{ matrix.mc }}.jar
+          name: "Terrasect ${{ steps.meta.outputs.mod_version }} (${{ matrix.loader }} ${{ matrix.mc }})"
+          version: "${{ steps.meta.outputs.mod_version }}+${{ matrix.mc }}-${{ matrix.loader }}"
+          version-type: ${{ inputs.version-type }}
+          loaders: ${{ matrix.loader }}
+          game-versions: ${{ matrix.mc }}
+          dependencies: ${{ steps.deps.outputs.list }}

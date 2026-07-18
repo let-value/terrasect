@@ -32,7 +32,7 @@ val accessWidenerFile = "${sc.current.version}.accesswidener"
 // (never remapped), so they're consumed directly.
 val legacyLoomCommon = sc.current.version == "1.20.1"
 
-version = prop("mod.version")
+version = "${prop("mod.version")}+${sc.current.version}"
 
 base.archivesName = "${prop("mod.id")}-fabric"
 

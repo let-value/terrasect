@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Checks, unit tests, loader builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Spotless, unit tests, all loader jars
+        run: >
+          ./gradlew spotlessCheck test
+          :1.20.1-fabric:build
+          :1.21.1-fabric:build :1.21.1-neoforge:build
+          :1.21.11-fabric:build :1.21.11-neoforge:build
+          :26.1.x-fabric:build :26.1.x-neoforge:build
+          :26.2.x-fabric:build :26.2.x-neoforge:build
+
+  smoke:
+    name: Smoke ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 1.20.1 / 1.21.1 predate the client-gametest API: headless server smoke gametest.
+          - version: 1.20.1
+            task: ":e2e:1.20.1:runGameTest"
+            args: ""
+          - version: 1.21.1
+            task: ":e2e:1.21.1:runGameTest"
+            args: ""
+          # Client-capable versions: run only the portable smoke pair; the heavy client
+          # gametests (terrain digests, constraint suites) are filtered out via -Ptest.
+          - version: 1.21.11
+            task: ":e2e:1.21.11:runClientGameTest"
+            args: "-Ptest=SmokeGameTest,LootConstraintBlockAllGameTest"
+          - version: 26.1.x
+            task: ":e2e:26.1.x:runClientGameTest"
+            args: "-Ptest=SmokeGameTest,LootConstraintBlockAllGameTest"
+          - version: 26.2.x
+            task: ":e2e:26.2.x:runClientGameTest"
+            args: "-Ptest=SmokeGameTest,LootConstraintBlockAllGameTest"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Xvfb and software GL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libglx-mesa0 libgl1-mesa-dri
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run smoke gametest
+        run: ./gradlew ${{ matrix.task }} ${{ matrix.args }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs-${{ matrix.version }}
+          path: e2e/versions/${{ matrix.version }}/run/logs/
+          if-no-files-found: ignore

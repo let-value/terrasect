@@ -17,7 +17,7 @@ val commonDir = rootProject.file("common")
 val neoforgeDir = rootProject.file("neoforge")
 val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 
-version = prop("mod.version")
+version = "${prop("mod.version")}+${sc.current.version}"
 
 base.archivesName = "${prop("mod.id")}-neoforge"
 
@@ -80,7 +80,7 @@ val metadataProps =
     "mod_id" to prop("mod.id"),
     "mod_name" to prop("mod.name"),
     "mod_license" to prop("mod.license"),
-    "mod_version" to prop("mod.version"),
+    "mod_version" to version.toString(),
     "mod_authors" to prop("mod.authors"),
     "mod_description" to prop("mod.description"),
   )
