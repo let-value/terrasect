@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  TERRASECT_SKIP_COMPAT: "1"
+
 jobs:
   build:
     name: Build and stage release jars

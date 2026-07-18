@@ -14,6 +14,11 @@ concurrency:
 permissions:
   contents: read
 
+# CI never runs the third-party compat suite; without this, configuring those projects downloads
+# their Modrinth mod jars in every job and any registry hiccup fails unrelated builds.
+env:
+  TERRASECT_SKIP_COMPAT: "1"
+
 jobs:
   build:
     name: Checks, unit tests, loader builds
@@ -99,5 +104,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: smoke-logs-${{ matrix.version }}
-          path: e2e/versions/${{ matrix.version }}/run/logs/
+          # Client-capable versions run from run/; old-paradigm servers from build/run/gameTest/.
+          path: |
+            e2e/versions/${{ matrix.version }}/run/logs/
+            e2e/versions/${{ matrix.version }}/build/run/*/logs/
+            e2e/versions/${{ matrix.version }}/build/run/*/crash-reports/
           if-no-files-found: ignore
