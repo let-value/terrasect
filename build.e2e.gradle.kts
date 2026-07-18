@@ -151,17 +151,24 @@ sourceSets {
         }
       }
     )
-    // Old-paradigm versions carry a gametest-only mixin (GameTestServerWorldOptionsMixin) that
-    // turns structure generation on for the vanilla gametest server; mixins must be Java.
+    // Each paradigm carries a gametest-only mixin (mixins must be Java): old-paradigm turns
+    // structure generation on for the vanilla gametest server; client-paradigm raises fabric's
+    // fixed world-load tick budget for slow CI runners.
     java.setSrcDirs(
-      if (oldGametestParadigm) listOf(e2eDir.resolve("src/gametest-server-old/java"))
-      else emptyList<File>()
+      listOf(
+        e2eDir.resolve(
+          if (oldGametestParadigm) "src/gametest-server-old/java" else "src/gametest-client/java"
+        )
+      )
     )
     resources.setSrcDirs(
-      buildList {
-        add(e2eDir.resolve("src/gametest/resources"))
-        if (oldGametestParadigm) add(e2eDir.resolve("src/gametest-server-old/resources"))
-      }
+      listOf(
+        e2eDir.resolve("src/gametest/resources"),
+        e2eDir.resolve(
+          if (oldGametestParadigm) "src/gametest-server-old/resources"
+          else "src/gametest-client/resources"
+        ),
+      )
     )
   }
 }
@@ -223,7 +230,11 @@ val resourceProps =
     "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
     "access_widener_file" to accessWidenerFile,
     "gametest_entrypoints" to gametestEntrypoints,
-    "gametest_mixins" to (if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\"" else ""),
+    "gametest_mixins" to
+      (if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\""
+      else "\"terrasect-e2e-client.mixins.json\""),
+    // Same cap as build.common.gradle.kts: Mixin's highest enabled level on newer toolchains.
+    "mixin_compat_level" to "JAVA_${minOf(prop("java").toInt(), 21)}",
   )
 
 tasks {
@@ -245,7 +256,7 @@ tasks {
 
   named<ProcessResources>("processGametestResources") {
     inputs.properties(resourceProps)
-    filesMatching("fabric.mod.json") {
+    filesMatching(listOf("fabric.mod.json", "*.mixins.json")) {
       expand(resourceProps)
     }
   }

@@ -1,9 +1,9 @@
 {
   "required": true,
-  "package": "terrasect.gametest.mixin",
+  "package": "terrasect.gametest.clientmixin",
   "compatibilityLevel": "${mixin_compat_level}",
-  "server": [
-    "GameTestServerWorldOptionsMixin"
+  "client": [
+    "ClientGameTestWorldLoadTimeoutMixin"
   ],
   "injectors": {
     "defaultRequire": 1
