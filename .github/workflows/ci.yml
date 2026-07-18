@@ -18,6 +18,9 @@ permissions:
 # their Modrinth mod jars in every job and any registry hiccup fails unrelated builds.
 env:
   TERRASECT_SKIP_COMPAT: "1"
+  # Periodic thread dumps from the game JVM (StallWatchdog in the e2e mod) so a wedged gametest
+  # explains itself in the job log.
+  TERRASECT_WATCHDOG: "1"
 
 jobs:
   build:
@@ -100,7 +103,8 @@ jobs:
         run: ./gradlew ${{ matrix.task }} ${{ matrix.args }} || ./gradlew ${{ matrix.task }} ${{ matrix.args }}
 
       - name: Upload logs on failure
-        if: failure()
+        # cancelled() covers the job-level timeout, which cancels steps rather than failing them.
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-logs-${{ matrix.version }}

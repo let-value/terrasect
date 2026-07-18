@@ -16,6 +16,6 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 public class ClientGameTestWorldLoadTimeoutMixin {
   @ModifyConstant(method = "waitForWorldLoad", constant = @Constant(intValue = 1200), require = 0)
   private static int terrasect$extendWorldLoadBudget(int ticks) {
-    return 24000;
+    return 6000;
   }
 }
