@@ -21,6 +21,7 @@
     "scaffold.ChunkGeneratorStructureStateMixin",
     "scaffold.LevelMixin",
     "scaffold.NoiseChunkMixin",
+    "spawn.NaturalSpawnerChunkGenMixin",
     "spawn.NaturalSpawnerRuntimeMixin",
     "spawn.NaturalSpawnerWorldGenMixin",
     "structure.ChunkGeneratorForcedMixin",

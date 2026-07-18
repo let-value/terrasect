@@ -74,6 +74,11 @@ val heavyClientTests =
     "LandlockedArchetypeGameTest",
     "FlatlandsArchetypeGameTest",
     "HighlandsArchetypeGameTest",
+    "NetherNoiseConstraintGameTest",
+    "EndNoiseConstraintGameTest",
+    "NetherMobConstraintGameTest",
+    "NetherStructureConstraintGameTest",
+    "DimensionContextIsolationGameTest",
   )
 
 fun kotlinEntry(value: String) =

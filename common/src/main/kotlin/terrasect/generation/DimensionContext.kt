@@ -105,6 +105,7 @@ class DimensionContext(
       val name = resolvedRegistry.getRoot(dimensionId)
       if (name == null) {
         log.debug { "no root region for dim=$dimensionId in preset=$presetId" }
+        map.remove(dimensionId)
         return null
       }
       val root = resolvedRegistry.buildTree(name)
