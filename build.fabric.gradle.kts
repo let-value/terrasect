@@ -71,8 +71,6 @@ dependencies {
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
-  // common's runtime libraries aren't reliably present on a player's classpath (another mod
-  // happening to bundle the same library is not guaranteed), so every version embeds them here.
   embedded("com.electronwill.night-config:toml:${prop("deps.night_config")}")
   embedded("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
   embedded("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
