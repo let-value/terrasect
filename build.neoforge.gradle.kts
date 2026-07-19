@@ -65,6 +65,12 @@ neoForge {
 dependencies {
   implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kotlinforforge")}")
   implementation(commonProject)
+
+  // common's runtime libraries aren't visible to a NeoForge mod's isolated module classpath
+  // unless jarJar-embedded here (unlike night-config, which FancyModLoader already bundles).
+  jarJar("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+  jarJar("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  jarJar("com.github.komputing:kbase58:${prop("deps.kbase58")}")
 }
 
 val metadataProps =
