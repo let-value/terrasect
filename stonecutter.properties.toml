@@ -1,8 +1,8 @@
 mod.id = "terrasect"
 mod.name = "Terrasect"
 mod.group = "terrasect"
-mod.version = "1.0.0"
-mod.license = "All Rights Reserved"
+mod.version = "0.2.1"
+mod.license = "MIT"
 mod.authors = "LetValue"
 mod.description = "A multiloader Minecraft mod."
 # Newest version in the matrix. Heavy e2e client gametests compile/run only here.

@@ -3,7 +3,7 @@ plugins {
   id("com.diffplug.spotless")
 }
 
-stonecutter active "1.21.11-fabric"
+stonecutter active "26.2.x-fabric"
 
 allprojects {
   repositories {

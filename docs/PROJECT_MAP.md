@@ -1,7 +1,7 @@
 # Terrasect Project Map
 
-**Codebase:** `reborn` branch  
-**Last verified:** 2026-05-08  
+**Codebase:** `version-0.2.0` branch (Stonecutter-driven multiversion source)
+**Last verified:** 2026-07-19
 **Purpose:** Architectural reference for contributors and agents working on Terrasect.
 
 ---
@@ -10,26 +10,33 @@
 
 ```
 terrasect/
-├── common/                        # All shared logic (see §2)
+├── common/                        # All shared logic (see §2) — vcs source of truth
 │   └── src/
 │       ├── main/
 │       │   ├── java/terrasect/    # Java: mixins, extender interfaces
 │       │   └── kotlin/terrasect/  # Kotlin: everything else
 │       └── test/
-│           └── kotlin/terrasect/  # All tests (Kotlin)
+│           └── kotlin/terrasect/  # All unit/snapshot tests (Kotlin)
 ├── fabric/                        # Fabric loader integration (see §3)
-│   └── src/
-│       ├── main/kotlin/terrasect/
-│       ├── client/kotlin/terrasect/
-│       └── gametest/kotlin/terrasect/
 ├── neoforge/                      # NeoForge loader integration (see §3)
-│   └── src/main/kotlin/terrasect/
 ├── compat/c2me/                   # Git submodule — C2ME-fabric compat
-├── build.gradle                   # Root build (Spotless, shared subproject config)
-├── settings.gradle                # Module declarations: common, fabric, neoforge
-├── gradle.properties              # All version pins
+├── e2e/                           # Fabric client gametest tree, separate Stonecutter matrix (see §6)
+├── e2e-compat/                    # Third-party mod compatibility gametests, kept out of e2e (see §6)
+├── versions/                      # Stonecutter-generated per-version projects — git-ignored, do not edit directly
+├── settings.gradle.kts            # Stonecutter version matrix + module declarations
+├── stonecutter.properties.toml    # Per-version dependency coordinates
+├── stonecutter.gradle.kts         # Active dev version selector + Spotless config (no separate root build.gradle.kts)
+├── gradle.properties              # Gradle daemon/build flags (not version pins — see stonecutter.properties.toml)
 └── AGENTS.md / CLAUDE.md / GEMINI.md  # Agent instructions (CLAUDE.md → AGENTS.md symlink)
 ```
+
+`common/`, `fabric/`, `neoforge/` hold the real, git-tracked source for the active
+dev version (`26.2`). Stonecutter preprocesses this source into the per-version
+projects under `versions/` at build/sync time — that directory is generated and
+git-ignored, never edited directly. Note `common`/`fabric`/`neoforge` are not
+themselves buildable Gradle projects — every buildable project is version-qualified
+(`:<version>-<loader>`, e.g. `:26.2.x-fabric`). See [`docs/MULTIVERSION.md`](MULTIVERSION.md)
+for the full version-matrix, compat-shim, and Stonecutter-gating story.
 
 ---
 
@@ -41,29 +48,35 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 
 | Package | Contents |
 |---------|---------|
-| `extender/` | Cross-cast interfaces used by mixins to expose data: `ChunkAccessExtender`, `ClimateSamplerExtender`, `ClimateTargetPointExtender`, `DensityFunctionHolderExtender`, `MultiNoiseBiomeSourceExtender`, `NoiseChunkExtender`, `PresetIdHolder` |
-| `mixin/climate/` | 4 climate mixins: `ClimateClimateSamplerMixin`, `ClimateTargetPointMixin`, `MultiNoiseBiomeSourceMixin`, `NoiseChunkClimateSamplerMixin` |
-| `mixin/noise/` | 3 noise mixins: `DensityFunctionHolderMixin`, `NoiseBasedChunkGeneratorMixin`, `NoiseChunkFunctionsMixin` |
-| `mixin/preset/` | 6 preset/world-init mixins: `DedicatedServerPropertiesMixin`, `DedicatedServerPropertiesWorldDimensionDataMixin`, `DerivedLevelDataMixin`, `MainMixin`, `PrimaryLevelDataMixin`, `WorldDimensionsMixin` |
-| `mixin/scaffold/` | 3 structural mixins: `ChunkAccessMixin`, `LevelMixin`, `NoiseChunkMixin` |
-| `client/` | 1 client mixin: `CreateWorldScreenMixin` |
+| `extender/` | Cross-cast interfaces used by mixins to expose data: `ChunkAccessExtender`, `ChunkGeneratorStructureStateExtender`, `ClimateSamplerExtender`, `ClimateTargetPointExtender`, `DensityFunctionHolderExtender`, `MultiNoiseBiomeSourceExtender`, `NoiseChunkExtender`, `PresetIdHolder`, `RandomSpreadStructurePlacementExtender`, `StructurePlacementExtender` |
+| `mixin/climate/` | `ClimateClimateSamplerMixin`, `ClimateTargetPointMixin`, `MultiNoiseBiomeSourceMixin`, `NoiseChunkClimateSamplerMixin` |
+| `mixin/noise/` | `DensityFunctionHolderMixin`, `NoiseChunkFunctionsMixin` |
+| `mixin/preset/` | `DedicatedServerPropertiesMixin`, `DedicatedServerPropertiesWorldDimensionDataMixin`, `DerivedLevelDataMixin`, `MainMixin`, `PrimaryLevelDataMixin`, `WorldDimensionsMixin` |
+| `mixin/scaffold/` | `ChunkAccessMixin`, `ChunkGeneratorStructureStateMixin`, `LevelMixin`, `NoiseChunkMixin` |
+| `mixin/spawn/` | `NaturalSpawnerChunkGenMixin`, `NaturalSpawnerRuntimeMixin`, `NaturalSpawnerWorldGenMixin` |
+| `mixin/structure/` | `ChunkGeneratorForcedMixin`, `ChunkGeneratorLocateMixin`, `ChunkGeneratorStructureMixin`, `ChunkStatusTasksStructureMixin`, `JigsawStructureAccessor`, `RandomSpreadStructurePlacementMixin`, `StructurePlacementMixin`, `StructureStartMixin` |
+| `mixin/loot/` | `LootTableMixin` |
+| `mixin/command/` | `CommandsMixin` |
+| `client/` | `CreateWorldScreenMixin`, `DebugScreenEntriesInvoker` |
+| `helpers/` | `ChunkDensityFunction` |
 
 ### Kotlin packages (`common/src/main/kotlin/terrasect/`)
 
 | Package | Contents |
 |---------|---------|
 | `cache/` | `RegionsCache` (Caffeine-backed, striped-key, two-level), `PalettedGrid<T>` |
-| `compat/` | Minecraft-**version** shims across the `>=1.21.11` fault line (`ResourceKeyCompat`, `SpawnCompat`, `LootContextCompat`, `NoiseRouterCompat`) — see `docs/MULTIVERSION.md` |
-| `definition/` | Region data model: `Region`, `RegionDefinition` (DSL builder), `RegionRegistry`, `ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`, `Strategy`, `PresetRegistry` |
-| `config/` | Strict TOML schema/parser, default config generation, preset registration, and runtime config application |
-| `generation/` | Pipeline: `Address`, `ChunkContext`, `DimensionContext`, `Locator` + `LocateStep`, `Traverser` + `TraversalStep` |
+| `compat/` | Minecraft-**version** shims across the `>=1.21.11` fault line: `ResourceKeyCompat`, `SpawnCompat`, `LootContextCompat`, `NoiseRouterCompat`, `StructureMetadataCompat` — see [`docs/MULTIVERSION.md`](MULTIVERSION.md) |
+| `definition/` | Region data model: `Region`, `RegionDefinition` (DSL builder), `RegionRegistry`, `Archetype`, `ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`, `StructureConstraints`, `Strategy`, `PresetRegistry` |
+| `config/` | Strict TOML schema/parser (`TerrasectToml`, `TerrasectTomlWriter`, `TomlTable`), default config generation (`DefaultConfigFiles`), and runtime config application (`TerrasectConfig`, `TerrasectConfigManager`) |
+| `generation/` | Pipeline: `Address`, `ChunkContext`, `DimensionContext`, `ForcedPlan`, `Locator`, `Selector`, `Traverser` |
 | `gui/` | `RegionDebugEntry` — debug overlay entry |
-| `handler/` | `ClimateHandler`, `NoiseHandler` — hot-path Minecraft integration |
-| `helpers/` | `ChunkDensityFunction`, `NoiseTransform` |
-| `lookup/` | `CompiledNoiseRegistry` — pre-compiled noise constraint map for a region tree |
+| `handler/` | Hot-path Minecraft integration: `ClimateHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, `StructureHandler`, `CommandHandler`, `NoiseLogger` |
+| `helpers/` | `ChunkDensityFunction` (Java), `NoiseTransform` |
+| `instrumentation/` | Disabled-by-default scoped metrics API: `Instr`, `Counter`, `Timer`, `MetricId`, `Metrics`, `MetricsBackend`, `TerrasectMetrics` |
+| `lookup/` | Pre-compiled per-region decision tables, one per domain (kept as parallel, independent implementations — see `AGENTS.md`'s standing architecture decisions): `CompiledNoiseConstraints`, `CompiledMobLookup`, `CompiledLootLookup`, `CompiledStructureLookup`, `CompiledForcedStructures` |
 | `presets/` | `ClimateDebug.kt` (`CLIMATE_DEBUG` preset definition), `Index.kt` (`Presets` enum) |
-| `sdf/` | SDF library: `area`, `bounds`, `compose`, `consts`, `hex`, `polygon`, `sites`, `subdivision`, `surround`, `voronoi` |
-| `strategies/` | `HexStrategy`, `SubdivisionStrategy`, `SurroundStrategy`, `VoronoiStrategy` |
+| `sdf/` | SDF library: `area`, `archipelago`, `bounds`, `compose`, `consts`, `decoration`, `hex`, `noise`, `polygon`, `scatter`, `sites`, `subdivision`, `surround`, `voronoi` |
+| `strategies/` | `ArchipelagoStrategy`, `HexStrategy`, `SubdivisionStrategy`, `SurroundStrategy`, `VoronoiStrategy` |
 | `utils/` | `Packer` |
 | Root | `Terrasect.kt` (init singleton + shared cache), `Constants.kt` |
 
@@ -74,7 +87,6 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 The loader modules are intentionally minimal. All game logic is in `common/`. The loaders only provide:
 - Mod entry point (calling `Terrasect.init(configRoot)`)
 - Loader-specific lifecycle hooks
-- Game test integration (Fabric only)
 
 ### Fabric (`fabric/src/`)
 
@@ -82,9 +94,9 @@ The loader modules are intentionally minimal. All game logic is in `common/`. Th
 |------|---------|
 | `main/kotlin/terrasect/TerrasectFabric.kt` | `ModInitializer` entry point |
 | `client/kotlin/terrasect/TerrasectFabricClient.kt` | `ClientModInitializer` entry point |
-| `gametest/kotlin/terrasect/WorldDigestGameTest.kt` | Game test: world digest snapshot |
-| `gametest/kotlin/terrasect/TerrasectFabricClientGameTest.kt` | Game test: client-side noise constraints integration |
-| `gametest/kotlin/terrasect/GameTestFilter.kt` | Test filter utility |
+
+Fabric client gametests now live in the separate `e2e`/`e2e-compat` Stonecutter
+trees (see §6), not under `fabric/src`.
 
 ### NeoForge (`neoforge/src/`)
 
@@ -100,7 +112,7 @@ The loader modules are intentionally minimal. All game logic is in `common/`. Th
 
 A `Region` is an immutable tree node. The root region for a dimension is resolved from the active `RegionRegistry` (via `PresetRegistry`). Each `Region` can have:
 - A `Strategy` (how its space is partitioned into child regions)
-- Constraint objects (`ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`) that the handlers apply when modifying Minecraft's worldgen pipeline
+- Constraint objects (`ClimateConstraints`, `HeightConstraints`, `NoiseConstraints`, `SelectionConstraints`, `StructureConstraints`) that the handlers apply when modifying Minecraft's worldgen pipeline
 
 ### World-Coordinate Resolution
 
@@ -115,13 +127,13 @@ A `Region` is an immutable tree node. The root region for a dimension is resolve
    TraversalStep { region: Region, distance: Float, id: ByteBuffer }
 ```
 
-`ChunkContext` runs this traversal for every block in a chunk (plus padding) at chunk-load time, caching results in a `PalettedGrid<Region>` and a `FloatArray` of distances. Handlers read from this pre-computed grid on the hot path.
+`ChunkContext` runs this traversal for every block in a chunk (plus padding) at chunk-load time, caching results in a `PalettedGrid<Region>` and a `FloatArray` of distances. Handlers read from this pre-computed grid on the hot path. `Locator`/`ForcedPlan`/`Selector` provide the equivalent lookup path for structure placement/location queries.
 
 ### Dimension Lifecycle
 
 1. On world load, `DimensionContext.register(...)` is called (via the preset/scaffold mixins).
-2. It resolves the active `RegionRegistry` from `PresetRegistry`, builds the region tree, and creates a `DimensionContext` stored in a `ConcurrentHashMap` keyed by dimension ID.
-3. `ClimateHandler` and `NoiseHandler` retrieve `DimensionContext` by dimension ID when processing noise/climate calls.
+2. It resolves the active `RegionRegistry` from `PresetRegistry`, builds the region tree, compiles the per-domain lookup tables (`lookup/Compiled*`), and creates a `DimensionContext` stored in a `ConcurrentHashMap` keyed by dimension ID.
+3. `ClimateHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, and `StructureHandler` retrieve `DimensionContext` by dimension ID when processing their respective hot-path calls.
 
 ### SDF Usage
 
@@ -131,63 +143,71 @@ Signed Distance Fields compute the distance of a world coordinate from a region 
 
 ## 5. Key Invariants
 
-1. **Allocation-free hot path.** `ChunkContext`, `Traverser`/`TraversalStep`, `Locator`/`LocateStep`, and `RegionsCache` are designed to avoid per-call allocations. `TraversalStep` and `LocateStep` are `ThreadLocal` singletons. Do not introduce `Stream` usage or boxing in these paths.
+1. **Allocation-free hot path.** `ChunkContext`, `Traverser`, `Locator`, `RegionsCache`, and the `lookup/Compiled*` tables are designed to avoid per-call allocations.
 2. **Deterministic generation.** All strategies are deterministic given the same seed. Tests use a canonical seed (`42424242L`). Snapshot tests verify strategy output.
-3. **Mixins stay in `common/`.** All 16+1 mixin implementations are loader-agnostic and live in `common/`. Loader modules do not contain mixin code.
+3. **Mixins stay in `common/`.** All mixin implementations are loader-agnostic and live in `common/`. Loader modules do not contain mixin code.
 4. **Preset + region tree is immutable at runtime.** `Region` objects are constructed once on world load and treated as value objects. The `RegionsCache` keys are derived from the immutable address path, not from mutable state.
+5. **No shared kernel across `lookup/Compiled*`.** `CompiledMobLookup`, `CompiledLootLookup`, and `CompiledStructureLookup` are structurally similar but stay independent per-domain implementations — see the standing architecture decisions in `AGENTS.md`/`CLAUDE.md`.
 
 ---
 
 ## 6. Testing
 
-All tests are in `common/src/test/kotlin/`. Run with `./gradlew :common:test`. Snapshot tests use `de.skuzzle.test:snapshot-tests-junit5`.
+### Unit / snapshot tests
 
-To update snapshots: `./gradlew :common:test -PupdateSnapshots`
+All unit and snapshot tests are in `common/src/test/kotlin/`. Run with `./gradlew :26.2.x-common:test`. Snapshot tests use `de.skuzzle.test:snapshot-tests-junit5`.
 
-Test coverage areas:
-- SDF geometry (`sdf/` — bounds, distance, hex, polygon, compose, sites)
-- Strategies (`strategies/` — all four strategy implementations)
-- Generation pipeline (`generation/` — Address, Locator, Traverser)
-- Region definition (`definition/RegionDefinitionTest`)
-- Noise transform helpers (`helpers/NoiseTransformSnapshotTest`)
-- Compiled noise registry (`lookup/CompiledNoiseConstraintsTest`)
-- Fabric client noise constraints integration (`fabric/src/gametest/kotlin/terrasect/TerrasectFabricClientGameTest`)
-- Snapshot framework itself (`testing/SnapshotLibraryTest`)
+To update snapshots: `./gradlew :26.2.x-common:test -PupdateSnapshots`
+
+Coverage areas: SDF geometry (`sdf/`), strategies (`strategies/`), generation pipeline (`generation/`), region/structure/selection definitions (`definition/`), config parsing (`config/`), handlers (`handler/`), compiled lookups (`lookup/`), instrumentation (`instrumentation/`), noise transform helpers (`helpers/`), and the snapshot framework itself (`testing/`).
+
+### Client gametests (`e2e`, `e2e-compat`)
+
+`e2e` is a separate Stonecutter tree of Fabric client gametests spanning a subset of the main version matrix. See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the full version list and gating rules. Two tiers:
+- `e2e/src/gametest*` — portable smoke coverage (`SmokeGameTest`, `LootConstraintGameTest`) that runs on every e2e version and asserts the constraint pipeline is actually active, not just that generation succeeded.
+- `e2e/src/gametest-latest` — heavy tests (terrain digests, structure/mob/archetype/dimension probes, screenshots) compiled only on the latest matrix version.
+
+`e2e-compat` holds third-party mod compatibility gametests, kept in its own tree so the core suite never depends on a third-party mod jar being resolvable.
+
+Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=<TestName>`).
 
 ---
 
 ## 7. Build System Notes
 
-- Root `build.gradle` applies Spotless and shared subproject config (Java/Kotlin toolchain, snapshot flag handling).
-- `settings.gradle` includes `common`, `fabric`, `neoforge` only.
-- `gradle.properties` contains all version pins. No Windows-specific paths are present.
-- Spotless `enforceCheck = false` in root — CI explicitly calls `spotlessCheck`. Always run `./gradlew spotlessApply` before committing.
+- `stonecutter.gradle.kts` sets the active dev version (`stonecutter active "..."`) and applies Spotless — there is no separate root `build.gradle.kts`.
+- `settings.gradle.kts` declares the Stonecutter version matrix (`common`/`fabric`/`neoforge` per Minecraft version) plus the separate `e2e` and `e2e-compat` Stonecutter trees, and each tree's `vcsVersion` (which version's source is mirrored into the top-level directories for git/IDE).
+- `stonecutter.properties.toml` holds per-version dependency coordinates and the per-version Java toolchain (`java = "..."`); `gradle.properties` only holds Gradle daemon/build flags, not version pins.
+- CI explicitly calls `spotlessCheck`. Always run `./gradlew spotlessApply` before committing.
 - Spotless rules: Java → `googleJavaFormat()`, Kotlin → `ktfmt().googleStyle()`, Kotlin Gradle → `ktfmt()`.
 - Snapshot update flags accepted: `-PupdateSnapshots`, `-PupdateSnapshots=true`, `-PsnapshotUpdate`.
 
-### Key version pins (from `gradle.properties`)
+### Key version pins (active dev version, `26.2.x`, from `stonecutter.properties.toml`)
 
 | Property | Value |
 |----------|-------|
-| Minecraft | 1.21.11 |
-| Java | 21 |
+| Minecraft | 26.2 |
+| Java | 25 |
 | Kotlin | 2.3.0 |
-| JVM target | 21 |
-| Fabric Loader | 0.18.4 |
-| NeoForge Loader | 21.11.36-beta |
-| Kotlin for Forge | 6.0.0 |
+| JVM target | 25 |
+| Fabric Loader | 0.19.3 |
+| NeoForge Loader | 26.2.0.6-beta |
+| Kotlin for Forge | 6.3.0 |
+
+See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the full multi-version matrix (`1.20.1`, `1.21.1`, `1.21.11`, `26.1`, `26.2`).
 
 ### Key Gradle tasks
 
 | Task | Purpose |
 |------|---------|
-| `./gradlew build` | Compile + test all modules |
-| `./gradlew :common:test` | All unit + snapshot tests |
-| `./gradlew :common:test -PupdateSnapshots` | Same, regenerating snapshot reference files |
+| `./gradlew build` | Compile + test all modules across the version matrix |
+| `./gradlew :26.2.x-common:test` | All unit + snapshot tests |
+| `./gradlew :26.2.x-common:test -PupdateSnapshots` | Same, regenerating snapshot reference files |
 | `./gradlew spotlessApply` | Apply Google Java Format + ktfmt |
 | `./gradlew spotlessCheck` | Verify formatting (enforced by CI) |
-| `./gradlew :fabric:runClient` / `runServer` | Launch Fabric dev game |
-| `./gradlew :neoforge:runClient` / `runServer` | Launch NeoForge dev game |
+| `./gradlew :<version>-fabric:runClient` / `runServer` | Launch Fabric dev game for a given version |
+| `./gradlew :<version>-neoforge:runClient` / `runServer` | Launch NeoForge dev game for a given version |
+| `./gradlew :e2e:<version>:runClientGameTest` | Run client gametests for a given version |
 
 ---
 
@@ -201,13 +221,4 @@ Terrasect favors direct, low-magic code. Apply these guardrails when editing sou
 - Avoid adding abstraction layers unless they clearly reduce duplication or clarify boundaries.
 - Remove obsolete code when replacing functionality so the codebase stays singular and easy to follow.
 
----
-
-## 9. Known Open Questions (as of 2026-05-08)
-
-These follow-ups were lifted to blocked Hermes Kanban cards so they can be prioritized deliberately:
-
-- `t_4cec0697` — Investigate whether default `minecraft:normal` worlds should activate Terrasect or whether explicit preset selection is intentional.
-- `t_ef0d87d0` — Assess whether `compat/c2me` should be initialized, documented as optional, removed, or updated.
-- `t_464285f5` — Plan whether NeoForge needs test-source/game-test parity with Fabric.
-- `t_446e8260` — Evaluate a JMH or equivalent benchmark strategy for allocation-sensitive hot paths.
+See `AGENTS.md`/`CLAUDE.md` for the standing architecture decisions (settled by prior audit review) that should not be re-litigated without an explicit request.

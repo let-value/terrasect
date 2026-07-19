@@ -1,4 +1,8 @@
-# Hermes Orchestration Knowledge Base
+# Agent Delegation Workflow
+
+Operational reference for how Hermes orchestrates delegated task execution via
+`docs/TODO.md` and `docs/goals/`. For project architecture facts, see
+[`docs/PROJECT_MAP.md`](PROJECT_MAP.md).
 
 ---
 
@@ -84,7 +88,7 @@ Be exhaustive — nothing relevant should live only in the orchestrator's memory
 When Claude Code is the provider and you need a reliable conversation id, prefer print mode with `--output-format json` and store the returned `session_id` here rather than trying to infer it from prose output.
 
 ---
-**Sub-agent instruction:** This file contains everything you need. Read it in full. Perform the work. Write your complete response under `## Response` below before finishing. Do not summarize — write the full output so it is preserved for future sessions. Update the `Status` field to `COMPLETED` when done. If broader protocol understanding is needed, read `docs/KNOWLEDGE_BASE.md`.
+**Sub-agent instruction:** This file contains everything you need. Read it in full. Perform the work. Write your complete response under `## Response` below before finishing. Do not summarize — write the full output so it is preserved for future sessions. Update the `Status` field to `COMPLETED` when done. If broader protocol understanding is needed, read `docs/AGENT_WORKFLOW.md`.
 
 ## Response
 <!-- Sub-agent: write your full response here -->
@@ -248,21 +252,3 @@ When a provider stops because of limits/quota exhaustion:
 If the user explicitly specifies a provider (e.g., "Use Copilot for this", "Only use Ollama"), skip directly to that provider. Still apply the response interpretation rules and write outcomes to the ticket.
 
 *Compliance with this workflow is mandatory for all future task initiations.*
-
----
-
-## Section 7 — Terrasect Project Facts
-
-Basic project facts for the `reborn` codebase. For detailed architecture, module layout, generation pipeline, and development context, see [`docs/PROJECT_MAP.md`](PROJECT_MAP.md).
-
-**Note:** This section describes the `reborn` branch. Previous documentation based on `main` is stale.
-
-| Property | Value |
-|----------|-------|
-| Branch | `reborn` |
-| Minecraft | 1.21.11 |
-| Java | 21 |
-| Kotlin | 2.3.0 |
-| JVM target | 21 |
-| Fabric Loader | 0.18.4 |
-| NeoForge Loader | 21.11.36-beta |

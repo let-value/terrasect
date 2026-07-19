@@ -61,7 +61,7 @@ stonecutter {
     match("1.21.11", "fabric", "neoforge")
     match("26.1.x", "fabric", "neoforge", version = "26.1")
     match(latestProject, "fabric", "neoforge", version = latestVersion)
-    vcsVersion = "1.21.11-fabric"
+    vcsVersion = "$latestProject-fabric"
   }
 
   create("e2e") {
