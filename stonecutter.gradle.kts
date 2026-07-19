@@ -1,6 +1,6 @@
 plugins {
-  id("dev.kikugie.stonecutter")
-  id("com.diffplug.spotless")
+  alias(libs.plugins.stonecutter)
+  alias(libs.plugins.spotless)
 }
 
 stonecutter active "26.2.x-fabric"
@@ -42,13 +42,14 @@ spotless {
       "neoforge/src/**/*.kt",
       "e2e/src/**/*.kt",
       "e2e-compat/src/**/*.kt",
+      "buildSrc/src/**/*.kt",
     )
     toggleOffOn()
     ktfmt().googleStyle()
   }
 
   kotlinGradle {
-    target("*.gradle.kts")
+    target("*.gradle.kts", "buildSrc/*.gradle.kts", "buildSrc/settings.gradle.kts")
     ktfmt().googleStyle()
   }
 }

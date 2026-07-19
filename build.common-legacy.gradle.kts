@@ -5,8 +5,8 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 // NeoForged forked after 1.20.1. Loom + Mojang mappings can still supply a 1.20.1 MC jar, matching
 // how the fabric/e2e modules already resolve Minecraft.
 plugins {
-  id("dev.kikugie.loom-back-compat")
-  id("org.jetbrains.kotlin.jvm")
+  alias(libs.plugins.loom.back.compat)
+  alias(libs.plugins.kotlin.jvm)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()
@@ -14,22 +14,10 @@ val sc = extensions.getByType<StonecutterBuildExtension>()
 fun prop(key: String): String = sc.properties[key]
 
 val commonDir = rootProject.file("common")
-val commonKotlinSrc = commonDir.resolve("src/main/kotlin")
 val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
-val commonJavaSrc = commonDir.resolve("src/main/java")
 val processedCommonJavaDir = layout.buildDirectory.dir("processed/main/java")
 
-project
-  .fileTree(commonKotlinSrc) { include("**/*.kt") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/kotlin/${file.relativeTo(commonKotlinSrc).path}")
-  }
-
-project
-  .fileTree(commonJavaSrc) { include("**/*.java") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/java/${file.relativeTo(commonJavaSrc).path}")
-  }
+processCommonSourceTree(sc, commonDir)
 
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 

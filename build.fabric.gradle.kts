@@ -2,9 +2,9 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.fabricmc.loom.task.GenerateSourcesTask
 
 plugins {
-  id("dev.kikugie.loom-back-compat")
-  id("org.jetbrains.kotlin.jvm")
-  id("io.github.gmazzo.dependencies.embedded")
+  alias(libs.plugins.loom.back.compat)
+  alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.dependencies.embedded)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()

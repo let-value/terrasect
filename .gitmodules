@@ -1,3 +1,15 @@
 [submodule "compat/c2me"]
 	path = compat/c2me
 	url = https://github.com/RelativityMC/C2ME-fabric.git
+[submodule "references/Biome-Replacer"]
+	path = references/Biome-Replacer
+	url = https://github.com/WerDei/Biome-Replacer.git
+[submodule "references/friends-and-foes"]
+	path = references/friends-and-foes
+	url = https://github.com/Faboslav/friends-and-foes.git
+[submodule "references/stonecutter-mod-template"]
+	path = references/stonecutter-mod-template
+	url = https://github.com/rotgruengelb/stonecutter-mod-template.git
+[submodule "references/structurify"]
+	path = references/structurify
+	url = https://github.com/Faboslav/structurify.git
