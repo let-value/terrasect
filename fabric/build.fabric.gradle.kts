@@ -13,23 +13,8 @@ fun prop(key: String): String = sc.properties[key]
 
 val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
-val fabricClientKotlinSrc = fabricDir.resolve("src/client/kotlin")
-val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
-
-project
-  .fileTree(fabricClientKotlinSrc) { include("**/*.kt") }
-  .forEach { file ->
-    sc.process(file, "build/processed/client/kotlin/${file.relativeTo(fabricClientKotlinSrc).path}")
-  }
-
-val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
+val commonProject = project(":common:${project.name}")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
-
-// Sub-1.20.2 builds common with Loom (build.common-legacy) since NeoForm has no release there.
-// Loom remaps that common's default artifact to intermediary, so consuming it normally puts
-// intermediary-targeted mixins on a Mojang-mapped dev runtime and every mixin silently fails to
-// apply. Consume its `namedElements` (un-remapped) variant instead. Newer commons are MDG-built
-// (never remapped), so they're consumed directly.
 val legacyLoomCommon = sc.current.version == "1.20.1"
 
 version = "${prop("mod.version")}+${sc.current.version}"
@@ -46,13 +31,7 @@ kotlin {
   jvmToolchain(prop("java").toInt())
 }
 
-sourceSets {
-  main {
-    kotlin.srcDir(fabricDir.resolve("src/main/kotlin"))
-    kotlin.srcDir(processedFabricClientKotlinDir)
-    resources.srcDir(fabricDir.resolve("src/main/resources"))
-  }
-}
+sourceSets { main { kotlin.srcDir(fabricDir.resolve("src/client/kotlin")) } }
 
 loom {
   fabricModJsonPath = fabricDir.resolve("src/main/resources/fabric.mod.json")

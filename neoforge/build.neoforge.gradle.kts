@@ -15,7 +15,7 @@ fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
 
 val commonDir = rootProject.file("common")
 val neoforgeDir = rootProject.file("neoforge")
-val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
+val commonProject = project(":common:${project.name}")
 
 version = "${prop("mod.version")}+${sc.current.version}"
 
@@ -31,13 +31,7 @@ kotlin {
   jvmToolchain(prop("java").toInt())
 }
 
-sourceSets {
-  main {
-    kotlin.srcDir(neoforgeDir.resolve("src/main/kotlin"))
-    resources.srcDir(neoforgeDir.resolve("src/main/resources"))
-    resources.srcDir(neoforgeDir.resolve("src/main/templates"))
-  }
-}
+sourceSets { main { resources.srcDir(neoforgeDir.resolve("src/main/templates")) } }
 
 neoForge {
   version = prop("deps.neo_loader")

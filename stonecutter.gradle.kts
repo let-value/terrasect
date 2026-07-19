@@ -3,7 +3,7 @@ plugins {
   id("com.diffplug.spotless")
 }
 
-stonecutter active "26.2.x-fabric"
+stonecutter active "26.2.x"
 
 allprojects {
   repositories {
@@ -19,16 +19,9 @@ allprojects {
 
 stonecutter parameters
   {
-    // common branch nodes are bare version ids (no "-loader" suffix, e.g. "26.2.x"); only
-    // fabric/neoforge nodes carry a loader suffix to split off.
-    val parts = current.project.split("-", limit = 2)
-    if (parts.size == 2) {
-      val (version, loader) = parts
-      properties { tags(version, loader) }
-      constants { match(loader, "fabric", "neoforge") }
-    } else {
-      properties { tags(current.project, "common") }
-    }
+    val loader = branch.id
+    properties { tags(current.project, loader) }
+    constants { match(loader, "fabric", "neoforge") }
   }
 
 spotless {
@@ -51,7 +44,7 @@ spotless {
   }
 
   kotlinGradle {
-    target("*.gradle.kts", "common/*.gradle.kts")
+    target("*.gradle.kts", "common/*.gradle.kts", "fabric/*.gradle.kts", "neoforge/*.gradle.kts")
     ktfmt().googleStyle()
   }
 }

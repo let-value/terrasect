@@ -84,8 +84,6 @@ tasks {
     dependsOn(generateAccessConverterWidener)
     includeEmptyDirs = false
     exclude("accesswideners/*.accesswidener")
-    // Mixin's compatibilityLevel must be <= the JRE running the game; capped at 21 so newer
-    // toolchains (Java 25 on 26.x) keep the highest level Mixin actually enables.
     val mixinCompatLevel = "JAVA_${minOf(prop("java").toInt(), 21)}"
     inputs.property("mixinCompatLevel", mixinCompatLevel)
     filesMatching("*.mixins.json") { expand("mixin_compat_level" to mixinCompatLevel) }

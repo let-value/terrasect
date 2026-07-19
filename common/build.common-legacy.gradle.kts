@@ -1,9 +1,5 @@
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
-// Loom-based variant of build.common.gradle.kts for Minecraft versions below 1.20.2, where
-// NeoForm (and thus MDG's neoForge{} MC provider used by build.common.gradle.kts) has no release —
-// NeoForged forked after 1.20.1. Loom + Mojang mappings can still supply a 1.20.1 MC jar, matching
-// how the fabric/e2e modules already resolve Minecraft.
 plugins {
   id("dev.kikugie.loom-back-compat")
   id("org.jetbrains.kotlin.jvm")
@@ -59,8 +55,6 @@ tasks {
   named<ProcessResources>("processResources") {
     includeEmptyDirs = false
     exclude("accesswideners/*.accesswidener")
-    // Mixin's compatibilityLevel must be <= the JRE running the game (JAVA_17 here); capped at 21
-    // so newer toolchains keep the highest level Mixin actually enables.
     val mixinCompatLevel = "JAVA_${minOf(prop("java").toInt(), 21)}"
     inputs.property("mixinCompatLevel", mixinCompatLevel)
     filesMatching("*.mixins.json") { expand("mixin_compat_level" to mixinCompatLevel) }
