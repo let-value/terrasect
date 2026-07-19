@@ -63,6 +63,8 @@ HTML
         <h1>Terrasect</h1>
         <p class="summary">$SUMMARY</p>
         <nav class="links" aria-label="Project links">
+          <a href="https://modrinth.com/mod/terrasect">Modrinth</a>
+          <a href="https://www.curseforge.com/minecraft/mc-mods/terrasect">CurseForge</a>
           <a href="https://github.com/let-value/terrasect">GitHub</a>
           <a href="https://github.com/let-value/terrasect/releases">Releases</a>
           <a href="https://github.com/let-value/terrasect/issues">Issues</a>
