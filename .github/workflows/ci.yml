@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+  # Pushes to main keep the Gradle caches warm: PR runs can read caches created on their base
+  # branch, but caches written inside a PR are invisible to other PRs.
   push:
     branches: [main]
 
@@ -11,6 +13,11 @@ concurrency:
 
 permissions:
   contents: read
+
+# CI never runs the third-party compat suite; without this, configuring those projects downloads
+# their Modrinth mod jars in every job and any registry hiccup fails unrelated builds.
+env:
+  TERRASECT_SKIP_COMPAT: "1"
 
 jobs:
   build:
@@ -26,6 +33,11 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Default is read-only off the default branch, which would re-download Minecraft,
+          # NeoForm, and all dependencies on every single run.
+          cache-read-only: false
+          cache-cleanup: on-success
 
       - name: Spotless, unit tests, all loader jars
         run: >
@@ -76,14 +88,26 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Default is read-only off the default branch, which would re-download Minecraft,
+          # NeoForm, and all dependencies on every single run.
+          cache-read-only: false
+          cache-cleanup: on-success
 
+      # One retry: fabric's waitForWorldLoad has a fixed tick budget and a cold 2-core runner can
+      # blow it while preparing the spawn area; the second attempt reuses the warm daemon/assets.
       - name: Run smoke gametest
-        run: ./gradlew ${{ matrix.task }} ${{ matrix.args }}
+        run: ./gradlew ${{ matrix.task }} ${{ matrix.args }} || ./gradlew ${{ matrix.task }} ${{ matrix.args }}
 
       - name: Upload logs on failure
-        if: failure()
+        # cancelled() covers the job-level timeout, which cancels steps rather than failing them.
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-logs-${{ matrix.version }}
-          path: e2e/versions/${{ matrix.version }}/run/logs/
+          # Client-capable versions run from run/; old-paradigm servers from build/run/gameTest/.
+          path: |
+            e2e/versions/${{ matrix.version }}/run/logs/
+            e2e/versions/${{ matrix.version }}/build/run/*/logs/
+            e2e/versions/${{ matrix.version }}/build/run/*/crash-reports/
           if-no-files-found: ignore

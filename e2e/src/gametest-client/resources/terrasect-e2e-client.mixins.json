@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "terrasect.gametest.clientmixin",
+  "compatibilityLevel": "${mixin_compat_level}",
+  "client": [
+    "ClientGameTestWorldLoadTimeoutMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

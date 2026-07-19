@@ -91,10 +91,15 @@ stonecutter {
   //    declaring those libraries as plain runtimeOnly dependencies, bypassing the mod-remap
   //    pipeline entirely. C2ME's Jar-in-Jar entries are its own Fabric sub-mods (not plain
   //    libraries) and can't be unbundled the same way, so it stays latest-only.
-  create("e2e-compat") {
-    version(latestProject, latestVersion).buildscript("../build.e2e-compat.gradle.kts")
-    version("26.1.x", "26.1.2").buildscript("../build.e2e-compat.gradle.kts")
-    version("1.21.11", "1.21.11").buildscript("../build.e2e-compat.gradle.kts")
-    vcsVersion = latestProject
+  // TERRASECT_SKIP_COMPAT drops the compat tree entirely: Loom resolves its Modrinth mod jars at
+  // configuration time, so merely configuring these projects makes every unrelated build depend on
+  // api.modrinth.com being reachable. CI sets it for jobs that never run compat tests.
+  if (System.getenv("TERRASECT_SKIP_COMPAT").isNullOrBlank()) {
+    create("e2e-compat") {
+      version(latestProject, latestVersion).buildscript("../build.e2e-compat.gradle.kts")
+      version("26.1.x", "26.1.2").buildscript("../build.e2e-compat.gradle.kts")
+      version("1.21.11", "1.21.11").buildscript("../build.e2e-compat.gradle.kts")
+      vcsVersion = latestProject
+    }
   }
 }

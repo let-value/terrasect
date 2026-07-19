@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "terrasect.gametest.mixin",
+  "compatibilityLevel": "${mixin_compat_level}",
+  "server": [
+    "GameTestServerWorldOptionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

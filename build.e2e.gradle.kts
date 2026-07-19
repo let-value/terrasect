@@ -151,7 +151,25 @@ sourceSets {
         }
       }
     )
-    resources.setSrcDirs(listOf(e2eDir.resolve("src/gametest/resources")))
+    // Each paradigm carries a gametest-only mixin (mixins must be Java): old-paradigm turns
+    // structure generation on for the vanilla gametest server; client-paradigm raises fabric's
+    // fixed world-load tick budget for slow CI runners.
+    java.setSrcDirs(
+      listOf(
+        e2eDir.resolve(
+          if (oldGametestParadigm) "src/gametest-server-old/java" else "src/gametest-client/java"
+        )
+      )
+    )
+    resources.setSrcDirs(
+      listOf(
+        e2eDir.resolve("src/gametest/resources"),
+        e2eDir.resolve(
+          if (oldGametestParadigm) "src/gametest-server-old/resources"
+          else "src/gametest-client/resources"
+        ),
+      )
+    )
   }
 }
 
@@ -212,6 +230,11 @@ val resourceProps =
     "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
     "access_widener_file" to accessWidenerFile,
     "gametest_entrypoints" to gametestEntrypoints,
+    "gametest_mixins" to
+      (if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\""
+      else "\"terrasect-e2e-client.mixins.json\""),
+    // Same cap as build.common.gradle.kts: Mixin's highest enabled level on newer toolchains.
+    "mixin_compat_level" to "JAVA_${minOf(prop("java").toInt(), 21)}",
   )
 
 tasks {
@@ -233,7 +256,7 @@ tasks {
 
   named<ProcessResources>("processGametestResources") {
     inputs.properties(resourceProps)
-    filesMatching("fabric.mod.json") {
+    filesMatching(listOf("fabric.mod.json", "*.mixins.json")) {
       expand(resourceProps)
     }
   }
@@ -250,6 +273,20 @@ tasks {
     .configureEach {
       this as JavaExec
       systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
+      if (name == "runClientGameTest") {
+        // Menu-background blur renders a full-res gaussian PostChain every frame; on software GL
+        // (llvmpipe under Xvfb on CI) that pins the render thread, and the client-gametest phaser
+        // ticks client/server/test in lockstep, so world creation stalls indefinitely. Written
+        // after the clearRunDirectory dependency so it survives into the launch.
+        val optionsFile = layout.buildDirectory.file("run/clientGameTest/options.txt")
+        doFirst {
+          val file = optionsFile.get().asFile
+          file.parentFile.mkdirs()
+          if (!file.exists()) {
+            file.writeText("menuBackgroundBlurriness:0\n")
+          }
+        }
+      }
       if (name == "runGameTest") {
         // Force the smoke preset for this launch only, so the dedicated server's overworld builds
         // the full pipeline without affecting any other run.
