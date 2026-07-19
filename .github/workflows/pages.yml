@@ -1,0 +1,62 @@
+name: Pages
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  sync-modrinth:
+    name: Sync description to Modrinth
+    runs-on: ubuntu-latest
+    # Best-effort: the token scoped for publish.yml's version uploads may not carry project-write
+    # permission. Doesn't block anything else if it fails or the secrets aren't set.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PATCH project description
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+        run: |
+          if [ -z "$MODRINTH_TOKEN" ] || [ -z "$MODRINTH_PROJECT_ID" ]; then
+            echo "MODRINTH_TOKEN/MODRINTH_PROJECT_ID not configured, skipping."
+            exit 0
+          fi
+          SUMMARY=$(cat pages/content/summary.txt)
+          BODY=$(cat pages/content/description.md)
+          jq -n --arg summary "$SUMMARY" --arg body "$BODY" \
+            '{summary: $summary, description: $body}' > payload.json
+          curl -sf -X PATCH "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}" \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data @payload.json

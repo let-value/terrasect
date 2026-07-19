@@ -1,1 +1,0 @@
-Status: COMPLETED — On 2026-05-09, Hermes intentionally ran Claude Code in JSON print mode with `--max-turns 1` to simulate an early-stop provider run, captured the returned `session_id`, and wrote retry metadata back into the goal file, proving that `--output-format json` is the durable way to preserve Claude conversation/session IDs for later provider-limit recovery.

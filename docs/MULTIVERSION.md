@@ -14,9 +14,9 @@ loaders. Two independent axes:
 | MC version | Java | API world | Notes |
 |---|---|---|---|
 | `1.21.1`   | 21 | old | back-compat target |
-| `1.21.11`  | 21 | new | primary / active dev version |
+| `1.21.11`  | 21 | new | back-compat target |
 | `26.1`     | 25 | new | MC `26.1.2` |
-| `26.2`     | 25 | new | latest |
+| `26.2`     | 25 | new | latest; primary / active dev version |
 
 Each version is built for both `fabric` and `neoforge`, so the full matrix is
 4 × 2 = 8 buildable variants (plus a `-common` project per version).
