@@ -1,0 +1,22 @@
+[versions]
+stonecutter = "0.9.6"
+loom-back-compat = "0.3"
+foojay-resolver = "1.0.0"
+kotlin-jvm = "2.3.0"
+dependencies-embedded = "1.1.0"
+neoforged-moddev = "2.0.139"
+fletching-table = "0.1.0-alpha.22"
+spotless = "8.7.0"
+
+[plugins]
+stonecutter = { id = "dev.kikugie.stonecutter", version.ref = "stonecutter" }
+loom-back-compat = { id = "dev.kikugie.loom-back-compat", version.ref = "loom-back-compat" }
+foojay-resolver = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay-resolver" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-jvm" }
+dependencies-embedded = { id = "io.github.gmazzo.dependencies.embedded", version.ref = "dependencies-embedded" }
+neoforged-moddev = { id = "net.neoforged.moddev", version.ref = "neoforged-moddev" }
+fletching-table = { id = "dev.kikugie.fletching-table", version.ref = "fletching-table" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+[libraries]
+stonecutter = { module = "dev.kikugie:stonecutter", version.ref = "stonecutter" }

@@ -2,9 +2,9 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
 plugins {
   `java-library`
-  id("org.jetbrains.kotlin.jvm")
-  id("net.neoforged.moddev")
-  id("dev.kikugie.fletching-table")
+  alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.neoforged.moddev)
+  alias(libs.plugins.fletching.table)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()
@@ -14,22 +14,10 @@ fun prop(key: String): String = sc.properties[key]
 fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
 
 val commonDir = rootProject.file("common")
-val commonKotlinSrc = commonDir.resolve("src/main/kotlin")
 val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
-val commonJavaSrc = commonDir.resolve("src/main/java")
 val processedCommonJavaDir = layout.buildDirectory.dir("processed/main/java")
 
-project
-  .fileTree(commonKotlinSrc) { include("**/*.kt") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/kotlin/${file.relativeTo(commonKotlinSrc).path}")
-  }
-
-project
-  .fileTree(commonJavaSrc) { include("**/*.java") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/java/${file.relativeTo(commonJavaSrc).path}")
-  }
+processCommonSourceTree(sc, commonDir)
 
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 val generatedAccessConverterResources =
