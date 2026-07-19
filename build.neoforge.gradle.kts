@@ -65,6 +65,10 @@ neoForge {
 dependencies {
   implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kotlinforforge")}")
   implementation(commonProject)
+
+  jarJar("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+  jarJar("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  jarJar("com.github.komputing:kbase58:${prop("deps.kbase58")}")
 }
 
 val metadataProps =

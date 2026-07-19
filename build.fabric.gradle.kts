@@ -72,15 +72,12 @@ dependencies {
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
   embedded("com.electronwill.night-config:toml:${prop("deps.night_config")}")
+  embedded("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+  embedded("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  embedded("com.github.komputing:kbase58:${prop("deps.kbase58")}")
 
   if (legacyLoomCommon) {
     implementation(project(path = commonProject.path, configuration = "namedElements"))
-    // `namedElements` carries only the un-remapped jar, not common's transitive runtime libraries,
-    // so pull common's third-party runtime deps explicitly (same version props). Newer commons
-    // bring these transitively via the plain project dependency.
-    runtimeOnly("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-    runtimeOnly("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-    runtimeOnly("com.github.komputing:kbase58:${prop("deps.kbase58")}")
   } else {
     implementation(commonProject)
   }

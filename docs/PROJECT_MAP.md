@@ -196,6 +196,38 @@ Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=<TestName>
 
 See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the full multi-version matrix (`1.20.1`, `1.21.1`, `1.21.11`, `26.1`, `26.2`).
 
+### Common's runtime dependencies must be embedded per loader
+
+`common`'s third-party libraries (`caffeine`, `net.openhft:zero-allocation-hashing`,
+`com.github.komputing:kbase58`, `com.electronwill.night-config`) are declared `implementation` in
+`build.common.gradle.kts`. That only puts them on the **compile/dev** classpath of a consuming
+loader module — it does **not** get them into a shipped mod jar. Each loader module must separately
+embed every one of them, or players crash with `NoClassDefFoundError` the first time the missing
+class is touched (see the `Caffeine` crash in issue #62 — NeoForge's per-mod module isolation means
+nothing outside a mod's own jar/`jarJar` bundle is visible to it, unlike Fabric's shared classloader,
+which can accidentally mask the same gap if some other installed mod happens to bundle the same
+library):
+
+- **Fabric** (`build.fabric.gradle.kts`): add each library via `embedded("group:artifact:version")`
+  (the `io.github.gmazzo.dependencies.embedded` plugin's config) — for every version, not only the
+  legacy (`1.20.1`) Loom path. `runtimeOnly` is not enough; it only affects the dev/test classpath.
+- **NeoForge** (`build.neoforge.gradle.kts`): add each library via `jarJar("group:artifact:version")`
+  (from `net.neoforged.moddev`'s built-in JarJar support). `implementation` is not enough for the
+  same reason.
+- `com.electronwill.night-config` doesn't need an explicit NeoForge declaration — it's already a
+  transitive dependency of NeoForge's own loader (`fancymodloader`), so it's present on the module
+  path for free. Verify any *new* common runtime dependency against the target platform's own POM
+  before assuming this shortcut applies to it too.
+- **Verify embedding, don't just verify compilation.** `./gradlew :<version>-<loader>:build`
+  succeeding proves nothing about the shipped jar's contents — the missing classes only show up at
+  runtime. After adding/changing a common runtime dependency, build the real production artifact
+  (`:<version>-fabric:remapJar` pre-1.21.11, `:<version>-fabric:jar` at 1.21.11+, or
+  `:<version>-neoforge:jar`) and `unzip -l` it to confirm the library's classes are actually inside.
+  A `-dev` jar under `build/devlibs/` or a stale `build/libs/*.jar` is not the shipped artifact and
+  will pass this check even when the fix is wrong (extraction tasks like
+  `extractEmbeddedDependenciesClasses` cache silently across an added dependency; force with
+  `--rerun-tasks` if in doubt).
+
 ### Key Gradle tasks
 
 | Task | Purpose |
