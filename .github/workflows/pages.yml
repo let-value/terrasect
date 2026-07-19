@@ -52,10 +52,12 @@ jobs:
             echo "MODRINTH_TOKEN/MODRINTH_PROJECT_ID not configured, skipping."
             exit 0
           fi
-          SUMMARY=$(cat pages/content/summary.txt)
+          # Modrinth's field names don't match the site's own labels: the short one-liner shown
+          # under the title is "description" in the API, and the long Markdown body is "body".
+          SHORT_DESCRIPTION=$(cat pages/content/summary.txt)
           BODY=$(cat pages/content/description.md)
-          jq -n --arg summary "$SUMMARY" --arg body "$BODY" \
-            '{summary: $summary, description: $body}' > payload.json
+          jq -n --arg description "$SHORT_DESCRIPTION" --arg body "$BODY" \
+            '{description: $description, body: $body}' > payload.json
           STATUS=$(curl -s -o response.json -w '%{http_code}' -X PATCH \
             "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}" \
             -H "Authorization: ${MODRINTH_TOKEN}" \
