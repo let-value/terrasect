@@ -63,6 +63,32 @@ body {
   padding-inline: clamp(1rem, 4vw, 2rem);
 }
 
+.sitenav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  align-items: center;
+  padding-block: 0.9rem;
+  border-block-end: 1px solid var(--border);
+  font-size: 0.95rem;
+
+  a {
+    color: var(--fg-muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  a:hover,
+  a:focus-visible {
+    color: var(--fg);
+  }
+
+  a[aria-current="page"] {
+    color: var(--accent);
+    font-weight: 700;
+  }
+}
+
 .hero {
   background: var(--bg-hero);
   border-block-end: 1px solid var(--border);
@@ -153,6 +179,29 @@ article {
     padding: 0.1em 0.4em;
     border-radius: 0.3em;
     font-size: 0.9em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5em;
+    padding: 1rem;
+    overflow-x: auto;
+
+    code {
+      background: none;
+      padding: 0;
+      font-size: 0.85em;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-block: 1.25rem;
+    border-radius: 0.5em;
+    border: 1px solid var(--border);
   }
 
   a {

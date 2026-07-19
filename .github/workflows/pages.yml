@@ -24,11 +24,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure pandoc is available
+        run: command -v pandoc || (sudo apt-get update && sudo apt-get install -y pandoc)
+
+      - name: Build the site
+        run: ./pages/build.sh
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: pages
+          path: pages/dist
 
       - name: Deploy to GitHub Pages
         id: deployment

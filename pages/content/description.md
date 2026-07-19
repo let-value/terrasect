@@ -9,6 +9,12 @@ from the same seed, every time.
 Nothing here is random per-visit: the same seed always produces the same layout, so a region you
 found once will still be there next time.
 
+## Issues and suggestions
+
+Found a bug, or have an idea for something Terrasect should do? Open an issue on the
+[GitHub issue tracker](https://github.com/let-value/terrasect/issues) — bug reports and
+suggestions are both welcome.
+
 ## Features
 
 - **Terrain & climate shaping.** Push a region's terrain flatter or rougher, and override its
@@ -40,7 +46,7 @@ Fabric builds additionally require **Fabric API** and **Fabric Language Kotlin**
 additionally require **Kotlin for Forge**. Grab the matching dependency versions from the same
 release page as the Terrasect jar you download.
 
-## Getting started
+## Quick start
 
 1. Install Terrasect and its loader-specific Kotlin dependency (see above) like any other mod.
 2. Launch the world once — Terrasect creates a `config/terrasect/` folder with an example preset and
@@ -49,8 +55,9 @@ release page as the Terrasect jar you download.
    (without the `.toml` extension) to activate it.
 4. Restart the game or server. Config changes are only read on startup.
 
-See the full configuration reference on the project's GitHub for the complete preset format,
-including every region property and constraint type.
+See [Getting Started](#getting-started) below for a step-by-step walkthrough, the complete
+region/strategy reference (with pictures), and dedicated pages for noise, structures, and loot
+constraints.
 
 ## Known limitations
 

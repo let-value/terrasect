@@ -20,9 +20,10 @@ Publishes each version+loader jar as its own platform version via mc-publish, wi
 
 ## `pages.yml` — deploy user-facing docs
 Triggered by pushing a `v*` tag or manually via workflow dispatch. Two jobs:
-- `deploy`: publishes the static site in [`pages/`](../pages) to GitHub Pages via
-  `actions/deploy-pages`. Requires the repo's **Settings → Pages → Source** set to "GitHub Actions"
-  once, before the first run.
+- `deploy`: runs `pages/build.sh` (renders `pages/content/*.md` with pandoc into one stitched
+  `pages/dist/index.html`) and publishes `pages/dist` to GitHub Pages via `actions/deploy-pages`.
+  Requires the repo's **Settings → Pages → Source** set to "GitHub Actions" once, before the first
+  run.
 - `sync-modrinth`: best-effort (`continue-on-error`), PATCHes `pages/content/summary.txt` and
   `pages/content/description.md` straight to the Modrinth project page. No-ops if the Modrinth
   secrets aren't set. See [`pages/README.md`](../pages/README.md) for why the content lives there and
@@ -31,8 +32,10 @@ Triggered by pushing a `v*` tag or manually via workflow dispatch. Two jobs:
 
 ### Required repository configuration
 Secrets:
-- `MODRINTH_TOKEN` — Modrinth PAT with version-create scope for `publish.yml`; needs project-write
-  scope too if `pages.yml`'s `sync-modrinth` job should succeed.
+- `MODRINTH_TOKEN` — Modrinth PAT. `publish.yml` needs **Create versions** (plus **Read
+  versions**/**Read projects**, which Modrinth bundles in by default); `pages.yml`'s `sync-modrinth`
+  job additionally needs **Write projects** to PATCH the project description. One token with all of
+  these scopes covers both workflows.
 - `CURSEFORGE_TOKEN` — CurseForge API token.
 - `MODRINTH_PROJECT_ID` — Modrinth project id or slug.
 - `CURSEFORGE_PROJECT_ID` — CurseForge numeric project id.

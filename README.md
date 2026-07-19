@@ -1,5 +1,8 @@
 # Terrasect
 
+**Download:** [Modrinth](https://modrinth.com/mod/terrasect) ·
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/terrasect)
+
 Terrasect is a multiloader (Fabric + NeoForge) Minecraft world generation mod. It lets you carve a
 dimension into named **regions** — using hex, Voronoi, and other tiling strategies — and attach
 constraints to each region: noise, climate, height, biome, structure allow/block/force rules, mob
