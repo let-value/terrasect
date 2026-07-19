@@ -15,7 +15,7 @@ val fabricDir = rootProject.file("fabric")
 val e2eDir = rootProject.file("e2e")
 val fabricClientKotlinSrc = fabricDir.resolve("src/client/kotlin")
 val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
-val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
+val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 
 // Sub-1.20.2 builds common with Loom (build.common-legacy), whose default artifact Loom remaps to

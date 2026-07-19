@@ -19,12 +19,15 @@ allprojects {
 
 stonecutter parameters
   {
-    val (version, loader) = current.project.split("-", limit = 2)
-
-    properties { tags(version, loader) }
-
-    constants {
-      match(loader, "fabric", "neoforge")
+    // common branch nodes are bare version ids (no "-loader" suffix, e.g. "26.2.x"); only
+    // fabric/neoforge nodes carry a loader suffix to split off.
+    val parts = current.project.split("-", limit = 2)
+    if (parts.size == 2) {
+      val (version, loader) = parts
+      properties { tags(version, loader) }
+      constants { match(loader, "fabric", "neoforge") }
+    } else {
+      properties { tags(current.project, "common") }
     }
   }
 
@@ -48,7 +51,7 @@ spotless {
   }
 
   kotlinGradle {
-    target("*.gradle.kts")
+    target("*.gradle.kts", "common/*.gradle.kts")
     ktfmt().googleStyle()
   }
 }

@@ -15,7 +15,7 @@ fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
 
 val commonDir = rootProject.file("common")
 val neoforgeDir = rootProject.file("neoforge")
-val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
+val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
 
 version = "${prop("mod.version")}+${sc.current.version}"
 

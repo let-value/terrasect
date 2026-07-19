@@ -1,39 +1,20 @@
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
+// Loom-based variant of build.common.gradle.kts for Minecraft versions below 1.20.2, where
+// NeoForm (and thus MDG's neoForge{} MC provider used by build.common.gradle.kts) has no release —
+// NeoForged forked after 1.20.1. Loom + Mojang mappings can still supply a 1.20.1 MC jar, matching
+// how the fabric/e2e modules already resolve Minecraft.
 plugins {
-  `java-library`
+  id("dev.kikugie.loom-back-compat")
   id("org.jetbrains.kotlin.jvm")
-  id("net.neoforged.moddev")
-  id("dev.kikugie.fletching-table")
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()
 
 fun prop(key: String): String = sc.properties[key]
 
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
-
 val commonDir = rootProject.file("common")
-val commonKotlinSrc = commonDir.resolve("src/main/kotlin")
-val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
-val commonJavaSrc = commonDir.resolve("src/main/java")
-val processedCommonJavaDir = layout.buildDirectory.dir("processed/main/java")
-
-project
-  .fileTree(commonKotlinSrc) { include("**/*.kt") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/kotlin/${file.relativeTo(commonKotlinSrc).path}")
-  }
-
-project
-  .fileTree(commonJavaSrc) { include("**/*.java") }
-  .forEach { file ->
-    sc.process(file, "build/processed/main/java/${file.relativeTo(commonJavaSrc).path}")
-  }
-
 val accessWidenerFile = "${sc.current.version}.accesswidener"
-val generatedAccessConverterResources =
-  layout.buildDirectory.dir("generated/accessConverter/resources")
 
 version = prop("mod.version")
 
@@ -49,37 +30,14 @@ kotlin {
   jvmToolchain(prop("java").toInt())
 }
 
-sourceSets {
-  main {
-    java.srcDir(processedCommonJavaDir)
-    kotlin.srcDir(processedCommonKotlinDir)
-    resources.srcDir(commonDir.resolve("src/main/resources"))
-    resources.srcDir(generatedAccessConverterResources)
-  }
-  test {
-    kotlin.srcDir(commonDir.resolve("src/test/kotlin"))
-    resources.srcDir(commonDir.resolve("src/test/resources"))
-  }
-}
-
-fletchingTable {
-  accessConverter.register(sourceSets.main) {
-    add("accessconverters/$accessWidenerFile")
-  }
-}
-
-neoForge {
-  neoFormVersion = propOrNull("deps.neoform") ?: sc.current.version
-  propOrNull("parchment.mappings")?.let { mappings ->
-    parchment {
-      mappingsVersion = mappings
-      minecraftVersion = prop("parchment.minecraft")
-    }
-  }
-  addModdingDependenciesTo(sourceSets["test"])
+loom {
+  accessWidenerPath = commonDir.resolve("src/main/resources/accesswideners/$accessWidenerFile")
 }
 
 dependencies {
+  minecraft("com.mojang:minecraft:${sc.current.version}")
+  loomx.applyMojangMappings()
+
   compileOnly("net.fabricmc:sponge-mixin:${prop("deps.mixin")}")
   compileOnly("io.github.llamalad7:mixinextras-common:${prop("deps.mixinextras")}")
   implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
@@ -98,22 +56,11 @@ dependencies {
 }
 
 tasks {
-  val generateAccessConverterWidener by
-    registering(Copy::class) {
-      from(commonDir.resolve("src/main/resources/accesswideners/$accessWidenerFile")) {
-        filter { line: String ->
-          if (line.startsWith("accessWidener v2 ")) "accessWidener v2 named" else line
-        }
-      }
-      into(generatedAccessConverterResources.map { it.dir("accessconverters") })
-    }
-
   named<ProcessResources>("processResources") {
-    dependsOn(generateAccessConverterWidener)
     includeEmptyDirs = false
     exclude("accesswideners/*.accesswidener")
-    // Mixin's compatibilityLevel must be <= the JRE running the game; capped at 21 so newer
-    // toolchains (Java 25 on 26.x) keep the highest level Mixin actually enables.
+    // Mixin's compatibilityLevel must be <= the JRE running the game (JAVA_17 here); capped at 21
+    // so newer toolchains keep the highest level Mixin actually enables.
     val mixinCompatLevel = "JAVA_${minOf(prop("java").toInt(), 21)}"
     inputs.property("mixinCompatLevel", mixinCompatLevel)
     filesMatching("*.mixins.json") { expand("mixin_compat_level" to mixinCompatLevel) }

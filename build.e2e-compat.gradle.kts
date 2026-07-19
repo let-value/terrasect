@@ -15,7 +15,7 @@ val fabricDir = rootProject.file("fabric")
 val e2eCompatDir = rootProject.file("e2e-compat")
 val fabricClientKotlinSrc = fabricDir.resolve("src/client/kotlin")
 val processedFabricClientKotlinDir = layout.buildDirectory.dir("processed/client/kotlin")
-val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
+val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 val gametestModId = "${prop("mod.id")}-e2e-compat"
 

@@ -47,21 +47,31 @@ stonecutter {
 
   create(rootProject) {
     fun match(project: String, vararg loaders: String, version: String = project) {
-      version("$project-common", version).buildscript("build.common.gradle.kts")
       for (loader in loaders) {
         version("$project-$loader", version).buildscript("build.$loader.gradle.kts")
       }
     }
 
-    // Sub-1.20.2: NeoForm has no release, so common uses the Loom-based build.common-legacy script
-    // instead of the MDG/NeoForm build.common script the other versions share.
-    version("1.20.1-common", "1.20.1").buildscript("build.common-legacy.gradle.kts")
     version("1.20.1-fabric", "1.20.1").buildscript("build.fabric.gradle.kts")
     match("1.21.1", "fabric", "neoforge")
     match("1.21.11", "fabric", "neoforge")
     match("26.1.x", "fabric", "neoforge", version = "26.1")
     match(latestProject, "fabric", "neoforge", version = latestVersion)
     vcsVersion = "$latestProject-fabric"
+
+    // `common` is a real Stonecutter branch (not a flat version like fabric/neoforge) so its
+    // single canonical source at common/src is preprocessed by Stonecutter's own
+    // stonecutterGenerate mechanism per version, instead of the hand-rolled sc.process() loop
+    // this used to require. Sub-1.20.2 uses the Loom-based build.common-legacy script since
+    // NeoForm (and MDG's neoForge{} MC provider used by build.common.gradle.kts) has no release
+    // there — NeoForged forked after 1.20.1.
+    branch("common") {
+      version("1.20.1", "1.20.1").buildscript("build.common-legacy.gradle.kts")
+      version("1.21.1", "1.21.1").buildscript("build.common.gradle.kts")
+      version("1.21.11", "1.21.11").buildscript("build.common.gradle.kts")
+      version("26.1.x", "26.1").buildscript("build.common.gradle.kts")
+      version(latestProject, latestVersion).buildscript("build.common.gradle.kts")
+    }
   }
 
   create("e2e") {

@@ -22,7 +22,7 @@ project
     sc.process(file, "build/processed/client/kotlin/${file.relativeTo(fabricClientKotlinSrc).path}")
   }
 
-val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
+val commonProject = project(":common:${project.name.substringBeforeLast("-")}")
 val accessWidenerFile = "${sc.current.version}.accesswidener"
 
 // Sub-1.20.2 builds common with Loom (build.common-legacy) since NeoForm has no release there.
