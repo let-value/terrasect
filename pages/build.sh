@@ -12,10 +12,11 @@ cp -R images "$OUT/images"
 cp style.css "$OUT/style.css"
 
 render() {
-  # --syntax-highlighting=none: syntax highlighting gives every code block id="cb1", "cb2", ... starting
-  # from 1 in each pandoc invocation, which collide once every section is concatenated onto one
-  # page. Plain <pre><code> also matches this site's intentionally low-key styling.
-  pandoc --from gfm --to html5 --wrap=none --syntax-highlighting=none "content/$1.md"
+  # --no-highlight (not the newer --syntax-highlighting=none — unsupported by the older pandoc
+  # preinstalled on GitHub's runners): syntax highlighting gives every code block id="cb1",
+  # "cb2", ... starting from 1 in each pandoc invocation, which collide once every section is
+  # concatenated onto one page. Plain <pre><code> also matches this site's low-key styling.
+  pandoc --from gfm --to html5 --wrap=none --no-highlight "content/$1.md"
 }
 
 SUMMARY="$(cat content/summary.txt)"
