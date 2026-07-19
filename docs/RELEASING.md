@@ -1,6 +1,6 @@
 # Releasing
 
-Three workflows in `.github/workflows/`:
+Four workflows in `.github/workflows/`:
 
 ## `ci.yml` — PR verification
 Runs on every PR (and pushes to `main`):
@@ -18,15 +18,31 @@ Manual only (workflow dispatch). Inputs:
 
 Publishes each version+loader jar as its own platform version via mc-publish, with loader-appropriate dependencies (fabric-api + fabric-language-kotlin on Fabric, kotlin-for-forge on NeoForge).
 
+## `pages.yml` — deploy user-facing docs
+Triggered by pushing a `v*` tag or manually via workflow dispatch. Two jobs:
+- `deploy`: publishes the static site in [`pages/`](../pages) to GitHub Pages via
+  `actions/deploy-pages`. Requires the repo's **Settings → Pages → Source** set to "GitHub Actions"
+  once, before the first run.
+- `sync-modrinth`: best-effort (`continue-on-error`), PATCHes `pages/content/summary.txt` and
+  `pages/content/description.md` straight to the Modrinth project page. No-ops if the Modrinth
+  secrets aren't set. See [`pages/README.md`](../pages/README.md) for why the content lives there and
+  the CurseForge limitation (no public API for editing a project description — that listing has to
+  be updated by hand from the same source file).
+
 ### Required repository configuration
 Secrets:
-- `MODRINTH_TOKEN` — Modrinth PAT with version-create scope.
+- `MODRINTH_TOKEN` — Modrinth PAT with version-create scope for `publish.yml`; needs project-write
+  scope too if `pages.yml`'s `sync-modrinth` job should succeed.
 - `CURSEFORGE_TOKEN` — CurseForge API token.
 - `MODRINTH_PROJECT_ID` — Modrinth project id or slug.
 - `CURSEFORGE_PROJECT_ID` — CurseForge numeric project id.
 
+Repo settings:
+- **Settings → Pages → Source: GitHub Actions** — one-time setup required before `pages.yml` can
+  deploy.
+
 ### Cutting a release
 1. Bump `mod.version` in `stonecutter.properties.toml`.
-2. Tag and push: `git tag v<version> && git push origin v<version>`.
+2. Tag and push: `git tag v<version> && git push origin v<version>`. This also triggers `pages.yml`.
 3. Review the draft GitHub release `release.yml` creates; publish it.
 4. Run `publish.yml` with that tag (target `both`).

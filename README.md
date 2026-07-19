@@ -8,6 +8,9 @@ are resolved deterministically per-seed at world generation time. Region boundar
 signed distance fields, the hot path is designed to be allocation-free, and results are cached at the
 chunk level so per-block lookups stay cheap.
 
+**User-facing docs:** https://let-value.github.io/terrasect/ (built from [`pages/`](pages), published
+on release — this repo's docs below are for contributors).
+
 > [!IMPORTANT]
 > **AI disclosure.** LLMs were used extensively in developing this mod. We acknowledge that some
 > parts of the codebase are poorly written and may contain bugs or AI-generated slop. The author
