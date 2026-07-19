@@ -125,6 +125,7 @@ open class RegionBuilder(val id: Byte, val registry: RegionRegistry, var name: S
 
   fun copy(): RegionBuilder {
     return RegionBuilder(this.id, this.registry, this.name).also {
+      it.originAnchor = this.originAnchor
       it.radius = this.radius
       it.budget = this.budget
       it.decorations += this.decorations
