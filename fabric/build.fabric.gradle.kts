@@ -25,10 +25,7 @@ dependencies {
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
   modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
   modImplementation("net.fabricmc:fabric-language-kotlin:${prop("deps.fabric_kotlin")}")
-  embedded("com.electronwill.night-config:toml:${prop("deps.night_config")}")
-  embedded("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-  embedded("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-  embedded("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  embedded(project(path = commonProject.path, configuration = "embeddedDependencies"))
 
   if (legacyLoomCommon) {
     implementation(project(path = commonProject.path, configuration = "namedElements"))

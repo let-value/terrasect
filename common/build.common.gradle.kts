@@ -27,14 +27,25 @@ neoForge {
   addModdingDependenciesTo(sourceSets["test"])
 }
 
+// Single source of truth for the runtime libraries bundled into every loader jar. common compiles
+// against them (implementation extends this) and exposes them so fabric/neoforge embed exactly this
+// set instead of re-listing coordinates.
+val embeddedDependencies: Configuration by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+}
+
+configurations.named("implementation") { extendsFrom(embeddedDependencies) }
+
 dependencies {
   compileOnly("net.fabricmc:sponge-mixin:${prop("deps.mixin")}")
   compileOnly("io.github.llamalad7:mixinextras-common:${prop("deps.mixinextras")}")
-  implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-  implementation("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-  implementation("com.github.komputing:kbase58:${prop("deps.kbase58")}")
-  compileOnly("com.electronwill.night-config:core:${prop("deps.night_config")}")
-  compileOnly("com.electronwill.night-config:toml:${prop("deps.night_config")}")
+  embeddedDependencies(
+    "net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}"
+  )
+  embeddedDependencies("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  embeddedDependencies("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  embeddedDependencies("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 
   testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")

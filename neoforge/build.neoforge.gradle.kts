@@ -32,13 +32,17 @@ neoForge {
   }
 }
 
+evaluationDependsOn(commonProject.path)
+
 dependencies {
   implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kotlinforforge")}")
   implementation(commonProject)
 
-  jarJar("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-  jarJar("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-  jarJar("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  // moddev's jarJar can't consume a project configuration directly (it needs per-module version
+  // metadata), so nest each library common declares in its embeddedDependencies set.
+  commonProject.configurations["embeddedDependencies"].dependencies.forEach {
+    jarJar("${it.group}:${it.name}:${it.version}")
+  }
 }
 
 val metadataProps =
