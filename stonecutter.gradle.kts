@@ -8,11 +8,19 @@ stonecutter active "26.2.x"
 allprojects {
   repositories {
     mavenCentral()
-    maven("https://jitpack.io") { name = "JitPack" }
-    maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
     exclusiveContent {
-      forRepository { maven("https://api.modrinth.com/maven") }
+      forRepository { maven("https://api.modrinth.com/maven") { name = "Modrinth" } }
       filter { includeGroup("maven.modrinth") }
+    }
+    exclusiveContent {
+      forRepository {
+        maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
+      }
+      filter { includeGroup("thedarkcolour") }
+    }
+    exclusiveContent {
+      forRepository { maven("https://jitpack.io") { name = "JitPack" } }
+      filter { includeGroupAndSubgroups("com.github.komputing") }
     }
   }
 }
@@ -46,6 +54,7 @@ spotless {
       "neoforge/src/**/*.kt",
       "e2e/src/**/*.kt",
       "e2e-compat/src/**/*.kt",
+      "buildSrc/src/**/*.kt",
     )
     toggleOffOn()
     ktfmt().googleStyle()
@@ -59,7 +68,16 @@ spotless {
       "neoforge/*.gradle.kts",
       "e2e/*.gradle.kts",
       "e2e-compat/*.gradle.kts",
+      "buildSrc/*.gradle.kts",
+      "buildSrc/src/**/*.gradle.kts",
     )
     ktfmt().googleStyle()
+  }
+
+  format("misc") {
+    target(".gitattributes", ".gitignore", "*.gradle")
+    trimTrailingWhitespace()
+    leadingTabsToSpaces()
+    endWithNewline()
   }
 }
