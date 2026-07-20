@@ -56,6 +56,10 @@ spotless {
       "e2e-compat/src/**/*.kt",
       "buildSrc/src/**/*.kt",
     )
+    // gametest-client sources are latest-only, gated by whole-file `//? if latest {` Stonecutter
+    // markers. ktfmt's googleStyle rewrites `//?` to `// ?`, which silently breaks the marker (the
+    // block then never strips and fails to compile on older versions), so they can't be ktfmt'd.
+    targetExclude("e2e/src/gametest-client/**")
     toggleOffOn()
     ktfmt().googleStyle()
   }

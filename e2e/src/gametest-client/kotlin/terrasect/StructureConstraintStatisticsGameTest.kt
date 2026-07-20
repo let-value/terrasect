@@ -1,4 +1,4 @@
-// ? if latest {
+//? if latest {
 package terrasect
 
 import de.skuzzle.test.snapshots.SnapshotFile
@@ -565,4 +565,4 @@ private fun GeneratedStructureStats.countForStructure(structureId: String): Long
 
 private fun GeneratedStructureStats.countForStructurePrefix(prefix: String): Long =
   structureCounts.filter { (id, _) -> id.startsWith(prefix) }.sumOf { it.second }
-// ?}
+//?}

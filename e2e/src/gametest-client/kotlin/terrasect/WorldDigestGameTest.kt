@@ -1,4 +1,4 @@
-// ? if latest {
+//? if latest {
 package terrasect
 
 import de.skuzzle.test.snapshots.SnapshotFile
@@ -325,4 +325,4 @@ object TerrasectWorldDigestTest : FabricClientGameTest {
     }
   }
 }
-// ?}
+//?}
