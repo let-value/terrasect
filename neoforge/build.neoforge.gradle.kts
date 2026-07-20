@@ -3,8 +3,8 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 plugins {
   `java-library`
   `maven-publish`
-  id("net.neoforged.moddev")
-  id("org.jetbrains.kotlin.jvm")
+  alias(libs.plugins.neoforged.moddev)
+  alias(libs.plugins.kotlin.jvm)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()

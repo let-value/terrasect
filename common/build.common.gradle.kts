@@ -2,9 +2,9 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
 plugins {
   `java-library`
-  id("org.jetbrains.kotlin.jvm")
-  id("net.neoforged.moddev")
-  id("dev.kikugie.fletching-table")
+  alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.neoforged.moddev)
+  alias(libs.plugins.fletching.table)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()

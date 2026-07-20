@@ -152,6 +152,15 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `origin anchor survives buildTree`() {
+    registry.region("anchor").originAnchor().strategy(Strategy.voronoi())
+
+    val region = registry.buildTree("anchor")
+
+    assertTrue(region.originAnchor)
+  }
+
+  @Test
   fun `child region inherits narrative defaults but keeps its overrides`() {
     val worldDefaults =
       registry

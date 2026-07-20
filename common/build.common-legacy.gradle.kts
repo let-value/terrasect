@@ -1,8 +1,8 @@
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 
 plugins {
-  id("dev.kikugie.loom-back-compat")
-  id("org.jetbrains.kotlin.jvm")
+  alias(libs.plugins.loom.back.compat)
+  alias(libs.plugins.kotlin.jvm)
 }
 
 val sc = extensions.getByType<StonecutterBuildExtension>()
