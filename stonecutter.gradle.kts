@@ -3,28 +3,40 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-stonecutter active "26.2.x-fabric"
+stonecutter active "26.2.x"
 
 allprojects {
   repositories {
     mavenCentral()
-    maven("https://jitpack.io") { name = "JitPack" }
-    maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
     exclusiveContent {
-      forRepository { maven("https://api.modrinth.com/maven") }
+      forRepository { maven("https://api.modrinth.com/maven") { name = "Modrinth" } }
       filter { includeGroup("maven.modrinth") }
+    }
+    exclusiveContent {
+      forRepository {
+        maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" }
+      }
+      filter { includeGroup("thedarkcolour") }
+    }
+    exclusiveContent {
+      forRepository { maven("https://jitpack.io") { name = "JitPack" } }
+      filter { includeGroupAndSubgroups("com.github.komputing") }
     }
   }
 }
 
+val latestProject = "26.2.x"
+
 stonecutter parameters
   {
-    val (version, loader) = current.project.split("-", limit = 2)
-
-    properties { tags(version, loader) }
-
+    val loader = branch.id
+    // e2e and e2e-compat build a Fabric client, so they also need the fabric.* property table.
+    val propertyTags =
+      if (loader == "e2e" || loader == "e2e-compat") arrayOf(loader, "fabric") else arrayOf(loader)
+    properties { tags(current.project, *propertyTags) }
     constants {
       match(loader, "fabric", "neoforge")
+      put("latest", current.project == latestProject)
     }
   }
 
@@ -44,12 +56,32 @@ spotless {
       "e2e-compat/src/**/*.kt",
       "buildSrc/src/**/*.kt",
     )
+    // gametest-client sources are latest-only, gated by whole-file `//? if latest {` Stonecutter
+    // markers. ktfmt's googleStyle rewrites `//?` to `// ?`, which silently breaks the marker (the
+    // block then never strips and fails to compile on older versions), so they can't be ktfmt'd.
+    targetExclude("e2e/src/gametest-client/**")
     toggleOffOn()
     ktfmt().googleStyle()
   }
 
   kotlinGradle {
-    target("*.gradle.kts", "buildSrc/*.gradle.kts", "buildSrc/settings.gradle.kts")
+    target(
+      "*.gradle.kts",
+      "common/*.gradle.kts",
+      "fabric/*.gradle.kts",
+      "neoforge/*.gradle.kts",
+      "e2e/*.gradle.kts",
+      "e2e-compat/*.gradle.kts",
+      "buildSrc/*.gradle.kts",
+      "buildSrc/src/**/*.gradle.kts",
+    )
     ktfmt().googleStyle()
+  }
+
+  format("misc") {
+    target(".gitattributes", ".gitignore", "*.gradle")
+    trimTrailingWhitespace()
+    leadingTabsToSpaces()
+    endWithNewline()
   }
 }

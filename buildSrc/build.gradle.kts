@@ -1,9 +1,6 @@
 plugins { `kotlin-dsl` }
 
-repositories {
-  gradlePluginPortal()
-  mavenCentral()
-  maven("https://maven.kikugie.dev/releases") { name = "KikuGie" }
+dependencies {
+  implementation(libs.stonecutter)
+  implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.jvm.get()}")
 }
-
-dependencies { implementation(libs.stonecutter) }

@@ -1,43 +1,13 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   `java-library`
   `maven-publish`
   alias(libs.plugins.neoforged.moddev)
-  alias(libs.plugins.kotlin.jvm)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
-
-val commonDir = rootProject.file("common")
 val neoforgeDir = rootProject.file("neoforge")
-val commonProject = project(":${project.name.substringBeforeLast("-")}-common")
 
-version = "${prop("mod.version")}+${sc.current.version}"
-
-base.archivesName = "${prop("mod.id")}-neoforge"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
-
-sourceSets {
-  main {
-    kotlin.srcDir(neoforgeDir.resolve("src/main/kotlin"))
-    resources.srcDir(neoforgeDir.resolve("src/main/resources"))
-    resources.srcDir(neoforgeDir.resolve("src/main/templates"))
-  }
-}
+sourceSets { main { resources.srcDir(neoforgeDir.resolve("src/main/templates")) } }
 
 neoForge {
   version = prop("deps.neo_loader")
@@ -62,18 +32,22 @@ neoForge {
   }
 }
 
+evaluationDependsOn(commonProject.path)
+
 dependencies {
   implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kotlinforforge")}")
   implementation(commonProject)
 
-  jarJar("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-  jarJar("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-  jarJar("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  // moddev's jarJar can't consume a project configuration directly (it needs per-module version
+  // metadata), so nest each library common declares in its embeddedDependencies set.
+  commonProject.configurations["embeddedDependencies"].dependencies.forEach {
+    jarJar("${it.group}:${it.name}:${it.version}")
+  }
 }
 
 val metadataProps =
   mapOf(
-    "minecraft_version" to sc.current.version,
+    "minecraft_version" to mcVersion,
     "neoforge_minecraft_version_range" to prop("deps.neo_minecraft_range"),
     "neoforge_loader_version" to prop("deps.neo_loader"),
     "neoforge_version_range" to prop("deps.neo_version_range"),

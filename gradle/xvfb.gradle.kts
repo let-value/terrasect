@@ -1,8 +1,3 @@
-// Shared by build.e2e.gradle.kts and build.e2e-compat.gradle.kts via `apply(from = ...)`. Client
-// gametests need a real display; CI runners on Linux typically don't have one, so start a
-// throwaway Xvfb server around the run when Xvfb is available and no DISPLAY is already set.
-// No-ops locally (macOS/Windows dev machines, or Linux with a real display already attached).
-
 val xvfbDisplay = ":99"
 var xvfbProcess: Process? = null
 val isLinux = System.getProperty("os.name").lowercase().contains("linux")
@@ -37,9 +32,6 @@ val stopXvfb by tasks.registering {
   }
 }
 
-// Old-paradigm versions expose `runGametest` (headless server) instead of `runClientGameTest`;
-// wrap whichever task this version actually has. Server gametests don't need a display, but the
-// Xvfb wrap is harmless there and keeps a single code path.
 tasks
   .matching { it.name == "runClientGameTest" || it.name == "runGameTest" }
   .configureEach {

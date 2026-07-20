@@ -1,54 +1,14 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   `java-library`
-  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.neoforged.moddev)
   alias(libs.plugins.fletching.table)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
-
-val commonDir = rootProject.file("common")
-val processedCommonKotlinDir = layout.buildDirectory.dir("processed/main/kotlin")
-val processedCommonJavaDir = layout.buildDirectory.dir("processed/main/java")
-
-processCommonSourceTree(sc, commonDir)
-
-val accessWidenerFile = "${sc.current.version}.accesswidener"
 val generatedAccessConverterResources =
   layout.buildDirectory.dir("generated/accessConverter/resources")
 
-version = prop("mod.version")
-
-base.archivesName = "${prop("mod.id")}-common"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
-
-sourceSets {
-  main {
-    java.srcDir(processedCommonJavaDir)
-    kotlin.srcDir(processedCommonKotlinDir)
-    resources.srcDir(commonDir.resolve("src/main/resources"))
-    resources.srcDir(generatedAccessConverterResources)
-  }
-  test {
-    kotlin.srcDir(commonDir.resolve("src/test/kotlin"))
-    resources.srcDir(commonDir.resolve("src/test/resources"))
-  }
-}
+sourceSets { main { resources.srcDir(generatedAccessConverterResources) } }
 
 fletchingTable {
   accessConverter.register(sourceSets.main) {
@@ -57,7 +17,7 @@ fletchingTable {
 }
 
 neoForge {
-  neoFormVersion = propOrNull("deps.neoform") ?: sc.current.version
+  neoFormVersion = propOrNull("deps.neoform") ?: mcVersion
   propOrNull("parchment.mappings")?.let { mappings ->
     parchment {
       mappingsVersion = mappings
@@ -67,14 +27,25 @@ neoForge {
   addModdingDependenciesTo(sourceSets["test"])
 }
 
+// Single source of truth for the runtime libraries bundled into every loader jar. common compiles
+// against them (implementation extends this) and exposes them so fabric/neoforge embed exactly this
+// set instead of re-listing coordinates.
+val embeddedDependencies: Configuration by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+}
+
+configurations.named("implementation") { extendsFrom(embeddedDependencies) }
+
 dependencies {
   compileOnly("net.fabricmc:sponge-mixin:${prop("deps.mixin")}")
   compileOnly("io.github.llamalad7:mixinextras-common:${prop("deps.mixinextras")}")
-  implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
-  implementation("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
-  implementation("com.github.komputing:kbase58:${prop("deps.kbase58")}")
-  compileOnly("com.electronwill.night-config:core:${prop("deps.night_config")}")
-  compileOnly("com.electronwill.night-config:toml:${prop("deps.night_config")}")
+  embeddedDependencies(
+    "net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}"
+  )
+  embeddedDependencies("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  embeddedDependencies("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  embeddedDependencies("com.electronwill.night-config:toml:${prop("deps.night_config")}")
 
   testImplementation("it.unimi.dsi:fastutil-core:8.5.18")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -100,8 +71,6 @@ tasks {
     dependsOn(generateAccessConverterWidener)
     includeEmptyDirs = false
     exclude("accesswideners/*.accesswidener")
-    // Mixin's compatibilityLevel must be <= the JRE running the game; capped at 21 so newer
-    // toolchains (Java 25 on 26.x) keep the highest level Mixin actually enables.
     val mixinCompatLevel = "JAVA_${minOf(prop("java").toInt(), 21)}"
     inputs.property("mixinCompatLevel", mixinCompatLevel)
     filesMatching("*.mixins.json") { expand("mixin_compat_level" to mixinCompatLevel) }
@@ -110,8 +79,8 @@ tasks {
   test {
     workingDir = commonDir
     useJUnitPlatform()
-    systemProperty("terrasect.minecraftVersion", sc.current.version)
-    outputs.dir(commonDir.resolve("build/test-snapshots/${sc.current.version}"))
+    systemProperty("terrasect.minecraftVersion", mcVersion)
+    outputs.dir(commonDir.resolve("build/test-snapshots/$mcVersion"))
     if (project.hasProperty("updateSnapshots")) {
       systemProperty("updateSnapshots", "true")
     }
