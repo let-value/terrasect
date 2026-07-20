@@ -32,16 +32,16 @@ jobs:
       - name: Build all loader jars
         run: >
           ./gradlew test
-          :1.20.1-fabric:build
-          :1.21.1-fabric:build :1.21.1-neoforge:build
-          :1.21.11-fabric:build :1.21.11-neoforge:build
-          :26.1.x-fabric:build :26.1.x-neoforge:build
-          :26.2.x-fabric:build :26.2.x-neoforge:build
+          :fabric:1.20.1:build
+          :fabric:1.21.1:build :neoforge:1.21.1:build
+          :fabric:1.21.11:build :neoforge:1.21.11:build
+          :fabric:26.1.x:build :neoforge:26.1.x:build
+          :fabric:26.2.x:build :neoforge:26.2.x:build
 
       - name: Stage jars
         run: |
           mkdir -p dist
-          find versions/*-fabric/build/libs versions/*-neoforge/build/libs \
+          find fabric/versions/*/build/libs neoforge/versions/*/build/libs \
             -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' \
             -exec cp {} dist/ \;
           ls -l dist
