@@ -13,3 +13,15 @@
 [submodule "references/structurify"]
 	path = references/structurify
 	url = https://github.com/Faboslav/structurify.git
+[submodule "references/sable"]
+	path = references/sable
+	url = https://github.com/ryanhcode/sable.git
+[submodule "references/Simulated-Project"]
+	path = references/Simulated-Project
+	url = https://github.com/Creators-of-Aeronautics/Simulated-Project.git
+[submodule "references/Create"]
+	path = references/Create
+	url = https://github.com/Creators-of-Create/Create.git
+[submodule "references/Applied-Energistics-2"]
+	path = references/Applied-Energistics-2
+	url = https://github.com/AppliedEnergistics/Applied-Energistics-2.git
