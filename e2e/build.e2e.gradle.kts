@@ -1,57 +1,42 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
-  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.dependencies.embedded)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
 val e2eDir = rootProject.file("e2e")
-val commonProject = project(":common:${project.name}")
-val accessWidenerFile = "${sc.current.version}.accesswidener"
+val gametestModId = "${mod.id}-e2e"
+val oldGametestParadigm = mcVersion in listOf("1.20.1", "1.21.1")
 
-val legacyLoomCommon = sc.current.version == "1.20.1"
-val gametestModId = "${prop("mod.id")}-e2e"
+// Files under gametest-client wrap latest-only tests in `//? if latest { ... //?}`; Stonecutter
+// strips that content from the compiled source for non-latest versions, so the entrypoint list is
+// derived from the same marker instead of a hand-maintained class name array.
+val latestOnlyMarker = Regex("""//\?\s*if\s+latest\s*\{""")
+val gametestObjectDeclaration = Regex("""object\s+(\w+)\s*:\s*FabricClientGameTest\b""")
 
-val isLatestVersion = sc.current.version == prop("mod.latest")
+// The "gametest" source set doesn't follow Gradle's default sourceSet convention, so Stonecutter's
+// automatic per-branch preprocessing (which only hooks conventional source set locations) doesn't
+// apply here; process it explicitly instead.
+fun processGametestClientKotlin(): File {
+  val srcDir = e2eDir.resolve("src/gametest-client/kotlin")
+  val outDir = layout.buildDirectory.dir("processed/gametest-client/kotlin").get().asFile
+  fileTree(srcDir) { include("**/*.kt") }
+    .forEach { file -> sc.process(file, "$outDir/${file.relativeTo(srcDir).path}") }
+  return outDir
+}
 
-val oldGametestParadigm = sc.current.version in listOf("1.20.1", "1.21.1")
-
-val heavyClientTests =
-  listOf(
-    "TerrasectFabricClientGameTest",
-    "VanillaWorldDigestTest",
-    "TerrasectWorldDigestTest",
-    "MobConstraintBlockByNameGameTest",
-    "StructureConstraintVanillaGameTest",
-    "StructureConstraintHighDensityGameTest",
-    "StructureConstraintLocateGameTest",
-    "StructureConstraintBanByModGameTest",
-    "StructureConstraintAllowByModGameTest",
-    "StructureConstraintBanByTagGameTest",
-    "StructureConstraintAllowByTagGameTest",
-    "StructureConstraintBanByNameGameTest",
-    "StructureConstraintAllowByNameGameTest",
-    "StructureConstraintLocateRuinedPortalGameTest",
-    "StructureConstraintStatisticsTest",
-    "ForcedStructureGameTest",
-    "OriginAnchorGameTest",
-    "OceanArchetypeGameTest",
-    "LandlockedArchetypeGameTest",
-    "FlatlandsArchetypeGameTest",
-    "HighlandsArchetypeGameTest",
-    "NetherNoiseConstraintGameTest",
-    "EndNoiseConstraintGameTest",
-    "NetherMobConstraintGameTest",
-    "NetherStructureConstraintGameTest",
-    "DimensionContextIsolationGameTest",
-  )
+fun clientGametestEntries(): List<String> =
+  e2eDir
+    .resolve("src/gametest-client/kotlin/terrasect")
+    .listFiles { file -> file.extension == "kt" }
+    .orEmpty()
+    .sortedBy { it.name }
+    .flatMap { file ->
+      val text = file.readText()
+      if (!isLatest && latestOnlyMarker.containsMatchIn(text)) emptyList()
+      else gametestObjectDeclaration.findAll(text).map { it.groupValues[1] }.toList()
+    }
 
 fun kotlinEntry(value: String) =
   "      { \"value\": \"terrasect.$value\", \"adapter\": \"kotlin\" }"
@@ -65,29 +50,12 @@ val gametestEntrypoints =
       if (oldGametestParadigm) {
         add(entrypointBlock("fabric-gametest", listOf(kotlinEntry("ServerSmokeGameTest"))))
       } else {
-        val client = buildList {
-          add(kotlinEntry("SmokeGameTest"))
-          add(kotlinEntry("LootConstraintBlockAllGameTest"))
-          if (isLatestVersion) addAll(heavyClientTests.map { kotlinEntry(it) })
-        }
-        add(entrypointBlock("fabric-client-gametest", client))
+        add(
+          entrypointBlock("fabric-client-gametest", clientGametestEntries().map { kotlinEntry(it) })
+        )
       }
     }
     .joinToString(",\n")
-
-version = prop("mod.version")
-
-base.archivesName = "${prop("mod.id")}-e2e"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
 
 fabricApi {
   configureTests {
@@ -113,8 +81,7 @@ sourceSets {
         if (oldGametestParadigm) {
           add(e2eDir.resolve("src/gametest-server-old/kotlin"))
         } else {
-          add(e2eDir.resolve("src/gametest-client/kotlin"))
-          if (isLatestVersion) add(e2eDir.resolve("src/gametest-latest/kotlin"))
+          add(processGametestClientKotlin())
         }
       }
     )
@@ -148,7 +115,7 @@ loom {
 }
 
 dependencies {
-  minecraft("com.mojang:minecraft:${sc.current.version}")
+  minecraft("com.mojang:minecraft:$mcVersion")
   loomx.applyMojangMappings()
 
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
@@ -176,24 +143,12 @@ dependencies {
 }
 
 val resourceProps =
-  mapOf(
-    "version" to version.toString(),
-    "mod_id" to prop("mod.id"),
+  fabricResourceProps(
     "gametest_mod_id" to gametestModId,
-    "mod_name" to prop("mod.name"),
-    "mod_description" to prop("mod.description"),
-    "mod_authors" to prop("mod.authors"),
-    "mod_license" to prop("mod.license"),
-    "fabric_loader_version" to prop("deps.fabric_loader"),
-    "minecraft_version" to sc.current.version,
-    "java_version" to prop("java"),
-    "fabric_api_version" to prop("deps.fabric_api"),
-    "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
-    "access_widener_file" to accessWidenerFile,
     "gametest_entrypoints" to gametestEntrypoints,
     "gametest_mixins" to
-      (if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\""
-      else "\"terrasect-e2e-client.mixins.json\""),
+      if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\""
+      else "\"terrasect-e2e-client.mixins.json\"",
     "mixin_compat_level" to "JAVA_${minOf(prop("java").toInt(), 21)}",
   )
 

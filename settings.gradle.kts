@@ -63,24 +63,22 @@ stonecutter {
       version("26.2.x", "26.2").buildscript("build.neoforge.gradle.kts")
     }
 
-    vcsVersion = "26.2.x"
-  }
-
-  create("e2e") {
-    version("1.20.1", "1.20.1").buildscript("../build.e2e.gradle.kts")
-    version("1.21.1", "1.21.1").buildscript("../build.e2e.gradle.kts")
-    version("1.21.11", "1.21.11").buildscript("../build.e2e.gradle.kts")
-    version("26.1.x", "26.1.2").buildscript("../build.e2e.gradle.kts")
-    version("26.2.x", "26.2").buildscript("../build.e2e.gradle.kts")
-    vcsVersion = "26.2.x"
-  }
-
-  if (System.getenv("TERRASECT_SKIP_COMPAT").isNullOrBlank()) {
-    create("e2e-compat") {
-      version("26.2.x", "26.2").buildscript("../build.e2e-compat.gradle.kts")
-      version("26.1.x", "26.1.2").buildscript("../build.e2e-compat.gradle.kts")
-      version("1.21.11", "1.21.11").buildscript("../build.e2e-compat.gradle.kts")
-      vcsVersion = "26.2.x"
+    branch("e2e") {
+      version("1.20.1", "1.20.1").buildscript("build.e2e.gradle.kts")
+      version("1.21.1", "1.21.1").buildscript("build.e2e.gradle.kts")
+      version("1.21.11", "1.21.11").buildscript("build.e2e.gradle.kts")
+      version("26.1.x", "26.1").buildscript("build.e2e.gradle.kts")
+      version("26.2.x", "26.2").buildscript("build.e2e.gradle.kts")
     }
+
+    if (System.getenv("TERRASECT_SKIP_COMPAT").isNullOrBlank()) {
+      branch("e2e-compat") {
+        version("1.21.11", "1.21.11").buildscript("build.e2e-compat.gradle.kts")
+        version("26.1.x", "26.1").buildscript("build.e2e-compat.gradle.kts")
+        version("26.2.x", "26.2").buildscript("build.e2e-compat.gradle.kts")
+      }
+    }
+
+    vcsVersion = "26.2.x"
   }
 }

@@ -1,37 +1,12 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
-  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.dependencies.embedded)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
 val e2eCompatDir = rootProject.file("e2e-compat")
-val commonProject = project(":common:${project.name}")
-val accessWidenerFile = "${sc.current.version}.accesswidener"
-val gametestModId = "${prop("mod.id")}-e2e-compat"
-
-val isLatest = sc.current.version == "26.2"
-
-version = prop("mod.version")
-
-base.archivesName = "${prop("mod.id")}-e2e-compat"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
+val gametestModId = "${mod.id}-e2e-compat"
 
 fabricApi {
   configureTests {
@@ -75,7 +50,7 @@ loom {
 }
 
 dependencies {
-  minecraft("com.mojang:minecraft:${sc.current.version}")
+  minecraft("com.mojang:minecraft:$mcVersion")
   loomx.applyMojangMappings()
 
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
@@ -106,22 +81,7 @@ dependencies {
   )
 }
 
-val resourceProps =
-  mapOf(
-    "version" to version.toString(),
-    "mod_id" to prop("mod.id"),
-    "gametest_mod_id" to gametestModId,
-    "mod_name" to prop("mod.name"),
-    "mod_description" to prop("mod.description"),
-    "mod_authors" to prop("mod.authors"),
-    "mod_license" to prop("mod.license"),
-    "fabric_loader_version" to prop("deps.fabric_loader"),
-    "minecraft_version" to sc.current.version,
-    "java_version" to prop("java"),
-    "fabric_api_version" to prop("deps.fabric_api"),
-    "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
-    "access_widener_file" to accessWidenerFile,
-  )
+val resourceProps = fabricResourceProps("gametest_mod_id" to gametestModId)
 
 tasks {
   test {

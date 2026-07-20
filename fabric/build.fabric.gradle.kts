@@ -1,35 +1,10 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import net.fabricmc.loom.task.GenerateSourcesTask
-
 plugins {
+  id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
-  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.dependencies.embedded)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-val commonDir = rootProject.file("common")
 val fabricDir = rootProject.file("fabric")
-val commonProject = project(":common:${project.name}")
-val accessWidenerFile = "${sc.current.version}.accesswidener"
-val legacyLoomCommon = sc.current.version == "1.20.1"
-
-version = "${prop("mod.version")}+${sc.current.version}"
-
-base.archivesName = "${prop("mod.id")}-fabric"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
 
 sourceSets { main { kotlin.srcDir(fabricDir.resolve("src/client/kotlin")) } }
 
@@ -44,7 +19,7 @@ loom {
 }
 
 dependencies {
-  minecraft("com.mojang:minecraft:${sc.current.version}")
+  minecraft("com.mojang:minecraft:$mcVersion")
   loomx.applyMojangMappings()
 
   modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
@@ -62,21 +37,7 @@ dependencies {
   }
 }
 
-val resourceProps =
-  mapOf(
-    "version" to version.toString(),
-    "mod_id" to prop("mod.id"),
-    "mod_name" to prop("mod.name"),
-    "mod_description" to prop("mod.description"),
-    "mod_authors" to prop("mod.authors"),
-    "mod_license" to prop("mod.license"),
-    "fabric_loader_version" to prop("deps.fabric_loader"),
-    "minecraft_version" to sc.current.version,
-    "java_version" to prop("java"),
-    "fabric_api_version" to prop("deps.fabric_api"),
-    "fabric_kotlin_version" to prop("deps.fabric_kotlin"),
-    "access_widener_file" to accessWidenerFile,
-  )
+val resourceProps = fabricResourceProps()
 
 tasks {
   named<ProcessResources>("processResources") {
@@ -95,14 +56,5 @@ tasks {
     from(commonProject.sourceSets["main"].output) {
       exclude("META-INF/accesstransformer.cfg", "accesswideners/*.accesswidener")
     }
-  }
-
-  register<Sync>("unpackMinecraftSources") {
-    group = "minecraft sources"
-    description = "Unpack Mojang-mapped decompiled Minecraft sources to minecraft/${project.name}/"
-    dependsOn("genSourcesWithVineflower")
-    val genTask = named<GenerateSourcesTask>("genSourcesWithVineflower")
-    from(zipTree(genTask.flatMap { it.sourcesOutputJar }))
-    into(rootProject.file("minecraft/${project.name}"))
   }
 }

@@ -1,29 +1,6 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
-  alias(libs.plugins.kotlin.jvm)
-}
-
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-val commonDir = rootProject.file("common")
-val accessWidenerFile = "${sc.current.version}.accesswidener"
-
-version = prop("mod.version")
-
-base.archivesName = "${prop("mod.id")}-common"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
 }
 
 loom {
@@ -31,7 +8,7 @@ loom {
 }
 
 dependencies {
-  minecraft("com.mojang:minecraft:${sc.current.version}")
+  minecraft("com.mojang:minecraft:$mcVersion")
   loomx.applyMojangMappings()
 
   compileOnly("net.fabricmc:sponge-mixin:${prop("deps.mixin")}")
@@ -63,8 +40,8 @@ tasks {
   test {
     workingDir = commonDir
     useJUnitPlatform()
-    systemProperty("terrasect.minecraftVersion", sc.current.version)
-    outputs.dir(commonDir.resolve("build/test-snapshots/${sc.current.version}"))
+    systemProperty("terrasect.minecraftVersion", mcVersion)
+    outputs.dir(commonDir.resolve("build/test-snapshots/$mcVersion"))
     if (project.hasProperty("updateSnapshots")) {
       systemProperty("updateSnapshots", "true")
     }

@@ -1,36 +1,12 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   `java-library`
-  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.neoforged.moddev)
   alias(libs.plugins.fletching.table)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
-
-val commonDir = rootProject.file("common")
-val accessWidenerFile = "${sc.current.version}.accesswidener"
 val generatedAccessConverterResources =
   layout.buildDirectory.dir("generated/accessConverter/resources")
-
-version = prop("mod.version")
-
-base.archivesName = "${prop("mod.id")}-common"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
 
 sourceSets { main { resources.srcDir(generatedAccessConverterResources) } }
 
@@ -41,7 +17,7 @@ fletchingTable {
 }
 
 neoForge {
-  neoFormVersion = propOrNull("deps.neoform") ?: sc.current.version
+  neoFormVersion = propOrNull("deps.neoform") ?: mcVersion
   propOrNull("parchment.mappings")?.let { mappings ->
     parchment {
       mappingsVersion = mappings
@@ -92,8 +68,8 @@ tasks {
   test {
     workingDir = commonDir
     useJUnitPlatform()
-    systemProperty("terrasect.minecraftVersion", sc.current.version)
-    outputs.dir(commonDir.resolve("build/test-snapshots/${sc.current.version}"))
+    systemProperty("terrasect.minecraftVersion", mcVersion)
+    outputs.dir(commonDir.resolve("build/test-snapshots/$mcVersion"))
     if (project.hasProperty("updateSnapshots")) {
       systemProperty("updateSnapshots", "true")
     }

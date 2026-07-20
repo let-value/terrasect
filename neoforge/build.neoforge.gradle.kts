@@ -1,35 +1,11 @@
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-
 plugins {
+  id("terrasect-mod")
   `java-library`
   `maven-publish`
   alias(libs.plugins.neoforged.moddev)
-  alias(libs.plugins.kotlin.jvm)
 }
 
-val sc = extensions.getByType<StonecutterBuildExtension>()
-
-fun prop(key: String): String = sc.properties[key]
-
-fun propOrNull(key: String): String? = sc.properties.getOrNull<String>(key)
-
-val commonDir = rootProject.file("common")
 val neoforgeDir = rootProject.file("neoforge")
-val commonProject = project(":common:${project.name}")
-
-version = "${prop("mod.version")}+${sc.current.version}"
-
-base.archivesName = "${prop("mod.id")}-neoforge"
-
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(prop("java").toInt())
-  }
-}
-
-kotlin {
-  jvmToolchain(prop("java").toInt())
-}
 
 sourceSets { main { resources.srcDir(neoforgeDir.resolve("src/main/templates")) } }
 
@@ -67,7 +43,7 @@ dependencies {
 
 val metadataProps =
   mapOf(
-    "minecraft_version" to sc.current.version,
+    "minecraft_version" to mcVersion,
     "neoforge_minecraft_version_range" to prop("deps.neo_minecraft_range"),
     "neoforge_loader_version" to prop("deps.neo_loader"),
     "neoforge_version_range" to prop("deps.neo_version_range"),

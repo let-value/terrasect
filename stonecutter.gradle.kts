@@ -17,11 +17,19 @@ allprojects {
   }
 }
 
+val latestProject = "26.2.x"
+
 stonecutter parameters
   {
     val loader = branch.id
-    properties { tags(current.project, loader) }
-    constants { match(loader, "fabric", "neoforge") }
+    // e2e and e2e-compat build a Fabric client, so they also need the fabric.* property table.
+    val propertyTags =
+      if (loader == "e2e" || loader == "e2e-compat") arrayOf(loader, "fabric") else arrayOf(loader)
+    properties { tags(current.project, *propertyTags) }
+    constants {
+      match(loader, "fabric", "neoforge")
+      put("latest", current.project == latestProject)
+    }
   }
 
 spotless {
@@ -49,6 +57,8 @@ spotless {
       "common/*.gradle.kts",
       "fabric/*.gradle.kts",
       "neoforge/*.gradle.kts",
+      "e2e/*.gradle.kts",
+      "e2e-compat/*.gradle.kts",
     )
     ktfmt().googleStyle()
   }
