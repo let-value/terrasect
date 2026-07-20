@@ -1,7 +1,7 @@
 mod.id = "terrasect"
 mod.name = "Terrasect"
 mod.group = "terrasect"
-mod.version = "0.2.1"
+mod.version = "0.2.2"
 mod.license = "MIT"
 mod.authors = "LetValue"
 mod.description = "A multiloader Minecraft mod."
