@@ -1,5 +1,5 @@
-[submodule "compat/c2me"]
-	path = compat/c2me
+[submodule "references/c2me"]
+	path = references/c2me
 	url = https://github.com/RelativityMC/C2ME-fabric.git
 [submodule "references/Biome-Replacer"]
 	path = references/Biome-Replacer

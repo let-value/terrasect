@@ -38,7 +38,6 @@ spotless {
       "neoforge/src/**/*.kt",
       "e2e/src/**/*.kt",
       "e2e-compat/src/**/*.kt",
-      "buildSrc/src/**/*.kt",
     )
     toggleOffOn()
     ktfmt().googleStyle()
@@ -50,8 +49,6 @@ spotless {
       "common/*.gradle.kts",
       "fabric/*.gradle.kts",
       "neoforge/*.gradle.kts",
-      "buildSrc/*.gradle.kts",
-      "buildSrc/settings.gradle.kts",
     )
     ktfmt().googleStyle()
   }
