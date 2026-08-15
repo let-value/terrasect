@@ -113,20 +113,20 @@ private fun getDHDebugStrings(): List<String> {
 }
 
 private fun parseDHActiveTaskCount(): Int {
-  val debug = getDHDebugStrings()
   var active = 0
-  for (line in debug) {
+  for (line in getDHDebugStrings()) {
     val lower = line.lowercase()
-    if (
-      lower.contains("queue") ||
-        lower.contains("waiting") ||
-        lower.contains("in progress") ||
-        lower.contains("task") ||
-        lower.contains("generating") ||
-        lower.contains("running")
-    ) {
-      val numbers = Regex("\\d+").findAll(line).map { it.value.toInt() }.toList()
-      active += numbers.filter { it > 0 }.sum()
+    if (lower.contains("chunk update queues") || lower.contains("queued chunk updates")) continue
+    if (lower.contains("world gen/import tasks")) {
+      val numbers: List<Int> = Regex("\\d+").findAll(line).map { it.value.toInt() }.toList()
+      if (numbers.size >= 2 && (numbers[0] > 0 || numbers[1] > 0)) active += 1
+      else if (numbers.size == 1 && numbers[0] > 0) active += 1
+    } else if (lower.contains("world gen queue")) {
+      val numbers: List<Int> = Regex("\\d+").findAll(line).map { it.value.toInt() }.toList()
+      if (numbers.isNotEmpty() && numbers[0] > 0) active += 1
+    } else if (lower.contains("generating") || lower.contains("running")) {
+      val numbers: List<Int> = Regex("\\d+").findAll(line).map { it.value.toInt() }.toList()
+      if (numbers.any { it > 0 }) active += 1
     }
   }
   return active
@@ -262,7 +262,9 @@ object GeographyDHGameTest : FabricClientGameTest {
         )
       }
 
-      context.waitTicks(100)
+      log.info("geography-dh: DH generation settled; letting LODs render...")
+      context.waitTicks(400)
+      context.waitTicks(200)
 
       context.takeScreenshot(
         TestScreenshotOptions.of("geography_dh_aerial").withDestinationDir(screenshotDir)
