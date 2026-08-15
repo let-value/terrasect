@@ -57,9 +57,9 @@ class StructureConstraintsTest {
     val child =
       StructureConstraints.builder().blockNames("minecraft:swamp_hut").inheritParent(parent).build()
 
-    assertNotNull(child.selection)
-    assertEquals(setOf("minecraft:village"), child.selection!!.allowedNames)
-    assertEquals(setOf("minecraft:swamp_hut"), child.selection!!.blockedNames)
+    val selection = checkNotNull(child.selection)
+    assertEquals(setOf("minecraft:village"), selection.allowedNames)
+    assertEquals(setOf("minecraft:swamp_hut"), selection.blockedNames)
   }
 
   @Test

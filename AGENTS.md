@@ -26,15 +26,15 @@ loaders from a shared codebase. See [`docs/MULTIVERSION.md`](docs/MULTIVERSION.m
 
 ## Building and Running
 The project uses **Gradle** as its build system. `common`/`fabric`/`neoforge` are not directly
-buildable — every buildable project is version-qualified (`:<version>-<loader>`).
+buildable — every buildable project is version-qualified (`:<loader>:<version>`).
 
 - **Windows shell (PowerShell/cmd):** Use `./gradlew.bat` equivalents for commands below (for example `./gradlew.bat build`).
 - **Build all versions/loaders:** `./gradlew build`
-- **Build one version/loader:** `./gradlew :26.2.x-fabric:build` or `./gradlew :26.2.x-neoforge:build`
-- **Run Fabric Client:** `./gradlew :26.2.x-fabric:runClient`
-- **Run NeoForge Client:** `./gradlew :26.2.x-neoforge:runClient`
-- **Run Fabric Server:** `./gradlew :26.2.x-fabric:runServer`
-- **Run NeoForge Server:** `./gradlew :26.2.x-neoforge:runServer`
+- **Build one version/loader:** `./gradlew :fabric:26.2.x:build` or `./gradlew :neoforge:26.2.x:build`
+- **Run Fabric Client:** `./gradlew :fabric:26.2.x:runClient`
+- **Run NeoForge Client:** `./gradlew :neoforge:26.2.x:runClient`
+- **Run Fabric Server:** `./gradlew :fabric:26.2.x:runServer`
+- **Run NeoForge Server:** `./gradlew :neoforge:26.2.x:runServer`
 
 ## Development Conventions
 - **Code Style:** Enforced by **Spotless**.

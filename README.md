@@ -53,7 +53,7 @@ terrasect/
 ```
 
 `common/`, `fabric/`, and `neoforge/` are not themselves buildable Gradle projects — every buildable
-project is version-qualified (`:<version>-<loader>`, e.g. `:26.2.x-fabric`).
+project is version-qualified (`:<loader>:<version>`, e.g. `:fabric:26.2.x`).
 
 See [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md) for the full package-by-package architecture
 reference.
@@ -69,26 +69,26 @@ Build every version/loader combination:
 Build a specific version/loader:
 
 ```bash
-./gradlew :26.2.x-fabric:build
-./gradlew :26.2.x-neoforge:build
+./gradlew :fabric:26.2.x:build
+./gradlew :neoforge:26.2.x:build
 ```
 
 ## Running
 
 ```bash
-./gradlew :26.2.x-fabric:runClient
-./gradlew :26.2.x-fabric:runServer
-./gradlew :26.2.x-neoforge:runClient
-./gradlew :26.2.x-neoforge:runServer
+./gradlew :fabric:26.2.x:runClient
+./gradlew :fabric:26.2.x:runServer
+./gradlew :neoforge:26.2.x:runClient
+./gradlew :neoforge:26.2.x:runServer
 ```
 
-Swap `26.2.x` for any other version project in the support matrix above (e.g. `1.21.11-fabric`).
+Swap `26.2.x` for any other version project in the support matrix above (e.g. `:fabric:1.21.11`).
 
 ## Testing
 
 ```bash
-./gradlew :26.2.x-common:test                    # unit + snapshot tests
-./gradlew :26.2.x-common:test -PupdateSnapshots  # regenerate snapshot references
+./gradlew :common:26.2.x:test                    # unit + snapshot tests
+./gradlew :common:26.2.x:test -PupdateSnapshots  # regenerate snapshot references
 ./gradlew :e2e:26.2.x:runClientGameTest          # client gametests for a given version
 ```
 
@@ -116,7 +116,7 @@ Issues and pull requests are welcome.
 2. **Match the existing code style.** Run `./gradlew spotlessApply` before committing —
    `spotlessCheck` is enforced in CI. Prefer direct, comment-free code over abstractions or
    compatibility wrappers; see the guardrails in [`AGENTS.md`](AGENTS.md).
-3. **Test your change.** Run `./gradlew :26.2.x-common:test` for anything touching `common/`, and
+3. **Test your change.** Run `./gradlew :common:26.2.x:test` for anything touching `common/`, and
    add or update snapshot/unit tests alongside the change. If your change touches a mixin or
    anything version-divergent, it must pass `SmokeGameTest` across the client gametest matrix (see
    [`docs/MULTIVERSION.md`](docs/MULTIVERSION.md)) — a green compile proves nothing about whether a

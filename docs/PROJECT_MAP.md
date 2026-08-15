@@ -35,7 +35,7 @@ dev version (`26.2`). Stonecutter preprocesses this source into the per-version
 projects under `versions/` at build/sync time — that directory is generated and
 git-ignored, never edited directly. Note `common`/`fabric`/`neoforge` are not
 themselves buildable Gradle projects — every buildable project is version-qualified
-(`:<version>-<loader>`, e.g. `:26.2.x-fabric`). See [`docs/MULTIVERSION.md`](MULTIVERSION.md)
+(`:<loader>:<version>`, e.g. `:fabric:26.2.x`). See [`docs/MULTIVERSION.md`](MULTIVERSION.md)
 for the full version-matrix, compat-shim, and Stonecutter-gating story.
 
 ---
@@ -155,9 +155,9 @@ Signed Distance Fields compute the distance of a world coordinate from a region 
 
 ### Unit / snapshot tests
 
-All unit and snapshot tests are in `common/src/test/kotlin/`. Run with `./gradlew :26.2.x-common:test`. Snapshot tests use `de.skuzzle.test:snapshot-tests-junit5`.
+All unit and snapshot tests are in `common/src/test/kotlin/`. Run with `./gradlew :common:26.2.x:test`. Snapshot tests use `de.skuzzle.test:snapshot-tests-junit5`.
 
-To update snapshots: `./gradlew :26.2.x-common:test -PupdateSnapshots`
+To update snapshots: `./gradlew :common:26.2.x:test -PupdateSnapshots`
 
 Coverage areas: SDF geometry (`sdf/`), strategies (`strategies/`), generation pipeline (`generation/`), region/structure/selection definitions (`definition/`), config parsing (`config/`), handlers (`handler/`), compiled lookups (`lookup/`), instrumentation (`instrumentation/`), noise transform helpers (`helpers/`), and the snapshot framework itself (`testing/`).
 
@@ -218,7 +218,7 @@ library):
   transitive dependency of NeoForge's own loader (`fancymodloader`), so it's present on the module
   path for free. Verify any *new* common runtime dependency against the target platform's own POM
   before assuming this shortcut applies to it too.
-- **Verify embedding, don't just verify compilation.** `./gradlew :<version>-<loader>:build`
+- **Verify embedding, don't just verify compilation.** `./gradlew :<loader>:<version>:build`
   succeeding proves nothing about the shipped jar's contents — the missing classes only show up at
   runtime. After adding/changing a common runtime dependency, build the real production artifact
   (`:<version>-fabric:remapJar` pre-1.21.11, `:<version>-fabric:jar` at 1.21.11+, or
@@ -233,8 +233,8 @@ library):
 | Task | Purpose |
 |------|---------|
 | `./gradlew build` | Compile + test all modules across the version matrix |
-| `./gradlew :26.2.x-common:test` | All unit + snapshot tests |
-| `./gradlew :26.2.x-common:test -PupdateSnapshots` | Same, regenerating snapshot reference files |
+| `./gradlew :common:26.2.x:test` | All unit + snapshot tests |
+| `./gradlew :common:26.2.x:test -PupdateSnapshots` | Same, regenerating snapshot reference files |
 | `./gradlew spotlessApply` | Apply Google Java Format + ktfmt |
 | `./gradlew spotlessCheck` | Verify formatting (enforced by CI) |
 | `./gradlew :<version>-fabric:runClient` / `runServer` | Launch Fabric dev game for a given version |
