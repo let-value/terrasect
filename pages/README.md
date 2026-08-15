@@ -70,7 +70,7 @@ snapshot tests, not hand-drawn — see `common/src/test/kotlin/terrasect/strateg
 changes:
 
 ```bash
-./gradlew :26.2.x-common:test --tests "terrasect.strategies.*"
+./gradlew :common:26.2.x:test --tests "terrasect.strategies.*"
 cp common/build/test-snapshots/26.2/strategies/HexStrategyTest/cells.png pages/images/regions/hex.png
 cp common/build/test-snapshots/26.2/strategies/DecorationGalleryTest/warp.png pages/images/decorations/warp.png
 # ...repeat per image, see git history of this file for the full copy list
