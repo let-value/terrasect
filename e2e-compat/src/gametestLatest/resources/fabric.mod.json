@@ -36,6 +36,10 @@
       {
         "value": "terrasect.C2MECompatGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.GeographyDHGameTest",
+        "adapter": "kotlin"
       }
     ]
   },

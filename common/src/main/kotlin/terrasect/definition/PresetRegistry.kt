@@ -1,6 +1,7 @@
 package terrasect.definition
 
 import terrasect.presets.CLIMATE_DEBUG
+import terrasect.presets.GEOGRAPHY
 import terrasect.presets.Presets
 
 object PresetRegistry {
@@ -10,6 +11,8 @@ object PresetRegistry {
     mutableMapOf(
       Presets.CLIMATE_DEBUG.toString() to CLIMATE_DEBUG,
       Presets.CLIMATE_DEBUG.id to CLIMATE_DEBUG,
+      Presets.GEOGRAPHY.toString() to GEOGRAPHY,
+      Presets.GEOGRAPHY.id to GEOGRAPHY,
     )
 
   fun preset(id: String) = presets.getOrPut(id) { RegionRegistry() }

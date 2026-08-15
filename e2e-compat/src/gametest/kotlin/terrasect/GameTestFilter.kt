@@ -17,4 +17,9 @@ object GameTestFilter {
     val name = klass.simpleName ?: return true
     return included == null || name.lowercase() in included!!
   }
+
+  fun isFocused(klass: KClass<*>): Boolean {
+    val name = klass.simpleName ?: return false
+    return included != null && name.lowercase() in included!!
+  }
 }
