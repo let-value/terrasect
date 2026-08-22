@@ -14,6 +14,7 @@ import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.Region
 import terrasect.handler.NoiseLogger
+import terrasect.lookup.CompiledBiomeLookup
 import terrasect.lookup.CompiledForcedStructures
 import terrasect.lookup.CompiledLootLookup
 import terrasect.lookup.CompiledMobLookup
@@ -47,11 +48,12 @@ class DimensionContext(
     CompiledForcedStructures.build(seed, root, registry)
   val lootLookup: CompiledLootLookup? = CompiledLootLookup.build(root, registry)
   val mobLookup: CompiledMobLookup? = CompiledMobLookup.build(root, registry)
+  val biomeLookup: CompiledBiomeLookup? = CompiledBiomeLookup.build(root, registry)
 
   init {
     anchorOrigin()
     log.debug {
-      "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL"} structureLookup=${if (structureLookup != null) "ACTIVE" else "NULL"} lootLookup=${if (lootLookup != null) "ACTIVE" else "NULL"} mobLookup=${if (mobLookup != null) "ACTIVE" else "NULL"}"
+      "built preset=$presetId dim=$dimensionId noiseRegistry=${if (noiseRegistry != null) "ACTIVE" else "NULL"} structureLookup=${if (structureLookup != null) "ACTIVE" else "NULL"} lootLookup=${if (lootLookup != null) "ACTIVE" else "NULL"} mobLookup=${if (mobLookup != null) "ACTIVE" else "NULL"} biomeLookup=${if (biomeLookup != null) "ACTIVE" else "NULL"}"
     }
   }
 

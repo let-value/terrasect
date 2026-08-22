@@ -78,6 +78,13 @@ Region sub-tables map directly to the corresponding builders:
 - `height`: exactly one of `exact` or the two-integer `range`.
 - `biomes`, `mobs`, and `loot`: `allow_mods`, `allow_tags`, `allow_names`, `block_mods`,
   `block_tags`, and `block_names`.
+- Biome constraints (`biomes`) apply at worldgen: the biome the climate sample selects is
+  evaluated against the region's constraint (matching by biome name, then tag, then mod id, in
+  that precedence; within a tier block beats allow, and any allow rule makes the allow-list
+  exclusive). Inherited regions take the union of their own, archetype, and ancestor rules. An
+  empty `[biomes]` table admits every biome. When the selected biome is rejected, the first
+  admitted parameter in the dimension's biome parameter list replaces it (a selection fallback,
+  not a climate change); if none is admitted, the vanilla biome stands.
 - `structures`: the same selection properties plus `spacing`, `separation`, `frequency`, and
   `force`. Forced entries accept `name` and at most one of `budget` or `radius`.
 - `noise`: `blend_width`, `noises`, and `density_functions`.

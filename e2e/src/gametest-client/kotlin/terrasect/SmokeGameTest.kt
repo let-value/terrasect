@@ -50,6 +50,7 @@ private fun registerSmokePreset() {
         }
         .mobs { blockNames("minecraft:zombie") }
         .loot { blockTags("c:foods") }
+        .biomes { blockNames("minecraft:desert") }
     }
 }
 
@@ -98,6 +99,7 @@ object SmokeGameTest : FabricClientGameTest {
               "structure" to (context?.structureLookup != null),
               "mob" to (context?.mobLookup != null),
               "loot" to (context?.lootLookup != null),
+              "biome" to (context?.biomeLookup != null),
             )
           val dispatcher = server.commands.dispatcher
           commandRegistered = dispatcher.root.getChild("ts") != null

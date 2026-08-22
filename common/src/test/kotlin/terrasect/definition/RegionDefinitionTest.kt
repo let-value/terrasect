@@ -51,6 +51,60 @@ class RegionDefinitionTest {
   }
 
   @Test
+  fun `child biome rules evaluate against the inherited union`() {
+    registry.region("parent").biomes { allowTags("taiga") }
+    registry
+      .region("child")
+      .biomes { blockNames("minecraft:old_growth_pine_taiga") }
+      .parent("parent")
+
+    val root = registry.buildTree("parent")
+    val child = root.children.single { it.name == "child" }
+
+    assertAll(
+      { assertEquals(setOf("taiga"), child.biomes!!.allowedTags) },
+      { assertEquals(setOf("minecraft:old_growth_pine_taiga"), child.biomes!!.blockedNames) },
+      // allow-exclusive once an allow rule exists: an untagged biome fails even without blocks
+      { assertFalse(child.biomes!!.evaluate("minecraft:plains", emptySet())) },
+      // the child's block beats the inherited allow at the name tier
+      { assertFalse(child.biomes!!.evaluate("minecraft:old_growth_pine_taiga", setOf("taiga"))) },
+      // a taiga-tagged biome that is not blocked passes
+      { assertTrue(child.biomes!!.evaluate("minecraft:pine_taiga", setOf("taiga"))) },
+    )
+  }
+
+  @Test
+  fun `child without its own biomes inherits the parent constraint at buildTree`() {
+    registry.region("parent").biomes { allowTags("taiga") }
+    registry.region("child").parent("parent")
+
+    val root = registry.buildTree("parent")
+    val child = root.children.single { it.name == "child" }
+
+    assertAll(
+      { assertNotNull(child.biomes) },
+      { assertEquals(setOf("taiga"), child.biomes!!.allowedTags) },
+    )
+  }
+
+  @Test
+  fun `inherited parent rules never override explicit child rules`() {
+    registry.region("parent").biomes { allowTags("taiga").blockNames("minecraft:plains") }
+    registry.region("child").biomes { allowNames("minecraft:plains") }.parent("parent")
+
+    val root = registry.buildTree("parent")
+    val child = root.children.single { it.name == "child" }
+
+    assertAll(
+      { assertEquals(setOf("taiga"), child.biomes!!.allowedTags) },
+      { assertEquals(setOf("minecraft:plains"), child.biomes!!.allowedNames) },
+      { assertEquals(setOf("minecraft:plains"), child.biomes!!.blockedNames) },
+      // the inherited block at the name tier still beats the child's own allow
+      { assertFalse(child.biomes!!.evaluate("minecraft:plains", emptySet())) },
+    )
+  }
+
+  @Test
   fun `archetype expands into region constraints at buildTree`() {
     registry.region("sea").archetype(Archetype.ocean())
 

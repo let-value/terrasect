@@ -200,10 +200,7 @@ object TerrasectToml {
       applyHeight(builder, it)
     }
     table.table("noise")?.let { applyNoise(builder, it) }
-    table.table("biomes")?.let {
-      warning("${it.path} is accepted but currently has no runtime effect")
-      applySelection(builder.biomesBuilder, it)
-    }
+    table.table("biomes")?.let { applySelection(builder.biomesBuilder, it) }
     table.table("structures")?.let { applyStructures(builder.structuresBuilder, it) }
     table.table("mobs")?.let { applySelection(builder.mobsBuilder, it) }
     table.table("loot")?.let { applySelection(builder.lootBuilder, it) }

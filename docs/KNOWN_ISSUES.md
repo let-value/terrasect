@@ -7,8 +7,6 @@ sub-builders. The configuration loader parses these properties and makes the cor
 calls even though the following properties do not currently affect generation:
 
 - `HeightConstraints` are copied into `Region`, but no generation handler reads `Region.height`.
-- Biome `SelectionConstraints` are copied into `Region`, but no generation handler evaluates
-  `Region.biomes`.
 - `ClimateConstraints.precipitation` is stored and inherited, but `ClimateHandler` does not apply it.
 - `ClimateConstraints.climatePreset` is stored and inherited, but no runtime code reads it.
 

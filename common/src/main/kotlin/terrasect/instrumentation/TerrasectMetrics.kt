@@ -3,6 +3,7 @@ package terrasect.instrumentation
 enum class TerrasectInstrScope(override val id: String) : InstrScope {
   STRUCTURE("structure"),
   CLIMATE("climate"),
+  BIOME("biome"),
   NOISE("noise"),
   CHUNK("chunk"),
   TRAVERSAL("traversal"),
@@ -30,11 +31,17 @@ enum class TerrasectMetricEvent(override val id: String) : MetricEvent {
   TRAVERSAL_STEP("traversal.step"),
   LOOT_APPLIED("loot.applied"),
   MOB_APPLIED("mob.applied"),
+  BIOME_APPLIED("biome.applied"),
+  BIOME_REJECTED("biome.rejected"),
+  BIOME_FALLBACK_APPLIED("biome.fallback_applied"),
+  BIOME_REJECTED_NO_FALLBACK("biome.rejected_no_fallback"),
+  BIOME_CHUNK_MISSING("biome.chunk_missing"),
 }
 
 object TerrasectInstr {
   val structure: ScopedInstr = Instr.scoped(TerrasectInstrScope.STRUCTURE)
   val climate: ScopedInstr = Instr.scoped(TerrasectInstrScope.CLIMATE)
+  val biome: ScopedInstr = Instr.scoped(TerrasectInstrScope.BIOME)
   val noise: ScopedInstr = Instr.scoped(TerrasectInstrScope.NOISE)
   val chunk: ScopedInstr = Instr.scoped(TerrasectInstrScope.CHUNK)
   val traversal: ScopedInstr = Instr.scoped(TerrasectInstrScope.TRAVERSAL)
