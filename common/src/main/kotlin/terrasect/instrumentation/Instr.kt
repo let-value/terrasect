@@ -69,7 +69,7 @@ class ScopedInstr(val scope: InstrScope) {
   }
 
   inline fun <T> time(event: MetricEvent, block: () -> T): T {
-    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return block()
     return timeEnabled(MetricId(scope.id, event.id), block)
   }
 
@@ -79,7 +79,7 @@ class ScopedInstr(val scope: InstrScope) {
     crossinline value0: () -> String,
     block: () -> T,
   ): T {
-    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return block()
     return timeEnabled(metricId(event, key0, value0()), block)
   }
 
@@ -91,7 +91,7 @@ class ScopedInstr(val scope: InstrScope) {
     crossinline value1: () -> String,
     block: () -> T,
   ): T {
-    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return block()
     return timeEnabled(metricId(event, key0, value0(), key1, value1()), block)
   }
 
@@ -105,12 +105,12 @@ class ScopedInstr(val scope: InstrScope) {
     crossinline value2: () -> String,
     block: () -> T,
   ): T {
-    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return block()
     return timeEnabled(metricId(event, key0, value0(), key1, value1(), key2, value2()), block)
   }
 
   inline fun recordDurationNanos(event: MetricEvent, nanos: Long) {
-    if (!MetricsConfig.isTimerEnabled(scope)) return
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return
     Instr.currentBackend().timer(MetricId(scope.id, event.id)).recordDurationNanos(nanos)
   }
 
@@ -120,7 +120,7 @@ class ScopedInstr(val scope: InstrScope) {
     key0: String,
     crossinline value0: () -> String,
   ) {
-    if (!MetricsConfig.isTimerEnabled(scope)) return
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return
     Instr.currentBackend().timer(metricId(event, key0, value0())).recordDurationNanos(nanos)
   }
 
@@ -132,7 +132,7 @@ class ScopedInstr(val scope: InstrScope) {
     key1: String,
     crossinline value1: () -> String,
   ) {
-    if (!MetricsConfig.isTimerEnabled(scope)) return
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return
     Instr.currentBackend()
       .timer(metricId(event, key0, value0(), key1, value1()))
       .recordDurationNanos(nanos)
@@ -148,7 +148,7 @@ class ScopedInstr(val scope: InstrScope) {
     key2: String,
     crossinline value2: () -> String,
   ) {
-    if (!MetricsConfig.isTimerEnabled(scope)) return
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return
     Instr.currentBackend()
       .timer(metricId(event, key0, value0(), key1, value1(), key2, value2()))
       .recordDurationNanos(nanos)
@@ -185,10 +185,10 @@ class ScopedInstr(val scope: InstrScope) {
     )
 
   fun timer(event: MetricEvent): InstrTimer =
-    ManagedTimer(scope, FixedMetricId(MetricId(scope.id, event.id)))
+    ManagedTimer(scope, event, FixedMetricId(MetricId(scope.id, event.id)))
 
   fun timer(event: MetricEvent, key0: String, value0: () -> String): InstrTimer =
-    ManagedTimer(scope, OneTagMetricId(scope, event, key0, value0))
+    ManagedTimer(scope, event, OneTagMetricId(scope, event, key0, value0))
 
   fun timer(
     event: MetricEvent,
@@ -196,7 +196,8 @@ class ScopedInstr(val scope: InstrScope) {
     value0: () -> String,
     key1: String,
     value1: () -> String,
-  ): InstrTimer = ManagedTimer(scope, TwoTagMetricId(scope, event, key0, value0, key1, value1))
+  ): InstrTimer =
+    ManagedTimer(scope, event, TwoTagMetricId(scope, event, key0, value0, key1, value1))
 
   fun timer(
     event: MetricEvent,
@@ -207,7 +208,11 @@ class ScopedInstr(val scope: InstrScope) {
     key2: String,
     value2: () -> String,
   ): InstrTimer =
-    ManagedTimer(scope, ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2))
+    ManagedTimer(
+      scope,
+      event,
+      ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2),
+    )
 
   @PublishedApi
   internal fun metricId(event: MetricEvent, key0: String, value0: String): MetricId =

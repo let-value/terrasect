@@ -74,16 +74,19 @@ internal class InMemoryTimer(override val id: MetricId) : InstrTimer {
 }
 
 @PublishedApi
-internal class ManagedTimer(private val scope: InstrScope, private val idFactory: MetricIdFactory) :
-  InstrTimer {
+internal class ManagedTimer(
+  private val scope: InstrScope,
+  private val event: MetricEvent,
+  private val idFactory: MetricIdFactory,
+) : InstrTimer {
   override val id: MetricId
     get() = idFactory.metricId()
 
   override val isTimingEnabled: Boolean
-    get() = MetricsConfig.isTimerEnabled(scope)
+    get() = MetricsConfig.isTimerEnabled(scope, event)
 
   override fun <T> time(block: () -> T): T {
-    if (!MetricsConfig.isTimerEnabled(scope)) return block()
+    if (!MetricsConfig.isTimerEnabled(scope, event)) return block()
     val timer = Instr.currentBackend().timer(idFactory.metricId())
     val start = System.nanoTime()
     try {
@@ -94,7 +97,7 @@ internal class ManagedTimer(private val scope: InstrScope, private val idFactory
   }
 
   override fun recordDurationNanos(nanos: Long) {
-    if (MetricsConfig.isTimerEnabled(scope)) {
+    if (MetricsConfig.isTimerEnabled(scope, event)) {
       Instr.currentBackend().timer(idFactory.metricId()).recordDurationNanos(nanos)
     }
   }

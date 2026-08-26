@@ -58,6 +58,7 @@ internal object BiomeFactory {
         .map { p ->
           when (p.simpleName) {
             "ClimateSettings" -> climate
+            "BiomeSpecialEffects" -> emptySpecialEffects()
             "GrassColorModifier" -> BiomeSpecialEffects.GrassColorModifier.NONE
             "BiomeGenerationSettings" -> BiomeGenerationSettings.EMPTY
             "MobSpawnSettings" -> MobSpawnSettings.EMPTY
@@ -66,6 +67,21 @@ internal object BiomeFactory {
         }
         .toTypedArray()
     return ctor.newInstance(*args) as Biome
+  }
+
+  private fun emptySpecialEffects(): BiomeSpecialEffects {
+    val builder = BiomeSpecialEffects.Builder().waterColor(0)
+    // spotless:off
+    //? if >=1.21.11 {
+    /*builder
+      */
+    //?} else {
+    builder.waterFogColor(0)
+    builder.fogColor(0)
+    builder.skyColor(0)
+    //?}
+    // spotless:on
+    return builder.build()
   }
 
   // The only parameter not covered above is EnvironmentAttributeMap (>=1.21.11). Use its EMPTY

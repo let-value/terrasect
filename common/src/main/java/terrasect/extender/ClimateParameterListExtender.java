@@ -1,7 +1,12 @@
 package terrasect.extender;
 
+import terrasect.generation.ChunkContext;
 import terrasect.generation.DimensionContext;
 
 public interface ClimateParameterListExtender {
-  void terrasect$setDimensionContext(DimensionContext context);
+  boolean terrasect$hasPositionalLookup();
+
+  void terrasect$setQueryContext(DimensionContext context, ChunkContext chunkContext);
+
+  void terrasect$clearQueryContext();
 }

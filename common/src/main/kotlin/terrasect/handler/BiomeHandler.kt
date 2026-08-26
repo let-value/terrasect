@@ -3,6 +3,7 @@ package terrasect.handler
 import net.minecraft.core.Holder
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
+import terrasect.generation.ChunkContext
 import terrasect.generation.DimensionContext
 import terrasect.instrumentation.TerrasectInstr
 import terrasect.instrumentation.TerrasectMetricEvent
@@ -18,6 +19,7 @@ object BiomeHandler {
   @JvmStatic
   fun selectBiome(
     dimensionContext: DimensionContext?,
+    chunkContext: ChunkContext?,
     quartX: Int,
     quartZ: Int,
     target: Climate.TargetPoint,
@@ -27,7 +29,16 @@ object BiomeHandler {
     val lookup = context.biomeLookup ?: return base
     val blockX = quartX shl 2
     val blockZ = quartZ shl 2
-    val region = context.traverser.traverse(blockX, blockZ, context.cache).region
+    val region =
+      if (chunkContext?.dimensionContext === context) {
+        chunkContext.getRegion(blockX, blockZ)
+      } else {
+        null
+      }
+        ?: run {
+          instr.count(TerrasectMetricEvent.BIOME_CHUNK_MISSING)
+          context.traverser.traverse(blockX, blockZ, context.cache).region
+        }
     if (!lookup.isConstrained(region)) return base
 
     appliedCounter.increment()

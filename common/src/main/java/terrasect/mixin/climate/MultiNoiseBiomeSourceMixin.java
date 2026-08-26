@@ -13,8 +13,12 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import terrasect.extender.ChunkAccessExtender;
 import terrasect.extender.ClimateParameterListExtender;
+import terrasect.extender.ClimateSamplerExtender;
 import terrasect.extender.MultiNoiseBiomeSourceExtender;
+import terrasect.extender.NoiseChunkExtender;
+import terrasect.generation.ChunkContext;
 import terrasect.generation.DimensionContext;
 import terrasect.handler.BiomeHandler;
 
@@ -22,6 +26,7 @@ import terrasect.handler.BiomeHandler;
 public abstract class MultiNoiseBiomeSourceMixin implements MultiNoiseBiomeSourceExtender {
   @Unique private DimensionContext terrasect$dimensionContext;
   @Unique private Climate.ParameterList<Holder<Biome>> terrasect$parameterList;
+  @Unique private boolean terrasect$positionalLookup;
 
   @Accessor("parameters")
   @Override
@@ -41,15 +46,17 @@ public abstract class MultiNoiseBiomeSourceMixin implements MultiNoiseBiomeSourc
   public void terrasect$setDimensionContext(DimensionContext context) {
     this.terrasect$dimensionContext = context;
     if (context == null) {
+      this.terrasect$positionalLookup = false;
       if (this.terrasect$parameterList != null) {
         ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
-            .terrasect$setDimensionContext(null);
+            .terrasect$clearQueryContext();
       }
       return;
     }
     this.terrasect$parameterList = this.terrasect$getParameterList();
-    ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
-        .terrasect$setDimensionContext(context);
+    this.terrasect$positionalLookup =
+        ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
+            .terrasect$hasPositionalLookup();
   }
 
   @ModifyVariable(
@@ -59,9 +66,10 @@ public abstract class MultiNoiseBiomeSourceMixin implements MultiNoiseBiomeSourc
       argsOnly = true,
       require = 0)
   private Climate.Sampler terrasect$beginBiomeQuery(Climate.Sampler sampler) {
-    if (this.terrasect$parameterList != null) {
+    if (this.terrasect$positionalLookup) {
       ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
-          .terrasect$setDimensionContext(this.terrasect$dimensionContext);
+          .terrasect$setQueryContext(
+              this.terrasect$dimensionContext, terrasect$getChunkContext(sampler));
     }
     return sampler;
   }
@@ -85,12 +93,24 @@ public abstract class MultiNoiseBiomeSourceMixin implements MultiNoiseBiomeSourc
     if (context == null) {
       return self.getNoiseBiome(targetPoint);
     }
-    try {
-      return BiomeHandler.selectBiome(
-          context, quartX, quartZ, targetPoint, self.getNoiseBiome(targetPoint));
-    } finally {
+    var base = self.getNoiseBiome(targetPoint);
+    if (this.terrasect$positionalLookup) {
       ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
-          .terrasect$setDimensionContext(null);
+          .terrasect$clearQueryContext();
+      return base;
     }
+    return BiomeHandler.selectBiome(
+        context, terrasect$getChunkContext(sampler), quartX, quartZ, targetPoint, base);
+  }
+
+  @Unique
+  private ChunkContext terrasect$getChunkContext(Climate.Sampler sampler) {
+    var samplerExtender = (ClimateSamplerExtender) (Object) sampler;
+    NoiseChunkExtender noiseChunk = samplerExtender.terrasect$getNoiseChunk();
+    if (noiseChunk == null) {
+      return null;
+    }
+    ChunkAccessExtender chunk = noiseChunk.terrasect$getChunk();
+    return chunk == null ? null : chunk.terrasect$getContext();
   }
 }
