@@ -40,6 +40,13 @@ public abstract class MultiNoiseBiomeSourceMixin implements MultiNoiseBiomeSourc
   @Override
   public void terrasect$setDimensionContext(DimensionContext context) {
     this.terrasect$dimensionContext = context;
+    if (context == null) {
+      if (this.terrasect$parameterList != null) {
+        ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
+            .terrasect$setDimensionContext(null);
+      }
+      return;
+    }
     this.terrasect$parameterList = this.terrasect$getParameterList();
     ((ClimateParameterListExtender) (Object) this.terrasect$parameterList)
         .terrasect$setDimensionContext(context);
