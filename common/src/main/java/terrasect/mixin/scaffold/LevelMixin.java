@@ -117,6 +117,9 @@ public class LevelMixin {
     var context =
         DimensionContext.register(
             presetId, dimension, structureSets, registry, seed, sampler, climateList);
+    if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
+      ((MultiNoiseBiomeSourceExtender) multiNoise).terrasect$setDimensionContext(context);
+    }
     ((ChunkGeneratorStructureStateExtender) generatorState).terrasect$setDimensionContext(context);
   }
 }

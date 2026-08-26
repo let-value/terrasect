@@ -11,6 +11,12 @@ class SelectionConstraints(
   private val hasAllowRules =
     allowedMods.isNotEmpty() || allowedTags.isNotEmpty() || allowedNames.isNotEmpty()
 
+  fun hasRules(): Boolean =
+    hasAllowRules ||
+      blockedMods.isNotEmpty() ||
+      blockedTags.isNotEmpty() ||
+      blockedNames.isNotEmpty()
+
   /**
    * Rules are checked by specificity: name, then tag, then mod. Within a tier block beats allow,
    * but a match at a more specific tier wins over any broader rule — allowNames(x) admits x even

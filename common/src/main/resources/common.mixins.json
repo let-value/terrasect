@@ -4,6 +4,7 @@
   "compatibilityLevel": "${mixin_compat_level}",
   "mixins": [
     "climate.ClimateClimateSamplerMixin",
+    "climate.ClimateParameterListMixin",
     "climate.ClimateTargetPointMixin",
     "climate.MultiNoiseBiomeSourceMixin",
     "loot.LootTableMixin",

@@ -18,10 +18,12 @@ private val log = LoggerFactory.getLogger("SmokeGameTest")
 
 private const val SEED = "terrasect-smoke"
 private const val SMOKE_PRESET = "smoke_all_constraints"
+private val ALLOWED_BIOMES = setOf("minecraft:desert")
 
 // Applies every constraint type the mod exposes to a single spawn region so one world generation
 // exercises the whole pipeline: noise/climate/height terrain shaping plus the mob/loot/structure
-// lookup compilation that runs at world load.
+// lookup compilation that runs at world load. The biome constraint also proves that the real
+// MultiNoiseBiomeSource selection call is filtered, rather than only compiling a lookup.
 private fun registerSmokePreset() {
   PresetRegistry.presets[SMOKE_PRESET] =
     RegionRegistry().apply {
@@ -50,6 +52,7 @@ private fun registerSmokePreset() {
         }
         .mobs { blockNames("minecraft:zombie") }
         .loot { blockTags("c:foods") }
+        .biomes { allowNames("minecraft:desert") }
     }
 }
 
@@ -81,6 +84,8 @@ object SmokeGameTest : FabricClientGameTest {
       var dimensionId = ""
       var commandRegistered = false
       var commandResult = 0
+      val sampledBiomes = LinkedHashSet<String>()
+      val rejectedBiomes = ArrayList<String>()
       game.server.runOnServer(
         FailableConsumer<MinecraftServer, Exception> { server ->
           val level = server.overworld()
@@ -98,6 +103,7 @@ object SmokeGameTest : FabricClientGameTest {
               "structure" to (context?.structureLookup != null),
               "mob" to (context?.mobLookup != null),
               "loot" to (context?.lootLookup != null),
+              "biome" to (context?.biomeLookup != null),
             )
           val dispatcher = server.commands.dispatcher
           commandRegistered = dispatcher.root.getChild("ts") != null
@@ -107,12 +113,34 @@ object SmokeGameTest : FabricClientGameTest {
               dispatcher.execute("ts locate .overworld_root", commandSource) +
                 dispatcher.execute("ts query", commandSource)
           }
+          val biomeContext = checkNotNull(context)
+          val biomeLookup = checkNotNull(biomeContext.biomeLookup)
+          val biomeSource = level.chunkSource.generator.biomeSource
+          val sampler = level.chunkSource.randomState().sampler()
+          for (qx in 0 until 16) {
+            for (qz in 0 until 16) {
+              val holder = biomeSource.getNoiseBiome(qx, 0, qz, sampler)
+              val id =
+                holder
+                  .unwrapKey()
+                  .map { ResourceKeyCompat.getKeyId(it) }
+                  .orElse("unknown")
+              sampledBiomes += id
+              val region =
+                biomeContext.traverser.traverse(qx shl 2, qz shl 2, biomeContext.cache).region
+              if (!biomeLookup.isAdmitted(region, holder.value())) {
+                rejectedBiomes += id
+              }
+            }
+          }
           log.info(
-            "smoke: dim={} surfaces {}..{} avg={} pipeline={}",
+            "smoke: dim={} surfaces {}..{} avg={} biomes={} rejectedBiomes={} pipeline={}",
             dimensionId,
             surfaces.min(),
             surfaces.max(),
             "%.1f".format(surfaces.average()),
+            sampledBiomes,
+            rejectedBiomes,
             lookupStatus,
           )
         }
@@ -139,6 +167,14 @@ object SmokeGameTest : FabricClientGameTest {
       assertTrue(
         commandResult == 2,
         "'/ts locate .overworld_root' or '/ts query' failed on $dimensionId",
+      )
+      assertTrue(
+        sampledBiomes.isNotEmpty() && sampledBiomes.all(ALLOWED_BIOMES::contains),
+        "biome constraint admitted only desert but sampled $sampledBiomes on $dimensionId",
+      )
+      assertTrue(
+        rejectedBiomes.isEmpty(),
+        "generated biome holders were rejected by their region lookup on $dimensionId: $rejectedBiomes",
       )
       log.info("smoke: OK — all constraints active on $dimensionId")
     } finally {

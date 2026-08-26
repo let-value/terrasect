@@ -65,8 +65,7 @@ private constructor(
       val entityTypeRegistry = registry.lookupOrThrow(Registries.ENTITY_TYPE)
       entityTypeRegistry.listElements().forEach { holder ->
         val id = ResourceKeyCompat.getKeyId(holder.key())
-        val tags = HashSet<String>()
-        holder.tags().forEach { tag -> tags.add(tag.location().toString()) }
+        val tags = tagsOf(holder)
         index[holder.value()] = EntityTypeEntry(id, tags)
       }
       return index

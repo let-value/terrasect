@@ -35,9 +35,9 @@ timers = false
 "structure.generated" = false
 ```
 
-Instrumentation scope IDs are `structure`, `climate`, `noise`, `chunk`, `traversal`, `loot`, and
-`mob`. A scope may also be assigned a boolean directly, such as `traversal = false`. Event keys are
-the IDs declared by `TerrasectMetricEvent`.
+Instrumentation scope IDs are `structure`, `climate`, `biome`, `noise`, `chunk`, `traversal`, `loot`,
+and `mob`. A scope may also be assigned a boolean directly, such as `traversal = false`. Event
+keys are the IDs declared by `TerrasectMetricEvent`.
 
 ## Presets
 
@@ -78,6 +78,15 @@ Region sub-tables map directly to the corresponding builders:
 - `height`: exactly one of `exact` or the two-integer `range`.
 - `biomes`, `mobs`, and `loot`: `allow_mods`, `allow_tags`, `allow_names`, `block_mods`,
   `block_tags`, and `block_names`.
+- Biome constraints (`biomes`) apply at worldgen: the biome the climate sample selects is
+  evaluated against the region's constraint (matching by biome name, then tag, then mod id, in
+  that precedence; within a tier block beats allow, and any allow rule makes the allow-list
+  exclusive). Inherited regions take the union of their own, archetype, and ancestor rules. An
+  empty `[biomes]` table admits every biome. The active dimension's original MultiNoise parameter
+  list is filtered once per constrained region, so modded entries supplied through the biome source
+  are eligible too and the original climate layout/order is preserved. When the selected biome is
+  rejected, the nearest admitted climate parameter replaces it (a selection fallback, not a climate
+  change); if no candidate exists, Terrasect retains the vanilla biome and logs a warning.
 - `structures`: the same selection properties plus `spacing`, `separation`, `frequency`, and
   `force`. Forced entries accept `name` and at most one of `budget` or `radius`.
 - `noise`: `blend_width`, `noises`, and `density_functions`.
@@ -94,6 +103,13 @@ continents = [
   { op = "multiply", factor = 0.0 },
   { op = "add", value = 0.35 },
 ]
+```
+
+For example, this region keeps only vanilla plains and forest entries in its climate selection:
+
+```toml
+[regions.forest.biomes]
+allow_names = ["minecraft:plains", "minecraft:forest"]
 ```
 
 Minecraft noise-router names can differ by version. Generated examples use the Stonecutter-selected

@@ -214,6 +214,20 @@ class MetricsTest {
   }
 
   @Test
+  fun `event timer gate disables facade and bound timer`() {
+    MetricsConfig.setEventTimersEnabled(TestEvent.TIMER, false)
+    val timer = worldgen.timer(TestEvent.TIMER)
+
+    assertEquals(42, worldgen.time(TestEvent.TIMER) { 42 })
+    timer.recordDurationNanos(100L)
+    assertTrue(Instr.timerSnapshot().isEmpty())
+
+    MetricsConfig.setEventTimersEnabled(TestEvent.TIMER, true)
+    timer.recordDurationNanos(100L)
+    assertEquals(1L, Instr.timerSnapshot().single().count)
+  }
+
+  @Test
   fun `manual timing guard skips nanos when disabled`() {
     val timer = worldgen.timer(TestEvent.TIMER)
     MetricsConfig.timersEnabled = false

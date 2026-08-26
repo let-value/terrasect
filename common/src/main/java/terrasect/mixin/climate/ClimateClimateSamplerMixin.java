@@ -1,11 +1,10 @@
 package terrasect.mixin.climate;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import terrasect.extender.ClimateSamplerExtender;
 import terrasect.extender.NoiseChunkExtender;
 import terrasect.handler.ClimateHandler;
@@ -24,10 +23,10 @@ public class ClimateClimateSamplerMixin implements ClimateSamplerExtender {
     return this.terrasect$noiseChunk;
   }
 
-  @Inject(method = "sample", at = @At("RETURN"))
-  private void terrasect$modifyClimate(
-      int x, int y, int z, CallbackInfoReturnable<Climate.TargetPoint> cir) {
-    var targetPoint = cir.getReturnValue();
+  @ModifyReturnValue(method = "sample", at = @At("RETURN"))
+  private Climate.TargetPoint terrasect$modifyClimate(
+      Climate.TargetPoint targetPoint, int x, int y, int z) {
     ClimateHandler.INSTANCE.modifyClimate(x, y, z, targetPoint, this.terrasect$noiseChunk);
+    return targetPoint;
   }
 }

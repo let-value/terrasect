@@ -96,6 +96,31 @@ class TerrasectTomlTest {
   }
 
   @Test
+  fun `empty biomes table is a valid no-op constraint`() {
+    val registry =
+      TerrasectToml.parsePreset(
+        minimalPreset(
+          """
+          [regions.root]
+          [regions.root.biomes]
+          """
+        )
+      )
+
+    val root = registry.buildTree("root")
+    assertAll(
+      { assertNotNull(root.biomes) },
+      { assertTrue(root.biomes!!.allowedMods.isEmpty()) },
+      { assertTrue(root.biomes!!.allowedTags.isEmpty()) },
+      { assertTrue(root.biomes!!.allowedNames.isEmpty()) },
+      { assertTrue(root.biomes!!.blockedMods.isEmpty()) },
+      { assertTrue(root.biomes!!.blockedTags.isEmpty()) },
+      { assertTrue(root.biomes!!.blockedNames.isEmpty()) },
+      { assertTrue(root.biomes!!.evaluate("minecraft:desert", emptySet())) },
+    )
+  }
+
+  @Test
   fun `preset maps every region builder surface`() {
     val warnings = mutableListOf<String>()
     val registry = TerrasectToml.parsePreset(fullPreset(), warning = warnings::add)
@@ -133,7 +158,7 @@ class TerrasectTomlTest {
       },
       { assertEquals(setOf("minecraft:zombie"), root.mobs!!.blockedNames) },
       { assertEquals(setOf("c:foods"), root.loot!!.blockedTags) },
-      { assertEquals(4, warnings.size) },
+      { assertEquals(3, warnings.size) },
     )
 
     val noise = root.noise!!

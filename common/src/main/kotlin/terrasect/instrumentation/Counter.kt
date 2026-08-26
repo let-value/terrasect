@@ -44,13 +44,14 @@ internal class InMemoryCounter(override val id: MetricId) : InstrCounter {
 @PublishedApi
 internal class ManagedCounter(
   private val scope: InstrScope,
+  private val event: MetricEvent,
   private val idFactory: MetricIdFactory,
 ) : InstrCounter {
   override val id: MetricId
     get() = idFactory.metricId()
 
   override fun increment(delta: Long) {
-    if (MetricsConfig.isCounterEnabled(scope)) {
+    if (MetricsConfig.isCounterEnabled(scope, event)) {
       Instr.currentBackend().counter(idFactory.metricId()).increment(delta)
     }
   }
