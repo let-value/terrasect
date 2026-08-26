@@ -23,6 +23,21 @@ Cap how high or low a region is allowed to build, either an exact value or a ran
 range = [40, 90]
 ```
 
+## Biomes
+
+Restrict a region's biome selection by exact name, tag, or mod namespace. Terrasect filters the
+dimension's existing MultiNoise parameter list, including entries supplied by biome mods, and uses
+the nearest allowed climate point when the vanilla result is rejected:
+
+```toml
+[regions.forest.biomes]
+allow_names = ["minecraft:plains", "minecraft:forest"]
+```
+
+Block rules use the same fields (`block_names`, `block_tags`, and `block_mods`). Name rules take
+precedence over tag rules, which take precedence over mod rules; any allow rule is exclusive. If a
+region's rules admit no biome parameter, Terrasect keeps the vanilla result and logs a warning.
+
 ## Terrain (noise)
 
 For finer control than climate alone, a region can transform the underlying noise/density values
@@ -54,8 +69,7 @@ still override.
 
 ## Current limitations
 
-A few options are accepted in preset files today but don't change generation yet: restricting a
-region to specific biomes, enforcing a region's height range, and overriding `precipitation` or
-`climate_preset`. They're validated and preserved through config round-trips, just not wired up to
-world generation yet. Check the project's Known Issues page for the current status before relying
-on them.
+A few options are accepted in preset files today but don't change generation yet: enforcing the
+region's height range and overriding `precipitation` or `climate_preset`. They're validated and
+preserved through config round-trips, just not wired up to world generation yet. Check the project's
+Known Issues page for the current status before relying on them.

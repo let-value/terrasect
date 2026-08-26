@@ -13,13 +13,14 @@ loaders. Two independent axes:
 
 | MC version | Java | API world | Notes |
 |---|---|---|---|
+| `1.20.1`  | 17 | old | Fabric-only back-compat target |
 | `1.21.1`   | 21 | old | back-compat target |
 | `1.21.11`  | 21 | new | back-compat target |
 | `26.1`     | 25 | new | MC `26.1.2` |
 | `26.2`     | 25 | new | latest; primary / active dev version |
 
-Each version is built for both `fabric` and `neoforge`, so the full matrix is
-4 × 2 = 8 buildable variants (plus a `-common` project per version).
+Fabric builds cover all five versions. NeoForge starts at `1.21.1`, so the
+loader matrix has nine buildable variants (plus a `-common` project per version).
 
 Per-version dependency coordinates live in `stonecutter.properties.toml`; the
 matrix itself is declared in `settings.gradle.kts`. The active dev version is set
@@ -84,36 +85,31 @@ at build time by version string. `1.21.11` uses the `named` namespace; the moder
 `26.1` / `26.2` wideners use `official` (newer loom intermediary) with identical
 entries.
 
-## Client gametests (`e2e`)
+## Gametests (`e2e`)
 
-The `e2e` module is a separate Stonecutter tree of Fabric **client** gametests. Its
-matrix is **1.21.11 / 26.1 / 26.2** — a subset of the main matrix, because the
-Fabric client-gametest API (`fabric-client-gametest-api-v1`) does not exist on
-1.21.1. Note the 26.1 lane uses the real Mojang id **26.1.2** here (loom needs a
-concrete MC coordinate), whereas the neoform-based main tree labels it `26.1`.
+The `e2e` module is a separate Stonecutter tree of Fabric gametests covering all
+five versions. The `1.20.1` and `1.21.1` lanes use the older server gametest
+registration; `1.21.11`, `26.1`, and `26.2` use the client-gametest API. Note the
+26.1 lane uses the real Mojang id **26.1.2** here (loom needs a concrete MC
+coordinate), whereas the neoform-based main tree labels it `26.1`.
 
 Two tiers:
-- **`e2e/src/gametest/kotlin`** — portable. `SmokeGameTest` creates one world at a
-  fixed seed with a spawn region carrying every constraint type (noise, climate,
-  height, structures, mobs, loot). It asserts that the dimension has a registered
-  `DimensionContext` with every compiled lookup active — not merely that
-  generation succeeded. This distinction matters: a version-specific mixin that
-  silently no-ops leaves the constraint pipeline inert while world-gen still looks
-  fine, so a "did it generate?" check passes on a mod that does nothing. Runs on
-  all three e2e versions.
-- **`e2e/src/gametest-latest/kotlin`** — heavy tests (teleport probes, screenshots,
-  version-specific terrain snapshots, newer client-gametest API like
-  `clientLevel`). Compiled and entrypoint-registered **only on the latest**
-  version (`isLatestVersion` in `build.e2e.gradle.kts`, which also injects the
-  heavy `fabric-client-gametest` entrypoints into `fabric.mod.json`). Bumping the
-  latest target = update `isLatestVersion`.
+- **Portable smoke coverage** — the shared server guard and `SmokeGameTest` create
+  a fixed-seed world with every constraint type, including a desert biome
+  allow-list, and check both lookup compilation and actual generated biome
+  admission. They run on all five e2e versions.
+- **`e2e/src/gametest-client/kotlin`** — client tests for the three newer lanes;
+  files wrapped in `//? if latest` are compiled and entrypoint-registered only on
+  `26.2`. The latest-only tests cover screenshots, terrain snapshots, and broader
+  constraint probes.
 
-Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=SmokeGameTest`).
-On macOS/Windows this launches a real client window; the headless Xvfb path in
-`build.e2e.gradle.kts` is Linux-only.
+Run `./gradlew :e2e:<version>:runGameTest -Ptest=ServerSmokeGameTest` for
+`1.20.1`/`1.21.1`, or `./gradlew :e2e:<version>:runClientGameTest
+-Ptest=SmokeGameTest` for the newer lanes. On macOS/Windows this launches a real
+client window; the headless Xvfb path in `build.e2e.gradle.kts` is Linux-only.
 
-`SmokeGameTest` is the only runtime validation that the mixins actually *apply*
-across versions. Compilation is not enough: several mixins target Minecraft
+The portable smoke suite is the runtime validation that the mixins actually
+*apply* across versions. Compilation is not enough: several mixins target Minecraft
 constructors/methods whose signatures diverge across versions. A mismatched
 injector either crashes at apply time or, with `require = 0`, silently no-ops —
 and `require` governs match count, not descriptor validity, so it does not save
@@ -144,7 +140,7 @@ Rules for version-divergent injectors:
   `LevelMixin`'s `RandomSequences`/`@Coerce`/`@Nullable`,
   `PrimaryLevelDataMixin`'s `WorldOptions`/`RegistryAccess`). A shared import is
   fine only if the *active* branch also uses the type.
-- After changing any of these, `SmokeGameTest` must pass on **all three** e2e
+- After changing any of these, the portable smoke test must pass on **all five** e2e
   versions — a green build proves nothing about apply-time behavior.
 
 Known gap: on 1.21.1, `CreateWorldScreen.createNewWorld` has no `WorldData`

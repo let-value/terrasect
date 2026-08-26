@@ -22,6 +22,10 @@
         "adapter": "kotlin"
       },
       {
+        "value": "terrasect.ModdedBiomeConstraintGameTest",
+        "adapter": "kotlin"
+      },
+      {
         "value": "terrasect.BiomesOPlentyCompatGameTest",
         "adapter": "kotlin"
       },

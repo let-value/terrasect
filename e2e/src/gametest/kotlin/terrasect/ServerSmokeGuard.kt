@@ -54,6 +54,7 @@ object ServerSmokeGuard {
           }
           .mobs { blockNames("minecraft:zombie") }
           .loot { blockTags("c:foods") }
+          .biomes { allowNames("minecraft:desert") }
       }
   }
 
@@ -85,6 +86,7 @@ object ServerSmokeGuard {
         "forced" to (context.forcedStructures != null),
         "mob" to (context.mobLookup != null),
         "loot" to (context.lootLookup != null),
+        "biome" to (context.biomeLookup != null),
       )
     val inactive = status.filterValues { !it }.keys
     check(inactive.isEmpty()) {
@@ -92,7 +94,31 @@ object ServerSmokeGuard {
     }
     assertCommand(level)
     assertForcedStart(level, context)
+    assertBiomeConstraint(level, context)
     log.info("server smoke: OK — all constraints active on {} status={}", dimensionId, status)
+  }
+
+  private fun assertBiomeConstraint(level: ServerLevel, context: DimensionContext) {
+    val lookup = context.biomeLookup!!
+    val allowed = setOf("minecraft:desert")
+    val sampled = LinkedHashSet<String>()
+    val biomeSource = level.chunkSource.generator.biomeSource
+    val sampler = level.chunkSource.randomState().sampler()
+    for (qx in 0 until 16) {
+      for (qz in 0 until 16) {
+        val holder = biomeSource.getNoiseBiome(qx, 0, qz, sampler)
+        val id = holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse("unknown")
+        sampled += id
+        val region = context.traverser.traverse(qx shl 2, qz shl 2, context.cache).region
+        check(lookup.isAdmitted(region, holder.value())) {
+          "source returned biome $id rejected by its region lookup at quart=($qx,$qz)"
+        }
+      }
+    }
+    check(sampled.isNotEmpty() && sampled.all(allowed::contains)) {
+      "biome constraint admitted only desert but sampled $sampled"
+    }
+    log.info("server smoke: biome constraint confirmed — sampled={}", sampled)
   }
 
   // The /ts command rides on an ungated Commands constructor mixin; if it silently fails to apply

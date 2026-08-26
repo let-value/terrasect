@@ -1,6 +1,7 @@
 package terrasect.lookup
 
 import java.lang.reflect.Constructor
+import java.util.IdentityHashMap
 import net.minecraft.SharedConstants
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.biome.Biome
@@ -20,7 +21,10 @@ internal object BiomeFactory {
 
   // The dummy biome is never rendered, so every field needs only to be a valid instance: a nominal
   // ClimateSettings, the NONE GrassColorModifier, and the EMPTY generation/mob settings.
-  private val biome: Biome = run {
+  private val ids = IdentityHashMap<Biome, String>()
+  private val biome: Biome = createBiome().also { ids[it] = "test:dummy" }
+
+  private fun createBiome(): Biome {
     // On >=1.21.11 Biome's ctor carries EnvironmentAttributeMap (absent on 1.21.1, so a direct
     // reference would not compile there). Detect that class by name so the source stays
     // version-uniform, select the matching ctor, and supply an empty attribute map only when
@@ -61,7 +65,7 @@ internal object BiomeFactory {
           }
         }
         .toTypedArray()
-    ctor.newInstance(*args) as Biome
+    return ctor.newInstance(*args) as Biome
   }
 
   // The only parameter not covered above is EnvironmentAttributeMap (>=1.21.11). Use its EMPTY
@@ -80,5 +84,7 @@ internal object BiomeFactory {
 
   fun instance(): Biome = biome
 
-  fun idOf(biome: Biome): String = "test:dummy"
+  fun instance(id: String): Biome = createBiome().also { ids[it] = id }
+
+  fun idOf(biome: Biome): String = ids[biome] ?: "test:dummy"
 }

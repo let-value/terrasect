@@ -1,7 +1,7 @@
 # Terrasect Project Map
 
 **Codebase:** `version-0.2.0` branch (Stonecutter-driven multiversion source)
-**Last verified:** 2026-07-19
+**Last verified:** 2026-08-26
 **Purpose:** Architectural reference for contributors and agents working on Terrasect.
 
 ---
@@ -20,7 +20,7 @@ terrasect/
 ├── fabric/                        # Fabric loader integration (see §3)
 ├── neoforge/                      # NeoForge loader integration (see §3)
 ├── compat/c2me/                   # Git submodule — C2ME-fabric compat
-├── e2e/                           # Fabric client gametest tree, separate Stonecutter matrix (see §6)
+├── e2e/                           # Fabric gametest tree, separate Stonecutter matrix (see §6)
 ├── e2e-compat/                    # Third-party mod compatibility gametests, kept out of e2e (see §6)
 ├── versions/                      # Stonecutter-generated per-version projects — git-ignored, do not edit directly
 ├── settings.gradle.kts            # Stonecutter version matrix + module declarations
@@ -70,10 +70,10 @@ All substantive logic lives in `common/`. The module is split between Java (mixi
 | `config/` | Strict TOML schema/parser (`TerrasectToml`, `TerrasectTomlWriter`, `TomlTable`), default config generation (`DefaultConfigFiles`), and runtime config application (`TerrasectConfig`, `TerrasectConfigManager`) |
 | `generation/` | Pipeline: `Address`, `ChunkContext`, `DimensionContext`, `ForcedPlan`, `Locator`, `Selector`, `Traverser` |
 | `gui/` | `RegionDebugEntry` — debug overlay entry |
-| `handler/` | Hot-path Minecraft integration: `ClimateHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, `StructureHandler`, `CommandHandler`, `NoiseLogger` |
+| `handler/` | Hot-path Minecraft integration: `ClimateHandler`, `BiomeHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, `StructureHandler`, `CommandHandler`, `NoiseLogger` |
 | `helpers/` | `ChunkDensityFunction` (Java), `NoiseTransform` |
 | `instrumentation/` | Disabled-by-default scoped metrics API: `Instr`, `Counter`, `Timer`, `MetricId`, `Metrics`, `MetricsBackend`, `TerrasectMetrics` |
-| `lookup/` | Pre-compiled per-region decision tables, one per domain (kept as parallel, independent implementations — see `AGENTS.md`'s standing architecture decisions): `CompiledNoiseConstraints`, `CompiledMobLookup`, `CompiledLootLookup`, `CompiledStructureLookup`, `CompiledForcedStructures` |
+| `lookup/` | Pre-compiled per-region decision tables, one per domain (kept as parallel, independent implementations — see `AGENTS.md`'s standing architecture decisions): `CompiledNoiseConstraints`, `CompiledBiomeLookup`, `CompiledMobLookup`, `CompiledLootLookup`, `CompiledStructureLookup`, `CompiledForcedStructures` |
 | `presets/` | `ClimateDebug.kt` (`CLIMATE_DEBUG` preset definition), `Index.kt` (`Presets` enum) |
 | `sdf/` | SDF library: `area`, `archipelago`, `bounds`, `compose`, `consts`, `decoration`, `hex`, `noise`, `polygon`, `scatter`, `sites`, `subdivision`, `surround`, `voronoi` |
 | `strategies/` | `ArchipelagoStrategy`, `HexStrategy`, `SubdivisionStrategy`, `SurroundStrategy`, `VoronoiStrategy` |
@@ -132,8 +132,8 @@ A `Region` is an immutable tree node. The root region for a dimension is resolve
 ### Dimension Lifecycle
 
 1. On world load, `DimensionContext.register(...)` is called (via the preset/scaffold mixins).
-2. It resolves the active `RegionRegistry` from `PresetRegistry`, builds the region tree, compiles the per-domain lookup tables (`lookup/Compiled*`), and creates a `DimensionContext` stored in a `ConcurrentHashMap` keyed by dimension ID.
-3. `ClimateHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, and `StructureHandler` retrieve `DimensionContext` by dimension ID when processing their respective hot-path calls.
+2. It resolves the active `RegionRegistry` from `PresetRegistry`, builds the region tree, compiles the per-domain lookup tables (`lookup/Compiled*`), and creates a `DimensionContext` stored in a `ConcurrentHashMap` keyed by dimension ID. The context is attached to the dimension's `MultiNoiseBiomeSource` so direct biome selection calls can use the compiled region table.
+3. `ClimateHandler`, `BiomeHandler`, `NoiseHandler`, `LootHandler`, `MobHandler`, and `StructureHandler` retrieve the relevant context or source attachment when processing their respective hot-path calls.
 
 ### SDF Usage
 
@@ -163,13 +163,15 @@ Coverage areas: SDF geometry (`sdf/`), strategies (`strategies/`), generation pi
 
 ### Client gametests (`e2e`, `e2e-compat`)
 
-`e2e` is a separate Stonecutter tree of Fabric client gametests spanning a subset of the main version matrix. See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the full version list and gating rules. Two tiers:
-- `e2e/src/gametest*` — portable smoke coverage (`SmokeGameTest`, `LootConstraintGameTest`) that runs on every e2e version and asserts the constraint pipeline is actually active, not just that generation succeeded.
-- `e2e/src/gametest-latest` — heavy tests (terrain digests, structure/mob/archetype/dimension probes, screenshots) compiled only on the latest matrix version.
+`e2e` is a separate Stonecutter tree of Fabric gametests covering all five main versions. See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the version list and old/new registration split. Two tiers:
+- `e2e/src/gametest*` — portable smoke coverage (`SmokeGameTest` and `ServerSmokeGameTest`) that asserts actual desert-biome admission as well as the rest of the constraint pipeline.
+- `e2e/src/gametest-client` files marked `//? if latest` — heavy tests (terrain digests, structure/mob/archetype/dimension probes, screenshots) compiled only on the latest matrix version.
 
 `e2e-compat` holds third-party mod compatibility gametests, kept in its own tree so the core suite never depends on a third-party mod jar being resolvable.
 
-Run: `./gradlew :e2e:<version>:runClientGameTest` (optionally `-Ptest=<TestName>`).
+Run `./gradlew :e2e:<version>:runGameTest` for `1.20.1`/`1.21.1`, or
+`./gradlew :e2e:<version>:runClientGameTest` for newer versions (optionally
+`-Ptest=<TestName>`).
 
 ---
 
@@ -239,7 +241,7 @@ library):
 | `./gradlew spotlessCheck` | Verify formatting (enforced by CI) |
 | `./gradlew :<version>-fabric:runClient` / `runServer` | Launch Fabric dev game for a given version |
 | `./gradlew :<version>-neoforge:runClient` / `runServer` | Launch NeoForge dev game for a given version |
-| `./gradlew :e2e:<version>:runClientGameTest` | Run client gametests for a given version |
+| `./gradlew :e2e:<version>:runGameTest` / `runClientGameTest` | Run the appropriate e2e gametests for a given version |
 
 ---
 

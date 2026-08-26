@@ -44,7 +44,7 @@ terrasect/
 ├── fabric/          # Fabric entrypoints only
 ├── neoforge/        # NeoForge entrypoints only
 ├── compat/c2me/     # Git submodule — optional C2ME-fabric performance compat
-├── e2e/             # Fabric client gametests (separate Stonecutter matrix)
+├── e2e/             # Fabric gametests (separate Stonecutter matrix)
 ├── e2e-compat/      # Third-party mod compatibility gametests
 ├── versions/        # Stonecutter-generated per-version projects — git-ignored, do not edit
 ├── settings.gradle.kts       # Stonecutter version matrix

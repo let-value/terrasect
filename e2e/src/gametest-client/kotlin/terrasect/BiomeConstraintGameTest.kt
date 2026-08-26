@@ -173,7 +173,7 @@ private fun biomeEventCount(event: TerrasectMetricEvent): Long =
     .sumOf { it.value }
 
 // Vanilla baseline vs. blockNames("minecraft:desert"): proves per-name biome blocking on the real
-// climate read path. Desert biomes are replaced by the first admitted substitute; other biomes
+// climate read path. Desert biomes are replaced by the nearest admitted climate entry; other biomes
 // remain unaffected. Evidence: BIOME_APPLIED > 0 (admission ran) + constrained desert count = 0.
 @Suppress("UnstableApiUsage")
 object BiomeConstraintBlockByNameGameTest : FabricClientGameTest {

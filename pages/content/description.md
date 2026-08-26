@@ -62,10 +62,9 @@ constraints.
 ## Known limitations
 
 Terrasect is under active development. A few preset options are accepted today but don't yet change
-generation: restricting a region to specific biomes, enforcing a region's height limits, and
-overriding precipitation or an inherited climate preset. These are recognized and validated, just
-not wired up to world generation yet — check the project's Known Issues page for the current state
-before relying on them.
+generation: enforcing a region's height limits and overriding precipitation or an inherited climate
+preset. These are recognized and validated, just not wired up to world generation yet — check the
+project's Known Issues page for the current state before relying on them.
 
 ## License & AI disclosure
 

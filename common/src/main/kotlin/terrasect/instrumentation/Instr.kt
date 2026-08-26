@@ -155,10 +155,10 @@ class ScopedInstr(val scope: InstrScope) {
   }
 
   fun counter(event: MetricEvent): InstrCounter =
-    ManagedCounter(scope, FixedMetricId(MetricId(scope.id, event.id)))
+    ManagedCounter(scope, event, FixedMetricId(MetricId(scope.id, event.id)))
 
   fun counter(event: MetricEvent, key0: String, value0: () -> String): InstrCounter =
-    ManagedCounter(scope, OneTagMetricId(scope, event, key0, value0))
+    ManagedCounter(scope, event, OneTagMetricId(scope, event, key0, value0))
 
   fun counter(
     event: MetricEvent,
@@ -166,7 +166,8 @@ class ScopedInstr(val scope: InstrScope) {
     value0: () -> String,
     key1: String,
     value1: () -> String,
-  ): InstrCounter = ManagedCounter(scope, TwoTagMetricId(scope, event, key0, value0, key1, value1))
+  ): InstrCounter =
+    ManagedCounter(scope, event, TwoTagMetricId(scope, event, key0, value0, key1, value1))
 
   fun counter(
     event: MetricEvent,
@@ -177,7 +178,11 @@ class ScopedInstr(val scope: InstrScope) {
     key2: String,
     value2: () -> String,
   ): InstrCounter =
-    ManagedCounter(scope, ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2))
+    ManagedCounter(
+      scope,
+      event,
+      ThreeTagMetricId(scope, event, key0, value0, key1, value1, key2, value2),
+    )
 
   fun timer(event: MetricEvent): InstrTimer =
     ManagedTimer(scope, FixedMetricId(MetricId(scope.id, event.id)))

@@ -48,7 +48,8 @@ class DimensionContext(
     CompiledForcedStructures.build(seed, root, registry)
   val lootLookup: CompiledLootLookup? = CompiledLootLookup.build(root, registry)
   val mobLookup: CompiledMobLookup? = CompiledMobLookup.build(root, registry)
-  val biomeLookup: CompiledBiomeLookup? = CompiledBiomeLookup.build(root, registry)
+  val biomeLookup: CompiledBiomeLookup? =
+    CompiledBiomeLookup.build(root, biomesClimate, dimensionId)
 
   init {
     anchorOrigin()

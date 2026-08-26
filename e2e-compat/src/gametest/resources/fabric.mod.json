@@ -20,6 +20,10 @@
       {
         "value": "terrasect.CompatSmokeGameTest",
         "adapter": "kotlin"
+      },
+      {
+        "value": "terrasect.ModdedBiomeConstraintGameTest",
+        "adapter": "kotlin"
       }
     ]
   },
