@@ -26,6 +26,10 @@
         "adapter": "kotlin"
       },
       {
+        "value": "terrasect.CreatePonderCompatGameTest",
+        "adapter": "kotlin"
+      },
+      {
         "value": "terrasect.BiomesOPlentyCompatGameTest",
         "adapter": "kotlin"
       },

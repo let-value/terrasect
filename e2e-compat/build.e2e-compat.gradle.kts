@@ -61,6 +61,7 @@ dependencies {
   modRuntimeOnly("maven.modrinth:biomes-o-plenty:${prop("deps.compat_biomesoplenty")}")
   modRuntimeOnly("maven.modrinth:terrablender:${prop("deps.compat_terrablender")}")
   modRuntimeOnly("maven.modrinth:distanthorizons:${prop("deps.compat_distanthorizons")}")
+  modRuntimeOnly("maven.modrinth:create-fly:${prop("deps.compat_create")}")
   if (!isLatest) {
     runtimeOnly("com.electronwill.night-config:core:${prop("deps.night_config")}")
     runtimeOnly("com.electronwill.night-config:toml:${prop("deps.night_config")}")

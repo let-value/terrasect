@@ -61,6 +61,7 @@ deps.compat_glitchcore = "CO7NeLTt" # Fabric 1.21.11, GlitchCore 21.11.0.4 (Biom
 deps.compat_biomesoplenty = "JJKbM72H" # Fabric 1.21.11, BiomesOPlenty 21.11.0.32
 deps.compat_terrablender = "chxo508B" # Fabric 1.21.11, TerraBlender 21.11.0.0
 deps.compat_distanthorizons = "bCTilxSz" # Fabric+NeoForge 1.21.11, Distant Horizons 3.2.0-b
+deps.compat_create = "fn0H9rSj" # Fabric 1.21.11, Create Fly 6.0.9-5
 # Currently unused: build.e2e-compat.gradle.kts skips c2me on 1.21.11 — its Jar-in-Jar bundles are
 # its own Fabric sub-mods (not plain libraries), so they can't be recovered the same way the
 # GlitchCore/BiomesOPlenty/TerraBlender jar-in-jar libraries are. Kept pinned in case that's ever
@@ -90,6 +91,7 @@ deps.compat_glitchcore = "WNtSATXw" # Fabric 26.1.2, GlitchCore 26.1.2.0.2 (Biom
 deps.compat_biomesoplenty = "8MVwdPgG" # Fabric 26.1.2, BiomesOPlenty 26.1.2.0.22
 deps.compat_terrablender = "NIXt6lha" # Fabric 26.1.2, TerraBlender 26.1.2.0.3
 deps.compat_distanthorizons = "c0SAW45X" # Fabric+NeoForge 26.1.2, Distant Horizons 3.2.0-b-26.1.2
+deps.compat_create = "wV5IQLKg" # Fabric 26.1.2, Create Fly 6.0.9-4
 # Currently unused: build.e2e-compat.gradle.kts skips c2me outside latest — its Jar-in-Jar bundles
 # are its own Fabric sub-mods (not plain libraries), so they can't be recovered the same way the
 # GlitchCore/BiomesOPlenty/TerraBlender jar-in-jar libraries are. Kept pinned in case that's ever
@@ -122,6 +124,7 @@ deps.compat_glitchcore = "SDUCBYRU" # Fabric 26.2, GlitchCore 26.2.0.0.0 (Biomes
 deps.compat_biomesoplenty = "n2GfIVr4" # Fabric 26.2, BiomesOPlenty 26.1.2.0.42
 deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
 deps.compat_distanthorizons = "gBf0SaV1" # Fabric+NeoForge 26.2, Distant Horizons 3.2.0-b-26.2
+deps.compat_create = "phlsMPgT" # Fabric 26.2-rc-2, Create Fly 6.0.9-1
 deps.compat_c2me = "XQMx5J57" # Fabric 26.2, C2ME 0.4.2-alpha.0.13
 
 [neoforge."26.2.x"]

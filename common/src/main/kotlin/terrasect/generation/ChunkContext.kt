@@ -1,5 +1,6 @@
 package terrasect.generation
 
+import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import terrasect.cache.RegionsCache
@@ -11,6 +12,10 @@ import terrasect.instrumentation.TerrasectMetricEvent
 import terrasect.lookup.ForcedChunkDecision
 
 private val instr = TerrasectInstr.chunk
+
+internal fun dimensionIdOrNull(key: ResourceKey<*>?): String? = key?.let {
+  ResourceKeyCompat.getKeyId(it)
+}
 
 class ChunkContext {
   @JvmField var height: Int = 0
@@ -37,7 +42,7 @@ class ChunkContext {
 
   constructor(chunk: ChunkAccessExtender, position: ChunkPos) {
     val level: Level = chunk.`terrasect$getLevel`() ?: return
-    val dimension = ResourceKeyCompat.getKeyId(level.dimension())
+    val dimension = dimensionIdOrNull(level.dimension() as? ResourceKey<*>) ?: return
     this.dimensionContext =
       DimensionContext.get(dimension)
         ?: run {
