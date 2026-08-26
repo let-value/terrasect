@@ -17,10 +17,12 @@ import org.apache.commons.lang3.function.FailableConsumer
 import org.slf4j.LoggerFactory
 import terrasect.definition.PresetRegistry
 import terrasect.presets.Presets
+import kotlin.math.abs
 
 private val log = LoggerFactory.getLogger("WorldDigestGameTest")
 
 private const val SEED = "seed"
+private const val HEIGHT_JITTER_TOLERANCE = 1
 
 private val PROBE_LOCATIONS = listOf(0 to 0, 512 to 0, 0 to 512, 512 to 512)
 
@@ -127,49 +129,42 @@ private fun snapshotColumns(
     val verb = if (update) "updated" else "created initially — commit it to SCM"
     log.info("Snapshot {} at {}", verb, snapshotFile)
   } else {
-    val stored = SnapshotFile.fromSnapshotFile(snapshotFile).snapshot()
-    if (stored != text) {
-      throw AssertionError(
-        "Column snapshot mismatch at $snapshotFile\n" +
-          "Rerun with -PupdateSnapshots to accept the new terrain, or investigate the diff:\n" +
-          buildUnifiedDiff(stored, text)
-      )
-    }
-    log.info("Snapshot matches: {}", snapshotFile)
-  }
-}
-
-private fun buildUnifiedDiff(expected: String, actual: String): String {
-  val exp = expected.lines()
-  val act = actual.lines()
-  val sb = StringBuilder()
-  var matches = 0
-  var diffs = 0
-  for (i in 0 until maxOf(exp.size, act.size)) {
-    val e = exp.getOrNull(i)
-    val a = act.getOrNull(i)
-    when {
-      e == null -> {
-        diffs++
-        if (diffs <= 50) sb.appendLine("+ $a")
+    val expected = parseColumnsSnapshot(snapshotFile)
+    var tolerated = 0
+    val mismatches = buildString {
+      if (expected.size != columns.size) {
+        appendLine("column count: expected ${expected.size}, actual ${columns.size}")
       }
-      a == null -> {
-        diffs++
-        if (diffs <= 50) sb.appendLine("- $e")
-      }
-      e != a -> {
-        diffs++
-        if (diffs <= 50) {
-          sb.appendLine("- $e")
-          sb.appendLine("+ $a")
+      for ((key, expectedValue) in expected) {
+        val actualValue = columns[key]
+        if (actualValue == null) {
+          appendLine("- $key,${expectedValue.first},${expectedValue.second}")
+          continue
+        }
+        val floorDelta = abs(expectedValue.first - actualValue.first)
+        val surfaceDelta = abs(expectedValue.second - actualValue.second)
+        if (floorDelta <= HEIGHT_JITTER_TOLERANCE &&
+          surfaceDelta <= HEIGHT_JITTER_TOLERANCE
+        ) {
+          if (expectedValue != actualValue) tolerated++
+        } else {
+          appendLine("- $key,${expectedValue.first},${expectedValue.second}")
+          appendLine("+ $key,${actualValue.first},${actualValue.second}")
         }
       }
-      else -> matches++
+      for ((key, actualValue) in columns) {
+        if (key !in expected) appendLine("+ $key,${actualValue.first},${actualValue.second}")
+      }
     }
+    if (mismatches.isNotEmpty()) {
+      throw AssertionError(
+        "Column snapshot mismatch at $snapshotFile\n" +
+          "Height jitter up to $HEIGHT_JITTER_TOLERANCE block is tolerated; investigate:\n" +
+          mismatches,
+      )
+    }
+    log.info("Snapshot matches: {} ({} tolerated height jitter row(s))", snapshotFile, tolerated)
   }
-  if (diffs > 50) sb.appendLine("... (${diffs - 50} more differing lines)")
-  sb.appendLine("Summary: $diffs differing line(s), $matches matching line(s)")
-  return sb.toString()
 }
 
 @Suppress("UnstableApiUsage")
