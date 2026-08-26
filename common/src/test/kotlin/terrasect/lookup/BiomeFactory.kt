@@ -73,13 +73,12 @@ internal object BiomeFactory {
     val builder = BiomeSpecialEffects.Builder().waterColor(0)
     // spotless:off
     //? if >=1.21.11 {
-    /*builder
-      */
+    builder
     //?} else {
-    builder.waterFogColor(0)
+    /*builder.waterFogColor(0)
     builder.fogColor(0)
     builder.skyColor(0)
-    //?}
+    *///?}
     // spotless:on
     return builder.build()
   }
