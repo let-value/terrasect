@@ -36,6 +36,7 @@ dependencies {
   testImplementation("de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}")
   testImplementation("com.github.spullara.mustache.java:compiler:0.9.10")
   testImplementation("com.electronwill.night-config:toml:${prop("deps.night_config")}")
+  testImplementation("org.mockito:mockito-core:5.23.0")
 }
 
 tasks {
