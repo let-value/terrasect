@@ -4,9 +4,13 @@
 /**
  * Pinned release tools for the runtime-test infrastructure.
  *
- * The checksums were captured from the releases on 2026-08-27 and verified against the download
- * bytes. Keep exactly one place to bump a tool — the download/verify tasks below read every value
- * from this object.
+ * All four release URLs and SHA-256 values were downloaded from the authoritative GitHub release
+ * assets and byte-for-byte verified on 2026-08-27:
+ * - HMC
+ *   https://github.com/headlesshq/headlessmc/releases/download/2.10.0/headlessmc-launcher-2.10.0.jar
+ * - Ferium linux-nogui, macos-arm, macos-x64 at
+ *   https://github.com/gorilla-devs/ferium/releases/download/v4.7.1/ The download/verify tasks
+ *   below read every value from this object. Keep exactly one place to bump a tool.
  */
 object RuntimeTestPins {
 
@@ -17,14 +21,29 @@ object RuntimeTestPins {
       "headlessmc-launcher-2.10.0.jar"
   const val HMC_JAR_SHA256 = "52bd5006f478377b3893011d458562977d38c65ead6d2b31089beb4d614f13cd"
 
-  /** Ferium — multi-source mod resolver (Modrinth + Forge/Modrinth modpacks). */
+  /**
+   * Ferium — multi-source mod resolver (Modrinth + Forge/Modrinth modpacks).
+   *
+   * The `v4.7.1` release ships macOS assets **per-arch** (`ferium-macos-arm.zip` /
+   * `ferium-macos-x64.zip`); there is no single `ferium-macos-nogui.zip` any more, so the macOS
+   * URL/sha256 are chosen from the machine architecture at run time. All URLs and shas below were
+   * checked against the authoritative GitHub release assets on 2026-08-27.
+   */
   const val FERIUM_VERSION = "4.7.1"
+
   const val FERIUM_LINUX_URL =
     "https://github.com/gorilla-devs/ferium/releases/download/v4.7.1/" + "ferium-linux-nogui.zip"
   const val FERIUM_LINUX_SHA256 = "8d4a357c6eaf05bc7804d1916fe597b58f10d57fe16443b9b767776e99049d14"
-  const val FERIUM_MACOS_URL =
-    "https://github.com/gorilla-devs/ferium/releases/download/v4.7.1/" + "ferium-macos-nogui.zip"
-  const val FERIUM_MACOS_SHA256 = "5f5350f81763195b6d28deb6f67c4d971ba4d3cac18a133d9568def9fba199d3"
+
+  const val FERIUM_MACOS_ARM_URL =
+    "https://github.com/gorilla-devs/ferium/releases/download/v4.7.1/" + "ferium-macos-arm.zip"
+  const val FERIUM_MACOS_ARM_SHA256 =
+    "5f5350f81763195b6d28deb6f67c4d971ba4d3cac18a133d9568def9fba199d3"
+
+  const val FERIUM_MACOS_X64_URL =
+    "https://github.com/gorilla-devs/ferium/releases/download/v4.7.1/" + "ferium-macos-x64.zip"
+  const val FERIUM_MACOS_X64_SHA256 =
+    "d307fefd688dca58383a749a19d0b99e5890f7681331166b26936b59e855dcce"
 
   /**
    * The Minecraft version the runtime-test matrix covers. Pinned centrally so the manifest
@@ -63,11 +82,19 @@ object RuntimeTestPins {
   /** Whether this machine is macOS — used to pick the matching Ferium release. */
   val isMac: Boolean = System.getProperty("os.name").lowercase().contains("mac")
 
-  fun feriumUrl(): String = if (isMac) FERIUM_MACOS_URL else FERIUM_LINUX_URL
+  /** Whether this machine is Apple Silicon (as opposed to Intel/x64 on macOS). */
+  val isMacArm: Boolean = isMac && System.getProperty("os.arch").lowercase().contains("arm")
 
-  fun feriumSha256(): String = if (isMac) FERIUM_MACOS_SHA256 else FERIUM_LINUX_SHA256
+  fun feriumUrl(): String =
+    if (isMac) (if (isMacArm) FERIUM_MACOS_ARM_URL else FERIUM_MACOS_X64_URL) else FERIUM_LINUX_URL
 
-  fun feriumPlatform(): String = if (isMac) "macos" else "linux"
+  fun feriumSha256(): String =
+    if (isMac) (if (isMacArm) FERIUM_MACOS_ARM_SHA256 else FERIUM_MACOS_X64_SHA256)
+    else FERIUM_LINUX_SHA256
+
+  /** Which release filename the URL below resolves to, for tests and diagnostics. */
+  fun feriumPlatform(): String =
+    if (isMac) (if (isMacArm) "macos-arm" else "macos-x64") else "linux"
 
   /**
    * Success-marker substring asserted after a HeadlessMC launch. Tuned per loader on the first real

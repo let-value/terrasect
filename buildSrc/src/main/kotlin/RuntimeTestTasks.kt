@@ -61,6 +61,22 @@ fun downloadToFile(url: String, destination: File) {
   }
 }
 
+/**
+ * True when [file] lives inside [ancestor] (inclusive of [ancestor] itself). Uses canonical paths
+ * so a `..` segment or a symlink-based escape is detected. Returns false when [ancestor] itself is
+ * a symlink that the archive name would traverse — we cannot verify containment without resolving.
+ */
+fun isInside(ancestor: File, file: File): Boolean {
+  val a = ancestor.canonicalFile
+  val f = file.canonicalFile
+  return f.absolutePath == a.absolutePath || f.path.startsWith(a.path + File.separator)
+}
+
+/**
+ * Zip-extracts [zip] into [destination], rejecting any entry whose canonical path escapes the
+ * destination directory (Zip Slip /Zip Slip). Directories are created; a file is written in one
+ * pass.
+ */
 fun unzip(zip: File, destination: File) {
   if (!destination.isDirectory && !destination.mkdirs()) {
     throw GradleException("Could not create ${destination}")
@@ -69,8 +85,7 @@ fun unzip(zip: File, destination: File) {
     while (true) {
       val entry = zipIn.nextEntry ?: break
       val out = File(destination, entry.name)
-      // Guard against path traversal inside the archive.
-      if (!out.absolutePath.startsWith(destination.absolutePath)) {
+      if (!isInside(destination, out)) {
         throw GradleException("Zip entry escapes destination: ${entry.name}")
       }
       if (entry.isDirectory) {
@@ -78,9 +93,6 @@ fun unzip(zip: File, destination: File) {
       } else {
         out.parentFile?.mkdirs()
         out.outputStream().use { zipIn.copyTo(it) }
-        if (entry.name.endsWith("ferium") || entry.name.endsWith("ferium-nogui")) {
-          out.setExecutable(true, false)
-        }
       }
       zipIn.closeEntry()
     }
@@ -123,20 +135,35 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
       File(hmcDir, "headlessmc-launcher-${hmcUrl.get().substringAfterLast('/')}").apply { delete() }
     hmcZip.copyTo(hmcJar, overwrite = true)
 
-    // Ferium is a zip archive — download, verify, extract the nosui binary.
+    // Ferium is a zip archive — download, verify, then extract the nosui binary. Every Ferium
+    // release ships a single binary named exactly `ferium` at the archive root; centralizing that
+    // contract means the bootstrap task and the tests check the same name rather than two guesses.
     val feriumZip = File(downloadDir, "ferium-download.zip")
     downloadToFile(feriumUrl.get(), feriumZip)
     expectSha256(feriumZip, feriumSha256.get())
     unzip(feriumZip, feriumDir)
-    val binary =
-      feriumDir.walkTopDown().firstOrNull {
-        it.isFile && (it.name.startsWith("ferium") || it.name.contains("gui"))
-      } ?: throw GradleException("Ferium binary not found after extracting ${feriumZip}")
+    val binary = findFeriumBinary(feriumDir)
     binary.setExecutable(true, false)
+
     logger.lifecycle(
-      "RuntimeTestBootstrap: HMC ${hmcSha256.get().take(8)}+, Ferium ${feriumSha256.get().take(8)}+"
+      "RuntimeTestBootstrap: HMC $hmcSha256.get().take(8)+, Ferium " +
+        "${feriumPlatform.get()} -> ${outputDirectory.get().asFile}/hmc and " +
+        "${outputDirectory.get().asFile}/ferium"
     )
   }
+}
+
+/**
+ * Locates the Ferium binary inside [extractedDir]. Every Ferium release ships a single file named
+ * exactly `ferium` at the archive root; centralizing this contract means the bootstrap task and the
+ * tests check the same file name rather than two independent guesses.
+ */
+fun findFeriumBinary(extractedDir: File): File {
+  val binary = extractedDir.walkTopDown().firstOrNull { it.isFile && it.name == "ferium" }
+  if (binary == null) {
+    throw GradleException("Ferium binary 'ferium' not found under $extractedDir")
+  }
+  return binary
 }
 
 /**
