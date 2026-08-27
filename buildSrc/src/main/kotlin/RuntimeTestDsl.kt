@@ -94,7 +94,6 @@ fun RuntimeTestDsl(root: Project) {
     description =
       "Offline: assert the descriptor parser rejects malformed/unsupported/missing-lane cases and accepts the real matrix."
     expectationsFile.set(root.file("$RUNTIME_EXPECTATIONS/expectations.properties"))
-    projectRoot.set(root.file("."))
     positiveDir.set(root.file(RUNTIME_REL))
   }
 

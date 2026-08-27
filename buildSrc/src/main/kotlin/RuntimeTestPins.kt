@@ -13,7 +13,8 @@ object RuntimeTestPins {
   /** HeadlessMC — headless Minecraft launcher + version-specific mod installer. */
   const val HMC_VERSION = "2.10.0"
   const val HMC_JAR_URL =
-    "https://github.com/headlesshq/headlessmc/releases/download/2.10.0/" + "headlessmc-launcher-2.10.0.jar"
+    "https://github.com/headlesshq/headlessmc/releases/download/2.10.0/" +
+      "headlessmc-launcher-2.10.0.jar"
   const val HMC_JAR_SHA256 = "52bd5006f478377b3893011d458562977d38c65ead6d2b31089beb4d614f13cd"
 
   /** Ferium — multi-source mod resolver (Modrinth + Forge/Modrinth modpacks). */

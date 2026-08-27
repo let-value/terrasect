@@ -10,7 +10,10 @@
 import java.io.File
 
 /** Where a released artifact was resolved from. */
-enum class Platform { MODRINTH, CURSEFORGE }
+enum class Platform {
+  MODRINTH,
+  CURSEFORGE,
+}
 
 /** A third-party mod resolved by Ferium for a compat scenario. */
 data class ExternalMod(
@@ -21,7 +24,11 @@ data class ExternalMod(
 )
 
 /** Which lifecycle a scenario represents. */
-enum class Scenario { BUILD, PUBLISHED, COMPAT }
+enum class Scenario {
+  BUILD,
+  PUBLISHED,
+  COMPAT,
+}
 
 /** A single runtime-test lane (one MC version + one loader). */
 data class RuntimeScenario(
@@ -44,7 +51,9 @@ data class RuntimeManifest(
   val scenarios: List<RuntimeScenario>,
 )
 
-/** Errors detected while validating descriptors, collected (never thrown) so a whole run can report. */
+/**
+ * Errors detected while validating descriptors, collected (never thrown) so a whole run can report.
+ */
 class ValidationError(message: String) : Exception(message)
 
 /**
@@ -55,14 +64,20 @@ object RuntimeTestDescriptors {
 
   fun parse(file: File): RuntimeManifest {
     val root = YamlReader.parse(file)
-    val modId = root["mod_id"]?.requireString() ?: throw ValidationError("missing mod_id in ${file.name}")
-    val latest = root["latest"]?.requireString() ?: throw ValidationError("missing latest in ${file.name}")
-    val modVersion = root["mod_version"]?.requireString() ?: throw ValidationError("missing mod_version in ${file.name}")
-    val listNode = root["scenarios"] ?: throw ValidationError("missing scenarios list in ${file.name}")
+    val modId =
+      root["mod_id"]?.requireString() ?: throw ValidationError("missing mod_id in ${file.name}")
+    val latest =
+      root["latest"]?.requireString() ?: throw ValidationError("missing latest in ${file.name}")
+    val modVersion =
+      root["mod_version"]?.requireString()
+        ?: throw ValidationError("missing mod_version in ${file.name}")
+    val listNode =
+      root["scenarios"] ?: throw ValidationError("missing scenarios list in ${file.name}")
 
     val scenarios =
       when (listNode) {
-        is YamlNode.Sequence -> listNode.items.mapIndexed { i, item -> parseScenario(item, file, i) }
+        is YamlNode.Sequence ->
+          listNode.items.mapIndexed { i, item -> parseScenario(item, file, i) }
         else -> throw ValidationError("scenarios must be a list in ${file.name}")
       }
     return RuntimeManifest(modId, latest, modVersion, scenarios)
@@ -70,7 +85,11 @@ object RuntimeTestDescriptors {
 
   fun parse(file: File, expected: RuntimeManifest): Boolean {
     val actual = parse(file)
-    if (actual.modId != expected.modId || actual.latest != expected.latest || actual.modVersion != expected.modVersion) {
+    if (
+      actual.modId != expected.modId ||
+        actual.latest != expected.latest ||
+        actual.modVersion != expected.modVersion
+    ) {
       throw ValidationError("${file.name}: manifest header does not match expected")
     }
     return true
@@ -78,46 +97,66 @@ object RuntimeTestDescriptors {
 
   private fun parseScenario(item: YamlNode, file: File, index: Int): RuntimeScenario {
     val mapping =
-      item as? YamlNode.Mapping ?: throw ValidationError("scenario #$index in ${file.name} must be a mapping")
+      item as? YamlNode.Mapping
+        ?: throw ValidationError("scenario #$index in ${file.name} must be a mapping")
     val mc = mapping["mc"]?.requireString() ?: throw ValidationError("scenario #$index missing mc")
-    val loader = mapping["loader"]?.requireString() ?: throw ValidationError("scenario #$index missing loader")
-    val scenarioStr = mapping["scenario"]?.requireString() ?: throw ValidationError("scenario #$index missing scenario")
+    val loader =
+      mapping["loader"]?.requireString() ?: throw ValidationError("scenario #$index missing loader")
+    val scenarioStr =
+      mapping["scenario"]?.requireString()
+        ?: throw ValidationError("scenario #$index missing scenario")
     val scenario =
       Scenario.entries.firstOrNull { it.name.equals(scenarioStr, ignoreCase = true) }
         ?: throw ValidationError("scenario #$index has unknown scenario '$scenarioStr'")
 
     val source =
-      mapping["source"]?.requireString()?.let { Platform.entries.firstOrNull { p -> p.name.equals(it, ignoreCase = true) } }
+      mapping["source"]?.requireString()?.let {
+        Platform.entries.firstOrNull { p -> p.name.equals(it, ignoreCase = true) }
+      }
     val project = mapping["project"]?.requireString()
     val gameVersions = parseStringList(mapping["gameVersions"], "scenario #$index gameVersions")
     val dependencies = parseStringList(mapping["dependencies"], "scenario #$index dependencies")
 
     val externalMods =
       (mapping["externalMods"] as? YamlNode.Sequence)?.items?.mapIndexed { j, e ->
-          val em = e as? YamlNode.Mapping ?: throw ValidationError("externalMods#$j in ${file.name} must be a mapping")
-          ExternalMod(
-            em["name"]?.requireString() ?: throw ValidationError("externalMods#$j missing name"),
-            (em["platform"]?.requireString()?.let {
-              Platform.entries.firstOrNull { p -> p.name.equals(it, ignoreCase = true) }
-            }) ?: throw ValidationError("externalMods#$j missing platform"),
-            em["project"]?.requireString() ?: throw ValidationError("externalMods#$j missing project"),
-            em["version"]?.requireString(),
-          )
-        }
-        ?: emptyList()
+        val em =
+          e as? YamlNode.Mapping
+            ?: throw ValidationError("externalMods#$j in ${file.name} must be a mapping")
+        ExternalMod(
+          em["name"]?.requireString() ?: throw ValidationError("externalMods#$j missing name"),
+          (em["platform"]?.requireString()?.let {
+            Platform.entries.firstOrNull { p -> p.name.equals(it, ignoreCase = true) }
+          }) ?: throw ValidationError("externalMods#$j missing platform"),
+          em["project"]?.requireString()
+            ?: throw ValidationError("externalMods#$j missing project"),
+          em["version"]?.requireString(),
+        )
+      } ?: emptyList()
     val note = mapping["note"]?.requireString()
 
-    return RuntimeScenario(mc, loader, scenario, source, project, gameVersions, dependencies, externalMods, note)
+    return RuntimeScenario(
+      mc,
+      loader,
+      scenario,
+      source,
+      project,
+      gameVersions,
+      dependencies,
+      externalMods,
+      note,
+    )
   }
 
   private fun parseStringList(node: YamlNode?, field: String): List<String> {
     val seq = node as? YamlNode.Sequence ?: return emptyList()
-    return seq.items.map { (it as? YamlNode.Scalar)?.value ?: throw ValidationError("$field item is not a scalar") }
+    return seq.items.map {
+      (it as? YamlNode.Scalar)?.value ?: throw ValidationError("$field item is not a scalar")
+    }
   }
 
   /**
-   * Validates a set of manifests. Throws a [ValidationError] (aggregating messages) if any supported
-   * lane is missing from a scenario that must cover every lane.
+   * Validates a set of manifests. Throws a [ValidationError] (aggregating messages) if any
+   * supported lane is missing from a scenario that must cover every lane.
    */
   fun validate(manifests: List<RuntimeManifest>) {
     val errors = mutableListOf<String>()
@@ -154,12 +193,13 @@ object RuntimeTestDescriptors {
       m.scenarios.forEach { s ->
         val seg = RuntimeTestPins.matrixKey(s.mc)
         val supportedLoaders = RuntimeTestPins.SUPPORTED_MATRIX[seg]
-        val ok =
-          supportedLoaders != null && (s.loader in supportedLoaders)
+        val ok = supportedLoaders != null && (s.loader in supportedLoaders)
         if (!ok) errors.add("Unsupported lane ${s.loader} ${s.mc} (${seg}) in ${m.modId}")
         // External mods are only meaningful (and only validated) on COMPAT scenarios.
         if (s.externalMods.isNotEmpty() && s.scenario != Scenario.COMPAT) {
-          errors.add("Non-compat lane ${s.loader} ${s.mc} (${seg}) references unknown mods: ${s.externalMods}")
+          errors.add(
+            "Non-compat lane ${s.loader} ${s.mc} (${seg}) references unknown mods: ${s.externalMods}"
+          )
         }
         if (s.scenario == Scenario.COMPAT && s.note == null) {
           errors.add("COMPAT lane ${s.loader} ${s.mc} (${seg}) missing explanatory note")
@@ -170,7 +210,11 @@ object RuntimeTestDescriptors {
     if (errors.isNotEmpty()) throw ValidationError(errors.joinToString("\n"))
   }
 
-  private fun coveragePairs(manifests: List<RuntimeManifest>, scenario: Scenario, platform: Platform? = null): Set<Pair<String, String>> {
+  private fun coveragePairs(
+    manifests: List<RuntimeManifest>,
+    scenario: Scenario,
+    platform: Platform? = null,
+  ): Set<Pair<String, String>> {
     val pairs = mutableSetOf<Pair<String, String>>()
     manifests.forEach { m ->
       m.scenarios.forEach { s ->
@@ -184,7 +228,11 @@ object RuntimeTestDescriptors {
 
   /** Loads and validates every manifest file in [dir]. */
   fun loadAll(dir: File): List<RuntimeManifest> {
-    val found = dir.walkTopDown().filter { it.isFile && (it.extension == "yaml" || it.extension == "yml") }.toList()
+    val found =
+      dir
+        .walkTopDown()
+        .filter { it.isFile && (it.extension == "yaml" || it.extension == "yml") }
+        .toList()
     return found.map { parse(it) }.also { validate(it) }
   }
 }

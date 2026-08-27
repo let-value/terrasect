@@ -26,11 +26,6 @@ abstract class RuntimeTestValidationExpectationsTask : DefaultTask() {
   /** Path to the `name :: dir-relative-to-project-root :: expected-substring` expectations file. */
   @get:InputFile abstract val expectationsFile: RegularFileProperty
 
-  /**
-   * Project root, used to resolve the per-case fixture directories listed in the expectations file.
-   */
-  @get:InputDirectory @get:Optional abstract val projectRoot: DirectoryProperty
-
   /** The real runtime-tests matrix directory; loaded and asserted to PASS. */
   @get:InputDirectory @get:Optional abstract val positiveDir: DirectoryProperty
 
@@ -38,7 +33,11 @@ abstract class RuntimeTestValidationExpectationsTask : DefaultTask() {
   fun run() {
     val propsFile =
       expectationsFile.orNull?.asFile ?: throw GradleException("expectationsFile is not set")
-    val rootDir = (projectRoot.orNull?.asFile) ?: throw GradleException("projectRoot is not set")
+    // expectations.properties lives in <project>/runtime-tests-expectations/, so the project root
+    // is
+    // two levels up. Derived from the file path rather than passed in, so the task never scans a
+    // directory whose contents overlap the spotless tasks' outputs.
+    val rootDir = propsFile.parentFile.parentFile
     val posDir = positiveDir.orNull?.asFile
 
     val results = mutableListOf<String>()
