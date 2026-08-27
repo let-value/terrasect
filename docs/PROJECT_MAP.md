@@ -200,35 +200,40 @@ See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the full multi-version matrix 
 
 ### Common's runtime dependencies must be embedded per loader
 
-`common`'s third-party libraries (`caffeine`, `net.openhft:zero-allocation-hashing`,
-`com.github.komputing:kbase58`, `com.electronwill.night-config`) are declared `implementation` in
-`build.common.gradle.kts`. That only puts them on the **compile/dev** classpath of a consuming
-loader module — it does **not** get them into a shipped mod jar. Each loader module must separately
-embed every one of them, or players crash with `NoClassDefFoundError` the first time the missing
-class is touched (see the `Caffeine` crash in issue #62 — NeoForge's per-mod module isolation means
-nothing outside a mod's own jar/`jarJar` bundle is visible to it, unlike Fabric's shared classloader,
-which can accidentally mask the same gap if some other installed mod happens to bundle the same
-library):
+`common`'s third-party libraries (`caffeine`, `net.openhft:zero-allocation-hashing`, and
+`com.github.komputing:kbase58`) are declared `implementation` in `build.common.gradle.kts`.
+KBase58's SHA-256 runtime dependency is declared directly by the NeoForge packaging because
+ModDev's Jar-in-Jar configuration is non-transitive. Night Config is compile-only because NeoForge
+supplies it at runtime. Common's implementation dependencies are available to compilation and
+development, but are not automatically included in a shipped loader jar. Each loader must package
+its own libraries or players crash with
+`NoClassDefFoundError` the first time a missing class is touched (NeoForge's per-mod module
+isolation makes this especially visible):
 
 - **Fabric** (`build.fabric.gradle.kts`): add each library via `embedded("group:artifact:version")`
   (the `io.github.gmazzo.dependencies.embedded` plugin's config) — for every version, not only the
   legacy (`1.20.1`) Loom path. `runtimeOnly` is not enough; it only affects the dev/test classpath.
-- **NeoForge** (`build.neoforge.gradle.kts`): add each library via `jarJar("group:artifact:version")`
-  (from `net.neoforged.moddev`'s built-in JarJar support). `implementation` is not enough for the
-  same reason.
+  `verifyEmbeddedDependencies` checks the final JAR for the classes from each required library.
+- **NeoForge** (`build.neoforge.gradle.kts`): declare each library with the reference pattern
+  `implementation("group:artifact:version")` plus `jarJar("group:artifact:version")`. The former
+  supplies compilation and development, while the latter packages it in the shipped jar. The
+  `sha256-jvm` dependency of KBase58 is declared the same way because Jar-in-Jar is non-transitive.
+  `verifyJarJarDependencies` checks the exact nested JAR set in the final artifact.
+- NeoForge versions with ModDev's `legacyClasspath` capability (currently 1.21.1) also need those
+  direct library dependencies on each run's additional runtime classpath. Keep them non-transitive
+  so libraries such as KBase58 do not add a second Kotlin runtime beside Kotlin for Forge.
 - `com.electronwill.night-config` doesn't need an explicit NeoForge declaration — it's already a
-  transitive dependency of NeoForge's own loader (`fancymodloader`), so it's present on the module
-  path for free. Verify any *new* common runtime dependency against the target platform's own POM
-  before assuming this shortcut applies to it too.
-- **Verify embedding, don't just verify compilation.** `./gradlew :<loader>:<version>:build`
-  succeeding proves nothing about the shipped jar's contents — the missing classes only show up at
-  runtime. After adding/changing a common runtime dependency, build the real production artifact
-  (`:<version>-fabric:remapJar` pre-1.21.11, `:<version>-fabric:jar` at 1.21.11+, or
-  `:<version>-neoforge:jar`) and `unzip -l` it to confirm the library's classes are actually inside.
-  A `-dev` jar under `build/devlibs/` or a stale `build/libs/*.jar` is not the shipped artifact and
-  will pass this check even when the fix is wrong (extraction tasks like
-  `extractEmbeddedDependenciesClasses` cache silently across an added dependency; force with
-  `--rerun-tasks` if in doubt).
+  transitive dependency of NeoForge's own loader (`fancymodloader`), so it is present on the module
+  path. Verify any *new* common dependency against the target platform's own POM before assuming
+  this applies to it too.
+- **Verify embedding, don't just verify compilation.** Each loader's `check` task verifies the
+  final production artifact, so `:<loader>:<version>:build` catches missing embedded classes or
+  nested JARs in CI and release builds. A `-dev` jar under `build/devlibs/` or a stale
+  `build/libs/*.jar` is not the shipped artifact; force the packaging tasks with `--rerun-tasks`
+  when changing dependencies if Gradle's extraction tasks are up to date.
+- Fabric development runs use named mappings, while published jars run with intermediary names.
+  Reflection against named Minecraft method strings can therefore pass in development and fail in
+  a published jar; use mapping-aware Mixin accessors for cross-version calls.
 
 ### Key Gradle tasks
 
