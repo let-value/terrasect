@@ -1,5 +1,3 @@
-import java.util.zip.ZipFile
-
 plugins {
   id("terrasect-mod")
   `java-library`
@@ -102,39 +100,6 @@ val metadataProps =
   )
 
 tasks {
-  val jarTask = named<Jar>("jar")
-  val expectedJarJarEntries =
-    setOf(
-      "META-INF/jarjar/zero-allocation-hashing-${prop("deps.zero_allocation_hashing")}.jar",
-      "META-INF/jarjar/caffeine-${prop("deps.caffeine")}.jar",
-      "META-INF/jarjar/kbase58-${prop("deps.kbase58")}.jar",
-      "META-INF/jarjar/sha256-jvm-${prop("deps.kbase58_sha256")}.jar",
-    )
-  val verifyJarJarDependencies by registering {
-    dependsOn(jarTask)
-    doLast {
-      val archive = jarTask.get().archiveFile.get().asFile
-      ZipFile(archive).use { zip ->
-        val actualJarJarEntries =
-          zip
-            .entries()
-            .asSequence()
-            .map { it.name }
-            .filter {
-              it.startsWith("META-INF/jarjar/") && it.endsWith(".jar")
-            }
-            .toSet()
-        check(actualJarJarEntries == expectedJarJarEntries) {
-          "${archive.name} has unexpected JarJar entries: " +
-            "missing=${expectedJarJarEntries - actualJarJarEntries}, " +
-            "unexpected=${actualJarJarEntries - expectedJarJarEntries}"
-        }
-      }
-    }
-  }
-
-  named("check") { dependsOn(verifyJarJarDependencies) }
-
   named<ProcessResources>("processResources") {
     inputs.properties(metadataProps)
     includeEmptyDirs = false

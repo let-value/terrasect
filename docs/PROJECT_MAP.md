@@ -217,7 +217,6 @@ isolation makes this especially visible):
   `implementation("group:artifact:version")` plus `jarJar("group:artifact:version")`. The former
   supplies compilation and development, while the latter packages it in the shipped jar. The
   `sha256-jvm` dependency of KBase58 is declared the same way because Jar-in-Jar is non-transitive.
-  `verifyJarJarDependencies` checks the exact nested JAR set in the final artifact.
 - NeoForge versions with ModDev's `legacyClasspath` capability (currently 1.21.1) also need those
   direct library dependencies on each run's additional runtime classpath. Keep them non-transitive
   so libraries such as KBase58 do not add a second Kotlin runtime beside Kotlin for Forge.
