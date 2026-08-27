@@ -5,6 +5,10 @@ plugins {
 
 stonecutter active "26.2.x"
 
+// Runtime-test infrastructure: registers the build/compat/published tasks across every
+// supported (loader, mc) lane. Opt-in — nothing invokes these unless a runtimeTest* task runs.
+RuntimeTestDsl(rootProject)
+
 allprojects {
   repositories {
     mavenCentral()
