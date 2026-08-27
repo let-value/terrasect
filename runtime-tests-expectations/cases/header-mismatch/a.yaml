@@ -1,0 +1,12 @@
+# Fixture: header mismatch — two manifests in one directory disagree on the shared header, so
+# validate()'s header-equality check adds "mismatch". Same mod_id / latest, different mod_version.
+mod_id: terrasect
+latest: "26.2"
+mod_version: "0.0.0"
+
+scenarios:
+  - mc: "26.2"
+    loader: fabric
+    scenario: BUILD
+    gameVersions: ["26.2"]
+    dependencies: []

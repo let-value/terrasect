@@ -12,13 +12,14 @@
 // NOTE: YamlNode types are referenced with the `YamlNode.` qualifier so this file does not collide
 // with kotlin.Sequence / kotlin.Scalar.
 
-
 import java.io.File
 
 /** A parsed node; a plain scalar maps to [YamlNode.Scalar]. */
 sealed class YamlNode {
   data class Scalar(val value: String) : YamlNode()
+
   data class Sequence(val items: List<YamlNode>) : YamlNode()
+
   data class Mapping(val entries: Map<String, YamlNode>) : YamlNode()
 
   operator fun get(key: String): YamlNode? = (this as? Mapping)?.entries[key]
@@ -38,7 +39,8 @@ object YamlReader {
   fun parse(text: String): Map<String, YamlNode> {
     val lines = text.split("\n")
     val (node, _) = block(lines, 0, 0)
-    return (node as? YamlNode.Mapping)?.entries ?: throw YamlException("top-level document must be a mapping")
+    return (node as? YamlNode.Mapping)?.entries
+      ?: throw YamlException("top-level document must be a mapping")
   }
 
   fun parse(file: File): Map<String, YamlNode> = parse(file.readText())
@@ -53,10 +55,13 @@ object YamlReader {
     if (i >= lines.size) return YamlNode.Mapping(emptyMap()) to i
     val thisIndent = lines[i].takeWhile { it == ' ' }.length
     if (thisIndent < indent) return YamlNode.Mapping(emptyMap()) to i
-    return if (lines[i].trim().startsWith("-")) seq(lines, i, thisIndent) else map(lines, i, thisIndent)
+    return if (lines[i].trim().startsWith("-")) seq(lines, i, thisIndent)
+    else map(lines, i, thisIndent)
   }
 
-  /** Parse a mapping at [indent]: each line is `key: value` or `key:` (value on the block below). */
+  /**
+   * Parse a mapping at [indent]: each line is `key: value` or `key:` (value on the block below).
+   */
   private fun map(lines: List<String>, start: Int, indent: Int): Pair<YamlNode, Int> {
     val entries = LinkedHashMap<String, YamlNode>()
     var i = start
@@ -72,8 +77,9 @@ object YamlReader {
         throw YamlException("unexpected indentation at line ${i + 1}: '$raw'")
       }
       val trimmed = raw.trim()
-      val m = Regex("""^([A-Za-z0-9_.-]+):\s*(.*)$""").find(trimmed)
-        ?: throw YamlException("could not parse mapping key at line ${i + 1}: '$trimmed'")
+      val m =
+        Regex("""^([A-Za-z0-9_.-]+):\s*(.*)$""").find(trimmed)
+          ?: throw YamlException("could not parse mapping key at line ${i + 1}: '$trimmed'")
       val key = m.groupValues[1]
       val rest = m.groupValues[2].trim()
       if (rest.isEmpty()) {
@@ -137,8 +143,9 @@ object YamlReader {
             val sr = sm.groupValues[2].trim()
             i++
             if (sr.isEmpty()) {
-              val (node, _) = block(lines, i, sibIndent + 2)
+              val (node, nextIdx) = block(lines, i, sibIndent + 2)
               sub[sk] = node
+              i = nextIdx
             } else {
               sub[sk] = YamlNode.Scalar(stripQu(sr))
             }

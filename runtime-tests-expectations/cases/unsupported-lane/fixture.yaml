@@ -1,0 +1,12 @@
+# Fixture: unsupported lane — scenario names a (loader, mc) pair not present in SUPPORTED_MATRIX.
+# The fabricated MC `99.9` has no segment key, so validate() reports "Unsupported lane ...".
+mod_id: terrasect
+latest: "26.2"
+mod_version: "0.2.3"
+
+scenarios:
+  - mc: "99.9"
+    loader: fabric
+    scenario: BUILD
+    gameVersions: ["99.9"]
+    dependencies: []

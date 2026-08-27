@@ -1,0 +1,87 @@
+# Terrasect runtime-test PUBLISHED (Modrinth) descriptors.
+#
+# Boots the Terrasect artifact published to Modrinth from each lane, via Ferium resolution, through
+# HeadlessMC. PUBLISHED scenarios resolve Terrasect from the registry (not a local jar), so no test
+# jar is used and no local build inputs are needed.
+#
+# Coverage requirement: every supported lane must appear at least once across the PUBLISHED fixtures,
+# and both registries must be exercised collectively. Every lane is published to Modrinth, so this
+# file covers all nine lanes on the Modrinth side. CurseForge coverage is described in
+# published-curseforge.yaml (Forge-only lanes have no CurseForge publication and are explicit).
+
+mod_id: terrasect
+latest: "26.2"
+mod_version: "0.2.3"
+
+scenarios:
+  - mc: "1.20.1"
+    loader: fabric
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["1.20.1"]
+    dependencies: []
+
+  - mc: "1.21.1"
+    loader: fabric
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["1.21.1"]
+    dependencies: []
+
+  - mc: "1.21.1"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["1.21.1"]
+    dependencies: []
+
+  - mc: "1.21.11"
+    loader: fabric
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["1.21.11"]
+    dependencies: []
+
+  - mc: "1.21.11"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["1.21.11"]
+    dependencies: []
+
+  - mc: "26.1"
+    loader: fabric
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["26.1"]
+    dependencies: []
+
+  - mc: "26.1"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["26.1"]
+    dependencies: []
+
+  - mc: "26.2"
+    loader: fabric
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["26.2"]
+    dependencies: []
+
+  - mc: "26.2"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: MODRINTH
+    project: terrasect
+    gameVersions: ["26.2"]
+    dependencies: []

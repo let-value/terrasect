@@ -12,6 +12,11 @@
 // `ExecOperations` are not available on this toolchain, so process execution uses the JDK
 // `ProcessBuilder` and temp space uses the task project's build directory.
 
+import java.io.File
+import java.net.URL
+import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
+import java.util.zip.ZipInputStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -22,17 +27,9 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import java.io.File
-import java.net.URL
-import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
 
 /** Shared: SHA-256 digest (hex) of a file, or null if it does not exist. */
 fun sha256(file: File): String? {
@@ -52,9 +49,7 @@ fun sha256(file: File): String? {
 fun expectSha256(file: File, expected: String) {
   val actual = sha256(file) ?: throw GradleException("${file.name} missing before verification")
   if (!actual.equals(expected, ignoreCase = true)) {
-    throw GradleException(
-      "SHA-256 mismatch for ${file.name}: expected $expected but got $actual",
-    )
+    throw GradleException("SHA-256 mismatch for ${file.name}: expected $expected but got $actual")
   }
 }
 
@@ -95,9 +90,10 @@ fun unzip(zip: File, destination: File) {
 /**
  * Downloads and verifies HeadlessMC + Ferium into a single cacheable output directory.
  *
- * Inputs: tool version + url + checksum (HMC) and ferium version + url + checksum + target platform.
- * Output: the extracted tool tree under [outputDirectory]/hmc/ and [outputDirectory]/ferium/. A
- * second run whose inputs are unchanged is UP-TO-DATE / served FROM-CACHE.
+ * Inputs: tool version + url + checksum (HMC) and ferium version + url + checksum + target
+ * platform. Output: the extracted tool tree under [outputDirectory]/hmc/ and
+ * [outputDirectory]/ferium/. A second run whose inputs are unchanged is UP-TO-DATE / served
+ * FROM-CACHE.
  */
 @CacheableTask
 abstract class RuntimeTestBootstrapTask : DefaultTask() {
@@ -123,7 +119,8 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     val hmcZip = File(downloadDir, "hmc-download.jar")
     downloadToFile(hmcUrl.get(), hmcZip)
     expectSha256(hmcZip, hmcSha256.get())
-    val hmcJar = File(hmcDir, "headlessmc-launcher-${hmcUrl.get().substringAfterLast('/')}").apply { delete() }
+    val hmcJar =
+      File(hmcDir, "headlessmc-launcher-${hmcUrl.get().substringAfterLast('/')}").apply { delete() }
     hmcZip.copyTo(hmcJar, overwrite = true)
 
     // Ferium is a zip archive — download, verify, extract the nosui binary.
@@ -132,10 +129,13 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     expectSha256(feriumZip, feriumSha256.get())
     unzip(feriumZip, feriumDir)
     val binary =
-      feriumDir.walkTopDown().firstOrNull { it.isFile && (it.name.startsWith("ferium") || it.name.contains("gui")) }
-        ?: throw GradleException("Ferium binary not found after extracting ${feriumZip}")
+      feriumDir.walkTopDown().firstOrNull {
+        it.isFile && (it.name.startsWith("ferium") || it.name.contains("gui"))
+      } ?: throw GradleException("Ferium binary not found after extracting ${feriumZip}")
     binary.setExecutable(true, false)
-    logger.lifecycle("RuntimeTestBootstrap: HMC ${hmcSha256.get().take(8)}+, Ferium ${feriumSha256.get().take(8)}+")
+    logger.lifecycle(
+      "RuntimeTestBootstrap: HMC ${hmcSha256.get().take(8)}+, Ferium ${feriumSha256.get().take(8)}+"
+    )
   }
 }
 
@@ -147,15 +147,15 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
  * artifact on failure). The success condition is HMC exiting 0 AND the marker appearing in the
  * combined log, which is stronger than "the process existed".
  */
- abstract class RuntimeTestLaunchTask : DefaultTask() {
+abstract class RuntimeTestLaunchTask : DefaultTask() {
 
   @get:Classpath abstract val toolsDir: ConfigurableFileCollection
   @get:Input @get:Optional abstract val testJar: RegularFileProperty
 
   /**
-   * Optional pre-resolved mods directory (Ferium resolves for published/compat scenarios). When set,
-   * these jars are copied into the runtime mods dir *after* the local [testJar], so the local build
-   * jar cannot shadow third-party mods and Ferium cleanup cannot remove it.
+   * Optional pre-resolved mods directory (Ferium resolves for published/compat scenarios). When
+   * set, these jars are copied into the runtime mods dir *after* the local [testJar], so the local
+   * build jar cannot shadow third-party mods and Ferium cleanup cannot remove it.
    */
   @get:InputDirectory abstract val resolvedModsDir: DirectoryProperty
 
@@ -182,12 +182,14 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     }
 
     // (B) Published/compat scenarios: a pre-resolved mods dir (from Ferium) is provided. These jars
-    // are copied *after* the local jar so the local build jar cannot accidentally shadow third-party
+    // are copied *after* the local jar so the local build jar cannot accidentally shadow
+    // third-party
     // mods, and any third-party jar named identically to Terrasect wins (so Ferium's resolution is
     // real, not overwritten by the local build).
     val resolved = resolvedModsDir.orNull?.asFile
     if (resolved != null) {
-      val resolvedFiles = resolved.walkTopDown().filter { it.isFile && it.extension == "jar" }.toList()
+      val resolvedFiles =
+        resolved.walkTopDown().filter { it.isFile && it.extension == "jar" }.toList()
       if (resolvedFiles.isEmpty()) {
         throw GradleException("resolvedModsDir has no jars: $resolved")
       }
@@ -198,7 +200,9 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
         }
         j.copyTo(dest, overwrite = true)
       }
-      logger.lifecycle("RuntimeTestLaunch: injected ${resolvedFiles.size} resolved jar(s) for ${loader.get()} ${mcVersion.get()}")
+      logger.lifecycle(
+        "RuntimeTestLaunch: injected ${resolvedFiles.size} resolved jar(s) for ${loader.get()} ${mcVersion.get()}"
+      )
     }
 
     val hmcJar =
@@ -229,16 +233,18 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     if (!exitOk) {
       throw GradleException(
         "HeadlessMC launch failed (exit ${proc.exitValue()}) for ${loader.get()} ${mcVersion.get()}. Log tail:\n" +
-          log.takeLast(2000),
+          log.takeLast(2000)
       )
     }
     if (!markerOk) {
       throw GradleException(
         "Success marker '$marker' not found in log for ${loader.get()} ${mcVersion.get()}. " +
-          "Last 1500 chars:\n$log.takeLast(1500)",
+          "Last 1500 chars:\n$log.takeLast(1500)"
       )
     }
-    logger.lifecycle("RuntimeTestLaunch: OK for ${loader.get()} ${mcVersion.get()} (marker='$marker')")
+    logger.lifecycle(
+      "RuntimeTestLaunch: OK for ${loader.get()} ${mcVersion.get()} (marker='$marker')"
+    )
   }
 
   /** Builds and starts the HMC process, returning it once it has launched. */
@@ -248,7 +254,10 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     return try {
       builder.start()
     } catch (e: Exception) {
-      throw GradleException("Failed to start HeadlessMC (${args.first()}) from $launchDir: ${e.message}", e)
+      throw GradleException(
+        "Failed to start HeadlessMC (${args.first()}) from $launchDir: ${e.message}",
+        e,
+      )
     }
   }
 
@@ -265,15 +274,16 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     val reader = proc.inputStream.bufferedReader()
     val drain =
       Thread({
-        var line = reader.readLine()
-        while (line != null) {
-          synchronized(logLock) {
-            writer.append(line).append('\n')
-            log.append(line).append('\n')
+          var line = reader.readLine()
+          while (line != null) {
+            synchronized(logLock) {
+              writer.append(line).append('\n')
+              log.append(line).append('\n')
+            }
+            line = reader.readLine()
           }
-          line = reader.readLine()
-        }
-      }).apply { isDaemon = true }
+        })
+        .apply { isDaemon = true }
     drain.start()
 
     val finished = proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
@@ -313,14 +323,22 @@ abstract class RuntimeTestDescriptorValidateTask : DefaultTask() {
 
   @TaskAction
   fun run() {
-    val dir: Set<File> = descriptorsDir.files
-    if (dir.isEmpty()) throw GradleException("No descriptor directory configured")
+    val roots: Set<File> = descriptorsDir.files
+    if (roots.isEmpty()) throw GradleException("No descriptor directory configured")
+    // descriptorsDir is configured with the directory path(s); walk each for *.yaml/*.yml files so
+    // nested manifests resolve. `Collection.files` returns the directories themselves, whose
+    // isFile flag is false, so a bare filter would match nothing.
     val files =
-      dir
-        .filter { it.isFile && it.extension in listOf("yaml", "yml") }
+      roots
+        .flatMap {
+          it.walkTopDown().filter { f -> f.isFile && f.extension in listOf("yaml", "yml") }
+        }
+        .distinct()
         .sortedBy { it.path }
     val manifests = files.map { RuntimeTestDescriptors.parse(it) }
     RuntimeTestDescriptors.validate(manifests)
-    logger.lifecycle("RuntimeTestDescriptorValidate: ${manifests.size} manifest(s), ${files.size} file(s) valid")
+    logger.lifecycle(
+      "RuntimeTestDescriptorValidate: ${manifests.size} manifest(s), ${files.size} file(s) valid"
+    )
   }
 }

@@ -11,7 +11,6 @@
 
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.data.tree.ProjectTree
-import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
@@ -20,18 +19,21 @@ import org.gradle.kotlin.dsl.getByType
 
 private const val RUNTIME_TOOLS_DIR = "runtime-tools"
 private val RUNTIME_REL = "runtime-tests"
+private const val RUNTIME_EXPECTATIONS = "runtime-tests-expectations"
 private const val ROOT_TASKS = "runtime test"
 
-/** Root exposes the Stonecutter controller extension; the controller holds the shared [ProjectTree]. */
-fun Project.controller(): StonecutterControllerExtension = extensions.getByType<StonecutterControllerExtension>()
+/**
+ * Root exposes the Stonecutter controller extension; the controller holds the shared [ProjectTree].
+ */
+fun Project.controller(): StonecutterControllerExtension =
+  extensions.getByType<StonecutterControllerExtension>()
 
 /**
  * Reads a root-level structured property (e.g. `mod.id`, `mod.version`) from the shared
  * `stonecutter.properties.toml` via the controller. Avoids the per-version build extension, which
  * only exists on versioned branches, not the root controller.
  */
-fun Project.runtimeProp(key: String): String =
-  controller().properties.getOrNull<String>(key) ?: ""
+fun Project.runtimeProp(key: String): String = controller().properties.getOrNull<String>(key) ?: ""
 
 /** Like [runtimeProp] but returns null when unset, so an optional key never forces a value. */
 fun Project.runtimePropOrNull(key: String): String? = controller().properties.getOrNull<String>(key)
@@ -65,7 +67,10 @@ fun RuntimeTestDsl(root: Project) {
 
   // --- shared descriptor validation (preflight gate): no network. ---
   val descriptorValidateTask: TaskProvider<RuntimeTestDescriptorValidateTask> =
-    root.tasks.register("runtimeTestDescriptorValidate", RuntimeTestDescriptorValidateTask::class.java)
+    root.tasks.register(
+      "runtimeTestDescriptorValidate",
+      RuntimeTestDescriptorValidateTask::class.java,
+    )
   descriptorValidateTask.configure {
     group = ROOT_TASKS
     description = "Validate every runtime-test descriptor offline (preflight gate)."
@@ -73,6 +78,24 @@ fun RuntimeTestDsl(root: Project) {
     expectedLatest.set(RuntimeTestPins.LATEST_MC)
     expectedModVersion.set(root.runtimeProp("mod.version"))
     descriptorsDir.from(root.file(RUNTIME_REL))
+  }
+
+  // --- offline validation-expectations: proves the SAME parse()/validate() pipeline rejects the
+  // malformed / unsupported / missing-lane / header-mismatch shapes, and that the real matrix still
+  // passes. Drives RuntimeTestDescriptors.loadAll() directly — no network, no launch tooling. Not
+  // wired into CI or the launch pipeline, so it cannot alter release behaviour. ---
+  val validationExpectationsTask: TaskProvider<RuntimeTestValidationExpectationsTask> =
+    root.tasks.register(
+      "runtimeTestValidationExpectations",
+      RuntimeTestValidationExpectationsTask::class.java,
+    )
+  validationExpectationsTask.configure {
+    group = ROOT_TASKS
+    description =
+      "Offline: assert the descriptor parser rejects malformed/unsupported/missing-lane cases and accepts the real matrix."
+    expectationsFile.set(root.file("$RUNTIME_EXPECTATIONS/expectations.properties"))
+    projectRoot.set(root.file("."))
+    positiveDir.set(root.file(RUNTIME_REL))
   }
 
   // --- infrastructure check: infrastructure + descriptors + bootstrap pipeline. ---
@@ -87,12 +110,17 @@ fun RuntimeTestDsl(root: Project) {
 
   val buildTasks = launchBySegment.values.map { it.provider.get() }
 
-  val compatProviders = launchBySegment.values.map { reg ->
-    registerCompatVariant(root, reg)
-  }.toSet()
+  val compatProviders =
+    launchBySegment.values
+      .map { reg ->
+        registerCompatVariant(root, reg)
+      }
+      .toSet()
 
-  val publishedModrinth = launchBySegment.values.map { registerPublishedVariant(root, it, Platform.MODRINTH) }
-  val publishedCurseforge = launchBySegment.values.map { registerPublishedVariant(root, it, Platform.CURSEFORGE) }
+  val publishedModrinth =
+    launchBySegment.values.map { registerPublishedVariant(root, it, Platform.MODRINTH) }
+  val publishedCurseforge =
+    launchBySegment.values.map { registerPublishedVariant(root, it, Platform.CURSEFORGE) }
 
   // --- root aggregates. ---
   root.tasks.register("runtimeTestBuild") {
@@ -109,7 +137,8 @@ fun RuntimeTestDsl(root: Project) {
 
   root.tasks.register("runtimeTestPublished") {
     group = ROOT_TASKS
-    description = "Boot the requested published Terrasect artifact from Modrinth/CurseForge via Ferium."
+    description =
+      "Boot the requested published Terrasect artifact from Modrinth/CurseForge via Ferium."
     // Defer selection until this task runs (not at configuration) so it never fails registration.
     dependsOn(publishedModrinth + publishedCurseforge)
   }
@@ -122,7 +151,10 @@ fun RuntimeTestDsl(root: Project) {
 }
 
 /** Registers per-version launch tasks on every supported fabric/neoforge lane, keyed by segment. */
-private fun collectPerVersionLaunches(root: Project, tree: ProjectTree): Map<String, PerVersionLaunch> {
+private fun collectPerVersionLaunches(
+  root: Project,
+  tree: ProjectTree,
+): Map<String, PerVersionLaunch> {
   val result = mutableMapOf<String, PerVersionLaunch>()
   tree.entries.forEach { (branchName, branch) ->
     if (branchName !in listOf("fabric", "neoforge")) return@forEach
@@ -136,13 +168,16 @@ private fun collectPerVersionLaunches(root: Project, tree: ProjectTree): Map<Str
         modProject.tasks.register("runtimeTestLaunch", RuntimeTestLaunchTask::class.java)
       provider.configure {
         group = ROOT_TASKS
-        description = "Boot the built Terrasect jar for $branchName $mcVersionId through HeadlessMC."
+        description =
+          "Boot the built Terrasect jar for $branchName $mcVersionId through HeadlessMC."
         mcVersion.set(mcVersionId)
         loader.set(branchName)
         successMarker.set(RuntimeTestPins.successMarkerFor(branchName))
         launchTimeoutSeconds.set(900L)
         toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-        runtimeDir.set(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/$branchName-${node.project}"))
+        runtimeDir.set(
+          root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/$branchName-${node.project}")
+        )
         testJar.set(jarProvider.flatMap { it.archiveFile })
         dependsOn(modProject.tasks.named("jar"))
       }
@@ -168,7 +203,11 @@ private fun registerCompatVariant(root: Project, reg: PerVersionLaunch): Task {
     successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
     launchTimeoutSeconds.set(1200L)
     toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-    runtimeDir.set(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${reg.segment}"))
+    runtimeDir.set(
+      root.layout.buildDirectory.dir(
+        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${reg.segment}"
+      )
+    )
     testJar.set(jarProvider.flatMap { it.archiveFile })
     dependsOn(reg.provider, modProject.tasks.named("jar"))
   }
@@ -183,7 +222,10 @@ private fun registerPublishedVariant(
 ): TaskProvider<RuntimeTestLaunchTask> {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider
   val provider: TaskProvider<RuntimeTestLaunchTask> =
-    modProject.tasks.register("runtimeTest${platform.name}Published", RuntimeTestLaunchTask::class.java)
+    modProject.tasks.register(
+      "runtimeTest${platform.name}Published",
+      RuntimeTestLaunchTask::class.java,
+    )
   provider.configure {
     group = ROOT_TASKS
     description =
@@ -195,7 +237,9 @@ private fun registerPublishedVariant(
     launchTimeoutSeconds.set(1200L)
     toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
     runtimeDir.set(
-      root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-${platform.name}-${reg.segment}"),
+      root.layout.buildDirectory.dir(
+        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-${platform.name}-${reg.segment}"
+      )
     )
     // Published scenarios use the Ferium-resolved dir, so we intentionally leave testJar unset and
     // provide resolvedModsDir (set from the resolved-pack task) for the launch to consume.

@@ -1,0 +1,44 @@
+# Terrasect runtime-test PUBLISHED (CurseForge) descriptors.
+#
+# Boots the Terrasect artifact published to CurseForge from each lane, via Ferium resolution, through
+# HeadlessMC. CurseForge is a Forge-only marketplace, so only the NeoForge lanes appear here. Fabric
+# lanes are deliberately NOT listed: Terrasect does not publish its Fabric build to CurseForge. This
+# explicit omission (with the reason below) is preferred over silently dropping the market — every
+# lane is still covered by the Modrinth PUBLISHED fixture in published-modrinth.yaml.
+
+mod_id: terrasect
+latest: "26.2"
+mod_version: "0.2.3"
+
+scenarios:
+  - mc: "1.21.1"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: CURSEFORGE
+    project: terrasect
+    gameVersions: ["1.21.1"]
+    dependencies: []
+
+  - mc: "1.21.11"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: CURSEFORGE
+    project: terrasect
+    gameVersions: ["1.21.11"]
+    dependencies: []
+
+  - mc: "26.1"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: CURSEFORGE
+    project: terrasect
+    gameVersions: ["26.1"]
+    dependencies: []
+
+  - mc: "26.2"
+    loader: neoforge
+    scenario: PUBLISHED
+    source: CURSEFORGE
+    project: terrasect
+    gameVersions: ["26.2"]
+    dependencies: []

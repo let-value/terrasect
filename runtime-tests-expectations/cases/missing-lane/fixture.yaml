@@ -1,0 +1,14 @@
+# Fixture: missing lane — valid header + a valid, well-formed scenarios list, but the list omits
+# every supported lane except one. parse() succeeds; validate()'s coverage check reports "lane
+# missing" for the omitted lanes.
+
+mod_id: terrasect
+latest: "26.2"
+mod_version: "0.2.3"
+
+scenarios:
+  - mc: "26.2"
+    loader: fabric
+    scenario: BUILD
+    gameVersions: ["26.2"]
+    dependencies: []
