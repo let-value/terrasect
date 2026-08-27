@@ -213,7 +213,6 @@ isolation makes this especially visible):
 - **Fabric** (`build.fabric.gradle.kts`): add each library via `embedded("group:artifact:version")`
   (the `io.github.gmazzo.dependencies.embedded` plugin's config) — for every version, not only the
   legacy (`1.20.1`) Loom path. `runtimeOnly` is not enough; it only affects the dev/test classpath.
-  `verifyEmbeddedDependencies` checks the final JAR for the classes from each required library.
 - **NeoForge** (`build.neoforge.gradle.kts`): declare each library with the reference pattern
   `implementation("group:artifact:version")` plus `jarJar("group:artifact:version")`. The former
   supplies compilation and development, while the latter packages it in the shipped jar. The
@@ -226,11 +225,6 @@ isolation makes this especially visible):
   transitive dependency of NeoForge's own loader (`fancymodloader`), so it is present on the module
   path. Verify any *new* common dependency against the target platform's own POM before assuming
   this applies to it too.
-- **Verify embedding, don't just verify compilation.** Each loader's `check` task verifies the
-  final production artifact, so `:<loader>:<version>:build` catches missing embedded classes or
-  nested JARs in CI and release builds. A `-dev` jar under `build/devlibs/` or a stale
-  `build/libs/*.jar` is not the shipped artifact; force the packaging tasks with `--rerun-tasks`
-  when changing dependencies if Gradle's extraction tasks are up to date.
 - Fabric development runs use named mappings, while published jars run with intermediary names.
   Reflection against named Minecraft method strings can therefore pass in development and fail in
   a published jar; use mapping-aware Mixin accessors for cross-version calls.

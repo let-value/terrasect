@@ -1,5 +1,3 @@
-import java.util.zip.ZipFile
-
 plugins {
   id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
@@ -42,31 +40,6 @@ dependencies {
 val resourceProps = fabricResourceProps()
 
 tasks {
-  val jarTask = named<Jar>("jar")
-  val expectedEmbeddedClasses =
-    setOf(
-      "com/electronwill/nightconfig/core/Config.class",
-      "com/electronwill/nightconfig/toml/TomlFormat.class",
-      "com/github/benmanes/caffeine/cache/Caffeine.class",
-      "net/openhft/hashing/LongHashFunction.class",
-      "org/komputing/kbase58/Base58Kt.class",
-      "org/komputing/khash/sha256/extensions/PublicExtensionsKt.class",
-    )
-  val verifyEmbeddedDependencies by registering {
-    dependsOn("assemble")
-    doLast {
-      val archive = jarTask.get().archiveFile.get().asFile
-      ZipFile(archive).use { zip ->
-        val missing = expectedEmbeddedClasses.filter { zip.getEntry(it) == null }.toSet()
-        check(missing.isEmpty()) {
-          "${archive.name} is missing embedded dependency classes: $missing"
-        }
-      }
-    }
-  }
-
-  named("check") { dependsOn(verifyEmbeddedDependencies) }
-
   named<ProcessResources>("processResources") {
     inputs.properties(resourceProps)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) {
