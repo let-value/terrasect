@@ -32,16 +32,52 @@ neoForge {
   }
 }
 
-evaluationDependsOn(commonProject.path)
+val legacyRuntimeDependencies: Configuration by configurations.creating {
+  isCanBeConsumed = false
+  isCanBeResolved = false
+}
 
 dependencies {
   implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kotlinforforge")}")
   implementation(commonProject)
 
-  // moddev's jarJar can't consume a project configuration directly (it needs per-module version
-  // metadata), so nest each library common declares in its embeddedDependencies set.
-  commonProject.configurations["embeddedDependencies"].dependencies.forEach {
-    jarJar("${it.group}:${it.name}:${it.version}")
+  implementation("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+  jarJar("net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}")
+  add(
+    legacyRuntimeDependencies.name,
+    "net.openhft:zero-allocation-hashing:${prop("deps.zero_allocation_hashing")}",
+  ) {
+    isTransitive = false
+  }
+
+  implementation("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  jarJar("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
+  add(
+    legacyRuntimeDependencies.name,
+    "com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}",
+  ) {
+    isTransitive = false
+  }
+
+  implementation("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  jarJar("com.github.komputing:kbase58:${prop("deps.kbase58")}")
+  add(legacyRuntimeDependencies.name, "com.github.komputing:kbase58:${prop("deps.kbase58")}") {
+    isTransitive = false
+  }
+
+  implementation("com.github.komputing.khash:sha256-jvm:${prop("deps.kbase58_sha256")}")
+  jarJar("com.github.komputing.khash:sha256-jvm:${prop("deps.kbase58_sha256")}")
+  add(
+    legacyRuntimeDependencies.name,
+    "com.github.komputing.khash:sha256-jvm:${prop("deps.kbase58_sha256")}",
+  ) {
+    isTransitive = false
+  }
+}
+
+if (neoForge.versionCapabilities.legacyClasspath()) {
+  neoForge.runs.configureEach {
+    getAdditionalRuntimeClasspathConfiguration().extendsFrom(legacyRuntimeDependencies)
   }
 }
 
