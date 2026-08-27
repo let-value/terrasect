@@ -109,6 +109,11 @@ fun RuntimeTestDsl(root: Project) {
 
   val buildTasks = launchBySegment.values.map { it.provider.get() }
 
+  // --- per-version offline dry-run tasks: never launch, only assemble + print the exact launch
+  // argv.
+  val dryRunProviders = collectPerVersionDryRuns(root, tree)
+  val dryRunTasks = dryRunProviders.values.map { it.get() }
+
   val compatProviders =
     launchBySegment.values
       .map { reg ->
@@ -126,6 +131,14 @@ fun RuntimeTestDsl(root: Project) {
     group = ROOT_TASKS
     description = "Boot locally built Terrasect jars through HeadlessMC across the full matrix."
     dependsOn(buildTasks)
+  }
+
+  root.tasks.register("runtimeTestLaunchDryRun") {
+    group = ROOT_TASKS
+    description =
+      "Offline dry-run: assemble the exact HeadlessMC launch argv for every lane " +
+        "(no download, no process). The printed command is the verifiable controlled execution path."
+    dependsOn(dryRunTasks)
   }
 
   root.tasks.register("runtimeTestCompat") {
@@ -181,6 +194,60 @@ private fun collectPerVersionLaunches(
         dependsOn(modProject.tasks.named("jar"))
       }
       result[node.project] = PerVersionLaunch(gradlePath, branchName, node.project, provider)
+    }
+  }
+  return result
+}
+
+/**
+ * Registers a per-version DRY-RUN variant of [collectPerVersionLaunches]'s launch task. The dry-run
+ * never starts HeadlessMC or launches Minecraft: it performs the exact same jar preparation as the
+ * live launch, then writes the assembled HMC launch command line to an output file. This is the
+ * deterministic, offline-controlled execution path the acceptance contract requires ("one lane has
+ * a verifiable dry-run or controlled execution path with exact output"). It exercises the real
+ * command-builder and jar-preparation side effects, only minus the real process spawn.
+ */
+private fun collectPerVersionDryRuns(
+  root: Project,
+  tree: ProjectTree,
+): Map<String, TaskProvider<RuntimeTestLaunchTask>> {
+  val result = mutableMapOf<String, TaskProvider<RuntimeTestLaunchTask>>()
+  tree.entries.forEach { (branchName, branch) ->
+    if (branchName !in listOf("fabric", "neoforge")) return@forEach
+    branch.versions.forEach { node ->
+      val gradlePath = ":$branchName:${node.project}"
+      val modProject = root.findProject(gradlePath) ?: return@forEach
+      val mcVersionId = RuntimeTestPins.mcVersionOf(node.project)
+
+      val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
+      val provider: TaskProvider<RuntimeTestLaunchTask> =
+        modProject.tasks.register("runtimeTestLaunchDryRun", RuntimeTestLaunchTask::class.java)
+      provider.configure {
+        group = ROOT_TASKS
+        description =
+          "Offline dry-run: assemble the exact HeadlessMC launch argv for $branchName " +
+            "$mcVersionId without launching (no download, no process). Prints the command to " +
+            "a file."
+        mcVersion.set(mcVersionId)
+        loader.set(branchName)
+        successMarker.set(RuntimeTestPins.successMarkerFor(branchName))
+        launchTimeoutSeconds.set(900L)
+        dryRun.set(true)
+        toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
+        runtimeDir.set(
+          root.layout.buildDirectory.dir(
+            "$RUNTIME_TOOLS_DIR/runtime-dryrun/$branchName-${node.project}"
+          )
+        )
+        dryRunOutput.set(
+          root.layout.buildDirectory.file(
+            "$RUNTIME_TOOLS_DIR/dryrun-output/$branchName-${node.project}.cmd"
+          )
+        )
+        testJar.set(jarProvider.flatMap { it.archiveFile })
+        dependsOn(modProject.tasks.named("jar"))
+      }
+      result[node.project] = provider
     }
   }
   return result

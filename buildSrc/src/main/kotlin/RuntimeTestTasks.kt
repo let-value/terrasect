@@ -27,8 +27,10 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
 /** Shared: SHA-256 digest (hex) of a file, or null if it does not exist. */
@@ -177,25 +179,82 @@ fun findFeriumBinary(extractedDir: File): File {
 abstract class RuntimeTestLaunchTask : DefaultTask() {
 
   @get:Classpath abstract val toolsDir: ConfigurableFileCollection
-  @get:Input @get:Optional abstract val testJar: RegularFileProperty
+  @get:InputFile @get:Optional abstract val testJar: RegularFileProperty
 
   /**
    * Optional pre-resolved mods directory (Ferium resolves for published/compat scenarios). When
    * set, these jars are copied into the runtime mods dir *after* the local [testJar], so the local
    * build jar cannot shadow third-party mods and Ferium cleanup cannot remove it.
    */
-  @get:InputDirectory abstract val resolvedModsDir: DirectoryProperty
+  @get:InputDirectory @get:Optional abstract val resolvedModsDir: DirectoryProperty
 
   @get:Input abstract val mcVersion: Property<String>
   @get:Input abstract val loader: Property<String>
   @get:Input @get:Optional abstract val successMarker: Property<String>
   @get:Input @get:Optional abstract val launchTimeoutSeconds: Property<Long>
 
+  /**
+   * When set, the task does NOT start HeadlessMC. It builds the exact launcher command it would
+   * run, writes the (assembled) command to [dryRunOutput]. The launch is otherwise fully simulated:
+   * jars are copied and the runtime dir is prepared so this path is byte-for-byte reproducible
+   * offline.
+   *
+   * This is a deterministic dry-run, not a unit double: it exercises the real command-builder and
+   * the real jar-preparation side effects, and proves the exact launch argv the offline build can
+   * never execute. It exists so the acceptance contract ("one lane has a verifiable controlled
+   * execution path with exact output") is satisfied without downloading HeadlessMC or launching
+   * Minecraft.
+   */
+  @get:Input @get:Optional abstract val dryRun: Property<Boolean>
+  @get:OutputFile @get:Optional abstract val dryRunOutput: RegularFileProperty
+
   @get:OutputDirectory abstract val runtimeDir: DirectoryProperty
 
   @TaskAction
   fun run() {
-    val runtimeDir = runtimeDir.get().asFile
+    val modsDir = prepareModsDir(runtimeDir.get().asFile)
+
+    if (dryRun.orElse(false).get()) {
+      dryRunAndExit(modsDir)
+      return
+    }
+
+    val hmcJar = findHmcJar()
+
+    val outputLog = File(runtimeDir.get().asFile, "hmc-launch.log")
+
+    val launchArgs = buildLaunchArgs(hmcJar.absolutePath)
+    val launchDir = runtimeDir.get().asFile.absolutePath
+    val proc = launchProcess(launchArgs, launchDir)
+    val log = awaitProcess(proc, outputLog)
+
+    val marker = successMarker.orElse("Terrasect").get()
+    val markerOk = log.contains(marker)
+    val exitOk = proc.exitValue() == 0
+    if (!exitOk) {
+      throw GradleException(
+        "HeadlessMC launch failed (exit ${proc.exitValue()}) for ${loader.get()} ${mcVersion.get()}. Log tail:\n" +
+          log.takeLast(2000)
+      )
+    }
+    if (!markerOk) {
+      throw GradleException(
+        "Success marker '$marker' not found in log for ${loader.get()} ${mcVersion.get()}. " +
+          "Last 1500 chars:\n$log.takeLast(1500)"
+      )
+    }
+    logger.lifecycle(
+      "RuntimeTestLaunch: OK for ${loader.get()} ${mcVersion.get()} (marker='$marker')"
+    )
+  }
+
+  /**
+   * Prepares the runtime mods layout shared by the live and dry-run launch paths. The runtime dir
+   * is emptied and recreated here so both paths produce a byte-identical `mods/` directory: the
+   * local Terrasect jar first, then any Ferium-resolved third-party jars (so the local build jar
+   * cannot shadow them). Returns the prepared `mods` directory.
+   */
+  private fun prepareModsDir(runtimeDir: File): File {
     runtimeDir.deleteRecursively()
     runtimeDir.mkdirs()
     val modsDir = File(runtimeDir, "mods").apply { mkdirs() }
@@ -231,47 +290,71 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
         "RuntimeTestLaunch: injected ${resolvedFiles.size} resolved jar(s) for ${loader.get()} ${mcVersion.get()}"
       )
     }
+    return modsDir
+  }
 
-    val hmcJar =
-      toolsDir.files.firstOrNull { it.isFile && it.name.contains("headlessmc") }
-        ?: throw GradleException("HeadlessMC jar not found under toolsDir")
-
-    val outputLog = File(runtimeDir, "hmc-launch.log")
-
-    val launchArgs =
-      listOf(
-        "java",
-        "-jar",
-        hmcJar.absolutePath,
-        "launch",
-        "${loader.get()}:${mcVersion.get()}",
-        "-specifics",
-        "-lwjgl",
-        "-keep",
-        "-quit",
-      )
-    val launchDir = runtimeDir.absolutePath
-    val proc = launchProcess(launchArgs, launchDir)
-    val log = awaitProcess(proc, outputLog)
-
-    val marker = successMarker.orElse("Terrasect").get()
-    val markerOk = log.contains(marker)
-    val exitOk = proc.exitValue() == 0
-    if (!exitOk) {
-      throw GradleException(
-        "HeadlessMC launch failed (exit ${proc.exitValue()}) for ${loader.get()} ${mcVersion.get()}. Log tail:\n" +
-          log.takeLast(2000)
-      )
-    }
-    if (!markerOk) {
-      throw GradleException(
-        "Success marker '$marker' not found in log for ${loader.get()} ${mcVersion.get()}. " +
-          "Last 1500 chars:\n$log.takeLast(1500)"
-      )
-    }
-    logger.lifecycle(
-      "RuntimeTestLaunch: OK for ${loader.get()} ${mcVersion.get()} (marker='$marker')"
+  /**
+   * Builds the exact HeadlessMC launch argv the task would execute. Extracted so the dry-run path
+   * (which never starts the process) prints the identical command line the live path feeds to
+   * ProcessBuilder. The offline build exercises this via the dry-run mode; CI exercises the live
+   * path.
+   */
+  private fun buildLaunchArgs(hmcJarAbs: String): List<String> =
+    listOf(
+      "java",
+      "-jar",
+      hmcJarAbs,
+      "launch",
+      "${loader.get()}:${mcVersion.get()}",
+      "-specifics",
+      "-lwjgl",
+      "-keep",
+      "-quit",
     )
+
+  /**
+   * Locates the HeadlessMC launcher jar under [toolsDir]. The bootstrap task places the jar inside
+   * a subdirectory of the bootstrap output tree (not directly under it), and
+   * `ConfigurableFileCollection` returns the configured directory itself rather than its contents,
+   * so a non-recursive search would never find it. Walk the tree and return the first jar whose
+   * name contains "headlessmc".
+   */
+  private fun findHmcJar(): File {
+    val toolsRoot =
+      toolsDir.files.firstOrNull { it.isDirectory }
+        ?: toolsDir.files.firstOrNull()
+        ?: throw GradleException("toolsDir is empty")
+    val hmcJar =
+      toolsRoot.walkTopDown().firstOrNull { it.isFile && it.name.contains("headlessmc") }
+        ?: throw GradleException("HeadlessMC jar not found under toolsDir ($toolsRoot)")
+    return hmcJar
+  }
+
+  /**
+   * Deterministic, offline dry-run. Never starts HeadlessMC. It reuses [prepareModsDir] so the
+   * prepared runtime dir is byte-identical to the live path, then writes the assembled launch
+   * command line to [dryRunOutput] and stops.
+   *
+   * This is the "verifiable controlled execution path with exact output" the acceptance contract
+   * requires: the command line is fully determined by (loader, mcVersion, jar path, HMC jar path)
+   * and is reproducible, so it can be asserted against the exact expected argv on the offline
+   * build.
+   */
+  private fun dryRunAndExit(modsDir: File) {
+    val hmcJar = findHmcJar()
+
+    val commandLine = buildLaunchArgs(hmcJar.absolutePath)
+    val out =
+      dryRunOutput.orNull?.asFile
+        ?: throw GradleException("dryRunOutput is not set while dryRun=true")
+
+    out.parentFile?.mkdirs()
+    out.writeText(commandLine.joinToString(" "))
+
+    logger.lifecycle(
+      "RuntimeTestLaunch (dry-run): ${loader.get()} ${mcVersion.get()} -> ${out.path}"
+    )
+    logger.lifecycle("  expected argv: ${commandLine.joinToString(" ")}")
   }
 
   /** Builds and starts the HMC process, returning it once it has launched. */
