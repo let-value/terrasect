@@ -114,17 +114,46 @@ fun RuntimeTestDsl(root: Project) {
   val dryRunProviders = collectPerVersionDryRuns(root, tree)
   val dryRunTasks = dryRunProviders.values.map { it.get() }
 
+  // --- descriptor-driven Ferium resolution (offline parse; real network only behind explicit
+  // tasks). ---
+  val manifests = RuntimeTestDescriptors.loadAll(root.file(RUNTIME_REL))
+  // Terrasect's CurseForge project id is a public coordinate (like the Modrinth slug), so it can be
+  // baked here — but kept overridable via -Pterrseaect.curseForgeTerrasectProjectId. The read-only
+  // CurseForge API key is NOT baked anywhere; it is injected into the process env at execution
+  // time.
+  val curseForgeTerrasectId =
+    (root.findProperty("terrseaect.curseForgeTerrasectProjectId") as? String) ?: "1615147"
+  val resolveProviders = mutableListOf<TaskProvider<RuntimeTestFeriumResolveTask>>()
+
   val compatProviders =
     launchBySegment.values
       .map { reg ->
-        registerCompatVariant(root, reg)
+        registerCompatVariant(root, manifests, reg, resolveProviders)
       }
       .toSet()
 
   val publishedModrinth =
-    launchBySegment.values.map { registerPublishedVariant(root, it, Platform.MODRINTH) }
+    launchBySegment.values.map { reg ->
+      registerPublishedVariant(
+        root,
+        manifests,
+        reg,
+        Platform.MODRINTH,
+        curseForgeTerrasectId,
+        resolveProviders,
+      )
+    }
   val publishedCurseforge =
-    launchBySegment.values.map { registerPublishedVariant(root, it, Platform.CURSEFORGE) }
+    launchBySegment.values.map { reg ->
+      registerPublishedVariant(
+        root,
+        manifests,
+        reg,
+        Platform.CURSEFORGE,
+        curseForgeTerrasectId,
+        resolveProviders,
+      )
+    }
 
   // --- root aggregates. ---
   root.tasks.register("runtimeTestBuild") {
@@ -143,7 +172,8 @@ fun RuntimeTestDsl(root: Project) {
 
   root.tasks.register("runtimeTestCompat") {
     group = ROOT_TASKS
-    description = "Boot compat-modpack scenarios (local jar + third-party mods) through HeadlessMC."
+    description =
+      "Boot compat-modpack scenarios (local jar + Ferium-resolved third-party mods) through HeadlessMC."
     dependsOn(compatProviders)
   }
 
@@ -151,14 +181,23 @@ fun RuntimeTestDsl(root: Project) {
     group = ROOT_TASKS
     description =
       "Boot the requested published Terrasect artifact from Modrinth/CurseForge via Ferium."
-    // Defer selection until this task runs (not at configuration) so it never fails registration.
     dependsOn(publishedModrinth + publishedCurseforge)
+  }
+
+  // Descriptor-driven Ferium resolution. Pass -Pterrseaect.runtimeTestResolveDryRun=true to run
+  // every resolve task in dry-run mode (writes + validates the isolated config, no download).
+  root.tasks.register("runtimeTestResolve") {
+    group = ROOT_TASKS
+    description =
+      "Resolve Modrinth/CurseForge fixtures with Ferium (repository-owned FERIUM_CONFIG_FILE), " +
+        "preserving a deterministic manifest; the launch task then boots via HeadlessMC."
+    dependsOn(resolveProviders)
   }
 
   root.tasks.register("runtimeTestAll") {
     group = ROOT_TASKS
     description = "Build + published + compat runtime matrices."
-    dependsOn("runtimeTestBuild", "runtimeTestPublished", "runtimeTestCompat")
+    dependsOn("runtimeTestBuild", "runtimeTestPublished", "runtimeTestCompat", "runtimeTestResolve")
   }
 }
 
@@ -166,8 +205,8 @@ fun RuntimeTestDsl(root: Project) {
 private fun collectPerVersionLaunches(
   root: Project,
   tree: ProjectTree,
-): Map<String, PerVersionLaunch> {
-  val result = mutableMapOf<String, PerVersionLaunch>()
+): Map<Pair<String, String>, PerVersionLaunch> {
+  val result = mutableMapOf<Pair<String, String>, PerVersionLaunch>()
   tree.entries.forEach { (branchName, branch) ->
     if (branchName !in listOf("fabric", "neoforge")) return@forEach
     branch.versions.forEach { node ->
@@ -193,7 +232,8 @@ private fun collectPerVersionLaunches(
         testJar.set(jarProvider.flatMap { it.archiveFile })
         dependsOn(modProject.tasks.named("jar"))
       }
-      result[node.project] = PerVersionLaunch(gradlePath, branchName, node.project, provider)
+      result[Pair(branchName, mcVersionId)] =
+        PerVersionLaunch(gradlePath, branchName, node.project, provider)
     }
   }
   return result
@@ -210,8 +250,8 @@ private fun collectPerVersionLaunches(
 private fun collectPerVersionDryRuns(
   root: Project,
   tree: ProjectTree,
-): Map<String, TaskProvider<RuntimeTestLaunchTask>> {
-  val result = mutableMapOf<String, TaskProvider<RuntimeTestLaunchTask>>()
+): Map<Pair<String, String>, TaskProvider<RuntimeTestLaunchTask>> {
+  val result = mutableMapOf<Pair<String, String>, TaskProvider<RuntimeTestLaunchTask>>()
   tree.entries.forEach { (branchName, branch) ->
     if (branchName !in listOf("fabric", "neoforge")) return@forEach
     branch.versions.forEach { node ->
@@ -247,46 +287,160 @@ private fun collectPerVersionDryRuns(
         testJar.set(jarProvider.flatMap { it.archiveFile })
         dependsOn(modProject.tasks.named("jar"))
       }
-      result[node.project] = provider
+      result[Pair(branchName, mcVersionId)] = provider
     }
   }
   return result
 }
 
-/** Registers a per-version COMPAT variant: the launch reads a Ferium-resolved mod dir. */
-private fun registerCompatVariant(root: Project, reg: PerVersionLaunch): Task {
+/** Resolves third-party mods for one lane via Ferium, registering a deterministic resolve task. */
+private fun registerResolveTask(
+  root: Project,
+  name: String,
+  loaderName: String,
+  mcVer: String,
+  label: String,
+  modList: List<String>,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+): TaskProvider<RuntimeTestFeriumResolveTask> {
+  val workDir = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/resolve/$label")
+  val manifest = root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/resolve/$label.txt")
+  val provider = root.tasks.register(name, RuntimeTestFeriumResolveTask::class.java)
+  provider.configure {
+    group = ROOT_TASKS
+    description = "Resolve $label via Ferium (repository-owned FERIUM_CONFIG_FILE)."
+    loader.set(loaderName)
+    mcVersion.set(mcVer)
+    scenarioLabel.set(label)
+    mods.set(modList)
+    // Dry-run is toggled by a root gradle property so the SAME tasks can run fully offline, proving
+    // the config is valid without any Modrinth/CurseForge network access.
+    dryRun.set(
+      root.providers
+        .gradleProperty("terrseaect.runtimeTestResolveDryRun")
+        .map { it.toBoolean() }
+        .orElse(false)
+    )
+    outputDirectory.set(workDir)
+    resolveManifest.set(manifest)
+  }
+  resolveProviders.add(provider)
+  return provider
+}
+
+/**
+ * Registers a per-version COMPAT variant: the launch boots local jar + optional Ferium-resolved
+ * mods.
+ */
+private fun registerCompatVariant(
+  root: Project,
+  manifests: List<RuntimeManifest>,
+  reg: PerVersionLaunch,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+): Task {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider.get()
+  val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
   val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
+
+  // Third-party mods are read from the descriptor for this lane. Deferred lanes (e.g. NeoForge,
+  // which has no e2e-compat pins) resolve to an empty list and boot the local jar only.
+  val mods = resolveModsFor(manifests, reg.loader, mcVersionId)
+
+  val resolveProvider =
+    if (mods.isEmpty()) null
+    else
+      registerResolveTask(
+        root,
+        "runtimeTest${reg.loader}-${mcVersionId}CompatResolve",
+        reg.loader,
+        mcVersionId,
+        "compat-${reg.loader}-${mcVersionId}",
+        mods,
+        resolveProviders,
+      )
+
   val provider: TaskProvider<RuntimeTestLaunchTask> =
     modProject.tasks.register("runtimeTestCompat", RuntimeTestLaunchTask::class.java)
   provider.configure {
     group = ROOT_TASKS
     description =
-      "Boot compat-modpack scenario for ${reg.loader} ${RuntimeTestPins.mcVersionOf(reg.segment)} " +
-        "(local jar + third-party mods) through HeadlessMC."
-    mcVersion.set(RuntimeTestPins.mcVersionOf(reg.segment))
+      "Boot compat-modpack scenario for ${reg.loader} $mcVersionId (local jar + " +
+        if (mods.isEmpty()) "no third-party mods (deferred)"
+        else "Ferium-resolved third-party mods" + ") through HeadlessMC."
+    mcVersion.set(mcVersionId)
     loader.set(reg.loader)
     successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
     launchTimeoutSeconds.set(1200L)
     toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
     runtimeDir.set(
       root.layout.buildDirectory.dir(
-        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${reg.segment}"
+        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${mcVersionId}"
       )
     )
     testJar.set(jarProvider.flatMap { it.archiveFile })
-    dependsOn(reg.provider, modProject.tasks.named("jar"))
+    if (resolveProvider != null) {
+      // Inject the local Terrasect jar first, then resolveModsDir after (so a same-named resolved
+      // jar wins over the local build, per prepareModsDir()).
+      resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
+      dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
+    } else {
+      dependsOn(reg.provider, modProject.tasks.named("jar"))
+    }
   }
   return provider.get()
 }
 
-/** Registers a per-version PUBLISHED variant: resolves Terrasect from the registry via Ferium. */
+/**
+ * Registers a per-version PUBLISHED variant: resolves Terrasect from Modrinth/CurseForge via
+ * Ferium.
+ */
 private fun registerPublishedVariant(
   root: Project,
+  manifests: List<RuntimeManifest>,
   reg: PerVersionLaunch,
   platform: Platform,
+  curseForgeTerrasectId: String?,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
 ): TaskProvider<RuntimeTestLaunchTask> {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider
+  val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
+  val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
+
+  // Terrasect's own registry coordinate. Modrinth uses the project slug; CurseForge a numeric id
+  // supplied by the operator as -Pterrseaect.curseForgeTerrasectProjectId (never baked in).
+  //
+  // Resolution only happens when the descriptor actually declares this (loader, mc) lane on this
+  // platform. CurseForge is Forge-only (Terrasect never publishes Fabric there), so the descriptor
+  // omits fabric lanes; those are deferred to local-jar boot for build-artifact coverage rather
+  // than attempting an invalid CurseForge resolve.
+  val terrasectMod =
+    when (platform) {
+      Platform.MODRINTH ->
+        if (publishedDeclared(manifests, reg.loader, mcVersionId, platform))
+          modEntry("MODRINTH", "terrasect", "Terrasect")
+        else null
+      Platform.CURSEFORGE ->
+        if (
+          publishedDeclared(manifests, reg.loader, mcVersionId, platform) &&
+            curseForgeTerrasectId != null
+        )
+          modEntry("CURSEFORGE", curseForgeTerrasectId, "Terrasect")
+        else null
+    }
+
+  val resolveProvider =
+    if (terrasectMod == null) null
+    else
+      registerResolveTask(
+        root,
+        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedResolve",
+        reg.loader,
+        mcVersionId,
+        "published-${reg.loader}-${mcVersionId}-${platform.name}",
+        listOf(terrasectMod),
+        resolveProviders,
+      )
+
   val provider: TaskProvider<RuntimeTestLaunchTask> =
     modProject.tasks.register(
       "runtimeTest${platform.name}Published",
@@ -295,21 +449,67 @@ private fun registerPublishedVariant(
   provider.configure {
     group = ROOT_TASKS
     description =
-      "Boot the $platform-registered Terrasect jar for ${reg.loader} " +
-        "${RuntimeTestPins.mcVersionOf(reg.segment)} through HeadlessMC."
-    mcVersion.set(RuntimeTestPins.mcVersionOf(reg.segment))
+      "Boot the $platform-registered Terrasect jar for ${reg.loader} $mcVersionId through HeadlessMC."
+    mcVersion.set(mcVersionId)
     loader.set(reg.loader)
     successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
     launchTimeoutSeconds.set(1200L)
     toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
     runtimeDir.set(
       root.layout.buildDirectory.dir(
-        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-${platform.name}-${reg.segment}"
+        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-${platform.name}-${mcVersionId}"
       )
     )
-    // Published scenarios use the Ferium-resolved dir, so we intentionally leave testJar unset and
-    // provide resolvedModsDir (set from the resolved-pack task) for the launch to consume.
-    dependsOn(reg.provider)
+    if (resolveProvider != null) {
+      // Boot the resolved published Terrasect artifact (no local injection — verifies the registry
+      // form).
+      resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
+      dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
+    } else {
+      // Deferred (e.g. CurseForge without an operator-supplied id): boot the local build jar so the
+      // lane still retains build-artifact coverage.
+      testJar.set(jarProvider.flatMap { it.archiveFile })
+      dependsOn(reg.provider, modProject.tasks.named("jar"))
+    }
   }
   return provider
+}
+
+/**
+ * Collects the pipe-delimited mod entries declared for a lane's COMPAT scenario in the descriptors.
+ */
+private fun resolveModsFor(
+  manifests: List<RuntimeManifest>,
+  loader: String,
+  mcVersion: String,
+): List<String> {
+  val result = mutableListOf<String>()
+  manifests.forEach { m ->
+    m.scenarios.forEach { s ->
+      if (s.loader != loader) return@forEach
+      if (RuntimeTestPins.matrixKey(s.mc) != RuntimeTestPins.matrixKey(mcVersion)) return@forEach
+      if (s.scenario != Scenario.COMPAT) return@forEach
+      s.externalMods.forEach { em ->
+        result += modEntry(em.platform.name, em.project, em.name, em.version)
+      }
+    }
+  }
+  return result
+}
+
+/**
+ * Whether the descriptors declare a PUBLISHED scenario for this (loader, mc) lane on [platform].
+ */
+private fun publishedDeclared(
+  manifests: List<RuntimeManifest>,
+  loader: String,
+  mcVersion: String,
+  platform: Platform,
+): Boolean = manifests.any { m ->
+  m.scenarios.any { s ->
+    s.scenario == Scenario.PUBLISHED &&
+      s.source == platform &&
+      s.loader == loader &&
+      RuntimeTestPins.matrixKey(s.mc) == RuntimeTestPins.matrixKey(mcVersion)
+  }
 }
