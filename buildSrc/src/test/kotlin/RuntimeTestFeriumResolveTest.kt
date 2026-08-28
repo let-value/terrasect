@@ -98,6 +98,78 @@ class RuntimeTestFeriumResolveTest {
   }
 
   @Test
+  fun `Ferium download times out instead of hanging`() {
+    val fixture = rootDir.resolve("build/build/ferium-timeout-${System.nanoTime()}")
+    try {
+      assertTrue(fixture.mkdirs())
+      val workspace = File(fixture, "workspace")
+      prepareFeriumWorkspace(workspace, File(workspace, "mods"), "fabric", "26.2", emptyList())
+
+      val tools = File(fixture, "tools").apply { mkdirs() }
+      File(tools, "ferium").apply {
+        writeText("#!/bin/sh\nsleep 5\n")
+        setExecutable(true)
+      }
+
+      val mainClasses = buildSrcMainClasses.absolutePath.replace("\\", "\\\\")
+      val fixturePath = fixture.absolutePath.replace("\\", "\\\\")
+      File(fixture, "settings.gradle.kts").writeText("rootProject.name = \"ferium-timeout-fix\"")
+      File(fixture, "build.gradle.kts")
+        .writeText(
+          """
+          import java.io.File
+
+          buildscript {
+            dependencies { classpath(files("$mainClasses")) }
+          }
+
+          val root = File("$fixturePath")
+          tasks.register("downloadFixture", RuntimeTestFeriumDownloadTask::class.java) {
+            toolsDir.from(root.resolve("tools"))
+            profileFile.set(root.resolve("workspace/ferium-profile.json"))
+            userDirectory.set(root.resolve("workspace/mods/user"))
+            loader.set("fabric")
+            mcVersion.set("26.2")
+            scenarioLabel.set("compat-fabric-26.2")
+            mods.set(emptyList())
+            dryRun.set(false)
+            timeoutSeconds.set(1L)
+            outputDirectory.set(root.resolve("workspace/mods"))
+            resolveManifest.set(root.resolve("workspace/manifest.txt"))
+          }
+          """
+            .trimIndent()
+        )
+
+      val result = runner(fixture, listOf("downloadFixture")).buildAndFail()
+      assertEquals(TaskOutcome.FAILED, result.task(":downloadFixture")!!.outcome)
+      assertTrue(result.output.contains("timed out"), "failure must report the Ferium timeout")
+    } finally {
+      fixture.deleteRecursively()
+    }
+  }
+
+  @Test
+  fun `Ferium manifests only include active output jars`() {
+    val output = rootDir.resolve("build/build/ferium-output-${System.nanoTime()}")
+    try {
+      assertTrue(output.mkdirs())
+      val active = File(output, "active.jar")
+      val stale = File(output, ".old/stale.jar")
+      val user = File(output, "user/local.jar")
+      active.writeText("active")
+      stale.parentFile.mkdirs()
+      stale.writeText("stale")
+      user.parentFile.mkdirs()
+      user.writeText("user")
+
+      assertEquals(listOf(active), activeFeriumOutputJars(output))
+    } finally {
+      output.deleteRecursively()
+    }
+  }
+
+  @Test
   fun `download task runs after preparation and consumes the staged user jar`() {
     val fixture = rootDir.resolve("build/build/ferium-download-${System.nanoTime()}")
     try {

@@ -12,6 +12,7 @@
 // an explicit runtime-test download task that carries real secrets.
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -175,6 +176,11 @@ fun prepareFeriumWorkspace(
   return profile
 }
 
+/** Returns only active jars directly emitted into Ferium's output directory. */
+fun activeFeriumOutputJars(outputDirectory: File): List<File> =
+  outputDirectory.listFiles()?.filter { it.isFile && it.extension == "jar" }?.sortedBy { it.name }
+    ?: emptyList()
+
 /** Prepares one isolated Ferium profile and optionally stages a locally built Terrasect jar. */
 abstract class RuntimeTestFeriumPrepareTask : DefaultTask() {
 
@@ -225,6 +231,7 @@ abstract class RuntimeTestFeriumDownloadTask : DefaultTask() {
   @get:Input abstract val mods: ListProperty<String>
   @get:Input @get:Optional abstract val expectedTerrasectVersion: Property<String>
   @get:Input @get:Optional abstract val dryRun: Property<Boolean>
+  @get:Input @get:Optional abstract val timeoutSeconds: Property<Long>
 
   @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
   @get:OutputFile abstract val resolveManifest: RegularFileProperty
@@ -273,11 +280,32 @@ abstract class RuntimeTestFeriumDownloadTask : DefaultTask() {
         .redirectErrorStream(true)
         .apply { environment().putAll(environment) }
         .start()
-    process.inputStream.use { input ->
-      logFile.outputStream().use { output -> input.copyTo(output) }
+    val output = StringBuilder()
+    val drain =
+      Thread {
+          process.inputStream.bufferedReader().use { output.append(it.readText()) }
+        }
+        .apply { isDaemon = true }
+    drain.start()
+    val timeoutMs = timeoutSeconds.orElse(1200L).get() * 1000
+    val finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+    if (!finished) {
+      process.destroyForcibly()
+      process.waitFor(30, TimeUnit.SECONDS)
     }
-    val exit = process.waitFor()
+    drain.join(30_000)
+    val exit = if (process.isAlive) -1 else process.exitValue()
+    logFile.writeText(output.toString())
     writeFeriumManifest(resolveManifest.get().asFile, resolvedMods, profile, this)
+    if (!finished) {
+      val diagnostic = File(profile.parentFile, "resolve-failure.log")
+      diagnostic.writeText(
+        "Ferium timed out after ${timeoutMs}ms for ${scenarioLabel.get()}\n" + logFile.readText()
+      )
+      throw GradleException(
+        "Ferium resolution timed out after ${timeoutMs}ms for ${scenarioLabel.get()}: ${diagnostic.name}"
+      )
+    }
     if (exit != 0) {
       val diagnostic = File(profile.parentFile, "resolve-failure.log")
       diagnostic.writeText(
@@ -288,16 +316,12 @@ abstract class RuntimeTestFeriumDownloadTask : DefaultTask() {
       )
     }
     assertPublishedTerrasectVersion(
-      resolvedMods
-        .walkTopDown()
-        .filter { it.isFile && it.extension == "jar" }
-        .map { it.name }
-        .toList(),
+      activeFeriumOutputJars(resolvedMods).map { it.name },
       expectedTerrasectVersion.orNull,
     )
     logger.lifecycle(
       "RuntimeTestFeriumDownload: ${scenarioLabel.get()} -> " +
-        "${resolvedMods.walkTopDown().count { it.isFile && it.extension == "jar" }} jar(s)"
+        "${activeFeriumOutputJars(resolvedMods).size} jar(s)"
     )
   }
 }
@@ -308,13 +332,7 @@ private fun writeFeriumManifest(
   profile: File,
   task: RuntimeTestFeriumDownloadTask,
 ) {
-  val jars =
-    resolvedMods
-      .walkTopDown()
-      .filter { it.isFile && it.extension == "jar" }
-      .map { it.name }
-      .toList()
-      .sorted()
+  val jars = activeFeriumOutputJars(resolvedMods).map { it.name }
   val declared =
     task.mods.get().map { splitModEntry(it).let { (p, i, n) -> "$n ($p/$i)" } }.sorted()
   val lines = buildList {
@@ -438,6 +456,7 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
 
   /** When set, only validates the config (no download / no resolve of file contents). */
   @get:Input @get:Optional abstract val dryRun: Property<Boolean>
+  @get:Input @get:Optional abstract val timeoutSeconds: Property<Long>
 
   /**
    * The resolved mods output directory. In real mode this is the Ferium upgrade output_dir and
@@ -498,20 +517,39 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
     builder.environment().putAll(env)
     val proc = builder.start()
 
-    // Read stderr first (small; carries the failure reason), then drain stdout to the log file on a
-    // daemon thread so a large download log can never deadlock the pipe.
+    // Drain stdout and stderr concurrently so a large download log cannot deadlock either pipe.
     val errOut = StringBuilder()
-    errOut.append(proc.errorStream.bufferedReader().readText())
     val logFile = File(workDir, "resolve.log")
-    val drain =
+    val errDrain =
+      Thread { proc.errorStream.bufferedReader().use { errOut.append(it.readText()) } }
+        .apply { isDaemon = true }
+    val outDrain =
       Thread { proc.inputStream.bufferedReader().use { logFile.writeText(it.readText()) } }
         .apply { isDaemon = true }
-    drain.start()
-    val exit = proc.waitFor()
-    drain.join(30_000)
+    errDrain.start()
+    outDrain.start()
+    val timeoutMs = timeoutSeconds.orElse(1200L).get() * 1000
+    val finished = proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+    if (!finished) {
+      proc.destroyForcibly()
+      proc.waitFor(30, TimeUnit.SECONDS)
+    }
+    errDrain.join(30_000)
+    outDrain.join(30_000)
+    val exit = if (proc.isAlive) -1 else proc.exitValue()
 
     // Deterministic manifest regardless of outcome.
     writeManifest(resolvedMods, configFile)
+
+    if (!finished) {
+      val diag = File(workDir, "resolve-failure.log")
+      diag.writeText(
+        "Ferium timed out after ${timeoutMs}ms for ${scenarioLabel.get()}\n" + logFile.readText()
+      )
+      throw GradleException(
+        "Ferium resolution timed out after ${timeoutMs}ms for ${scenarioLabel.get()}: ${diag.name}."
+      )
+    }
 
     if (exit != 0) {
       val diag = File(workDir, "resolve-failure.log")
@@ -527,15 +565,11 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
     // requested version. Any mismatch fails here — before the launch task ever feeds it to
     // HeadlessMC — and never silently falls back to another version or a local jar.
     assertPublishedTerrasectVersion(
-      resolvedMods
-        .walkTopDown()
-        .filter { it.isFile && it.extension == "jar" }
-        .map { it.name }
-        .toList(),
+      activeFeriumOutputJars(resolvedMods).map { it.name },
       expectedTerrasectVersion.orNull,
     )
 
-    val jarCount = resolvedMods.walkTopDown().filter { it.isFile && it.extension == "jar" }.count()
+    val jarCount = activeFeriumOutputJars(resolvedMods).size
     logger.lifecycle(
       "RuntimeTestFeriumResolve: ${scenarioLabel.get()} -> $jarCount jar(s) in $resolvedMods"
     )
@@ -543,13 +577,7 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
 
   /** Writes the deterministic manifest: lane identity + declared mods + resolved jars (sorted). */
   private fun writeManifest(resolvedMods: File, configFile: File) {
-    val jars =
-      resolvedMods
-        .walkTopDown()
-        .filter { it.isFile && it.extension == "jar" }
-        .map { it.name }
-        .toList()
-        .sorted()
+    val jars = activeFeriumOutputJars(resolvedMods).map { it.name }
     val declared = mods.get().map { splitModEntry(it).let { (p, i, n) -> "$n ($p/$i)" } }.sorted()
     val lines = buildList {
       add("scenario=${scenarioLabel.get()}")

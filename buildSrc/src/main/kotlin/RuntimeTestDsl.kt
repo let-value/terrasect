@@ -384,6 +384,7 @@ private fun registerFeriumPipeline(
     mods.set(modList)
     expectedTerrasectVersion.set(versionToVerify)
     this.dryRun.set(dryRun)
+    timeoutSeconds.set(1200L)
     outputDirectory.set(outputDirPath)
     resolveManifest.set(manifest)
     curseforgeApiKey.set(root.providers.environmentVariable("CURSEFORGE_API_KEY"))
@@ -452,7 +453,7 @@ private fun registerCompatVariant(
     // The local Terrasect jar is staged in Ferium's supported `user/` directory during prepare and
     // copied into the resolved output by the download stage.
     resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
-    dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
+    dependsOn(resolveProvider.get(), modProject.tasks.named("jar"))
   }
   return provider.get()
 }
@@ -540,7 +541,7 @@ private fun registerPublishedVariant(
       // Boot the resolved published Terrasect artifact (no local injection — verifies the registry
       // form).
       resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
-      dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
+      dependsOn(resolveProvider.get(), modProject.tasks.named("jar"))
     } else {
       // Deferred (e.g. CurseForge without an operator-supplied id): boot the local build jar so the
       // lane still retains build-artifact coverage.

@@ -304,14 +304,9 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
     // real, not overwritten by the local build).
     val resolved = resolvedModsDir.orNull?.asFile
     if (resolved != null) {
-      val userDir = File(resolved, "user")
-      val resolvedFiles =
-        resolved
-          .walkTopDown()
-          .filter { it.isFile && it.extension == "jar" && !isInside(userDir, it) }
-          .toList()
+      val resolvedFiles = activeFeriumOutputJars(resolved)
       if (resolvedFiles.isEmpty()) {
-        throw GradleException("resolvedModsDir has no jars: $resolved")
+        throw GradleException("resolvedModsDir has no active jars: $resolved")
       }
       resolvedFiles.forEach { j ->
         val dest = modsDir.resolve(j.name)
@@ -340,6 +335,7 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
       hmcJarAbs,
       "launch",
       "${loader.get()}:${mcVersion.get()}",
+      "-offline",
       "-specifics",
       "-lwjgl",
       "-keep",
@@ -367,6 +363,14 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
     return hmcJar
   }
 
+  /** Returns the bootstrapped HMC jar when present, or its pinned path for an offline dry-run. */
+  private fun findHmcJarForDryRun(): File {
+    val toolsRoot = toolsDir.files.firstOrNull() ?: throw GradleException("toolsDir is empty")
+    val existing =
+      toolsRoot.walkTopDown().firstOrNull { it.isFile && it.name.contains("headlessmc") }
+    return existing ?: File(toolsRoot, "hmc/${RuntimeTestPins.HMC_JAR_URL.substringAfterLast('/')}")
+  }
+
   /**
    * Deterministic, offline dry-run. Never starts HeadlessMC. It reuses [prepareModsDir] so the
    * prepared runtime dir is byte-identical to the live path, then writes the assembled launch
@@ -378,7 +382,7 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
    * build.
    */
   private fun dryRunAndExit(modsDir: File) {
-    val hmcJar = findHmcJar()
+    val hmcJar = findHmcJarForDryRun()
 
     val commandLine = buildLaunchArgs(hmcJar.absolutePath)
     val out =

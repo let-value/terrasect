@@ -76,6 +76,9 @@ runtimeTest<loader>-<mc>CompatPrepare
 Published-artifact lanes use the same `Prepare -> Download -> HeadlessMC` shape, with no local jar
 staged and an exact Terrasect version assertion after Ferium resolves the registry artifact.
 
+Every HeadlessMC launch includes `-offline`, the supported CI account mode. This keeps launches
+non-interactive and does not require credentials in profiles, task inputs, logs, or artifacts.
+
 Useful entry points:
 
 ```bash

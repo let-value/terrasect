@@ -48,6 +48,7 @@ class RuntimeTestLaunchDryRunTest {
         hmcJarAbs,
         "launch",
         "$loader:$mc",
+        "-offline",
         "-specifics",
         "-lwjgl",
         "-keep",
@@ -63,10 +64,9 @@ class RuntimeTestLaunchDryRunTest {
       val outDir = File(fixture, "out")
       val mainClasses = buildSrcMainClasses.absolutePath.replace("\\", "\\\\")
 
-      // Fake HeadlessMC jar + a fake Terrasect jar. The task searches toolsDir for a jar whose
-      // name contains "headlessmc", so the fake must carry that substring.
-      val hmcZip = File(fixture, "headlessmc-launcher.jar")
-      hmcZip.writeText("fake-hmc")
+      // The dry-run must not require bootstrap output. It uses the pinned HMC path when the
+      // bootstrap directory is absent.
+      val hmcZip = File(outDir, "bootstrap/hmc/headlessmc-launcher-2.10.0.jar")
       val terrasectJar = File(fixture, "terrasect-0.2.3.jar")
       terrasectJar.writeText("fake-terrasect")
 
@@ -97,7 +97,7 @@ class RuntimeTestLaunchDryRunTest {
           successMarker.set("Terrasect")
           launchTimeoutSeconds.set(900L)
           dryRun.set(true)
-          toolsDir.from(hmcZip.parentFile)
+          toolsDir.from(File("$outDirAbs/bootstrap"))
           runtimeDir.set(File(outDir, "runtime-fabric-26.2.x"))
           dryRunOutput.set(File(outDir, "dryrun-fabric-26.2.x.cmd"))
           testJar.set(terrasectJar)
