@@ -147,6 +147,71 @@ private fun escapeJson(s: String): String = buildString {
 }
 
 /**
+ * Terrasect's published jar naming contract, shared by both registries:
+ * `terrasect-<loader>-<version>+<mcSegment>.jar` (e.g. `terrasect-neoforge-0.2.3+26.2.jar`).
+ * [loader] is the branch id (fabric/neoforge); [version] is the Terrasect version; the trailing
+ * segment after `+` is the Minecraft Stonecutter segment. This naming lets us recover the exact
+ * Terrasect version from a resolved jar without any registry round-trip.
+ */
+fun terrasectVersionFromJarName(name: String): String? {
+  val base = name.removeSuffix(".jar")
+  val plus = base.lastIndexOf('+')
+  if (plus < 0) return null
+  // Left half is `terrasect-<loader>-<version>`; the Terrasect version follows the last `-`.
+  val left = base.substring(0, plus)
+  val minus = left.lastIndexOf('-')
+  if (minus < 0) return null
+  return left.substring(minus + 1)
+}
+
+/** True when [name] is a Terrasect artifact (matches the published naming contract above). */
+fun isTerrasectJar(name: String): Boolean = terrasectVersionFromJarName(name) != null
+
+/**
+ * The Terrasect version recovered from a set of resolved jar names, or null when none match the
+ * published naming contract. Used to record the resolved identity in the deterministic manifest.
+ */
+fun resolvedTerrasectVersion(resolvedMods: java.io.File): String? =
+  resolvedMods
+    .walkTopDown()
+    .filter { it.isFile && it.extension == "jar" }
+    .map { it.name }
+    .filter(::isTerrasectJar)
+    .mapNotNull { terrasectVersionFromJarName(it) }
+    .firstOrNull()
+
+/**
+ * Verifies that the resolved Terrasect artifact identity matches an exact requested version.
+ *
+ * [expected] is the exact Terrasect version to assert (e.g. `0.2.3`); when null, verification is
+ * skipped (used by COMPAT lanes, which resolve third-party mods and carry no Terrasect artifact).
+ *
+ * The check is deliberate and unforgiving: an ambiguous set of resolved Terrasect versions, an
+ * empty resolution, or a version that differs from [expected] all fail — we never silently fall
+ * back to another version or a local artifact. Pure and side-effect free so it is fully testable
+ * offline, independent of Ferium's network resolution.
+ */
+fun assertPublishedTerrasectVersion(jarNames: List<String>, expected: String?) {
+  if (expected == null) return
+  val versions = jarNames.filter(::isTerrasectJar).mapNotNull { terrasectVersionFromJarName(it) }
+  val distinct = versions.toSet()
+  if (distinct.isEmpty()) {
+    throw GradleException("No Terrasect artifact resolved; requested exact version $expected")
+  }
+  if (distinct.size > 1) {
+    throw GradleException(
+      "Ambiguous Terrasect artifacts resolved (${distinct.joinToString(", ")}); requested exactly $expected"
+    )
+  }
+  val resolved = distinct.first()
+  if (resolved != expected) {
+    throw GradleException(
+      "Exact version mismatch: resolved Terrasect $resolved but requested exact version $expected"
+    )
+  }
+}
+
+/**
  * Resolves third-party mods with Ferium from a repository-owned profile config.
  *
  * The task writes an isolated config (pointed at via FERIUM_CONFIG_FILE), then either:
@@ -171,6 +236,14 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
 
   /** Pipe-delimited mod entries (see [modEntry]); order is preserved into the config + manifest. */
   @get:Input abstract val mods: ListProperty<String>
+
+  /**
+   * The exact Terrasect version the resolved artifact must match (e.g. `0.2.3`). Set for PUBLISHED
+   * lanes; null for COMPAT lanes (which resolve third-party mods and carry no Terrasect artifact).
+   * When set, the resolved Terrasect jar identity is verified against it and any mismatch fails
+   * hard — never silently resolved to another version or a local jar.
+   */
+  @get:Input @get:Optional abstract val expectedTerrasectVersion: Property<String>
 
   /** When set, only validates the config (no download / no resolve of file contents). */
   @get:Input @get:Optional abstract val dryRun: Property<Boolean>
@@ -258,6 +331,19 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
       )
     }
 
+    // Exact-version identity gate for PUBLISHED lanes: Ferium resolves the latest-compatible
+    // artifact from the registry, so we must assert the installed Terrasect jar is exactly the
+    // requested version. Any mismatch fails here — before the launch task ever feeds it to
+    // HeadlessMC — and never silently falls back to another version or a local jar.
+    assertPublishedTerrasectVersion(
+      resolvedMods
+        .walkTopDown()
+        .filter { it.isFile && it.extension == "jar" }
+        .map { it.name }
+        .toList(),
+      expectedTerrasectVersion.orNull,
+    )
+
     val jarCount = resolvedMods.walkTopDown().filter { it.isFile && it.extension == "jar" }.count()
     logger.lifecycle(
       "RuntimeTestFeriumResolve: ${scenarioLabel.get()} -> $jarCount jar(s) in $resolvedMods"
@@ -280,6 +366,9 @@ abstract class RuntimeTestFeriumResolveTask : DefaultTask() {
       add("mcVersion=${mcVersion.get()}")
       add("dryRun=${dryRun.orElse(false).get()}")
       add("configFile=${configFile.name}")
+      if (expectedTerrasectVersion.isPresent) {
+        add("terrasectVersion=${resolvedTerrasectVersion(resolvedMods)}")
+      }
       add("declaredMods=$declared")
       add("resolvedJars=$jars")
     }

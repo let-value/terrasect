@@ -16,6 +16,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -159,5 +160,80 @@ class RuntimeTestFeriumResolveTest {
     } finally {
       if (fixture.exists()) fixture.deleteRecursively()
     }
+  }
+
+  // --- exact-version identity helpers (pure, fully offline) ---------------------------------
+
+  @Test
+  fun `version parses from both registry jar names`() {
+    // Modrinth and CurseForge share the same published naming contract.
+    assertEquals("0.2.3", terrasectVersionFromJarName("terrasect-neoforge-0.2.3+26.2.jar"))
+    assertEquals("0.2.3", terrasectVersionFromJarName("terrasect-fabric-0.2.3+1.21.1.jar"))
+  }
+
+  @Test
+  fun `non-terrasect jars parse to null`() {
+    assertNull(terrasectVersionFromJarName("create-fly-1.2.jar"))
+    assertNull(terrasectVersionFromJarName("no-plus-segment.jar"))
+    assertFalse(isTerrasectJar("create-fly-1.2.jar"))
+  }
+
+  @Test
+  fun `exact version matches for both platforms`() {
+    // Modrinth lane (NeoForge) and CurseForge lane (NeoForge): a resolved 0.2.3 artifact matches.
+    assertPublishedTerrasectVersion(
+      listOf("terrasect-neoforge-0.2.3+26.2.jar"),
+      "0.2.3",
+    )
+  }
+
+  @Test
+  fun `exact version mismatch fails hard`() {
+    try {
+      // Ferium resolved the latest 0.2.9, but the task pinned 0.2.3 — must refuse to run.
+      assertPublishedTerrasectVersion(
+        listOf("terrasect-neoforge-0.2.9+26.2.jar"),
+        "0.2.3",
+      )
+      throw AssertionError("expected GradleException for exact version mismatch")
+    } catch (e: Exception) {
+      assertTrue(
+        e.message!!.contains("Exact version mismatch"),
+        "failure must name the exact version mismatch",
+      )
+    }
+  }
+
+  @Test
+  fun `empty resolution and ambiguity fail hard`() {
+    try {
+      assertPublishedTerrasectVersion(listOf("create-fly-1.2.jar"), "0.2.3")
+      throw AssertionError("expected GradleException when no Terrasect artifact resolved")
+    } catch (e: Exception) {
+      assertTrue(
+        e.message!!.contains("No Terrasect artifact"),
+        "failure must report no Terrasect artifact resolved",
+      )
+    }
+
+    try {
+      assertPublishedTerrasectVersion(
+        listOf("terrasect-neoforge-0.2.3+26.2.jar", "terrasect-fabric-0.2.9+26.2.jar"),
+        "0.2.3",
+      )
+      throw AssertionError("expected GradleException for ambiguous resolution")
+    } catch (e: Exception) {
+      assertTrue(
+        e.message!!.contains("Ambiguous Terrasect"),
+        "failure must report ambiguous Terrasect artifacts",
+      )
+    }
+  }
+
+  @Test
+  fun `null expected version skips verification (compat lane)`() {
+    // COMPAT lanes resolve third-party mods and carry no Terrasect artifact; verification is a
+    // no-op so it must never throw.
+    assertPublishedTerrasectVersion(listOf("create-fly-1.2.jar"), null)
   }
 }

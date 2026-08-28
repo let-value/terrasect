@@ -194,6 +194,14 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
   @get:Input @get:Optional abstract val launchTimeoutSeconds: Property<Long>
 
   /**
+   * The exact Terrasect version the published artifact under test must match (e.g. `0.2.3`). Set
+   * for PUBLISHED lanes; null for BUILD/COMPAT lanes. When set, the Terrasect jar identity is
+   * verified against it before any launch (dry-run or live); a mismatch fails hard and never
+   * silently falls back to another version or a local jar.
+   */
+  @get:Input @get:Optional abstract val expectedTerrasectVersion: Property<String>
+
+  /**
    * When set, the task does NOT start HeadlessMC. It builds the exact launcher command it would
    * run, writes the (assembled) command to [dryRunOutput]. The launch is otherwise fully simulated:
    * jars are copied and the runtime dir is prepared so this path is byte-for-byte reproducible
@@ -213,6 +221,13 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
   @TaskAction
   fun run() {
     val modsDir = prepareModsDir(runtimeDir.get().asFile)
+
+    // Gate the launch on artifact identity: for PUBLISHED lanes the Terrasect jar actually staged
+    // into runtimeDir/mods/ (from Ferium resolution) must be the exact requested version. This
+    // fails hard BEFORE any HeadlessMC process starts, so a registry that resolves a newer/latest
+    // version than the one requested never runs against it. Applies to the dry-run path too, so the
+    // exact-version contract is enforced and testable offline.
+    verifyTerrasectIdentity(modsDir, expectedTerrasectVersion.orNull)
 
     if (dryRun.orElse(false).get()) {
       dryRunAndExit(modsDir)
@@ -246,6 +261,22 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
     logger.lifecycle(
       "RuntimeTestLaunch: OK for ${loader.get()} ${mcVersion.get()} (marker='$marker')"
     )
+  }
+
+  /**
+   * Verifies the Terrasect artifact staged under [modsDir] against an exact version.
+   *
+   * When [expectedVersion] is null (BUILD/COMPAT lanes) there is nothing to assert. Otherwise every
+   * staged jar matching the Terrasect publishing contract must decode to exactly [expectedVersion];
+   * an empty set, an ambiguous set of versions, or a differing version all fail hard. This is the
+   * "never silently fall back to another version or local artifact" gate and runs before any
+   * HeadlessMC process starts.
+   */
+  private fun verifyTerrasectIdentity(modsDir: File, expectedVersion: String?) {
+    if (expectedVersion == null) return
+    val jarNames =
+      modsDir.walkTopDown().filter { it.isFile && it.extension == "jar" }.map { it.name }.toList()
+    assertPublishedTerrasectVersion(jarNames, expectedVersion)
   }
 
   /**

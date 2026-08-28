@@ -123,6 +123,13 @@ fun RuntimeTestDsl(root: Project) {
   // time.
   val curseForgeTerrasectId =
     (root.findProperty("terrseaect.curseForgeTerrasectProjectId") as? String) ?: "1615147"
+  // Exact Terrasect version to verify the published artifact against. Defaults to mod.version from
+  // stonecutter.properties.toml (the current release) and is overridable via -Pterrseaect.
+  // runtimeTestPublishedVersion so a specific published version can be pinned and verified end to
+  // end. Resolved once here (not per-lane) so every PUBLISHED lane asserts the same coordinate.
+  val terrasectPublishedVersion =
+    (root.findProperty("terrseaect.runtimeTestPublishedVersion") as? String)?.ifBlank { null }
+      ?: root.runtimeProp("mod.version").ifBlank { RuntimeTestPins.MOD_VERSION_PROP }
   val resolveProviders = mutableListOf<TaskProvider<RuntimeTestFeriumResolveTask>>()
 
   val compatProviders =
@@ -141,6 +148,7 @@ fun RuntimeTestDsl(root: Project) {
         Platform.MODRINTH,
         curseForgeTerrasectId,
         resolveProviders,
+        terrasectPublishedVersion,
       )
     }
   val publishedCurseforge =
@@ -152,6 +160,7 @@ fun RuntimeTestDsl(root: Project) {
         Platform.CURSEFORGE,
         curseForgeTerrasectId,
         resolveProviders,
+        terrasectPublishedVersion,
       )
     }
 
@@ -302,6 +311,7 @@ private fun registerResolveTask(
   label: String,
   modList: List<String>,
   resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+  versionToVerify: String? = null,
 ): TaskProvider<RuntimeTestFeriumResolveTask> {
   val workDir = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/resolve/$label")
   val manifest = root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/resolve/$label.txt")
@@ -323,6 +333,11 @@ private fun registerResolveTask(
     )
     outputDirectory.set(workDir)
     resolveManifest.set(manifest)
+    // PUBLISHED lanes pass the exact version to verify against; COMPAT lanes leave it null (they
+    // resolve third-party mods, not a Terrasect artifact).
+    if (expectedTerrasectVersion != null) {
+      expectedTerrasectVersion.set(expectedTerrasectVersion)
+    }
   }
   resolveProviders.add(provider)
   return provider
@@ -401,6 +416,7 @@ private fun registerPublishedVariant(
   platform: Platform,
   curseForgeTerrasectId: String?,
   resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+  versionToVerify: String,
 ): TaskProvider<RuntimeTestLaunchTask> {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider
   val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
@@ -439,6 +455,7 @@ private fun registerPublishedVariant(
         "published-${reg.loader}-${mcVersionId}-${platform.name}",
         listOf(terrasectMod),
         resolveProviders,
+        versionToVerify,
       )
 
   val provider: TaskProvider<RuntimeTestLaunchTask> =
@@ -453,6 +470,8 @@ private fun registerPublishedVariant(
     mcVersion.set(mcVersionId)
     loader.set(reg.loader)
     successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
+    // Verify the resolved published artifact is exactly this version before any launch.
+    expectedTerrasectVersion.set(versionToVerify)
     launchTimeoutSeconds.set(1200L)
     toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
     runtimeDir.set(

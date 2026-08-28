@@ -136,4 +136,149 @@ class RuntimeTestLaunchDryRunTest {
       if (fixture.exists()) fixture.deleteRecursively()
     }
   }
+
+  /**
+   * The exact-version identity gate must fail the launch (even in dry-run) when the resolved
+   * published Terrasect jar does not match the requested version. This is the offline, controlled
+   * proof of the acceptance contract's "exact-version mismatch fails" and "never silently fall back
+   * to another version or local artifact" clauses: the launch task verifies before any process
+   * starts, and a wrong-version resolved jar aborts the run.
+   */
+  @Test
+  fun `launch dry-run fails when resolved Terrasect version does not match exact requested version`() {
+    val fixture = rootDir.resolve("build/build/published-mismatch-${System.nanoTime()}")
+    try {
+      assertTrue(fixture.mkdirs())
+      val outDir = File(fixture, "out")
+      val mainClasses = buildSrcMainClasses.absolutePath.replace("\\", "\\\\")
+
+      // Fake HeadlessMC jar (name must contain "headlessmc" for findHmcJar).
+      val hmcZip = File(fixture, "headlessmc-launcher.jar")
+      hmcZip.writeText("fake-hmc")
+
+      // A resolved published Terrasect jar whose version (0.2.9) does NOT match the requested
+      // 0.2.3.
+      val resolvedMods = File(fixture, "resolved").apply { mkdirs() }
+      File(resolvedMods, "terrasect-neoforge-0.2.9+26.2.jar").writeText("wrong-version")
+
+      val hmcZipAbs = hmcZip.absolutePath.replace("\\", "\\\\")
+      val resolvedDirAbs = resolvedMods.absolutePath.replace("\\", "\\\\")
+      val outDirAbs = outDir.absolutePath.replace("\\", "\\\\")
+
+      File(fixture, "settings.gradle.kts")
+        .writeText("rootProject.name = \"published-mismatch-fix\"")
+      File(fixture, "build.gradle.kts")
+        .writeText(
+          """
+          import java.io.File
+
+          buildscript {
+            dependencies {
+              classpath(files("$mainClasses"))
+            }
+          }
+
+          val hmcZip = File("$hmcZipAbs")
+          val resolvedMods = File("$resolvedDirAbs")
+          val outDir = File("$outDirAbs")
+
+          tasks.register("runtimeTestLaunch", RuntimeTestLaunchTask::class.java) {
+            group = "runtime test"
+            mcVersion.set("26.2.x")
+            loader.set("neoforge")
+            successMarker.set("Terrasect")
+            launchTimeoutSeconds.set(1200L)
+            dryRun.set(true)
+            expectedTerrasectVersion.set("0.2.3")
+            toolsDir.from(hmcZip.parentFile)
+            runtimeDir.set(File(outDir, "runtime-neoforge-published-26.2.x"))
+            dryRunOutput.set(File(outDir, "dryrun-neoforge-published-26.2.x.cmd"))
+            resolvedModsDir.set(resolvedMods)
+          }
+          """
+            .trimIndent()
+        )
+
+      val result = runner(fixture, listOf("runtimeTestLaunch")).buildAndFail()
+      assertEquals(
+        org.gradle.testkit.runner.TaskOutcome.FAILED,
+        result.task(":runtimeTestLaunch")!!.outcome,
+        "mismatched published version must fail the launch",
+      )
+      assertTrue(
+        result.output.contains("Exact version mismatch"),
+        "failure output must name the exact version mismatch",
+      )
+    } finally {
+      if (fixture.exists()) fixture.deleteRecursively()
+    }
+  }
+
+  /**
+   * When the resolved published Terrasect jar version matches the requested exact version, the
+   * dry-run launch must proceed past the identity gate and succeed — proving the gate is selective,
+   * not a blanket failure.
+   */
+  @Test
+  fun `launch dry-run succeeds when resolved Terrasect version matches exact requested version`() {
+    val fixture = rootDir.resolve("build/build/published-match-${System.nanoTime()}")
+    try {
+      assertTrue(fixture.mkdirs())
+      val outDir = File(fixture, "out")
+      val mainClasses = buildSrcMainClasses.absolutePath.replace("\\", "\\\\")
+
+      val hmcZip = File(fixture, "headlessmc-launcher.jar")
+      hmcZip.writeText("fake-hmc")
+
+      // A resolved published Terrasect jar whose version (0.2.3) DOES match the requested 0.2.3.
+      val resolvedMods = File(fixture, "resolved").apply { mkdirs() }
+      File(resolvedMods, "terrasect-neoforge-0.2.3+26.2.jar").writeText("right-version")
+
+      val hmcZipAbs = hmcZip.absolutePath.replace("\\", "\\\\")
+      val resolvedDirAbs = resolvedMods.absolutePath.replace("\\", "\\\\")
+      val outDirAbs = outDir.absolutePath.replace("\\", "\\\\")
+
+      File(fixture, "settings.gradle.kts").writeText("rootProject.name = \"published-match-fix\"")
+      File(fixture, "build.gradle.kts")
+        .writeText(
+          """
+          import java.io.File
+
+          buildscript {
+            dependencies {
+              classpath(files("$mainClasses"))
+            }
+          }
+
+          val hmcZip = File("$hmcZipAbs")
+          val resolvedMods = File("$resolvedDirAbs")
+          val outDir = File("$outDirAbs")
+
+          tasks.register("runtimeTestLaunch", RuntimeTestLaunchTask::class.java) {
+            group = "runtime test"
+            mcVersion.set("26.2.x")
+            loader.set("neoforge")
+            successMarker.set("Terrasect")
+            launchTimeoutSeconds.set(1200L)
+            dryRun.set(true)
+            expectedTerrasectVersion.set("0.2.3")
+            toolsDir.from(hmcZip.parentFile)
+            runtimeDir.set(File(outDir, "runtime-neoforge-published-26.2.x"))
+            dryRunOutput.set(File(outDir, "dryrun-neoforge-published-26.2.x.cmd"))
+            resolvedModsDir.set(resolvedMods)
+          }
+          """
+            .trimIndent()
+        )
+
+      val result = runner(fixture, listOf("runtimeTestLaunch")).build()
+      assertEquals(
+        org.gradle.testkit.runner.TaskOutcome.SUCCESS,
+        result.task(":runtimeTestLaunch")!!.outcome,
+        "matching published version must pass the identity gate",
+      )
+    } finally {
+      if (fixture.exists()) fixture.deleteRecursively()
+    }
+  }
 }
