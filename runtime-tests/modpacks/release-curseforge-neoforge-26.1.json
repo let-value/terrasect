@@ -1,0 +1,16 @@
+{
+  "active_profile": 0,
+  "active_modpack": 0,
+  "profiles": [
+    {
+      "name": "Terrasect Release CurseForge NeoForge 26.1",
+      "output_dir": "./mods",
+      "game_version": "26.1",
+      "mod_loader": "NeoForge",
+      "mods": [
+        {"name": "Terrasect", "identifier": {"CurseForgeProject": 1615147}}
+      ]
+    }
+  ],
+  "modpacks": []
+}

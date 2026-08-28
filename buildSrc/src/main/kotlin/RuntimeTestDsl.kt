@@ -105,7 +105,7 @@ fun RuntimeTestDsl(root: Project) {
   }
 
   // --- tree enumeration: per-version launch tasks + scenario-variant tasks. ---
-  val launchBySegment = collectPerVersionLaunches(root, tree)
+  val launchBySegment = collectPerVersionLaunches(root, tree, bootstrapTask)
 
   val buildTasks = launchBySegment.values.map { it.provider.get() }
 
@@ -130,12 +130,20 @@ fun RuntimeTestDsl(root: Project) {
   val terrasectPublishedVersion =
     (root.findProperty("terrseaect.runtimeTestPublishedVersion") as? String)?.ifBlank { null }
       ?: root.runtimeProp("mod.version").ifBlank { RuntimeTestPins.MOD_VERSION_PROP }
-  val resolveProviders = mutableListOf<TaskProvider<RuntimeTestFeriumResolveTask>>()
+  val resolveProviders = mutableListOf<TaskProvider<RuntimeTestFeriumDownloadTask>>()
+  val prepareProviders = mutableListOf<TaskProvider<RuntimeTestFeriumPrepareTask>>()
 
   val compatProviders =
     launchBySegment.values
       .map { reg ->
-        registerCompatVariant(root, manifests, reg, resolveProviders)
+        registerCompatVariant(
+          root,
+          manifests,
+          reg,
+          bootstrapTask,
+          prepareProviders,
+          resolveProviders,
+        )
       }
       .toSet()
 
@@ -147,6 +155,8 @@ fun RuntimeTestDsl(root: Project) {
         reg,
         Platform.MODRINTH,
         curseForgeTerrasectId,
+        bootstrapTask,
+        prepareProviders,
         resolveProviders,
         terrasectPublishedVersion,
       )
@@ -159,6 +169,8 @@ fun RuntimeTestDsl(root: Project) {
         reg,
         Platform.CURSEFORGE,
         curseForgeTerrasectId,
+        bootstrapTask,
+        prepareProviders,
         resolveProviders,
         terrasectPublishedVersion,
       )
@@ -203,6 +215,19 @@ fun RuntimeTestDsl(root: Project) {
     dependsOn(resolveProviders)
   }
 
+  root.tasks.register("runtimeTestFeriumPrepare") {
+    group = ROOT_TASKS
+    description = "Prepare every lane's isolated Ferium profile and local build-artifact staging."
+    dependsOn(prepareProviders)
+  }
+
+  root.tasks.register("runtimeTestFeriumDownload") {
+    group = ROOT_TASKS
+    description =
+      "Download every prepared Ferium modpack; live mode requires the bootstrapped tools."
+    dependsOn(resolveProviders)
+  }
+
   root.tasks.register("runtimeTestAll") {
     group = ROOT_TASKS
     description = "Build + published + compat runtime matrices."
@@ -214,6 +239,7 @@ fun RuntimeTestDsl(root: Project) {
 private fun collectPerVersionLaunches(
   root: Project,
   tree: ProjectTree,
+  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
 ): Map<Pair<String, String>, PerVersionLaunch> {
   val result = mutableMapOf<Pair<String, String>, PerVersionLaunch>()
   tree.entries.forEach { (branchName, branch) ->
@@ -239,6 +265,7 @@ private fun collectPerVersionLaunches(
           root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/$branchName-${node.project}")
         )
         testJar.set(jarProvider.flatMap { it.archiveFile })
+        dependsOn(bootstrapTask)
         dependsOn(modProject.tasks.named("jar"))
       }
       result[Pair(branchName, mcVersionId)] =
@@ -302,45 +329,71 @@ private fun collectPerVersionDryRuns(
   return result
 }
 
-/** Resolves third-party mods for one lane via Ferium, registering a deterministic resolve task. */
-private fun registerResolveTask(
+/** Registers the prepare -> download stages for one isolated Ferium workspace. */
+private fun registerFeriumPipeline(
   root: Project,
-  name: String,
+  prepareName: String,
+  downloadName: String,
   loaderName: String,
   mcVer: String,
   label: String,
   modList: List<String>,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
+  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
+  localJar: TaskProvider<Jar>? = null,
   versionToVerify: String? = null,
-): TaskProvider<RuntimeTestFeriumResolveTask> {
-  val workDir = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/resolve/$label")
-  val manifest = root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/resolve/$label.txt")
-  val provider = root.tasks.register(name, RuntimeTestFeriumResolveTask::class.java)
-  provider.configure {
+): TaskProvider<RuntimeTestFeriumDownloadTask> {
+  val outputDirPath = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/ferium/$label/mods")
+  val profileFilePath =
+    root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/ferium/$label/ferium-profile.json")
+  val userDirPath = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/ferium/$label/mods/user")
+  val manifest = root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/ferium/$label.txt")
+  val dryRun =
+    root.providers
+      .gradleProperty("terrseaect.runtimeTestResolveDryRun")
+      .map { it.toBoolean() }
+      .orElse(false)
+
+  val prepare = root.tasks.register(prepareName, RuntimeTestFeriumPrepareTask::class.java)
+  prepare.configure {
     group = ROOT_TASKS
-    description = "Resolve $label via Ferium (repository-owned FERIUM_CONFIG_FILE)."
+    description = "Prepare the $label Ferium profile and local artifact staging directory."
+    loader.set(loaderName)
+    mcVersion.set(mcVer)
+    mods.set(modList)
+    outputDirectoryPath.set(outputDirPath.map { it.asFile.absolutePath })
+    this.profileFile.set(profileFilePath)
+    this.userDirectory.set(userDirPath)
+    localJar?.let {
+      this.localJar.set(it.flatMap { jar -> jar.archiveFile })
+      dependsOn(it)
+    }
+  }
+
+  val download = root.tasks.register(downloadName, RuntimeTestFeriumDownloadTask::class.java)
+  download.configure {
+    group = ROOT_TASKS
+    description = "Download the $label Ferium modpack into its isolated mods directory."
+    toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
+    this.profileFile.set(prepare.flatMap { it.profileFile })
+    this.userDirectory.set(prepare.flatMap { it.userDirectory })
     loader.set(loaderName)
     mcVersion.set(mcVer)
     scenarioLabel.set(label)
     mods.set(modList)
-    // Dry-run is toggled by a root gradle property so the SAME tasks can run fully offline, proving
-    // the config is valid without any Modrinth/CurseForge network access.
-    dryRun.set(
-      root.providers
-        .gradleProperty("terrseaect.runtimeTestResolveDryRun")
-        .map { it.toBoolean() }
-        .orElse(false)
-    )
-    outputDirectory.set(workDir)
+    expectedTerrasectVersion.set(versionToVerify)
+    this.dryRun.set(dryRun)
+    outputDirectory.set(outputDirPath)
     resolveManifest.set(manifest)
-    // PUBLISHED lanes pass the exact version to verify against; COMPAT lanes leave it null (they
-    // resolve third-party mods, not a Terrasect artifact).
-    if (expectedTerrasectVersion != null) {
-      expectedTerrasectVersion.set(expectedTerrasectVersion)
-    }
+    curseforgeApiKey.set(root.providers.environmentVariable("CURSEFORGE_API_KEY"))
+    dependsOn(prepare)
+    // The offline resolve dry-run must remain independent of bootstrap and network access.
+    if (!dryRun.get()) dependsOn(bootstrapTask)
   }
-  resolveProviders.add(provider)
-  return provider
+  resolveProviders.add(download)
+  prepareProviders.add(prepare)
+  return download
 }
 
 /**
@@ -351,28 +404,32 @@ private fun registerCompatVariant(
   root: Project,
   manifests: List<RuntimeManifest>,
   reg: PerVersionLaunch,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
+  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
 ): Task {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider.get()
   val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
   val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
 
-  // Third-party mods are read from the descriptor for this lane. Deferred lanes (e.g. NeoForge,
-  // which has no e2e-compat pins) resolve to an empty list and boot the local jar only.
+  // Third-party mods are read from the descriptor for this lane. Empty lanes still go through
+  // Ferium so the local build artifact exercises the same `user/` staging path everywhere.
   val mods = resolveModsFor(manifests, reg.loader, mcVersionId)
 
   val resolveProvider =
-    if (mods.isEmpty()) null
-    else
-      registerResolveTask(
-        root,
-        "runtimeTest${reg.loader}-${mcVersionId}CompatResolve",
-        reg.loader,
-        mcVersionId,
-        "compat-${reg.loader}-${mcVersionId}",
-        mods,
-        resolveProviders,
-      )
+    registerFeriumPipeline(
+      root,
+      "runtimeTest${reg.loader}-${mcVersionId}CompatPrepare",
+      "runtimeTest${reg.loader}-${mcVersionId}CompatDownload",
+      reg.loader,
+      mcVersionId,
+      "compat-${reg.loader}-${mcVersionId}",
+      mods,
+      bootstrapTask,
+      prepareProviders,
+      resolveProviders,
+      jarProvider,
+    )
 
   val provider: TaskProvider<RuntimeTestLaunchTask> =
     modProject.tasks.register("runtimeTestCompat", RuntimeTestLaunchTask::class.java)
@@ -380,8 +437,8 @@ private fun registerCompatVariant(
     group = ROOT_TASKS
     description =
       "Boot compat-modpack scenario for ${reg.loader} $mcVersionId (local jar + " +
-        if (mods.isEmpty()) "no third-party mods (deferred)"
-        else "Ferium-resolved third-party mods" + ") through HeadlessMC."
+        (if (mods.isEmpty()) "no third-party mods" else "Ferium-resolved third-party mods") +
+        ") through HeadlessMC."
     mcVersion.set(mcVersionId)
     loader.set(reg.loader)
     successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
@@ -392,15 +449,10 @@ private fun registerCompatVariant(
         "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${mcVersionId}"
       )
     )
-    testJar.set(jarProvider.flatMap { it.archiveFile })
-    if (resolveProvider != null) {
-      // Inject the local Terrasect jar first, then resolveModsDir after (so a same-named resolved
-      // jar wins over the local build, per prepareModsDir()).
-      resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
-      dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
-    } else {
-      dependsOn(reg.provider, modProject.tasks.named("jar"))
-    }
+    // The local Terrasect jar is staged in Ferium's supported `user/` directory during prepare and
+    // copied into the resolved output by the download stage.
+    resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
+    dependsOn(reg.provider, resolveProvider.get(), modProject.tasks.named("jar"))
   }
   return provider.get()
 }
@@ -415,7 +467,9 @@ private fun registerPublishedVariant(
   reg: PerVersionLaunch,
   platform: Platform,
   curseForgeTerrasectId: String?,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumResolveTask>>,
+  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
+  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
+  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
   versionToVerify: String,
 ): TaskProvider<RuntimeTestLaunchTask> {
   val modProject = root.findProject(reg.gradlePath) ?: return reg.provider
@@ -447,15 +501,18 @@ private fun registerPublishedVariant(
   val resolveProvider =
     if (terrasectMod == null) null
     else
-      registerResolveTask(
+      registerFeriumPipeline(
         root,
-        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedResolve",
+        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedPrepare",
+        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedDownload",
         reg.loader,
         mcVersionId,
         "published-${reg.loader}-${mcVersionId}-${platform.name}",
         listOf(terrasectMod),
+        bootstrapTask,
+        prepareProviders,
         resolveProviders,
-        versionToVerify,
+        versionToVerify = versionToVerify,
       )
 
   val provider: TaskProvider<RuntimeTestLaunchTask> =

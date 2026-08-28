@@ -133,8 +133,7 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     val hmcZip = File(downloadDir, "hmc-download.jar")
     downloadToFile(hmcUrl.get(), hmcZip)
     expectSha256(hmcZip, hmcSha256.get())
-    val hmcJar =
-      File(hmcDir, "headlessmc-launcher-${hmcUrl.get().substringAfterLast('/')}").apply { delete() }
+    val hmcJar = File(hmcDir, hmcUrl.get().substringAfterLast('/'))
     hmcZip.copyTo(hmcJar, overwrite = true)
 
     // Ferium is a zip archive — download, verify, then extract the nosui binary. Every Ferium
@@ -148,7 +147,7 @@ abstract class RuntimeTestBootstrapTask : DefaultTask() {
     binary.setExecutable(true, false)
 
     logger.lifecycle(
-      "RuntimeTestBootstrap: HMC $hmcSha256.get().take(8)+, Ferium " +
+      "RuntimeTestBootstrap: HMC ${hmcSha256.get().take(8)}+, Ferium " +
         "${feriumPlatform.get()} -> ${outputDirectory.get().asFile}/hmc and " +
         "${outputDirectory.get().asFile}/ferium"
     )
@@ -255,7 +254,7 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
     if (!markerOk) {
       throw GradleException(
         "Success marker '$marker' not found in log for ${loader.get()} ${mcVersion.get()}. " +
-          "Last 1500 chars:\n$log.takeLast(1500)"
+          "Last 1500 chars:\n${log.takeLast(1500)}"
       )
     }
     logger.lifecycle(
@@ -305,8 +304,12 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
     // real, not overwritten by the local build).
     val resolved = resolvedModsDir.orNull?.asFile
     if (resolved != null) {
+      val userDir = File(resolved, "user")
       val resolvedFiles =
-        resolved.walkTopDown().filter { it.isFile && it.extension == "jar" }.toList()
+        resolved
+          .walkTopDown()
+          .filter { it.isFile && it.extension == "jar" && !isInside(userDir, it) }
+          .toList()
       if (resolvedFiles.isEmpty()) {
         throw GradleException("resolvedModsDir has no jars: $resolved")
       }
@@ -356,7 +359,10 @@ abstract class RuntimeTestLaunchTask : DefaultTask() {
         ?: toolsDir.files.firstOrNull()
         ?: throw GradleException("toolsDir is empty")
     val hmcJar =
-      toolsRoot.walkTopDown().firstOrNull { it.isFile && it.name.contains("headlessmc") }
+      toolsRoot
+        .walkTopDown()
+        .filter { it.isFile && it.name.contains("headlessmc") }
+        .minByOrNull { it.name.length }
         ?: throw GradleException("HeadlessMC jar not found under toolsDir ($toolsRoot)")
     return hmcJar
   }

@@ -1,30 +1,34 @@
-// Descriptor-driven Ferium compatibility resolution.
+// Descriptor-driven Ferium profile preparation and resolution.
 //
-// Replaces the old configuration-time third-party dependency behavior with an explicit Gradle task
-// that resolves Modrinth/CurseForge fixtures non-interactively using a repository-owned Ferium
-// profile config (isolated via FERIUM_CONFIG_FILE). The resolved jars are written to a
-// deterministic
-// output directory that the launch task then consumes as its resolvedModsDir; the local
-// release-form
-// Terrasect jar is injected afterward by the launch task.
+// The explicit Gradle pipeline prepares an isolated Ferium profile, stages a local build artifact
+// in
+// Ferium's `user/` directory when needed, downloads registry fixtures non-interactively, and passes
+// the resulting mods directory to the downstream HeadlessMC launch task. The older combined resolve
+// task remains below as a compatibility/test seam while callers use the split tasks.
 //
 // This file has no `package` declaration to match build-extensions.kt / RuntimeTestTasks.kt, and it
 // uses only the JDK + Gradle API (no third-party libraries on the buildSrc classpath), so
 // `./gradlew tasks` / `build` / `spotlessCheck` stay offline — resolution only ever happens behind
-// an explicit `runtimeTest*Resolve` task that carries real secrets.
+// an explicit runtime-test download task that carries real secrets.
 
 import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 /** Delimiter joining a single mod's fields into one @Input string. */
@@ -144,6 +148,193 @@ private fun escapeJson(s: String): String = buildString {
       else -> append(c)
     }
   }
+}
+
+/** Returns the exact command used by the download stage, with no shell interpolation. */
+fun feriumUpgradeArgs(binary: File, profile: File): List<String> =
+  listOf(binary.absolutePath, "--config-file", profile.absolutePath, "upgrade")
+
+/**
+ * Creates the isolated Ferium workspace used by the two-stage pipeline. Ferium's `user/` convention
+ * is relative to the configured `output_dir`, so the local jar is staged at `mods/user/` and Ferium
+ * copies it into the actual mod output during `upgrade`.
+ */
+fun prepareFeriumWorkspace(
+  workspace: File,
+  outputDir: File,
+  loader: String,
+  mcVersion: String,
+  mods: List<String>,
+  localJar: File? = null,
+): File {
+  workspace.mkdirs()
+  val userDir = File(outputDir, "user").apply { mkdirs() }
+  localJar?.copyTo(File(userDir, localJar.name), overwrite = true)
+  val profile = File(workspace, "ferium-profile.json")
+  profile.writeText(writeFeriumConfig(outputDir.absolutePath, loader, mcVersion, mods))
+  return profile
+}
+
+/** Prepares one isolated Ferium profile and optionally stages a locally built Terrasect jar. */
+abstract class RuntimeTestFeriumPrepareTask : DefaultTask() {
+
+  @get:Input abstract val loader: Property<String>
+  @get:Input abstract val mcVersion: Property<String>
+  @get:Input abstract val mods: ListProperty<String>
+  @get:Input abstract val outputDirectoryPath: Property<String>
+  @get:InputFile @get:Optional abstract val localJar: RegularFileProperty
+
+  @get:OutputFile abstract val profileFile: RegularFileProperty
+  @get:OutputDirectory abstract val userDirectory: DirectoryProperty
+
+  @TaskAction
+  fun run() {
+    val profile = profileFile.get().asFile
+    val staged = localJar.orNull?.asFile
+    prepareFeriumWorkspace(
+      profile.parentFile,
+      File(outputDirectoryPath.get()),
+      loader.get(),
+      mcVersion.get(),
+      mods.get(),
+      staged,
+    )
+    logger.lifecycle(
+      "RuntimeTestFeriumPrepare: ${loader.get()} ${mcVersion.get()} -> ${profile.path}" +
+        if (staged == null) "" else " (staged ${staged.name} in user/)"
+    )
+  }
+}
+
+/**
+ * Runs Ferium against a prepared isolated profile. This is deliberately separate from preparation
+ * so the profile and local-artifact staging are inspectable before any registry access occurs.
+ */
+abstract class RuntimeTestFeriumDownloadTask : DefaultTask() {
+
+  @get:Classpath abstract val toolsDir: ConfigurableFileCollection
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val profileFile: RegularFileProperty
+  @get:InputDirectory
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val userDirectory: DirectoryProperty
+  @get:Input abstract val loader: Property<String>
+  @get:Input abstract val mcVersion: Property<String>
+  @get:Input abstract val scenarioLabel: Property<String>
+  @get:Input abstract val mods: ListProperty<String>
+  @get:Input @get:Optional abstract val expectedTerrasectVersion: Property<String>
+  @get:Input @get:Optional abstract val dryRun: Property<Boolean>
+
+  @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
+  @get:OutputFile abstract val resolveManifest: RegularFileProperty
+  @get:Internal abstract val curseforgeApiKey: Property<String>
+
+  @TaskAction
+  fun run() {
+    val profile = profileFile.get().asFile
+    val resolvedMods = outputDirectory.get().asFile
+    if (!profile.isFile) throw GradleException("Prepared Ferium profile is missing: $profile")
+    if (!userDirectory.get().asFile.isDirectory) {
+      throw GradleException(
+        "Prepared Ferium user directory is missing: ${userDirectory.get().asFile}"
+      )
+    }
+
+    val dry = dryRun.orElse(false).get()
+    if (dry) {
+      val text = profile.readText()
+      if (!text.contains("\"mod_loader\"") || !text.contains("\"mods\"")) {
+        throw GradleException("Prepared Ferium config is malformed: $profile")
+      }
+      writeFeriumManifest(resolveManifest.get().asFile, resolvedMods, profile, this)
+      logger.lifecycle(
+        "RuntimeTestFeriumDownload (dry-run): ${scenarioLabel.get()} -> ${profile.name} " +
+          "(${mods.get().size} mod(s) declared), no download"
+      )
+      return
+    }
+
+    if (!resolvedMods.isDirectory && !resolvedMods.mkdirs()) {
+      throw GradleException("Could not create Ferium output directory $resolvedMods")
+    }
+    val toolsRoot =
+      toolsDir.files.firstOrNull { it.isDirectory }
+        ?: toolsDir.files.firstOrNull()
+        ?: throw GradleException("toolsDir is empty")
+    val binary = findFeriumBinary(toolsRoot)
+    val command = feriumUpgradeArgs(binary, profile)
+    val environment = linkedMapOf("FERIUM_CONFIG_FILE" to profile.absolutePath)
+    curseforgeApiKey.orNull?.let { environment["CURSEFORGE_API_KEY"] = it }
+    val logFile = File(profile.parentFile, "resolve.log")
+    val process =
+      ProcessBuilder(command)
+        .directory(profile.parentFile)
+        .redirectErrorStream(true)
+        .apply { environment().putAll(environment) }
+        .start()
+    process.inputStream.use { input ->
+      logFile.outputStream().use { output -> input.copyTo(output) }
+    }
+    val exit = process.waitFor()
+    writeFeriumManifest(resolveManifest.get().asFile, resolvedMods, profile, this)
+    if (exit != 0) {
+      val diagnostic = File(profile.parentFile, "resolve-failure.log")
+      diagnostic.writeText(
+        "Ferium exited with code $exit for ${scenarioLabel.get()}\n" + logFile.readText()
+      )
+      throw GradleException(
+        "Ferium resolution failed (exit $exit) for ${scenarioLabel.get()}: ${diagnostic.name}"
+      )
+    }
+    assertPublishedTerrasectVersion(
+      resolvedMods
+        .walkTopDown()
+        .filter { it.isFile && it.extension == "jar" }
+        .map { it.name }
+        .toList(),
+      expectedTerrasectVersion.orNull,
+    )
+    logger.lifecycle(
+      "RuntimeTestFeriumDownload: ${scenarioLabel.get()} -> " +
+        "${resolvedMods.walkTopDown().count { it.isFile && it.extension == "jar" }} jar(s)"
+    )
+  }
+}
+
+private fun writeFeriumManifest(
+  manifestFile: File,
+  resolvedMods: File,
+  profile: File,
+  task: RuntimeTestFeriumDownloadTask,
+) {
+  val jars =
+    resolvedMods
+      .walkTopDown()
+      .filter { it.isFile && it.extension == "jar" }
+      .map { it.name }
+      .toList()
+      .sorted()
+  val declared =
+    task.mods.get().map { splitModEntry(it).let { (p, i, n) -> "$n ($p/$i)" } }.sorted()
+  val lines = buildList {
+    add("scenario=${task.scenarioLabel.get()}")
+    add("loader=${task.loader.get()}")
+    add("mcVersion=${task.mcVersion.get()}")
+    add("dryRun=${task.dryRun.orElse(false).get()}")
+    add("configFile=${profile.name}")
+    if (task.expectedTerrasectVersion.isPresent) {
+      add("terrasectVersion=${resolvedTerrasectVersion(resolvedMods)}")
+    }
+    add("declaredMods=$declared")
+    add("resolvedJars=$jars")
+  }
+  manifestFile.parentFile?.mkdirs()
+  manifestFile.writeText(
+    "Terrasect Ferium resolve manifest for ${task.scenarioLabel.get()}\n" +
+      lines.joinToString("\n") +
+      "\n"
+  )
 }
 
 /**

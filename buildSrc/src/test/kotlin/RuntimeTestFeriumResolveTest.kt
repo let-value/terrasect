@@ -61,6 +61,119 @@ class RuntimeTestFeriumResolveTest {
   }
 
   @Test
+  fun `prepare workspace stages a local build jar in Ferium user directory`() {
+    val workspace = rootDir.resolve("build/build/ferium-prepare-${System.nanoTime()}")
+    val localJar = File(workspace.parentFile, "terrasect-build.jar")
+    try {
+      assertTrue(workspace.mkdirs())
+      localJar.writeText("local-terrasect")
+
+      val profile =
+        prepareFeriumWorkspace(
+          workspace,
+          File(workspace, "mods"),
+          "fabric",
+          "26.2",
+          listOf(modEntry("MODRINTH", "glitchcore", "GlitchCore")),
+          localJar,
+        )
+
+      assertTrue(profile.exists(), "Ferium profile should be written")
+      assertTrue(File(workspace, "mods/user/${localJar.name}").exists())
+      assertTrue(
+        profile.readText().contains("\"output_dir\": \"${File(workspace, "mods").absolutePath}")
+      )
+    } finally {
+      workspace.deleteRecursively()
+      localJar.delete()
+    }
+  }
+
+  @Test
+  fun `Ferium download command uses the bootstrapped binary and isolated config`() {
+    assertEquals(
+      listOf("/tools/ferium", "--config-file", "/workspace/ferium-profile.json", "upgrade"),
+      feriumUpgradeArgs(File("/tools/ferium"), File("/workspace/ferium-profile.json")),
+    )
+  }
+
+  @Test
+  fun `download task runs after preparation and consumes the staged user jar`() {
+    val fixture = rootDir.resolve("build/build/ferium-download-${System.nanoTime()}")
+    try {
+      assertTrue(fixture.mkdirs())
+      val workspace = File(fixture, "workspace")
+      val localJar = File(fixture, "terrasect-local.jar").apply { writeText("local") }
+      prepareFeriumWorkspace(
+        workspace,
+        File(workspace, "mods"),
+        "fabric",
+        "26.2",
+        emptyList(),
+        localJar,
+      )
+
+      val tools = File(fixture, "tools").apply { mkdirs() }
+      val downloaded = File(workspace, "mods/downloaded.jar")
+      val script =
+        File(tools, "ferium").apply {
+          writeText(
+            """
+            #!/bin/sh
+            mkdir -p '${downloaded.parentFile.absolutePath}'
+            printf downloaded > '${downloaded.absolutePath}'
+            cp "${'$'}PWD/mods/user/"*.jar '${downloaded.parentFile.absolutePath}/' 2>/dev/null || true
+            """
+              .trimIndent()
+          )
+          setExecutable(true)
+        }
+      assertTrue(script.canExecute())
+
+      val mainClasses = buildSrcMainClasses.absolutePath.replace("\\", "\\\\")
+      val fixturePath = fixture.absolutePath.replace("\\", "\\\\")
+      File(fixture, "settings.gradle.kts").writeText("rootProject.name = \"ferium-download-fix\"")
+      File(fixture, "build.gradle.kts")
+        .writeText(
+          """
+          import java.io.File
+
+          buildscript {
+            dependencies { classpath(files("$mainClasses")) }
+          }
+
+          val root = File("$fixturePath")
+          tasks.register("downloadFixture", RuntimeTestFeriumDownloadTask::class.java) {
+            toolsDir.from(root.resolve("tools"))
+            profileFile.set(root.resolve("workspace/ferium-profile.json"))
+            userDirectory.set(root.resolve("workspace/mods/user"))
+            loader.set("fabric")
+            mcVersion.set("26.2")
+            scenarioLabel.set("compat-fabric-26.2")
+            mods.set(emptyList())
+            dryRun.set(false)
+            outputDirectory.set(root.resolve("workspace/mods"))
+            resolveManifest.set(root.resolve("workspace/manifest.txt"))
+          }
+          """
+            .trimIndent()
+        )
+
+      val result = runner(fixture, listOf("downloadFixture")).build()
+      assertEquals(TaskOutcome.SUCCESS, result.task(":downloadFixture")!!.outcome)
+      assertTrue(downloaded.exists(), "Ferium should produce a downloaded jar")
+      assertTrue(
+        File(workspace, "mods/${localJar.name}").exists(),
+        "Ferium should copy the local user jar into output_dir",
+      )
+      assertTrue(File(workspace, "resolve.log").exists())
+      assertTrue(File(workspace, "manifest.txt").readText().contains("resolvedJars="))
+    } finally {
+      fixture.deleteRecursively()
+    }
+  }
+
+  @Test
   fun `malformed mod entry is rejected`() {
     val bad = listOf("NOT-ENOUGH-FIELDS")
     try {

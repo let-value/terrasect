@@ -111,6 +111,7 @@ class RuntimeTestBootstrapCacheTest {
       // 1) First run executes the real @CacheableTask and caches its output.
       val first = runner(fixture, listOf("bootstrapFixture")).build()
       assertEquals(TaskOutcome.SUCCESS, first.task(":bootstrapFixture")!!.outcome)
+      assertTrue(File(outDir, "hmc/hmc.zip").exists(), "HMC should retain the URL basename")
       assertTrue(File(outDir, "ferium/ferium").exists(), "ferium binary should be extracted")
 
       // 2) Re-running with inputs unchanged and outputs present -> UP-TO-DATE.
@@ -122,6 +123,7 @@ class RuntimeTestBootstrapCacheTest {
       val cached = runner(fixture, listOf("bootstrapFixture")).build()
       assertEquals(TaskOutcome.FROM_CACHE, cached.task(":bootstrapFixture")!!.outcome)
       // FROM-CACHE restores the outputs, so the binary should be back.
+      assertTrue(File(outDir, "hmc/hmc.zip").exists(), "FROM-CACHE should restore the HMC jar")
       assertTrue(File(outDir, "ferium/ferium").exists(), "FROM-CACHE should restore outputs")
     } finally {
       if (fixture.exists()) fixture.deleteRecursively()

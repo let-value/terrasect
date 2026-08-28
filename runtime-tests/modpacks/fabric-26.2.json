@@ -1,0 +1,22 @@
+{
+  "active_profile": 0,
+  "active_modpack": 0,
+  "profiles": [
+    {
+      "name": "Terrasect Fabric 26.2",
+      "output_dir": "./mods",
+      "game_version": "26.2",
+      "mod_loader": "Fabric",
+      "mods": [
+        {"name": "Terrasect", "identifier": {"ModrinthProject": "terrasect"}},
+        {"name": "GlitchCore", "identifier": {"ModrinthProject": "glitchcore"}},
+        {"name": "Biomes O Plenty", "identifier": {"ModrinthProject": "biomes-o-plenty"}},
+        {"name": "TerraBlender", "identifier": {"ModrinthProject": "terrablender"}},
+        {"name": "Distant Horizons", "identifier": {"ModrinthProject": "distanthorizons"}},
+        {"name": "Create Fly", "identifier": {"ModrinthProject": "create-fly"}},
+        {"name": "C2ME", "identifier": {"ModrinthProject": "c2me-fabric"}}
+      ]
+    }
+  ],
+  "modpacks": []
+}
