@@ -1,0 +1,23 @@
+{
+  "active_profile": 0,
+  "active_modpack": 0,
+  "profiles": [
+    {
+      "name": "Terrasect build Fabric 1.21.1",
+      "output_dir": ".",
+      "game_version": "1.21.1",
+      "mod_loader": "Fabric",
+      "mods": [
+        {
+          "name": "Fabric API",
+          "identifier": { "ModrinthProject": "fabric-api" }
+        },
+        {
+          "name": "Fabric Language Kotlin",
+          "identifier": { "ModrinthProject": "fabric-language-kotlin" }
+        }
+      ]
+    }
+  ],
+  "modpacks": []
+}

@@ -1,0 +1,19 @@
+{
+  "active_profile": 0,
+  "active_modpack": 0,
+  "profiles": [
+    {
+      "name": "Terrasect published NeoForge 1.21.11",
+      "output_dir": ".",
+      "game_version": "1.21.11",
+      "mod_loader": "NeoForge",
+      "mods": [
+        {
+          "name": "Terrasect",
+          "identifier": { "ModrinthProject": "terrasect" }
+        }
+      ]
+    }
+  ],
+  "modpacks": []
+}

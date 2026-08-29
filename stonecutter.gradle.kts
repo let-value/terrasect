@@ -5,6 +5,8 @@ plugins {
 
 stonecutter active "26.2.x"
 
+MinecraftTestDsl(rootProject)
+
 allprojects {
   repositories {
     mavenCentral()
