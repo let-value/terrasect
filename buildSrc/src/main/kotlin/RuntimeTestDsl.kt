@@ -1,592 +1,275 @@
-// Root orchestration for the runtime-test infrastructure.
-//
-// Invoked once from the root controller (stonecutter.gradle.kts). It walks the Stonecutter tree,
-// registers a shared tool-bootstrap task, registers a per-version launch task for every supported
-// (loader, MC) lane, and wires the root aggregate tasks (build / published / compat / all /
-// infrastructure check). Per-version tasks stay addressable (e.g. :fabric:26.2.x:runtimeTestLaunch)
-// so a single lane can be run without the whole matrix.
-//
-// Everything is opt-in: none of these tasks is invoked by the normal build, spotlessCheck, or
-// unit tests, and they touch Modrinth/CurseForge only behind an explicit task with real secrets.
-
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
-import dev.kikugie.stonecutter.data.tree.ProjectTree
+import java.io.File
 import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.file.FileCollection
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.getByType
 
-private const val RUNTIME_TOOLS_DIR = "runtime-tools"
-private val RUNTIME_REL = "runtime-tests"
-private const val RUNTIME_EXPECTATIONS = "runtime-tests-expectations"
-private const val ROOT_TASKS = "runtime test"
+private const val MINECRAFT_TEST_GROUP = "minecraft test"
 
-/**
- * Root exposes the Stonecutter controller extension; the controller holds the shared [ProjectTree].
- */
-fun Project.controller(): StonecutterControllerExtension =
-  extensions.getByType<StonecutterControllerExtension>()
+private data class MinecraftTestLane(val loader: String, val segment: String, val minecraft: String)
 
-/**
- * Reads a root-level structured property (e.g. `mod.id`, `mod.version`) from the shared
- * `stonecutter.properties.toml` via the controller. Avoids the per-version build extension, which
- * only exists on versioned branches, not the root controller.
- */
-fun Project.runtimeProp(key: String): String = controller().properties.getOrNull<String>(key) ?: ""
+private fun Project.runtimeProp(key: String): String =
+  extensions.getByType<StonecutterControllerExtension>().properties.getOrNull<String>(key) ?: ""
 
-/** Like [runtimeProp] but returns null when unset, so an optional key never forces a value. */
-fun Project.runtimePropOrNull(key: String): String? = controller().properties.getOrNull<String>(key)
+private fun Project.runtimeTestLanes(): List<MinecraftTestLane> =
+  extensions.getByType<StonecutterControllerExtension>().tree.entries.flatMap { (loader, branch) ->
+    if (loader != "fabric" && loader != "neoforge") return@flatMap emptyList()
+    branch.versions.map { version ->
+      MinecraftTestLane(loader, version.project, version.version)
+    }
+  }
 
-/** Collects per-version (loader, segment) launch-task providers for later filtering. */
-data class PerVersionLaunch(
-  val gradlePath: String,
-  val loader: String,
-  val segment: String,
-  val provider: TaskProvider<RuntimeTestLaunchTask>,
+fun MinecraftTestDsl(root: Project) {
+  val launcher = root.layout.buildDirectory.file("minecraft-test/headlessmc.jar")
+  val bootstrap =
+    root.tasks.register("minecraftTestBootstrap", MinecraftTestBootstrapTask::class.java) {
+      group = MINECRAFT_TEST_GROUP
+      url.set(MinecraftTestPins.hmcUrl)
+      checksum.set(MinecraftTestPins.hmcSha256)
+      this.launcher.set(launcher)
+      feriumUrl.set(MinecraftTestPins.feriumUrl)
+      feriumChecksum.set(MinecraftTestPins.feriumSha256)
+      ferium.set(root.layout.buildDirectory.file("minecraft-test/ferium"))
+    }
+
+  val buildTests = mutableListOf<TaskProvider<MinecraftTestLaunchTask>>()
+  val publishedTests = mutableListOf<TaskProvider<MinecraftTestLaunchTask>>()
+  val compatTests = mutableListOf<TaskProvider<MinecraftTestLaunchTask>>()
+
+  root.runtimeTestLanes().forEach { lane ->
+    val project = root.project(":${lane.loader}:${lane.segment}")
+    val jar = project.tasks.named("jar", Jar::class.java)
+    val runtimeDependencies = runtimeDependencies(project, lane)
+    val gametest =
+      if (lane.loader == "fabric" && lane.segment !in setOf("1.20.1", "1.21.1")) {
+        val testProject = root.project(":e2e:${lane.segment}")
+        root
+          .files(
+            testProject.layout.buildDirectory.file(
+              "libs/terrasect-tests-${root.runtimeProp("mod.version")}+${lane.minecraft}.jar"
+            )
+          )
+          .builtBy("${testProject.path}:gametestModJar")
+      } else null
+    val buildArtifacts = root.files(jar.flatMap { it.archiveFile }).builtBy(jar)
+    if (gametest != null) buildArtifacts.from(gametest)
+    val buildDependencies = root.files(runtimeDependencies.configuration)
+    if (gametest != null) buildDependencies.from(clientGametestApi(project))
+
+    buildTests +=
+      registerPipeline(
+        root,
+        project,
+        lane,
+        "Build",
+        buildDependencies,
+        bootstrap,
+        buildArtifacts,
+        if (gametest == null) "" else "terrasect-e2e",
+        root.file("e2e"),
+        lane.loader == "fabric",
+      )
+
+    val published = configuration(project, runtimeDependencies.notations)
+    val publishedDependencies = root.files(published)
+    if (gametest != null) publishedDependencies.from(clientGametestApi(project))
+    publishedTests +=
+      registerPipeline(
+        root,
+        project,
+        lane,
+        "Published",
+        publishedDependencies,
+        bootstrap,
+        gametest ?: root.files(),
+        if (gametest == null) "" else "terrasect-e2e",
+        root.file("e2e"),
+        true,
+      )
+
+    if (lane.loader == "fabric" && root.findProject(":e2e-compat:${lane.segment}") != null) {
+      val compatDependencies =
+        root.files(
+          clientGametestApi(project),
+          compatModDependencies(project, root, lane),
+        )
+      val testProject = root.project(":e2e-compat:${lane.segment}")
+      val compatGametest =
+        root
+          .files(
+            testProject.layout.buildDirectory.file(
+              "libs/terrasect-compat-tests-${root.runtimeProp("mod.version")}+${lane.minecraft}.jar"
+            )
+          )
+          .builtBy("${testProject.path}:gametestModJar")
+      val compatArtifacts = root.files(jar.flatMap { it.archiveFile }, compatGametest).builtBy(jar)
+      compatTests +=
+        registerPipeline(
+          root,
+          project,
+          lane,
+          "Compat",
+          compatDependencies,
+          bootstrap,
+          compatArtifacts,
+          "terrasect-e2e-compat",
+          root.file("e2e-compat"),
+          false,
+        )
+    }
+  }
+
+  root.tasks.register("minecraftTestBuild") {
+    group = MINECRAFT_TEST_GROUP
+    description = "Test every locally built Terrasect artifact with HeadlessMC."
+    dependsOn(buildTests)
+  }
+  root.tasks.register("minecraftTestPublished") {
+    group = MINECRAFT_TEST_GROUP
+    description = "Test every published Terrasect artifact from Modrinth with HeadlessMC."
+    dependsOn(publishedTests)
+  }
+  root.tasks.register("minecraftTestCompat") {
+    group = MINECRAFT_TEST_GROUP
+    description = "Test local Terrasect artifacts with every supported compatibility mod."
+    dependsOn(compatTests)
+  }
+  root.tasks.register("minecraftTest") {
+    group = MINECRAFT_TEST_GROUP
+    description = "Run build, published, and compatibility Minecraft tests."
+    dependsOn("minecraftTestBuild", "minecraftTestPublished", "minecraftTestCompat")
+  }
+}
+
+private data class TestDependencies(
+  val configuration: Configuration,
+  val notations: List<String>,
 )
 
-/** Root entrypoint called from the root controller (stonecutter.gradle.kts). */
-fun RuntimeTestDsl(root: Project) {
-  val tree = root.controller().tree
-  val bootstrapDir = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap")
-
-  // --- shared tool bootstrap: one task downloads + verifies HMC + Ferium. ---
-  val bootstrapTask: TaskProvider<RuntimeTestBootstrapTask> =
-    root.tasks.register("runtimeTestBootstrap", RuntimeTestBootstrapTask::class.java)
-  bootstrapTask.configure {
-    group = ROOT_TASKS
-    description = "Download + verify HeadlessMC and Ferium into the runtime-tools cache dir."
-    hmcUrl.set(RuntimeTestPins.HMC_JAR_URL)
-    hmcSha256.set(RuntimeTestPins.HMC_JAR_SHA256)
-    feriumUrl.set(RuntimeTestPins.feriumUrl())
-    feriumSha256.set(RuntimeTestPins.feriumSha256())
-    feriumPlatform.set(RuntimeTestPins.feriumPlatform())
-    outputDirectory.set(bootstrapDir)
-  }
-
-  // --- shared descriptor validation (preflight gate): no network. ---
-  val descriptorValidateTask: TaskProvider<RuntimeTestDescriptorValidateTask> =
-    root.tasks.register(
-      "runtimeTestDescriptorValidate",
-      RuntimeTestDescriptorValidateTask::class.java,
-    )
-  descriptorValidateTask.configure {
-    group = ROOT_TASKS
-    description = "Validate every runtime-test descriptor offline (preflight gate)."
-    expectedModId.set(root.runtimeProp("mod.id"))
-    expectedLatest.set(RuntimeTestPins.LATEST_MC)
-    expectedModVersion.set(root.runtimeProp("mod.version"))
-    descriptorsDir.from(root.file(RUNTIME_REL))
-  }
-
-  // --- offline validation-expectations: proves the SAME parse()/validate() pipeline rejects the
-  // malformed / unsupported / missing-lane / header-mismatch shapes, and that the real matrix still
-  // passes. Drives RuntimeTestDescriptors.loadAll() directly — no network, no launch tooling. Not
-  // wired into CI or the launch pipeline, so it cannot alter release behaviour. ---
-  val validationExpectationsTask: TaskProvider<RuntimeTestValidationExpectationsTask> =
-    root.tasks.register(
-      "runtimeTestValidationExpectations",
-      RuntimeTestValidationExpectationsTask::class.java,
-    )
-  validationExpectationsTask.configure {
-    group = ROOT_TASKS
-    description =
-      "Offline: assert the descriptor parser rejects malformed/unsupported/missing-lane cases and accepts the real matrix."
-    expectationsFile.set(root.file("$RUNTIME_EXPECTATIONS/expectations.properties"))
-    positiveDir.set(root.file(RUNTIME_REL))
-  }
-
-  // --- infrastructure check: infrastructure + descriptors + bootstrap pipeline. ---
-  root.tasks.register("runtimeTestInfrastructureCheck") {
-    group = ROOT_TASKS
-    description = "Preflight: validate descriptors and warm the tool/bootstrap + cache pipeline."
-    dependsOn(descriptorValidateTask, bootstrapTask)
-  }
-
-  // --- tree enumeration: per-version launch tasks + scenario-variant tasks. ---
-  val launchBySegment = collectPerVersionLaunches(root, tree, bootstrapTask)
-
-  val buildTasks = launchBySegment.values.map { it.provider.get() }
-
-  // --- per-version offline dry-run tasks: never launch, only assemble + print the exact launch
-  // argv.
-  val dryRunProviders = collectPerVersionDryRuns(root, tree)
-  val dryRunTasks = dryRunProviders.values.map { it.get() }
-
-  // --- descriptor-driven Ferium resolution (offline parse; real network only behind explicit
-  // tasks). ---
-  val manifests = RuntimeTestDescriptors.loadAll(root.file(RUNTIME_REL))
-  // Terrasect's CurseForge project id is a public coordinate (like the Modrinth slug), so it can be
-  // baked here — but kept overridable via -Pterrseaect.curseForgeTerrasectProjectId. The read-only
-  // CurseForge API key is NOT baked anywhere; it is injected into the process env at execution
-  // time.
-  val curseForgeTerrasectId =
-    (root.findProperty("terrseaect.curseForgeTerrasectProjectId") as? String) ?: "1615147"
-  // Exact Terrasect version to verify the published artifact against. Defaults to mod.version from
-  // stonecutter.properties.toml (the current release) and is overridable via -Pterrseaect.
-  // runtimeTestPublishedVersion so a specific published version can be pinned and verified end to
-  // end. Resolved once here (not per-lane) so every PUBLISHED lane asserts the same coordinate.
-  val terrasectPublishedVersion =
-    (root.findProperty("terrseaect.runtimeTestPublishedVersion") as? String)?.ifBlank { null }
-      ?: root.runtimeProp("mod.version").ifBlank { RuntimeTestPins.MOD_VERSION_PROP }
-  val resolveProviders = mutableListOf<TaskProvider<RuntimeTestFeriumDownloadTask>>()
-  val prepareProviders = mutableListOf<TaskProvider<RuntimeTestFeriumPrepareTask>>()
-
-  val compatProviders =
-    launchBySegment.values
-      .map { reg ->
-        registerCompatVariant(
-          root,
-          manifests,
-          reg,
-          bootstrapTask,
-          prepareProviders,
-          resolveProviders,
-        )
-      }
-      .toSet()
-
-  val publishedModrinth =
-    launchBySegment.values.map { reg ->
-      registerPublishedVariant(
-        root,
-        manifests,
-        reg,
-        Platform.MODRINTH,
-        curseForgeTerrasectId,
-        bootstrapTask,
-        prepareProviders,
-        resolveProviders,
-        terrasectPublishedVersion,
-      )
-    }
-  val publishedCurseforge =
-    launchBySegment.values.map { reg ->
-      registerPublishedVariant(
-        root,
-        manifests,
-        reg,
-        Platform.CURSEFORGE,
-        curseForgeTerrasectId,
-        bootstrapTask,
-        prepareProviders,
-        resolveProviders,
-        terrasectPublishedVersion,
-      )
-    }
-
-  // --- root aggregates. ---
-  root.tasks.register("runtimeTestBuild") {
-    group = ROOT_TASKS
-    description = "Boot locally built Terrasect jars through HeadlessMC across the full matrix."
-    dependsOn(buildTasks)
-  }
-
-  root.tasks.register("runtimeTestLaunchDryRun") {
-    group = ROOT_TASKS
-    description =
-      "Offline dry-run: assemble the exact HeadlessMC launch argv for every lane " +
-        "(no download, no process). The printed command is the verifiable controlled execution path."
-    dependsOn(dryRunTasks)
-  }
-
-  root.tasks.register("runtimeTestCompat") {
-    group = ROOT_TASKS
-    description =
-      "Boot compat-modpack scenarios (local jar + Ferium-resolved third-party mods) through HeadlessMC."
-    dependsOn(compatProviders)
-  }
-
-  root.tasks.register("runtimeTestPublished") {
-    group = ROOT_TASKS
-    description =
-      "Boot the requested published Terrasect artifact from Modrinth/CurseForge via Ferium."
-    dependsOn(publishedModrinth + publishedCurseforge)
-  }
-
-  // Descriptor-driven Ferium resolution. Pass -Pterrseaect.runtimeTestResolveDryRun=true to run
-  // every resolve task in dry-run mode (writes + validates the isolated config, no download).
-  root.tasks.register("runtimeTestResolve") {
-    group = ROOT_TASKS
-    description =
-      "Resolve Modrinth/CurseForge fixtures with Ferium (repository-owned FERIUM_CONFIG_FILE), " +
-        "preserving a deterministic manifest; the launch task then boots via HeadlessMC."
-    dependsOn(resolveProviders)
-  }
-
-  root.tasks.register("runtimeTestFeriumPrepare") {
-    group = ROOT_TASKS
-    description = "Prepare every lane's isolated Ferium profile and local build-artifact staging."
-    dependsOn(prepareProviders)
-  }
-
-  root.tasks.register("runtimeTestFeriumDownload") {
-    group = ROOT_TASKS
-    description =
-      "Download every prepared Ferium modpack; live mode requires the bootstrapped tools."
-    dependsOn(resolveProviders)
-  }
-
-  root.tasks.register("runtimeTestAll") {
-    group = ROOT_TASKS
-    description = "Build + published + compat runtime matrices."
-    dependsOn("runtimeTestBuild", "runtimeTestPublished", "runtimeTestCompat", "runtimeTestResolve")
-  }
-}
-
-/** Registers per-version launch tasks on every supported fabric/neoforge lane, keyed by segment. */
-private fun collectPerVersionLaunches(
-  root: Project,
-  tree: ProjectTree,
-  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
-): Map<Pair<String, String>, PerVersionLaunch> {
-  val result = mutableMapOf<Pair<String, String>, PerVersionLaunch>()
-  tree.entries.forEach { (branchName, branch) ->
-    if (branchName !in listOf("fabric", "neoforge")) return@forEach
-    branch.versions.forEach { node ->
-      val gradlePath = ":$branchName:${node.project}"
-      val modProject = root.findProject(gradlePath) ?: return@forEach
-      val mcVersionId = RuntimeTestPins.mcVersionOf(node.project)
-
-      val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
-      val provider: TaskProvider<RuntimeTestLaunchTask> =
-        modProject.tasks.register("runtimeTestLaunch", RuntimeTestLaunchTask::class.java)
-      provider.configure {
-        group = ROOT_TASKS
-        description =
-          "Boot the built Terrasect jar for $branchName $mcVersionId through HeadlessMC."
-        mcVersion.set(mcVersionId)
-        loader.set(branchName)
-        successMarker.set(RuntimeTestPins.successMarkerFor(branchName))
-        launchTimeoutSeconds.set(900L)
-        toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-        runtimeDir.set(
-          root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/runtime/$branchName-${node.project}")
-        )
-        testJar.set(jarProvider.flatMap { it.archiveFile })
-        dependsOn(bootstrapTask)
-        dependsOn(modProject.tasks.named("jar"))
-      }
-      result[Pair(branchName, mcVersionId)] =
-        PerVersionLaunch(gradlePath, branchName, node.project, provider)
-    }
-  }
-  return result
-}
-
-/**
- * Registers a per-version DRY-RUN variant of [collectPerVersionLaunches]'s launch task. The dry-run
- * never starts HeadlessMC or launches Minecraft: it performs the exact same jar preparation as the
- * live launch, then writes the assembled HMC launch command line to an output file. This is the
- * deterministic, offline-controlled execution path the acceptance contract requires ("one lane has
- * a verifiable dry-run or controlled execution path with exact output"). It exercises the real
- * command-builder and jar-preparation side effects, only minus the real process spawn.
- */
-private fun collectPerVersionDryRuns(
-  root: Project,
-  tree: ProjectTree,
-): Map<Pair<String, String>, TaskProvider<RuntimeTestLaunchTask>> {
-  val result = mutableMapOf<Pair<String, String>, TaskProvider<RuntimeTestLaunchTask>>()
-  tree.entries.forEach { (branchName, branch) ->
-    if (branchName !in listOf("fabric", "neoforge")) return@forEach
-    branch.versions.forEach { node ->
-      val gradlePath = ":$branchName:${node.project}"
-      val modProject = root.findProject(gradlePath) ?: return@forEach
-      val mcVersionId = RuntimeTestPins.mcVersionOf(node.project)
-
-      val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
-      val provider: TaskProvider<RuntimeTestLaunchTask> =
-        modProject.tasks.register("runtimeTestLaunchDryRun", RuntimeTestLaunchTask::class.java)
-      provider.configure {
-        group = ROOT_TASKS
-        description =
-          "Offline dry-run: assemble the exact HeadlessMC launch argv for $branchName " +
-            "$mcVersionId without launching (no download, no process). Prints the command to " +
-            "a file."
-        mcVersion.set(mcVersionId)
-        loader.set(branchName)
-        successMarker.set(RuntimeTestPins.successMarkerFor(branchName))
-        launchTimeoutSeconds.set(900L)
-        dryRun.set(true)
-        toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-        runtimeDir.set(
-          root.layout.buildDirectory.dir(
-            "$RUNTIME_TOOLS_DIR/runtime-dryrun/$branchName-${node.project}"
-          )
-        )
-        dryRunOutput.set(
-          root.layout.buildDirectory.file(
-            "$RUNTIME_TOOLS_DIR/dryrun-output/$branchName-${node.project}.cmd"
-          )
-        )
-        testJar.set(jarProvider.flatMap { it.archiveFile })
-        dependsOn(modProject.tasks.named("jar"))
-      }
-      result[Pair(branchName, mcVersionId)] = provider
-    }
-  }
-  return result
-}
-
-/** Registers the prepare -> download stages for one isolated Ferium workspace. */
-private fun registerFeriumPipeline(
-  root: Project,
-  prepareName: String,
-  downloadName: String,
-  loaderName: String,
-  mcVer: String,
-  label: String,
-  modList: List<String>,
-  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
-  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
-  localJar: TaskProvider<Jar>? = null,
-  versionToVerify: String? = null,
-): TaskProvider<RuntimeTestFeriumDownloadTask> {
-  val outputDirPath = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/ferium/$label/mods")
-  val profileFilePath =
-    root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/ferium/$label/ferium-profile.json")
-  val userDirPath = root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/ferium/$label/mods/user")
-  val manifest = root.layout.buildDirectory.file("$RUNTIME_TOOLS_DIR/ferium/$label.txt")
-  val dryRun =
-    root.providers
-      .gradleProperty("terrseaect.runtimeTestResolveDryRun")
-      .map { it.toBoolean() }
-      .orElse(false)
-
-  val prepare = root.tasks.register(prepareName, RuntimeTestFeriumPrepareTask::class.java)
-  prepare.configure {
-    group = ROOT_TASKS
-    description = "Prepare the $label Ferium profile and local artifact staging directory."
-    loader.set(loaderName)
-    mcVersion.set(mcVer)
-    mods.set(modList)
-    outputDirectoryPath.set(outputDirPath.map { it.asFile.absolutePath })
-    this.profileFile.set(profileFilePath)
-    this.userDirectory.set(userDirPath)
-    localJar?.let {
-      this.localJar.set(it.flatMap { jar -> jar.archiveFile })
-      dependsOn(it)
-    }
-  }
-
-  val download = root.tasks.register(downloadName, RuntimeTestFeriumDownloadTask::class.java)
-  download.configure {
-    group = ROOT_TASKS
-    description = "Download the $label Ferium modpack into its isolated mods directory."
-    toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-    this.profileFile.set(prepare.flatMap { it.profileFile })
-    this.userDirectory.set(prepare.flatMap { it.userDirectory })
-    loader.set(loaderName)
-    mcVersion.set(mcVer)
-    scenarioLabel.set(label)
-    mods.set(modList)
-    expectedTerrasectVersion.set(versionToVerify)
-    this.dryRun.set(dryRun)
-    timeoutSeconds.set(1200L)
-    outputDirectory.set(outputDirPath)
-    resolveManifest.set(manifest)
-    curseforgeApiKey.set(root.providers.environmentVariable("CURSEFORGE_API_KEY"))
-    dependsOn(prepare)
-    // The offline resolve dry-run must remain independent of bootstrap and network access.
-    if (!dryRun.get()) dependsOn(bootstrapTask)
-  }
-  resolveProviders.add(download)
-  prepareProviders.add(prepare)
-  return download
-}
-
-/**
- * Registers a per-version COMPAT variant: the launch boots local jar + optional Ferium-resolved
- * mods.
- */
-private fun registerCompatVariant(
-  root: Project,
-  manifests: List<RuntimeManifest>,
-  reg: PerVersionLaunch,
-  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
-  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
-): Task {
-  val modProject = root.findProject(reg.gradlePath) ?: return reg.provider.get()
-  val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
-  val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
-
-  // Third-party mods are read from the descriptor for this lane. Empty lanes still go through
-  // Ferium so the local build artifact exercises the same `user/` staging path everywhere.
-  val mods = resolveModsFor(manifests, reg.loader, mcVersionId)
-
-  val resolveProvider =
-    registerFeriumPipeline(
-      root,
-      "runtimeTest${reg.loader}-${mcVersionId}CompatPrepare",
-      "runtimeTest${reg.loader}-${mcVersionId}CompatDownload",
-      reg.loader,
-      mcVersionId,
-      "compat-${reg.loader}-${mcVersionId}",
-      mods,
-      bootstrapTask,
-      prepareProviders,
-      resolveProviders,
-      jarProvider,
-    )
-
-  val provider: TaskProvider<RuntimeTestLaunchTask> =
-    modProject.tasks.register("runtimeTestCompat", RuntimeTestLaunchTask::class.java)
-  provider.configure {
-    group = ROOT_TASKS
-    description =
-      "Boot compat-modpack scenario for ${reg.loader} $mcVersionId (local jar + " +
-        (if (mods.isEmpty()) "no third-party mods" else "Ferium-resolved third-party mods") +
-        ") through HeadlessMC."
-    mcVersion.set(mcVersionId)
-    loader.set(reg.loader)
-    successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
-    launchTimeoutSeconds.set(1200L)
-    toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-    runtimeDir.set(
-      root.layout.buildDirectory.dir(
-        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-compat-${mcVersionId}"
-      )
-    )
-    // The local Terrasect jar is staged in Ferium's supported `user/` directory during prepare and
-    // copied into the resolved output by the download stage.
-    resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
-    dependsOn(resolveProvider.get(), modProject.tasks.named("jar"))
-  }
-  return provider.get()
-}
-
-/**
- * Registers a per-version PUBLISHED variant: resolves Terrasect from Modrinth/CurseForge via
- * Ferium.
- */
-private fun registerPublishedVariant(
-  root: Project,
-  manifests: List<RuntimeManifest>,
-  reg: PerVersionLaunch,
-  platform: Platform,
-  curseForgeTerrasectId: String?,
-  bootstrapTask: TaskProvider<RuntimeTestBootstrapTask>,
-  prepareProviders: MutableList<TaskProvider<RuntimeTestFeriumPrepareTask>>,
-  resolveProviders: MutableList<TaskProvider<RuntimeTestFeriumDownloadTask>>,
-  versionToVerify: String,
-): TaskProvider<RuntimeTestLaunchTask> {
-  val modProject = root.findProject(reg.gradlePath) ?: return reg.provider
-  val mcVersionId = RuntimeTestPins.mcVersionOf(reg.segment)
-  val jarProvider: TaskProvider<Jar> = modProject.tasks.named("jar") as TaskProvider<Jar>
-
-  // Terrasect's own registry coordinate. Modrinth uses the project slug; CurseForge a numeric id
-  // supplied by the operator as -Pterrseaect.curseForgeTerrasectProjectId (never baked in).
-  //
-  // Resolution only happens when the descriptor actually declares this (loader, mc) lane on this
-  // platform. CurseForge is Forge-only (Terrasect never publishes Fabric there), so the descriptor
-  // omits fabric lanes; those are deferred to local-jar boot for build-artifact coverage rather
-  // than attempting an invalid CurseForge resolve.
-  val terrasectMod =
-    when (platform) {
-      Platform.MODRINTH ->
-        if (publishedDeclared(manifests, reg.loader, mcVersionId, platform))
-          modEntry("MODRINTH", "terrasect", "Terrasect")
-        else null
-      Platform.CURSEFORGE ->
-        if (
-          publishedDeclared(manifests, reg.loader, mcVersionId, platform) &&
-            curseForgeTerrasectId != null
-        )
-          modEntry("CURSEFORGE", curseForgeTerrasectId, "Terrasect")
-        else null
-    }
-
-  val resolveProvider =
-    if (terrasectMod == null) null
-    else
-      registerFeriumPipeline(
-        root,
-        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedPrepare",
-        "runtimeTest${reg.loader}-${mcVersionId}${platform.name}PublishedDownload",
-        reg.loader,
-        mcVersionId,
-        "published-${reg.loader}-${mcVersionId}-${platform.name}",
-        listOf(terrasectMod),
-        bootstrapTask,
-        prepareProviders,
-        resolveProviders,
-        versionToVerify = versionToVerify,
-      )
-
-  val provider: TaskProvider<RuntimeTestLaunchTask> =
-    modProject.tasks.register(
-      "runtimeTest${platform.name}Published",
-      RuntimeTestLaunchTask::class.java,
-    )
-  provider.configure {
-    group = ROOT_TASKS
-    description =
-      "Boot the $platform-registered Terrasect jar for ${reg.loader} $mcVersionId through HeadlessMC."
-    mcVersion.set(mcVersionId)
-    loader.set(reg.loader)
-    successMarker.set(RuntimeTestPins.successMarkerFor(reg.loader))
-    // Verify the resolved published artifact is exactly this version before any launch.
-    expectedTerrasectVersion.set(versionToVerify)
-    launchTimeoutSeconds.set(1200L)
-    toolsDir.from(root.layout.buildDirectory.dir("$RUNTIME_TOOLS_DIR/bootstrap"))
-    runtimeDir.set(
-      root.layout.buildDirectory.dir(
-        "$RUNTIME_TOOLS_DIR/runtime/${reg.loader}-${platform.name}-${mcVersionId}"
-      )
-    )
-    if (resolveProvider != null) {
-      // Boot the resolved published Terrasect artifact (no local injection — verifies the registry
-      // form).
-      resolvedModsDir.set(resolveProvider.flatMap { it.outputDirectory })
-      dependsOn(resolveProvider.get(), modProject.tasks.named("jar"))
+private fun runtimeDependencies(project: Project, lane: MinecraftTestLane): TestDependencies {
+  val notations =
+    if (lane.loader == "fabric") {
+      emptyList()
     } else {
-      // Deferred (e.g. CurseForge without an operator-supplied id): boot the local build jar so the
-      // lane still retains build-artifact coverage.
-      testJar.set(jarProvider.flatMap { it.archiveFile })
-      dependsOn(reg.provider, modProject.tasks.named("jar"))
+      val version = project.property("deps.kotlinforforge")
+      listOf(
+        "thedarkcolour:kotlinforforge-neoforge:$version",
+        "thedarkcolour:kfflang-neoforge:$version",
+        "thedarkcolour:kfflib-neoforge:$version",
+        "thedarkcolour:kffmod-neoforge:$version",
+      )
     }
-  }
-  return provider
+  return TestDependencies(configuration(project, notations), notations)
 }
 
-/**
- * Collects the pipe-delimited mod entries declared for a lane's COMPAT scenario in the descriptors.
- */
-private fun resolveModsFor(
-  manifests: List<RuntimeManifest>,
-  loader: String,
-  mcVersion: String,
-): List<String> {
-  val result = mutableListOf<String>()
-  manifests.forEach { m ->
-    m.scenarios.forEach { s ->
-      if (s.loader != loader) return@forEach
-      if (RuntimeTestPins.matrixKey(s.mc) != RuntimeTestPins.matrixKey(mcVersion)) return@forEach
-      if (s.scenario != Scenario.COMPAT) return@forEach
-      s.externalMods.forEach { em ->
-        result += modEntry(em.platform.name, em.project, em.name, em.version)
+private fun clientGametestApi(project: Project): FileCollection {
+  val fabricApi =
+    configuration(
+      project,
+      listOf("net.fabricmc.fabric-api:fabric-api:${project.property("deps.fabric_api")}"),
+      true,
+    )
+  return fabricApi.incoming
+    .artifactView {
+      componentFilter {
+        it is ModuleComponentIdentifier && it.module == "fabric-client-gametest-api-v1"
       }
     }
-  }
-  return result
+    .files
 }
 
-/**
- * Whether the descriptors declare a PUBLISHED scenario for this (loader, mc) lane on [platform].
- */
-private fun publishedDeclared(
-  manifests: List<RuntimeManifest>,
-  loader: String,
-  mcVersion: String,
-  platform: Platform,
-): Boolean = manifests.any { m ->
-  m.scenarios.any { s ->
-    s.scenario == Scenario.PUBLISHED &&
-      s.source == platform &&
-      s.loader == loader &&
-      RuntimeTestPins.matrixKey(s.mc) == RuntimeTestPins.matrixKey(mcVersion)
+private fun compatModDependencies(
+  project: Project,
+  root: Project,
+  lane: MinecraftTestLane,
+): FileCollection {
+  val compatProject = root.project(":e2e-compat:${lane.segment}")
+  val dependencies = project.configurations.detachedConfiguration().apply { isTransitive = false }
+  compatProject.afterEvaluate {
+    val notations =
+      listOf("modImplementation", "modRuntimeOnly")
+        .flatMap { compatProject.configurations.getByName(it).dependencies }
+        .filter {
+          it.group == "maven.modrinth" ||
+            (it.group == "net.fabricmc.fabric-api" && it.name == "fabric-api") ||
+            (it.group == "net.fabricmc" && it.name == "fabric-language-kotlin")
+        }
+        .map { "${it.group}:${it.name}:${it.version}" }
+    dependencies.dependencies.addAll(notations.map(project.dependencies::create))
+  }
+  return root.files(dependencies)
+}
+
+private fun configuration(
+  project: Project,
+  notations: List<String>,
+  transitive: Boolean = false,
+): Configuration =
+  project.configurations
+    .detachedConfiguration(*notations.map(project.dependencies::create).toTypedArray())
+    .apply { isTransitive = transitive }
+
+private fun registerPipeline(
+  root: Project,
+  project: Project,
+  lane: MinecraftTestLane,
+  scenario: String,
+  dependencies: FileCollection,
+  bootstrap: TaskProvider<MinecraftTestBootstrapTask>,
+  artifacts: FileCollection,
+  clientGametestMod: String,
+  e2eDirectory: File,
+  resolveWithFerium: Boolean,
+): TaskProvider<MinecraftTestLaunchTask> {
+  val id = "${lane.loader}-${lane.segment}-${scenario.lowercase()}"
+  val definitionDirectory = if (scenario == "Build") "artifact" else scenario.lowercase()
+  val prepare =
+    project.tasks.register(
+      "minecraftTest${scenario}Prepare",
+      MinecraftTestPrepareTask::class.java,
+    ) {
+      group = MINECRAFT_TEST_GROUP
+      this.dependencies.from(dependencies)
+      this.artifacts.from(artifacts)
+      loader.set(lane.loader)
+      minecraft.set(lane.minecraft)
+      this.resolveWithFerium.set(resolveWithFerium)
+      modpackDefinition.set(
+        root.file("runtime-tests/modpacks/$definitionDirectory/${lane.loader}-${lane.segment}.json")
+      )
+      ferium.set(bootstrap.flatMap { it.ferium })
+      modpackDirectory.set(root.layout.buildDirectory.dir("minecraft-test/modpacks/$id"))
+      dependsOn(bootstrap)
+    }
+  return project.tasks.register("minecraftTest$scenario", MinecraftTestLaunchTask::class.java) {
+    group = MINECRAFT_TEST_GROUP
+    description = "Test the ${scenario.lowercase()} pack for ${lane.loader} ${lane.minecraft}."
+    loader.set(lane.loader)
+    minecraft.set(lane.minecraft)
+    successMarker.set(if (clientGametestMod.isEmpty()) "Initializing Terrasect common..." else "")
+    this.clientGametestMod.set(clientGametestMod)
+    testFilter.set(root.providers.gradleProperty("test").orElse(""))
+    this.e2eDirectory.set(e2eDirectory.absolutePath)
+    timeoutSeconds.set(1200L)
+    launcher.set(bootstrap.flatMap { it.launcher })
+    modpackDirectory.set(prepare.flatMap { it.modpackDirectory })
+    minecraftDirectory.set(
+      root.layout.dir(
+        root.provider {
+          File(
+            root.gradle.gradleUserHomeDir,
+            "caches/terrasect-minecraft/${lane.loader}-${lane.segment}",
+          )
+        }
+      )
+    )
+    runtimeDirectory.set(root.layout.buildDirectory.dir("minecraft-test/runtime/$id"))
+    launchLog.set(root.layout.buildDirectory.file("minecraft-test/logs/$id.log"))
+    dependsOn(bootstrap, prepare)
+    outputs.upToDateWhen { false }
   }
 }

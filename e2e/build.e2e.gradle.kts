@@ -8,6 +8,7 @@ val fabricDir = rootProject.file("fabric")
 val e2eDir = rootProject.file("e2e")
 val gametestModId = "${mod.id}-e2e"
 val oldGametestParadigm = mcVersion in listOf("1.20.1", "1.21.1")
+val gametestLibraries = configurations.create("gametestLibraries")
 
 // Files under gametest-client wrap latest-only tests in `//? if latest { ... //?}`; Stonecutter
 // strips that content from the compiled source for non-latest versions, so the entrypoint list is
@@ -136,10 +137,9 @@ dependencies {
     runtimeOnly("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
     runtimeOnly("com.github.komputing:kbase58:${prop("deps.kbase58")}")
   }
-  add(
-    "gametestImplementation",
-    "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}",
-  )
+  val snapshotTests = "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}"
+  add("gametestImplementation", snapshotTests)
+  add(gametestLibraries.name, snapshotTests)
 }
 
 val resourceProps =
@@ -180,6 +180,27 @@ tasks {
     from(commonProject.sourceSets["main"].output) {
       exclude("META-INF/accesstransformer.cfg", "accesswideners/*.accesswidener")
     }
+  }
+
+  val gametestThinJar =
+    register<Jar>("gametestThinJar") {
+      archiveClassifier.set("gametest-dev")
+      from(sourceSets["gametest"].output)
+    }
+
+  register<Jar>("gametestModJar") {
+    archiveBaseName.set("terrasect-tests")
+    archiveVersion.set("${version}+$mcVersion")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(gametestThinJar.flatMap { it.archiveFile }.map { zipTree(it) })
+    from({ gametestLibraries.map(::zipTree) })
+    exclude(
+      "META-INF/MANIFEST.MF",
+      "META-INF/*.DSA",
+      "META-INF/*.RSA",
+      "META-INF/*.SF",
+      "module-info.class",
+    )
   }
 
   matching { it.name == "runClientGameTest" || it.name == "runGameTest" }

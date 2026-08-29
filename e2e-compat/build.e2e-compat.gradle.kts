@@ -7,6 +7,7 @@ plugins {
 val fabricDir = rootProject.file("fabric")
 val e2eCompatDir = rootProject.file("e2e-compat")
 val gametestModId = "${mod.id}-e2e-compat"
+val gametestLibraries = configurations.create("gametestLibraries")
 
 fabricApi {
   configureTests {
@@ -76,10 +77,9 @@ dependencies {
 
   add("gametestImplementation", sourceSets["main"].output)
   add("gametestImplementation", commonProject)
-  add(
-    "gametestImplementation",
-    "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}",
-  )
+  val snapshotTests = "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}"
+  add("gametestImplementation", snapshotTests)
+  add(gametestLibraries.name, snapshotTests)
 }
 
 val resourceProps = fabricResourceProps("gametest_mod_id" to gametestModId)
@@ -112,6 +112,27 @@ tasks {
     from(commonProject.sourceSets["main"].output) {
       exclude("META-INF/accesstransformer.cfg", "accesswideners/*.accesswidener")
     }
+  }
+
+  val gametestThinJar =
+    register<Jar>("gametestThinJar") {
+      archiveClassifier.set("gametest-dev")
+      from(sourceSets["gametest"].output)
+    }
+
+  register<Jar>("gametestModJar") {
+    archiveBaseName.set("terrasect-compat-tests")
+    archiveVersion.set("${version}+$mcVersion")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(gametestThinJar.flatMap { it.archiveFile }.map { zipTree(it) })
+    from({ gametestLibraries.map(::zipTree) })
+    exclude(
+      "META-INF/MANIFEST.MF",
+      "META-INF/*.DSA",
+      "META-INF/*.RSA",
+      "META-INF/*.SF",
+      "module-info.class",
+    )
   }
 
   named<JavaExec>("runClientGameTest") {
