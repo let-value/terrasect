@@ -29,6 +29,7 @@
     "structure.ChunkGeneratorLocateMixin",
     "structure.ChunkGeneratorStructureMixin",
     "structure.ChunkStatusTasksStructureMixin",
+    "structure.WorldGenContextAccessor",
     "structure.JigsawStructureAccessor",
     "structure.RandomSpreadStructurePlacementMixin",
     "structure.StructurePlacementMixin",

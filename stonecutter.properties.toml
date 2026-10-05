@@ -15,6 +15,7 @@ deps.mixinextras = "0.5.0"
 deps.zero_allocation_hashing = "0.27ea1"
 deps.caffeine = "3.2.3"
 deps.kbase58 = "0.4"
+deps.kbase58_sha256 = "1.1.1"
 deps.night_config = "3.8.3"
 
 ["1.20.1"]
@@ -100,8 +101,8 @@ deps.compat_c2me = "h6qi8QiJ" # Fabric 26.1.2, C2ME 0.4.0-alpha.0.31+26.1.2
 
 [neoforge."26.1.x"]
 deps.neo_loader = "26.1.2.78"
-deps.kotlinforforge = "6.0.0"
-deps.kotlinforforge_range = "[6.0,)"
+deps.kotlinforforge = "6.1.0"
+deps.kotlinforforge_range = "[6.1,)"
 deps.neo_version_range = "[26.1,26.2)"
 deps.neo_minecraft_range = "[26.1,26.2)"
 deps.neo_loader_range = "[4,)"

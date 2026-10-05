@@ -1,6 +1,5 @@
 package terrasect.mixin.structure;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -23,15 +22,11 @@ public class ChunkStatusTasksStructureMixin {
       @Coerce Object step,
       @Coerce Object cache,
       ChunkAccess chunk,
-      CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir)
-      throws ReflectiveOperationException {
-    Method levelMethod = worldGenContext.getClass().getMethod("level");
-    Method generatorMethod = worldGenContext.getClass().getMethod("generator");
-    Method templateManagerMethod = worldGenContext.getClass().getMethod("structureManager");
-    ServerLevel level = (ServerLevel) levelMethod.invoke(worldGenContext);
-    ChunkGenerator generator = (ChunkGenerator) generatorMethod.invoke(worldGenContext);
-    StructureTemplateManager templateManager =
-        (StructureTemplateManager) templateManagerMethod.invoke(worldGenContext);
+      CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir) {
+    WorldGenContextAccessor context = (WorldGenContextAccessor) worldGenContext;
+    ServerLevel level = context.terrasect$level();
+    ChunkGenerator generator = context.terrasect$generator();
+    StructureTemplateManager templateManager = context.terrasect$structureManager();
     StructureHandler.placeForcedStructures(
         generator,
         level.registryAccess(),
