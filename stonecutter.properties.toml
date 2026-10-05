@@ -103,7 +103,7 @@ deps.fabric_api = "0.154.2+26.1.2"
 deps.compat_glitchcore = "WNtSATXw" # Fabric 26.1.2, GlitchCore 26.1.2.0.2 (BiomesOPlenty dependency)
 deps.compat_biomesoplenty = "8MVwdPgG" # Fabric 26.1.2, BiomesOPlenty 26.1.2.0.22
 deps.compat_terrablender = "NIXt6lha" # Fabric 26.1.2, TerraBlender 26.1.2.0.3
-deps.compat_distanthorizons = "c0SAW45X" # Fabric+NeoForge 26.1.2, Distant Horizons 3.2.0-b-26.1.2
+deps.compat_distanthorizons = "QHxoccsN" # Fabric+NeoForge 26.1.2, Distant Horizons 3.3.3
 deps.compat_create = "wV5IQLKg" # Fabric 26.1.2, Create Fly 6.0.9-4
 deps.compat_c2me = "h6qi8QiJ" # Fabric 26.1.2, C2ME 0.4.0-alpha.0.31+26.1.2
 
@@ -127,7 +127,7 @@ java = "25"
 deps.neoform = "26.2-1"
 
 [fabric."26.2.x"]
-deps.fabric_loader = "0.19.3"
+deps.fabric_loader = "0.19.5"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.152.2+26.2"
 
@@ -139,7 +139,7 @@ deps.fabric_api = "0.152.2+26.2"
 deps.compat_glitchcore = "SDUCBYRU" # Fabric 26.2, GlitchCore 26.2.0.0.0 (BiomesOPlenty dependency)
 deps.compat_biomesoplenty = "MNZPk6V0" # Fabric 26.2, current BiomesOPlenty 26.2 release
 deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
-deps.compat_distanthorizons = "gBf0SaV1" # Fabric+NeoForge 26.2, Distant Horizons 3.2.0-b-26.2
+deps.compat_distanthorizons = "aAow4a9f" # Fabric+NeoForge 26.2, Distant Horizons 3.3.3
 deps.compat_create = "phlsMPgT" # Fabric 26.2 (upstream also declares stable support), Create Fly 6.0.9-1
 deps.compat_c2me = "XQMx5J57" # Fabric 26.2, C2ME 0.4.2-alpha.0.13
 
@@ -153,4 +153,4 @@ deps.neo_loader_range = "[4,)"
 deps.compat_glitchcore = "POAebwFo"
 deps.compat_biomesoplenty = "Kpuzuokl"
 deps.compat_terrablender = "TzDe72Nr"
-deps.compat_distanthorizons = "gBf0SaV1"
+deps.compat_distanthorizons = "aAow4a9f"

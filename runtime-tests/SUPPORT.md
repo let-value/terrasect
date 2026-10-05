@@ -11,7 +11,7 @@ publication labels require the exact tested Minecraft version, including on olde
 | Fabric 1.21.1 | 0.18.4 | Fabric API 0.116.12+1.21.1 | Server smoke: no client GameTest module |
 | Fabric 1.21.11 | 0.18.4 | Fabric API 0.141.1+1.21.11 | Client GameTests |
 | Fabric 26.1.x | 0.19.3 | Fabric API 0.154.2+26.1.2 | Client GameTests |
-| Fabric 26.2.x | 0.19.3 | Fabric API 0.152.2+26.2 | Client GameTests |
+| Fabric 26.2.x | 0.19.5 | Fabric API 0.152.2+26.2 | Client GameTests |
 | NeoForge 1.21.1 | 21.1.234 | Connector exists, Fabric client GameTest API absent | Server smoke |
 | NeoForge 1.21.11 | 21.11.36-beta | No Connector 1.21.11 artifact | Server smoke |
 | NeoForge 26.1.x | 26.1.2.112 | Connector 3.0.0-beta.6+26.1.2; FFAPI 0.155.3+26.1.2+3.5.7; Launchpad 1.9.2+26.1.2 | Client GameTests |
