@@ -112,7 +112,7 @@ deps.neo_loader = "26.1.2.112"
 deps.kotlinforforge = "6.1.0"
 deps.kotlinforforge_range = "[6.1,)"
 deps.neo_version_range = "[26.1,26.2)"
-deps.neo_minecraft_range = "[26.1,26.2)"
+deps.neo_minecraft_range = "[26.1.2]"
 deps.neo_loader_range = "[4,)"
 deps.compat_glitchcore = "mYUbCfgT"
 deps.compat_biomesoplenty = "mqkuMsI9"
@@ -140,7 +140,7 @@ deps.compat_glitchcore = "SDUCBYRU" # Fabric 26.2, GlitchCore 26.2.0.0.0 (Biomes
 deps.compat_biomesoplenty = "MNZPk6V0" # Fabric 26.2, current BiomesOPlenty 26.2 release
 deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
 deps.compat_distanthorizons = "gBf0SaV1" # Fabric+NeoForge 26.2, Distant Horizons 3.2.0-b-26.2
-deps.compat_create = "phlsMPgT" # Fabric 26.2-rc-2, Create Fly 6.0.9-1
+deps.compat_create = "phlsMPgT" # Fabric 26.2 (upstream also declares stable support), Create Fly 6.0.9-1
 deps.compat_c2me = "XQMx5J57" # Fabric 26.2, C2ME 0.4.2-alpha.0.13
 
 [neoforge."26.2.x"]
@@ -148,7 +148,7 @@ deps.neo_loader = "26.2.0.6-beta"
 deps.kotlinforforge = "6.3.0"
 deps.kotlinforforge_range = "[6.3,)"
 deps.neo_version_range = "[26.2,26.3)"
-deps.neo_minecraft_range = "[26.2,26.3)"
+deps.neo_minecraft_range = "[26.2]"
 deps.neo_loader_range = "[4,)"
 deps.compat_glitchcore = "POAebwFo"
 deps.compat_biomesoplenty = "Kpuzuokl"

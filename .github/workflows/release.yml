@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir -p dist
           find fabric/versions/*/build/libs neoforge/versions/*/build/libs \
-            -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' \
+            -name 'terrasect-*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' ! -name '*-gametest.jar' \
             -exec cp {} dist/ \;
           ls -l dist
 

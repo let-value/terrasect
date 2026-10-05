@@ -71,7 +71,7 @@ Manual only (workflow dispatch). Inputs:
 - `target` — `both`, `modrinth`, or `curseforge`.
 - `version-type` — `release`, `beta`, or `alpha`.
 
-Publishes each version+loader jar as its own platform version via mc-publish, with loader-appropriate dependencies (fabric-api + fabric-language-kotlin on Fabric, kotlin-for-forge on NeoForge).
+Checks out the selected release tag and publishes each version+loader jar as its own platform version via mc-publish, with loader-appropriate dependencies (fabric-api + fabric-language-kotlin on Fabric, kotlin-for-forge on NeoForge).
 
 ## `pages.yml` — deploy user-facing docs
 
@@ -103,10 +103,15 @@ Repo settings:
 - **Settings → Pages → Source: GitHub Actions** — one-time setup required before `pages.yml` can
   deploy.
 
+Publishing uses exact Minecraft labels `1.20.1`, `1.21.1`, `1.21.11`, `26.1.2`, and `26.2`;
+`26.1.x` and `26.2.x` are internal Gradle project segments. The release workflow currently builds
+jars without enforcing runtime manifests; verify the final version and jar hashes before publishing.
+
 ### Cutting a release
 
-1. Require complete passing evidence for every lane in SUPPORT.md and review CI artifacts.
-2. Bump `mod.version` in `stonecutter.properties.toml`.
+1. Bump `mod.version` in `stonecutter.properties.toml`.
+2. Require fresh complete passing evidence for every lane in SUPPORT.md for that final version,
+   compare the release jars with the runtime manifest hashes, and review CI artifacts.
 3. Tag and push: `git tag v<version> && git push origin v<version>`. This also triggers `pages.yml`.
 4. Review the draft GitHub release `release.yml` creates; publish it.
 5. Run `publish.yml` with that tag (target `both`).

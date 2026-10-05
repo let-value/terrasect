@@ -16,7 +16,7 @@ loaders. Two independent axes:
 | `1.20.1`  | 17 | old | Fabric-only back-compat target |
 | `1.21.1`   | 21 | old | back-compat target |
 | `1.21.11`  | 21 | new | back-compat target |
-| `26.1`     | 25 | new | MC `26.1.2` |
+| `26.1.2`   | 25 | new | internal project segment `26.1.x` |
 | `26.2`     | 25 | new | latest; primary / active dev version |
 
 Fabric builds cover all five versions. NeoForge starts at `1.21.1`, so the

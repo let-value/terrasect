@@ -2,7 +2,8 @@
 
 Required runtime matrix, verified on 2026-10-05. Minecraft version truth comes from
 `settings.gradle.kts`; loader/API/mod pins come from `stonecutter.properties.toml`.
-`26.1.x` means Minecraft **26.1.2** in every production/test tree.
+`26.1.x` means Minecraft **26.1.2** in every production/test tree. Production metadata and
+publication labels require the exact tested Minecraft version, including on older targets.
 
 | Lane | Loader pin | Client API / bridge | Runtime mode |
 |---|---|---|---|
@@ -40,7 +41,8 @@ Heavy third-party/client tests are not triggered on PRs or pushes to main.
 
 Every client-mode clean pack runs `SmokeGameTest` and `LootConstraintBlockAllGameTest`.
 All nine compatibility packs contain GlitchCore, Biomes O' Plenty, TerraBlender, and Distant Horizons;
-Client-mode Fabric also contains Create Fly. Fabric 26.2 additionally contains C2ME.
+Client-mode Fabric also contains Create Fly. Fabric 26.2 additionally contains C2ME. The configured C2ME pins for 1.21.11 and 26.1.2
+are not installed by these packs and do not establish runtime coverage there.
 Exact Modrinth version ids are pinned by `deps.compat_*`; each result embeds installed filenames,
 mod ids, SHA-256 and requested coordinates, including runtime dependencies.
 
