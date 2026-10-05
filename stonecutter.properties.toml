@@ -56,6 +56,8 @@ deps.compat_glitchcore = "S2TfWrZR"
 deps.compat_biomesoplenty = "BtZKRp69"
 deps.compat_terrablender = "6e8GCrLb"
 deps.compat_distanthorizons = "9w34y8ai"
+deps.compat_kubejs = "THIGFPwf"
+deps.compat_rhino = "SqkDvOLG"
 
 ["1.21.11"]
 java = "21"

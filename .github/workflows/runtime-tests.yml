@@ -56,6 +56,9 @@ jobs:
           fi
           if [[ "$SCENARIO" != "build" ]]; then
             tasks+=(":${{ matrix.loader }}:${{ matrix.version }}:minecraftTestCompat")
+            if [[ "${{ matrix.loader }}" == "neoforge" && "${{ matrix.version }}" == "1.21.1" ]]; then
+              tasks+=(":neoforge:1.21.1:minecraftTestKubejsClient")
+            fi
           fi
           ./gradlew "${tasks[@]}" --continue --no-parallel --console=plain
       - name: Upload runtime evidence

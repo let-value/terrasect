@@ -39,17 +39,19 @@ Mapped versions remap the test jar; unobfuscated 26.x versions package it direct
 
 `minecraftTestBuild` runs the clean Smoke and LootConstraintBlockAll client tests or ServerSmokeGameTest
 on server fallback lanes. `minecraftTestCompat`
-runs the pinned third-party packs and assertions listed in SUPPORT.md. Gradle rejects missing/zero
+runs the pinned third-party packs and assertions listed in SUPPORT.md. NeoForge 1.21.1 also runs
+`minecraftTestKubejsClient`, a native main-menu/configuration regression check; see
+[`runtime-tests/KUBEJS.md`](../runtime-tests/KUBEJS.md). Gradle rejects missing/zero
 executions, assertion failures, crashes, and timeouts, even if earlier tests completed. Launches
 always start with fresh worlds; launcher/dependency downloads and prepared packs can be cached.
 
 Runtime evidence lives in `build/minecraft-test/`:
 
-- `results/<loader>-<version>-<build|compat>.json`: outcome, executed tests, exact jars and SHA-256,
+- `results/<loader>-<version>-<build|compat|kubejsclient>.json`: outcome, executed tests, exact jars and SHA-256,
   dependencies, graphics limitation, and log path.
-- `logs/<loader>-<version>-<build|compat>.log`: command and captured client output.
-- `modpacks/<loader>-<version>-<build|compat>/runtime-test-manifest.json`: installed pack inventory.
-- `runtime/<loader>-<version>-<build|compat>/`: client logs and crash reports.
+- `logs/<loader>-<version>-<build|compat|kubejsclient>.log`: command and captured client output.
+- `modpacks/<loader>-<version>-<build|compat|kubejsclient>/runtime-test-manifest.json`: installed pack inventory.
+- `runtime/<loader>-<version>-<build|compat|kubejsclient>/`: client logs and crash reports.
 
 CI uploads these diagnostics on success and failure, excluding authentication data. Compatibility
 profiles live in `runtime-tests/modpacks/compat`; Gradle coordinates in `stonecutter.properties.toml`
