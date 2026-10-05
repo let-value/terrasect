@@ -73,6 +73,6 @@ jobs:
           fi
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft \
-              --title "Terrasect $MOD_VERSION" --generate-notes
+              --target "$GITHUB_SHA" --title "Terrasect $MOD_VERSION" --generate-notes
           fi
           gh release upload "$TAG" dist/*.jar --repo "$GITHUB_REPOSITORY" --clobber

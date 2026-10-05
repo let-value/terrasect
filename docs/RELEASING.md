@@ -61,7 +61,7 @@ world generation, LOD data and Ponder screen state. GPU rendering and screenshot
 a separate graphical client run and are not established by this pipeline.
 
 ## `release.yml` — build artifacts
-Triggered by pushing a `v*` tag or manually via workflow dispatch. Builds all loader jars (named `terrasect-<loader>-<modversion>+<mcversion>.jar`), uploads them as a `terrasect-jars` workflow artifact, and attaches them to a draft GitHub release (`v<mod.version>` if not tag-triggered). Publish the draft release manually after review.
+Triggered by pushing a `v*` tag or manually via workflow dispatch. Builds all loader jars (named `terrasect-<loader>-<modversion>+<mcversion>.jar`), uploads them as a `terrasect-jars` workflow artifact, and attaches them to a draft GitHub release (`v<mod.version>` if not tag-triggered). A newly created release tag targets the tested checkout commit. Publish the draft release manually after review.
 
 ## `publish.yml` — deploy to Modrinth / CurseForge
 
