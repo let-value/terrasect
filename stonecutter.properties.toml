@@ -141,7 +141,7 @@ deps.compat_biomesoplenty = "MNZPk6V0" # Fabric 26.2, current BiomesOPlenty 26.2
 deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
 deps.compat_distanthorizons = "aAow4a9f" # Fabric+NeoForge 26.2, Distant Horizons 3.3.3
 deps.compat_create = "phlsMPgT" # Fabric 26.2 (upstream also declares stable support), Create Fly 6.0.9-1
-deps.compat_c2me = "XQMx5J57" # Fabric 26.2, C2ME 0.4.2-alpha.0.13
+deps.compat_c2me = "JRbWYiJa" # Fabric 26.2, C2ME 0.4.2-alpha.0.56
 
 [neoforge."26.2.x"]
 deps.neo_loader = "26.2.0.6-beta"
