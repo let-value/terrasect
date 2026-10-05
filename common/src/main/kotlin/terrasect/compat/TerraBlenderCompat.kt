@@ -46,8 +46,9 @@ object TerraBlenderCompat {
     values: MutableList<MojangPair<Climate.ParameterPoint, Holder<Biome>>>,
   ) {
     val rootField =
-      findField(tree.javaClass) { !Modifier.isStatic(it.modifiers) && it.name == "root" }
-        ?: error("missing biome provider tree root")
+      findField(tree.javaClass) {
+        !Modifier.isStatic(it.modifiers) && it.type.enclosingClass == tree.javaClass
+      } ?: error("missing biome provider tree root")
     rootField.makeAccessible()
     collectTreeNode(rootField.get(tree), values)
   }

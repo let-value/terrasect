@@ -1,5 +1,5 @@
 //? if latest {
-package terrasect
+package terrasect.gametest
 
 import java.nio.file.Path
 import kotlin.math.sqrt

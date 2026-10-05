@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import java.nio.file.Path
 

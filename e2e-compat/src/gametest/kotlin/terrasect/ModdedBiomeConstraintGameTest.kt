@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -83,7 +83,7 @@ private fun sampleBiomeConstraint(
     )
     return sampled
   } finally {
-    game.close()
+    closeCompatWorld(game)
     PresetRegistry.forcePresetId = originalPresetId
     PresetRegistry.presets.remove(presetId)
   }

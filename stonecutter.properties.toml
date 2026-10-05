@@ -1,7 +1,7 @@
 mod.id = "terrasect"
 mod.name = "Terrasect"
 mod.group = "terrasect"
-mod.version = "0.2.3"
+mod.version = "0.2.4"
 mod.license = "MIT"
 mod.authors = "LetValue"
 mod.description = "A multiloader Minecraft mod."
@@ -25,6 +25,10 @@ java = "17"
 deps.fabric_loader = "0.16.14"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.92.6+1.20.1"
+deps.compat_glitchcore = "25HLOiOl"
+deps.compat_biomesoplenty = "eZaag2ca"
+deps.compat_terrablender = "kmob8AJ4"
+deps.compat_distanthorizons = "6UnEfsRQ"
 
 ["1.21.1"]
 java = "21"
@@ -36,6 +40,10 @@ deps.neoform = "1.21.1-20240808.144430"
 deps.fabric_loader = "0.18.4"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.116.12+1.21.1"
+deps.compat_glitchcore = "sux8kYHe"
+deps.compat_biomesoplenty = "fhyqphwv"
+deps.compat_terrablender = "XNtIBXyQ"
+deps.compat_distanthorizons = "9w34y8ai"
 
 [neoforge."1.21.1"]
 deps.neo_loader = "21.1.234"
@@ -44,6 +52,10 @@ deps.kotlinforforge_range = "[5.10,)"
 deps.neo_version_range = "[21.1,21.2)"
 deps.neo_minecraft_range = "[1.21.1]"
 deps.neo_loader_range = "[4,)"
+deps.compat_glitchcore = "S2TfWrZR"
+deps.compat_biomesoplenty = "BtZKRp69"
+deps.compat_terrablender = "6e8GCrLb"
+deps.compat_distanthorizons = "9w34y8ai"
 
 ["1.21.11"]
 java = "21"
@@ -61,12 +73,8 @@ deps.fabric_api = "0.141.1+1.21.11"
 deps.compat_glitchcore = "CO7NeLTt" # Fabric 1.21.11, GlitchCore 21.11.0.4 (BiomesOPlenty dependency)
 deps.compat_biomesoplenty = "JJKbM72H" # Fabric 1.21.11, BiomesOPlenty 21.11.0.32
 deps.compat_terrablender = "chxo508B" # Fabric 1.21.11, TerraBlender 21.11.0.0
-deps.compat_distanthorizons = "bCTilxSz" # Fabric+NeoForge 1.21.11, Distant Horizons 3.2.0-b
+deps.compat_distanthorizons = "oNqCUHFk" # Fabric+NeoForge 1.21.11, Distant Horizons 3.3.3
 deps.compat_create = "fn0H9rSj" # Fabric 1.21.11, Create Fly 6.0.9-5
-# Currently unused: build.e2e-compat.gradle.kts skips c2me on 1.21.11 — its Jar-in-Jar bundles are
-# its own Fabric sub-mods (not plain libraries), so they can't be recovered the same way the
-# GlitchCore/BiomesOPlenty/TerraBlender jar-in-jar libraries are. Kept pinned in case that's ever
-# unbundled upstream.
 deps.compat_c2me = "OOPL1nCG" # Fabric 1.21.11, C2ME 0.4.0-alpha.0.19
 
 [neoforge."1.21.11"]
@@ -76,6 +84,10 @@ deps.kotlinforforge_range = "[6.0,)"
 deps.neo_version_range = "[21.11,)"
 deps.neo_minecraft_range = "[1.21.11]"
 deps.neo_loader_range = "[4,)"
+deps.compat_glitchcore = "6dbbrOrO"
+deps.compat_biomesoplenty = "cCnnnC72"
+deps.compat_terrablender = "xjrV1Uvq"
+deps.compat_distanthorizons = "oNqCUHFk"
 
 ["26.1.x"]
 java = "25"
@@ -91,28 +103,31 @@ deps.fabric_api = "0.154.2+26.1.2"
 deps.compat_glitchcore = "WNtSATXw" # Fabric 26.1.2, GlitchCore 26.1.2.0.2 (BiomesOPlenty dependency)
 deps.compat_biomesoplenty = "8MVwdPgG" # Fabric 26.1.2, BiomesOPlenty 26.1.2.0.22
 deps.compat_terrablender = "NIXt6lha" # Fabric 26.1.2, TerraBlender 26.1.2.0.3
-deps.compat_distanthorizons = "c0SAW45X" # Fabric+NeoForge 26.1.2, Distant Horizons 3.2.0-b-26.1.2
+deps.compat_distanthorizons = "QHxoccsN" # Fabric+NeoForge 26.1.2, Distant Horizons 3.3.3
 deps.compat_create = "wV5IQLKg" # Fabric 26.1.2, Create Fly 6.0.9-4
-# Currently unused: build.e2e-compat.gradle.kts skips c2me outside latest — its Jar-in-Jar bundles
-# are its own Fabric sub-mods (not plain libraries), so they can't be recovered the same way the
-# GlitchCore/BiomesOPlenty/TerraBlender jar-in-jar libraries are. Kept pinned in case that's ever
-# unbundled upstream.
 deps.compat_c2me = "h6qi8QiJ" # Fabric 26.1.2, C2ME 0.4.0-alpha.0.31+26.1.2
 
 [neoforge."26.1.x"]
-deps.neo_loader = "26.1.2.78"
+deps.neo_loader = "26.1.2.112"
 deps.kotlinforforge = "6.1.0"
 deps.kotlinforforge_range = "[6.1,)"
 deps.neo_version_range = "[26.1,26.2)"
-deps.neo_minecraft_range = "[26.1,26.2)"
+deps.neo_minecraft_range = "[26.1.2]"
 deps.neo_loader_range = "[4,)"
+deps.compat_glitchcore = "mYUbCfgT"
+deps.compat_biomesoplenty = "mqkuMsI9"
+deps.compat_terrablender = "cWLGFrxw"
+deps.compat_distanthorizons = "QHxoccsN"
+deps.connector = "3.0.0-beta.6+26.1.2"
+deps.forgified_fabric_api = "0.155.3+26.1.2+3.5.7"
+deps.launchpad = "1.9.2+26.1.2"
 
 ["26.2.x"]
 java = "25"
 deps.neoform = "26.2-1"
 
 [fabric."26.2.x"]
-deps.fabric_loader = "0.19.3"
+deps.fabric_loader = "0.19.5"
 deps.fabric_kotlin = "1.13.8+kotlin.2.3.0"
 deps.fabric_api = "0.152.2+26.2"
 
@@ -122,16 +137,20 @@ deps.fabric_api = "0.152.2+26.2"
 # gains NeoForge support.
 # Pinned by Modrinth version id (not version string) — see build.e2e-compat.gradle.kts for why.
 deps.compat_glitchcore = "SDUCBYRU" # Fabric 26.2, GlitchCore 26.2.0.0.0 (BiomesOPlenty dependency)
-deps.compat_biomesoplenty = "n2GfIVr4" # Fabric 26.2, BiomesOPlenty 26.1.2.0.42
+deps.compat_biomesoplenty = "MNZPk6V0" # Fabric 26.2, current BiomesOPlenty 26.2 release
 deps.compat_terrablender = "KQix25Qc" # Fabric 26.2, TerraBlender 26.2.0.0.2
-deps.compat_distanthorizons = "gBf0SaV1" # Fabric+NeoForge 26.2, Distant Horizons 3.2.0-b-26.2
-deps.compat_create = "phlsMPgT" # Fabric 26.2-rc-2, Create Fly 6.0.9-1
-deps.compat_c2me = "XQMx5J57" # Fabric 26.2, C2ME 0.4.2-alpha.0.13
+deps.compat_distanthorizons = "aAow4a9f" # Fabric+NeoForge 26.2, Distant Horizons 3.3.3
+deps.compat_create = "phlsMPgT" # Fabric 26.2 (upstream also declares stable support), Create Fly 6.0.9-1
+deps.compat_c2me = "JRbWYiJa" # Fabric 26.2, C2ME 0.4.2-alpha.0.56
 
 [neoforge."26.2.x"]
 deps.neo_loader = "26.2.0.6-beta"
 deps.kotlinforforge = "6.3.0"
 deps.kotlinforforge_range = "[6.3,)"
 deps.neo_version_range = "[26.2,26.3)"
-deps.neo_minecraft_range = "[26.2,26.3)"
+deps.neo_minecraft_range = "[26.2]"
 deps.neo_loader_range = "[4,)"
+deps.compat_glitchcore = "POAebwFo"
+deps.compat_biomesoplenty = "Kpuzuokl"
+deps.compat_terrablender = "TzDe72Nr"
+deps.compat_distanthorizons = "aAow4a9f"

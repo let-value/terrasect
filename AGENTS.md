@@ -2,7 +2,7 @@
 
 ## Project Overview
 Terrasect is a multiloader Minecraft mod, written in **Kotlin 2.3.0**, targeting Minecraft `1.20.1`,
-`1.21.1`, `1.21.11`, `26.1`, and `26.2` via Stonecutter. **`26.2` is the primary / active development
+`1.21.1`, `1.21.11`, `26.1.2`, and `26.2` via Stonecutter. **`26.2` is the primary / active development
 version.** It follows a standard multi-module architecture to support both **Fabric** and **NeoForge**
 loaders from a shared codebase. See [`docs/MULTIVERSION.md`](docs/MULTIVERSION.md) for the full matrix.
 
@@ -58,7 +58,7 @@ Settled by post-merge audit review; treat as authoritative unless the user expli
 - **Kotlin:** 2.3.0
 - **Java:** 25
 - **Minecraft:** 26.2
-- **Fabric Loader:** 0.19.3
+- **Fabric Loader:** 0.19.5
 - **NeoForge Loader:** 26.2.0.6-beta
 - **Kotlin for Forge:** 6.3.0
 

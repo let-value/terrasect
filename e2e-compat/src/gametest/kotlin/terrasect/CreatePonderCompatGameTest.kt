@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -23,20 +23,24 @@ private val ponderItems =
   )
 
 private fun setScreen(client: Minecraft, screen: Screen?) {
-  client.javaClass.methods
-    .first { method ->
-      method.parameterCount == 1 && Screen::class.java.isAssignableFrom(method.parameterTypes[0])
+  val target =
+    if (client.javaClass.fields.any { it.type == Screen::class.java }) client else client.gui
+  target.javaClass.methods
+    .first {
+      it.parameterCount == 1 && it.parameterTypes[0] == Screen::class.java
     }
-    .invoke(client, screen)
+    .invoke(target, screen)
 }
 
 private fun currentScreen(client: Minecraft): Screen? {
-  val field =
-    client.javaClass.declaredFields.first { field ->
-      Screen::class.java.isAssignableFrom(field.type)
-    }
-  field.isAccessible = true
-  return field.get(client) as Screen?
+  val field = client.javaClass.fields.firstOrNull { it.type == Screen::class.java }
+  return if (field != null) field.get(client) as Screen?
+  else
+    client.gui.javaClass.methods
+      .first {
+        it.parameterCount == 0 && it.returnType == Screen::class.java
+      }
+      .invoke(client.gui) as Screen?
 }
 
 @Suppress("UnstableApiUsage")
@@ -99,7 +103,7 @@ object CreatePonderCompatGameTest : FabricClientGameTest {
         }
       )
     } finally {
-      game.close()
+      closeCompatWorld(game)
     }
 
     log.info("Create Ponder compatibility test passed: synthetic chunk created without a crash")

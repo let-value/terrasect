@@ -1,3 +1,5 @@
+import net.fabricmc.loom.task.RemapJarTask
+
 plugins {
   id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
@@ -7,7 +9,8 @@ plugins {
 val fabricDir = rootProject.file("fabric")
 val e2eDir = rootProject.file("e2e")
 val gametestModId = "${mod.id}-e2e"
-val oldGametestParadigm = mcVersion in listOf("1.20.1", "1.21.1")
+val clientGameTestsAvailable = mcVersion !in listOf("1.20.1", "1.21.1")
+val gametestLibraries = configurations.create("gametestLibraries")
 
 // Files under gametest-client wrap latest-only tests in `//? if latest { ... //?}`; Stonecutter
 // strips that content from the compiled source for non-latest versions, so the entrypoint list is
@@ -39,31 +42,29 @@ fun clientGametestEntries(): List<String> =
     }
 
 fun kotlinEntry(value: String) =
-  "      { \"value\": \"terrasect.$value\", \"adapter\": \"kotlin\" }"
+  "      { \"value\": \"terrasect.gametest.$value\", \"adapter\": \"kotlin\" }"
 
 fun entrypointBlock(name: String, entries: List<String>) =
   "    \"$name\": [\n${entries.joinToString(",\n")}\n    ]"
 
 val gametestEntrypoints =
-  buildList {
-      add(entrypointBlock("main", listOf(kotlinEntry("ServerSmokeInit"))))
-      if (oldGametestParadigm) {
-        add(entrypointBlock("fabric-gametest", listOf(kotlinEntry("ServerSmokeGameTest"))))
-      } else {
-        add(
-          entrypointBlock("fabric-client-gametest", clientGametestEntries().map { kotlinEntry(it) })
-        )
-      }
-    }
-    .joinToString(",\n")
+  if (clientGameTestsAvailable) {
+    entrypointBlock("fabric-client-gametest", clientGametestEntries().map { kotlinEntry(it) })
+  } else {
+    listOf(
+        entrypointBlock("main", listOf(kotlinEntry("ServerSmokeInit"))),
+        entrypointBlock("fabric-gametest", listOf(kotlinEntry("ServerSmokeGameTest"))),
+      )
+      .joinToString(",\n")
+  }
 
 fabricApi {
   configureTests {
     createSourceSet = true
     modId = gametestModId
     eula = true
-    enableGameTests = oldGametestParadigm
-    enableClientGameTests = !oldGametestParadigm
+    enableGameTests = !clientGameTestsAvailable
+    enableClientGameTests = clientGameTestsAvailable
     clearRunDirectory = true
   }
 }
@@ -75,32 +76,32 @@ sourceSets {
     resources.srcDir(fabricDir.resolve("src/main/resources"))
   }
   named("gametest") {
-    kotlin.setSrcDirs(
-      buildList {
-        add(e2eDir.resolve("src/gametest/kotlin"))
-        if (oldGametestParadigm) {
-          add(e2eDir.resolve("src/gametest-server-old/kotlin"))
-        } else {
-          add(processGametestClientKotlin())
-        }
-      }
-    )
-    java.setSrcDirs(
-      listOf(
-        e2eDir.resolve(
-          if (oldGametestParadigm) "src/gametest-server-old/java" else "src/gametest-client/java"
+    if (clientGameTestsAvailable) {
+      kotlin.setSrcDirs(
+        listOf(e2eDir.resolve("src/gametest/kotlin"), processGametestClientKotlin())
+      )
+      java.setSrcDirs(listOf(e2eDir.resolve("src/gametest-client/java")))
+      resources.setSrcDirs(
+        listOf(
+          e2eDir.resolve("src/gametest/resources"),
+          e2eDir.resolve("src/gametest-client/resources"),
         )
       )
-    )
-    resources.setSrcDirs(
-      listOf(
-        e2eDir.resolve("src/gametest/resources"),
-        e2eDir.resolve(
-          if (oldGametestParadigm) "src/gametest-server-old/resources"
-          else "src/gametest-client/resources"
-        ),
+    } else {
+      kotlin.setSrcDirs(
+        listOf(
+          e2eDir.resolve("src/server/kotlin"),
+          e2eDir.resolve("src/gametest-server-old/kotlin"),
+        )
       )
-    )
+      java.setSrcDirs(listOf(e2eDir.resolve("src/gametest-server-old/java")))
+      resources.setSrcDirs(
+        listOf(
+          e2eDir.resolve("src/gametest/resources"),
+          e2eDir.resolve("src/gametest-server-old/resources"),
+        )
+      )
+    }
   }
 }
 
@@ -136,10 +137,9 @@ dependencies {
     runtimeOnly("com.github.ben-manes.caffeine:caffeine:${prop("deps.caffeine")}")
     runtimeOnly("com.github.komputing:kbase58:${prop("deps.kbase58")}")
   }
-  add(
-    "gametestImplementation",
-    "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}",
-  )
+  val snapshotTests = "de.skuzzle.test:snapshot-tests-junit5:${prop("deps.snapshot_tests")}"
+  add("gametestImplementation", snapshotTests)
+  add(gametestLibraries.name, snapshotTests)
 }
 
 val resourceProps =
@@ -147,8 +147,8 @@ val resourceProps =
     "gametest_mod_id" to gametestModId,
     "gametest_entrypoints" to gametestEntrypoints,
     "gametest_mixins" to
-      if (oldGametestParadigm) "\"terrasect-e2e.mixins.json\""
-      else "\"terrasect-e2e-client.mixins.json\"",
+      if (clientGameTestsAvailable) "\"terrasect-e2e-client.mixins.json\""
+      else "\"terrasect-e2e.mixins.json\"",
     "mixin_compat_level" to "JAVA_${minOf(prop("java").toInt(), 21)}",
   )
 
@@ -182,6 +182,43 @@ tasks {
     }
   }
 
+  val gametestThinJar =
+    register<Jar>("gametestThinJar") {
+      archiveClassifier.set("gametest-dev")
+      from(sourceSets["gametest"].output)
+    }
+
+  val gametestFatJar =
+    register<Jar>("gametestFatJar") {
+      archiveBaseName.set("terrasect-tests")
+      archiveVersion.set("${version}+$mcVersion")
+      duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+      from(gametestThinJar.flatMap { it.archiveFile }.map { zipTree(it) })
+      from({ gametestLibraries.map(::zipTree) })
+      exclude(
+        "META-INF/MANIFEST.MF",
+        "META-INF/*.DSA",
+        "META-INF/*.RSA",
+        "META-INF/*.SF",
+        "module-info.class",
+      )
+    }
+
+  if (mcVersion.startsWith("26.")) {
+    gametestFatJar.configure { archiveClassifier.set("gametest") }
+    register("gametestModJar") { dependsOn(gametestFatJar) }
+  } else
+    register<RemapJarTask>("gametestModJar") {
+      inputFile.set(gametestFatJar.flatMap { it.archiveFile })
+      archiveBaseName.set("terrasect-tests")
+      archiveVersion.set("${version}+$mcVersion")
+      archiveClassifier.set("gametest")
+      sourceNamespace.set("named")
+      targetNamespace.set("intermediary")
+      classpath.from(sourceSets["gametest"].compileClasspath)
+      onlyIf { clientGameTestsAvailable }
+    }
+
   matching { it.name == "runClientGameTest" || it.name == "runGameTest" }
     .configureEach {
       this as JavaExec
@@ -196,9 +233,7 @@ tasks {
           }
         }
       }
-      if (name == "runGameTest") {
-        systemProperty("terrasect.serverSmoke", "true")
-      }
+      if (name == "runGameTest") systemProperty("terrasect.serverSmoke", "true")
       if (project.hasProperty("updateSnapshots")) {
         systemProperty("updateSnapshots", "true")
       }

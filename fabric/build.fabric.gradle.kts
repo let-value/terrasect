@@ -1,3 +1,5 @@
+import net.fabricmc.loom.task.RemapJarTask
+
 plugins {
   id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
@@ -56,5 +58,18 @@ tasks {
     from(commonProject.sourceSets["main"].output) {
       exclude("META-INF/accesstransformer.cfg", "accesswideners/*.accesswidener")
     }
+  }
+}
+
+apply(from = rootProject.file("gradle/server-smoke.gradle.kts"))
+
+if (!mcVersion.startsWith("26.")) {
+  tasks.register<RemapJarTask>("serverSmokeModJar") {
+    inputFile.set(tasks.named<Jar>("serverSmokeJar").flatMap { it.archiveFile })
+    archiveBaseName.set("terrasect-server-tests-fabric")
+    archiveClassifier.set("gametest")
+    sourceNamespace.set("named")
+    targetNamespace.set("intermediary")
+    classpath.from(sourceSets["serverSmoke"].compileClasspath)
   }
 }

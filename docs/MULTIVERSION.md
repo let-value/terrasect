@@ -16,7 +16,7 @@ loaders. Two independent axes:
 | `1.20.1`  | 17 | old | Fabric-only back-compat target |
 | `1.21.1`   | 21 | old | back-compat target |
 | `1.21.11`  | 21 | new | back-compat target |
-| `26.1`     | 25 | new | MC `26.1.2` |
+| `26.1.2`   | 25 | new | internal project segment `26.1.x` |
 | `26.2`     | 25 | new | latest; primary / active dev version |
 
 Fabric builds cover all five versions. NeoForge starts at `1.21.1`, so the
@@ -87,33 +87,23 @@ entries.
 
 ## Gametests (`e2e`)
 
-The `e2e` module is a separate Stonecutter tree of Fabric gametests covering all
-five versions. The `1.20.1` and `1.21.1` lanes use the older server gametest
-registration; `1.21.11`, `26.1`, and `26.2` use the client-gametest API. Note the
-26.1 lane uses the real Mojang id **26.1.2** here (loom needs a concrete MC
-coordinate), whereas the neoform-based main tree labels it `26.1`.
+The `e2e` module packages Fabric client GameTests as a separate installable mod for
+`1.21.11`, `26.1.x` (Minecraft `26.1.2`), and `26.2.x`. The compatibility module packages
+third-party assertions the same way. All main/test trees use the same concrete Minecraft id.
+The pinned Fabric APIs for `1.20.1` and `1.21.1` have no client GameTest module; these
+runtime lanes use native-loader server smoke test mods. NeoForge lanes without a Connector bridge
+use the same server smoke body with native NeoForge registration.
 
-Two tiers:
-- **Portable smoke coverage** — the shared server guard and `SmokeGameTest` create
-  a fixed-seed world with every constraint type, including a desert biome
-  allow-list, and check both lookup compilation and actual generated biome
-  admission. They run on all five e2e versions.
-- **`e2e/src/gametest-client/kotlin`** — client tests for the three newer lanes;
-  files wrapped in `//? if latest` are compiled and entrypoint-registered only on
-  `26.2`. The latest-only tests cover screenshots, terrain snapshots, and broader
-  constraint probes.
+Run production-jar tests with `./gradlew :fabric:26.2.x:minecraftTestBuild` and
+`minecraftTestCompat` for third-party packs. NeoForge uses the native production jar and
+runs the Fabric test mod through Sinytra Connector where its exact bridge is available.
+See [`runtime-tests/SUPPORT.md`](../runtime-tests/SUPPORT.md) for the full matrix and blockers.
 
-Run `./gradlew :e2e:<version>:runGameTest -Ptest=ServerSmokeGameTest` for
-`1.20.1`/`1.21.1`, or `./gradlew :e2e:<version>:runClientGameTest
--Ptest=SmokeGameTest` for the newer lanes. On macOS/Windows this launches a real
-client window; the headless Xvfb path in `build.e2e.gradle.kts` is Linux-only.
-
-The portable smoke suite is the runtime validation that the mixins actually
-*apply* across versions. Compilation is not enough: several mixins target Minecraft
-constructors/methods whose signatures diverge across versions. A mismatched
-injector either crashes at apply time or, with `require = 0`, silently no-ops —
-and `require` governs match count, not descriptor validity, so it does not save
-you from either failure mode.
+`./gradlew :e2e:26.2.x:runClientGameTest` remains available for the broader development
+suite, including screenshots and terrain snapshots. Production runtime tests select
+bounded smoke/compatibility assertions and use HeadlessMC LWJGL stubs, so they do not
+prove GPU rendering. Compilation alone does not establish runtime mixin application:
+mismatched injectors can crash or silently no-op.
 
 Rules for version-divergent injectors:
 - **Do not guess signatures from memory, and do not assume the old form is
@@ -140,8 +130,8 @@ Rules for version-divergent injectors:
   `LevelMixin`'s `RandomSequences`/`@Coerce`/`@Nullable`,
   `PrimaryLevelDataMixin`'s `WorldOptions`/`RegistryAccess`). A shared import is
   fine only if the *active* branch also uses the type.
-- After changing any of these, the portable smoke test must pass on **all five** e2e
-  versions — a green build proves nothing about apply-time behavior.
+- After changing any of these, run packaged client tests on every available lane and
+  run server smoke on lanes without client APIs — a green build proves nothing about apply-time behavior.
 
 Known gap: on 1.21.1, `CreateWorldScreen.createNewWorld` has no `WorldData`
 argument, so GUI preset capture is unwired there (presets loaded from disk still
@@ -157,4 +147,4 @@ path is not smoke-covered.
 3. Add `<version>.accesswidener` (copy the nearest same-era one).
 4. If it diverges from the existing API worlds, add a compat shim / predicate;
    otherwise it inherits the matching branch for free.
-5. Verify: `./gradlew :<version>-fabric:build :<version>-neoforge:build`.
+5. Verify: `./gradlew :fabric:<version>:build :neoforge:<version>:build`.

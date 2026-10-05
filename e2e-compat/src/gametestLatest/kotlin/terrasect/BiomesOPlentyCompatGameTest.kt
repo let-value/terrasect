@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -91,7 +91,7 @@ object BiomesOPlentyCompatGameTest : FabricClientGameTest {
       )
       log.info("bop compat: OK — found {}", found)
     } finally {
-      game.close()
+      closeCompatWorld(game)
       PresetRegistry.forcePresetId = originalPresetId
       PresetRegistry.presets.remove(COMPAT_PRESET)
     }

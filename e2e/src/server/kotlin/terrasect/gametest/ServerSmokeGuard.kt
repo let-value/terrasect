@@ -1,17 +1,12 @@
-package terrasect
+package terrasect.gametest
 
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.level.chunk.ChunkAccess
 import org.slf4j.LoggerFactory
 import terrasect.compat.ResourceKeyCompat
 import terrasect.definition.PresetRegistry
 import terrasect.definition.RegionRegistry
 import terrasect.generation.DimensionContext
 
-// Version- and loader-agnostic body of the server smoke gametest. The registration wrappers differ
-// per gametest paradigm (old @GameTest/FabricGameTest vs new GameTestInstance) and per loader
-// (Fabric vs NeoForge), but they all force the same preset at mod init and run the same assertion,
-// so the actual guard lives here and is shared across every variant.
 object ServerSmokeGuard {
   private val log = LoggerFactory.getLogger("ServerSmokeGameTest")
 
@@ -19,12 +14,8 @@ object ServerSmokeGuard {
 
   const val FORCED_ID = "minecraft:village_plains"
 
-  // Only force the preset when the gametest launch explicitly asks for it, so a preset is never
-  // forced onto unrelated runs (e.g. a client-gametest launch that also loads this mod).
   const val FORCE_PROPERTY = "terrasect.serverSmoke"
 
-  // Mirror of the client SmokeGameTest preset: every constraint type on one spawn region so a
-  // single world generation exercises noise/climate/height plus mob/loot/structure lookup building.
   fun registerPreset() {
     PresetRegistry.presets[SMOKE_PRESET] =
       RegionRegistry().apply {
@@ -58,8 +49,6 @@ object ServerSmokeGuard {
       }
   }
 
-  // Called from a mod initializer: registers the preset and forces it before any world loads, so
-  // the server's overworld builds the full Terrasect pipeline. Gated on FORCE_PROPERTY.
   fun installIfRequested() {
     if (System.getProperty(FORCE_PROPERTY).isNullOrBlank()) return
     registerPreset()
@@ -67,10 +56,6 @@ object ServerSmokeGuard {
     log.info("server smoke: forced preset={}", SMOKE_PRESET)
   }
 
-  // The core guard, shared by every registration variant: the spawn dimension must have a Terrasect
-  // context with every constraint type compiled. If a version-specific mixin silently no-ops, the
-  // context is absent or its lookups are null and the constraints are inert even though world-gen
-  // still "succeeds".
   fun assertPipeline(level: ServerLevel) {
     val dimensionId = ResourceKeyCompat.getKeyId(level.dimension())
     val context =
@@ -121,9 +106,6 @@ object ServerSmokeGuard {
     log.info("server smoke: biome constraint confirmed — sampled={}", sampled)
   }
 
-  // The /ts command rides on an ungated Commands constructor mixin; if it silently fails to apply
-  // on a version, the command is just absent with no crash, so every version must prove it both
-  // registered in the vanilla dispatcher and executes.
   private fun assertCommand(level: ServerLevel) {
     val server = level.server
     val dispatcher = server.commands.dispatcher
@@ -138,13 +120,10 @@ object ServerSmokeGuard {
     log.info("server smoke: /ts locate and /ts query confirmed")
   }
 
-  // Forced placement rides entirely on the chunk-context capture on versions without a dimension
-  // key at the createStructures injection site (1.21.1); if that capture silently no-ops, the
-  // feature is inert with no crash, so every version must prove the planned start really exists.
   private fun assertForcedStart(level: ServerLevel, context: DimensionContext) {
     val forced = context.forcedStructures!!
     val start = forced.sitesAt(context.traverser, context.cache, 0, 0).single()
-    val chunk = getStructureStartsChunk(level, start.site.chunkX, start.site.chunkZ)
+    val chunk = level.getChunk(start.site.chunkX, start.site.chunkZ)
     val structureStart = chunk.getStartForStructure(start.entry.holder.value())
     check(structureStart != null && structureStart.isValid) {
       "forced ${start.entry.id} StructureStart missing at its planned chunk " +
@@ -158,22 +137,14 @@ object ServerSmokeGuard {
     )
   }
 
-  private fun getStructureStartsChunk(level: ServerLevel, chunkX: Int, chunkZ: Int): ChunkAccess {
-    val statusClass =
-      try {
-        Class.forName("net.minecraft.world.level.chunk.status.ChunkStatus")
-      } catch (_: ClassNotFoundException) {
-        Class.forName("net.minecraft.world.level.chunk.ChunkStatus")
-      }
-    val structureStarts = statusClass.getField("STRUCTURE_STARTS").get(null)
-    val getChunk =
-      level.javaClass.getMethod(
-        "getChunk",
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-        statusClass,
-        Boolean::class.javaPrimitiveType,
-      )
-    return getChunk.invoke(level, chunkX, chunkZ, structureStarts, true) as ChunkAccess
+  @JvmStatic
+  fun run(server: net.minecraft.server.MinecraftServer) {
+    try {
+      assertPipeline(server.overworld())
+      server.halt(false)
+    } catch (failure: Throwable) {
+      log.error("Server smoke failed", failure)
+      Runtime.getRuntime().halt(1)
+    }
   }
 }

@@ -41,9 +41,18 @@ jobs:
       - name: Stage jars
         run: |
           mkdir -p dist
-          find fabric/versions/*/build/libs neoforge/versions/*/build/libs \
-            -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' \
-            -exec cp {} dist/ \;
+          MOD_VERSION=$(sed -n 's/^mod\.version = "\(.*\)"/\1/p' stonecutter.properties.toml)
+          for loader in fabric neoforge; do
+            for mc in 1.20.1 1.21.1 1.21.11 26.1.2 26.2; do
+              if [[ "$loader" = neoforge && "$mc" = 1.20.1 ]]; then continue; fi
+              case "$mc" in
+                26.1.2) segment=26.1.x ;;
+                26.2) segment=26.2.x ;;
+                *) segment="$mc" ;;
+              esac
+              cp "$loader/versions/$segment/build/libs/terrasect-$loader-$MOD_VERSION+$mc.jar" dist/
+            done
+          done
           ls -l dist
 
       - name: Upload artifacts
@@ -64,6 +73,6 @@ jobs:
           fi
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft \
-              --title "Terrasect $MOD_VERSION" --generate-notes
+              --target "$GITHUB_SHA" --title "Terrasect $MOD_VERSION" --generate-notes
           fi
           gh release upload "$TAG" dist/*.jar --repo "$GITHUB_REPOSITORY" --clobber

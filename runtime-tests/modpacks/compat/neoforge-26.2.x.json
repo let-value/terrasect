@@ -1,0 +1,39 @@
+{
+  "active_profile": 0,
+  "active_modpack": 0,
+  "profiles": [
+    {
+      "name": "Terrasect compat neoforge 26.2.x",
+      "output_dir": ".",
+      "game_version": "26.2",
+      "mod_loader": "NeoForge",
+      "mods": [
+        {
+          "name": "glitchcore",
+          "identifier": {
+            "ModrinthProject": "glitchcore"
+          }
+        },
+        {
+          "name": "biomes-o-plenty",
+          "identifier": {
+            "ModrinthProject": "biomes-o-plenty"
+          }
+        },
+        {
+          "name": "terrablender",
+          "identifier": {
+            "ModrinthProject": "terrablender"
+          }
+        },
+        {
+          "name": "distanthorizons",
+          "identifier": {
+            "ModrinthProject": "distanthorizons"
+          }
+        }
+      ]
+    }
+  ],
+  "modpacks": []
+}

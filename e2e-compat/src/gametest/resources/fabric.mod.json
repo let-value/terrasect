@@ -12,21 +12,21 @@
   "entrypoints": {
     "client": [
       {
-        "value": "terrasect.CompatGameTestExit",
+        "value": "terrasect.gametest.CompatGameTestExit",
         "adapter": "kotlin"
       }
     ],
     "fabric-client-gametest": [
       {
-        "value": "terrasect.CompatSmokeGameTest",
+        "value": "terrasect.gametest.CompatSmokeGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.ModdedBiomeConstraintGameTest",
+        "value": "terrasect.gametest.ModdedBiomeConstraintGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.CreatePonderCompatGameTest",
+        "value": "terrasect.gametest.CreatePonderCompatGameTest",
         "adapter": "kotlin"
       }
     ]

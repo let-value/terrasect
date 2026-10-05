@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import kotlin.reflect.KClass
 

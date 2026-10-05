@@ -12,41 +12,41 @@
   "entrypoints": {
     "client": [
       {
-        "value": "terrasect.CompatGameTestExit",
+        "value": "terrasect.gametest.CompatGameTestExit",
         "adapter": "kotlin"
       }
     ],
     "fabric-client-gametest": [
       {
-        "value": "terrasect.CompatSmokeGameTest",
+        "value": "terrasect.gametest.CompatSmokeGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.ModdedBiomeConstraintGameTest",
+        "value": "terrasect.gametest.ModdedBiomeConstraintGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.CreatePonderCompatGameTest",
+        "value": "terrasect.gametest.CreatePonderCompatGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.BiomesOPlentyCompatGameTest",
+        "value": "terrasect.gametest.BiomesOPlentyCompatGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.TerraBlenderCompatGameTest",
+        "value": "terrasect.gametest.TerraBlenderCompatGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.DistantHorizonsCompatGameTest",
+        "value": "terrasect.gametest.DistantHorizonsCompatGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.C2MECompatGameTest",
+        "value": "terrasect.gametest.C2MECompatGameTest",
         "adapter": "kotlin"
       },
       {
-        "value": "terrasect.GeographyDHGameTest",
+        "value": "terrasect.gametest.GeographyDHGameTest",
         "adapter": "kotlin"
       }
     ]

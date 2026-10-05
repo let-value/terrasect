@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "terrasect-server-tests",
+  "version": "${version}",
+  "name": "Terrasect server smoke tests",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "terrasect.gametest.ServerSmokeFabric"
+    ]
+  },
+  "depends": {
+    "terrasect": "*",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*"
+  }
+}

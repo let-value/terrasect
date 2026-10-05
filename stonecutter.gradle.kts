@@ -5,12 +5,21 @@ plugins {
 
 stonecutter active "26.2.x"
 
+MinecraftTestDsl(rootProject)
+
 allprojects {
   repositories {
     mavenCentral()
+    maven("https://maven.fabricmc.net/") {
+      content { includeGroupAndSubgroups("net.fabricmc") }
+    }
     exclusiveContent {
       forRepository { maven("https://api.modrinth.com/maven") { name = "Modrinth" } }
       filter { includeGroup("maven.modrinth") }
+    }
+    exclusiveContent {
+      forRepository { maven("https://maven.sinytra.org") { name = "Sinytra" } }
+      filter { includeGroupAndSubgroups("org.sinytra") }
     }
     exclusiveContent {
       forRepository {
@@ -42,7 +51,7 @@ stonecutter parameters
 
 spotless {
   java {
-    target("common/src/**/*.java")
+    target("common/src/**/*.java", "e2e/src/**/*.java")
     toggleOffOn()
     googleJavaFormat()
   }
@@ -72,6 +81,7 @@ spotless {
       "neoforge/*.gradle.kts",
       "e2e/*.gradle.kts",
       "e2e-compat/*.gradle.kts",
+      "gradle/server-smoke.gradle.kts",
       "buildSrc/*.gradle.kts",
       "buildSrc/src/**/*.gradle.kts",
     )

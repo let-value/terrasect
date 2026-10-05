@@ -44,7 +44,7 @@ stonecutter {
       version("1.20.1", "1.20.1").buildscript("build.common-legacy.gradle.kts")
       version("1.21.1", "1.21.1").buildscript("build.common.gradle.kts")
       version("1.21.11", "1.21.11").buildscript("build.common.gradle.kts")
-      version("26.1.x", "26.1").buildscript("build.common.gradle.kts")
+      version("26.1.x", "26.1.2").buildscript("build.common.gradle.kts")
       version("26.2.x", "26.2").buildscript("build.common.gradle.kts")
     }
 
@@ -52,14 +52,14 @@ stonecutter {
       version("1.20.1", "1.20.1").buildscript("build.fabric.gradle.kts")
       version("1.21.1", "1.21.1").buildscript("build.fabric.gradle.kts")
       version("1.21.11", "1.21.11").buildscript("build.fabric.gradle.kts")
-      version("26.1.x", "26.1").buildscript("build.fabric.gradle.kts")
+      version("26.1.x", "26.1.2").buildscript("build.fabric.gradle.kts")
       version("26.2.x", "26.2").buildscript("build.fabric.gradle.kts")
     }
 
     branch("neoforge") {
       version("1.21.1", "1.21.1").buildscript("build.neoforge.gradle.kts")
       version("1.21.11", "1.21.11").buildscript("build.neoforge.gradle.kts")
-      version("26.1.x", "26.1").buildscript("build.neoforge.gradle.kts")
+      version("26.1.x", "26.1.2").buildscript("build.neoforge.gradle.kts")
       version("26.2.x", "26.2").buildscript("build.neoforge.gradle.kts")
     }
 
@@ -67,14 +67,20 @@ stonecutter {
       version("1.20.1", "1.20.1").buildscript("build.e2e.gradle.kts")
       version("1.21.1", "1.21.1").buildscript("build.e2e.gradle.kts")
       version("1.21.11", "1.21.11").buildscript("build.e2e.gradle.kts")
-      version("26.1.x", "26.1").buildscript("build.e2e.gradle.kts")
+      version("26.1.x", "26.1.2").buildscript("build.e2e.gradle.kts")
       version("26.2.x", "26.2").buildscript("build.e2e.gradle.kts")
     }
 
-    if (System.getenv("TERRASECT_SKIP_COMPAT").isNullOrBlank()) {
+    if (
+      System.getenv("TERRASECT_SKIP_COMPAT").isNullOrBlank() &&
+        gradle.startParameter.taskNames.any {
+          (it.contains("minecraftTest") && !it.endsWith("minecraftTestSupport")) ||
+            it.contains("e2e-compat")
+        }
+    ) {
       branch("e2e-compat") {
         version("1.21.11", "1.21.11").buildscript("build.e2e-compat.gradle.kts")
-        version("26.1.x", "26.1").buildscript("build.e2e-compat.gradle.kts")
+        version("26.1.x", "26.1.2").buildscript("build.e2e-compat.gradle.kts")
         version("26.2.x", "26.2").buildscript("build.e2e-compat.gradle.kts")
       }
     }

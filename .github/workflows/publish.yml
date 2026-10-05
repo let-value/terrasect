@@ -40,12 +40,14 @@ jobs:
           - { mc: "1.21.1", loader: neoforge }
           - { mc: "1.21.11", loader: fabric }
           - { mc: "1.21.11", loader: neoforge }
-          - { mc: "26.1", loader: fabric }
-          - { mc: "26.1", loader: neoforge }
+          - { mc: "26.1.2", loader: fabric }
+          - { mc: "26.1.2", loader: neoforge }
           - { mc: "26.2", loader: fabric }
           - { mc: "26.2", loader: neoforge }
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - name: Read mod version
         id: meta

@@ -52,12 +52,7 @@ public class ClimateParameterListMixin implements ClimateParameterListExtender {
     terrasect$chunkContext.remove();
   }
 
-  @ModifyReturnValue(
-      method =
-          "findValuePositional(Lnet/minecraft/world/level/biome/Climate$TargetPoint;III)Ljava/lang/Object;",
-      at = @At("RETURN"),
-      require = 0,
-      remap = false)
+  @ModifyReturnValue(method = "findValuePositional", at = @At("RETURN"), require = 0, remap = false)
   private Object terrasect$filterPositionalBiome(
       Object base, Climate.TargetPoint targetPoint, int quartX, int quartY, int quartZ) {
     var context = terrasect$dimensionContext.get();
