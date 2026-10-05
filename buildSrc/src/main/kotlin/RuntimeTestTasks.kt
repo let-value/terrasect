@@ -1,22 +1,29 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.security.MessageDigest
+import java.util.UUID
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
-import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.LocalState
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
@@ -86,15 +93,25 @@ abstract class MinecraftTestBootstrapTask : DefaultTask() {
 
 @CacheableTask
 abstract class MinecraftTestPrepareTask : DefaultTask() {
-  @get:Classpath abstract val dependencies: ConfigurableFileCollection
-  @get:Classpath abstract val artifacts: ConfigurableFileCollection
+  @get:InputFiles
+  @get:PathSensitive(PathSensitivity.NAME_ONLY)
+  abstract val dependencies: ConfigurableFileCollection
+  @get:InputFiles
+  @get:PathSensitive(PathSensitivity.NAME_ONLY)
+  abstract val artifacts: ConfigurableFileCollection
   @get:Input abstract val loader: Property<String>
   @get:Input abstract val minecraft: Property<String>
+  @get:Input abstract val loaderVersion: Property<String>
+  @get:Input abstract val requestedDependencies: ListProperty<String>
   @get:Input abstract val resolveWithFerium: Property<Boolean>
+  @get:Optional
   @get:InputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
   abstract val modpackDefinition: RegularFileProperty
-  @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val ferium: RegularFileProperty
+  @get:Optional
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val ferium: RegularFileProperty
   @get:OutputDirectory abstract val modpackDirectory: DirectoryProperty
 
   @TaskAction
@@ -102,22 +119,19 @@ abstract class MinecraftTestPrepareTask : DefaultTask() {
     val output = modpackDirectory.get().asFile
     output.deleteRecursively()
     output.mkdirs()
-    modpackDefinition.get().asFile.copyTo(File(output, "modpack.json"))
-    val user = File(output, "user").apply { mkdirs() }
-    val jars = (dependencies.files + artifacts.files).filter { it.extension == "jar" }
-    jars
-      .sortedBy { it.name }
-      .forEach { source ->
-        val destination = File(user, source.name)
-        if (destination.exists()) {
-          throw GradleException("Duplicate mod filename ${source.name} in $path")
-        }
-        source.copyTo(destination)
-      }
+    val definition = modpackDefinition.orNull?.asFile
+    if (resolveWithFerium.get()) {
+      if (definition == null)
+        throw GradleException("A Ferium modpack definition is required for $path")
+      definition.copyTo(File(output, "modpack.json"))
+    }
+    val jars = (dependencies.files + artifacts.files).filter { it.extension == "jar" }.distinct()
+    val exactMods = jars.mapNotNull(::modIds).flatten().toSet()
     if (resolveWithFerium.get()) {
       val process =
         ProcessBuilder(
-            ferium.get().asFile.absolutePath,
+            ferium.orNull?.asFile?.absolutePath
+              ?: throw GradleException("Ferium is required for $path"),
             "--config-file",
             File(output, "modpack.json").absolutePath,
             "upgrade",
@@ -153,20 +167,132 @@ abstract class MinecraftTestPrepareTask : DefaultTask() {
           "Ferium exited ${process.exitValue()} for $path\n${feriumOutput.toString().trim()}"
         )
       }
-    } else {
-      user.listFiles().orEmpty().forEach { it.copyTo(File(output, it.name)) }
     }
-    user.deleteRecursively()
-    val count = output.listFiles().orEmpty().count { it.extension == "jar" }
+    output
+      .listFiles()
+      .orEmpty()
+      .filter { it.extension == "jar" }
+      .forEach { selected ->
+        if (modIds(selected).any(exactMods::contains)) selected.delete()
+      }
+    jars
+      .sortedBy { it.name }
+      .forEach { source ->
+        val destination = File(output, source.name)
+        if (destination.exists()) {
+          throw GradleException("Duplicate mod filename ${source.name} in $path")
+        }
+        source.copyTo(destination)
+      }
+    val finalJars =
+      output.listFiles().orEmpty().filter { it.extension == "jar" }.sortedBy { it.name }
+    val modRecords = finalJars.map { jar ->
+      val ids = modIds(jar)
+      mapOf(
+        "file" to jar.name,
+        "modIds" to ids,
+        "sha256" to jar.sha256(),
+        "role" to jarRole(jar, ids),
+      )
+    }
+    val manifest =
+      mapOf(
+        "loader" to loader.get(),
+        "loaderVersion" to loaderVersion.get(),
+        "minecraft" to minecraft.get(),
+        "requestedDependencies" to requestedDependencies.get(),
+        "modpackDefinition" to definition?.absolutePath,
+        "modpackDefinitionSha256" to definition?.sha256(),
+        "productionJars" to modRecords.filter { it["role"] == "production" },
+        "testModJars" to modRecords.filter { it["role"] == "test-mod" },
+        "thirdPartyMods" to modRecords.filter { it["role"] == "third-party" },
+        "jars" to modRecords,
+      )
+    File(output, "runtime-test-manifest.json")
+      .writeText(JsonOutput.prettyPrint(JsonOutput.toJson(manifest)) + "\n")
+    val count = finalJars.size
     if (count == 0) throw GradleException("No mods were prepared by $path")
     logger.lifecycle("Prepared $count mod(s) in $output")
+  }
+
+  private fun modIds(jar: File): List<String> =
+    runCatching {
+        ZipFile(jar).use { zip ->
+          val fabric = zip.getEntry("fabric.mod.json")
+          if (fabric != null) {
+            val metadata = zip.getInputStream(fabric).bufferedReader().use { it.readText() }
+            Regex(""""id"\s*:\s*"([^"]+)"""")
+              .find(metadata)
+              ?.groupValues
+              ?.get(1)
+              ?.let(::listOf)
+              .orEmpty()
+          } else {
+            val neoForge = zip.getEntry("META-INF/neoforge.mods.toml")
+            if (neoForge == null) emptyList()
+            else {
+              val metadata = zip.getInputStream(neoForge).bufferedReader().use { it.readText() }
+              Regex("""modId\s*=\s*"([^"]+)"""")
+                .findAll(metadata)
+                .map {
+                  it.groupValues[1]
+                }
+                .toList()
+            }
+          }
+        }
+      }
+      .getOrDefault(emptyList())
+
+  private fun jarRole(jar: File, ids: List<String>): String {
+    val name = jar.name.lowercase()
+    return when {
+      "terrasect" in ids -> "production"
+      ids.any { it.startsWith("terrasect-e2e") } -> "test-mod"
+      ids.any { it in RUNTIME_MOD_IDS } || RUNTIME_JAR_NAMES.any(name::contains) ->
+        "runtime-dependency"
+      else -> "third-party"
+    }
+  }
+
+  private companion object {
+    val RUNTIME_MOD_IDS =
+      setOf(
+        "fabric-api",
+        "fabric-client-gametest-api-v1",
+        "fabric-language-kotlin",
+        "connector",
+        "forgified-fabric-api",
+        "forgified-fabric-loader",
+        "launchpad",
+        "kotlinforforge",
+        "kfflang",
+        "kfflib",
+        "kffmod",
+      )
+    val RUNTIME_JAR_NAMES =
+      listOf(
+        "fabric-api",
+        "fabric-client-gametest",
+        "fabric-language-kotlin",
+        "connector",
+        "transformer",
+        "forgified-fabric",
+        "launchpad",
+        "kotlinforforge",
+        "kff",
+      )
   }
 }
 
 abstract class MinecraftTestLaunchTask : DefaultTask() {
   @get:Input abstract val loader: Property<String>
   @get:Input abstract val minecraft: Property<String>
-  @get:Input abstract val successMarker: Property<String>
+  @get:Input abstract val loaderVersion: Property<String>
+  @get:Input abstract val javaVersion: Property<String>
+  @get:Input abstract val gameJavaExecutable: Property<String>
+  @get:Input abstract val scenario: Property<String>
+  @get:Input abstract val completionMarkers: MapProperty<String, String>
   @get:Input abstract val clientGametestMod: Property<String>
   @get:Input abstract val testFilter: Property<String>
   @get:Input abstract val e2eDirectory: Property<String>
@@ -176,46 +302,140 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
   @get:LocalState abstract val minecraftDirectory: DirectoryProperty
   @get:LocalState abstract val runtimeDirectory: DirectoryProperty
   @get:OutputFile abstract val launchLog: RegularFileProperty
+  @get:OutputFile abstract val resultFile: RegularFileProperty
 
   @TaskAction
   fun launch() {
-    val runtime = runtimeDirectory.get().asFile.apply { mkdirs() }
+    val runtime =
+      runtimeDirectory.get().asFile.apply {
+        deleteRecursively()
+        mkdirs()
+      }
     val minecraftHome = minecraftDirectory.get().asFile.apply { mkdirs() }
-    val mods = File(runtime, "mods")
-    mods.deleteRecursively()
-    modpackDirectory.get().asFile.copyRecursively(mods, overwrite = true)
-
-    val java = File(System.getProperty("java.home"), "bin/java").absolutePath
-    val gameJvmArguments = buildList {
-      add("-Djava.awt.headless=true")
-      if (clientGametestMod.get().isNotEmpty()) {
+    val pack = modpackDirectory.get().asFile
+    val jars = pack.listFiles().orEmpty().filter { it.extension == "jar" }
+    val output = StringBuilder()
+    var processExitCode: Int? = null
+    var status = "failed"
+    var failure: String? = null
+    try {
+      output.appendLine("loader: ${loader.get()} ${loaderVersion.get()}")
+      output.appendLine("minecraft: ${minecraft.get()}")
+      output.appendLine("scenario: ${scenario.get()}")
+      output.appendLine("modpack: $pack")
+      output.appendLine("test filter: ${testFilter.get()}")
+      if (loader.get() == "neoforge") {
+        File(runtime, "config/fml.toml").apply {
+          parentFile.mkdirs()
+          writeText("earlyWindowControl=false\n")
+        }
+      }
+      if (jars.any { it.name.contains("distanthorizons", ignoreCase = true) }) {
+        File(runtime, "config/DistantHorizons.toml").apply {
+          parentFile.mkdirs()
+          writeText("[client.advanced.debugging]\nrendererMode=\"DISABLED\"\n")
+        }
+      }
+      val mods =
+        File(runtime, "mods").apply {
+          deleteRecursively()
+          mkdirs()
+        }
+      jars.forEach { it.copyTo(File(mods, it.name), overwrite = true) }
+      val gameJvmArguments = buildList {
+        add("-Djava.awt.headless=true")
         add("-Dfabric.client.gametest=true")
         add("-Dfabric.client.gametest.modid=${clientGametestMod.get()}")
         add("-Dterrasect.e2eDir=${e2eDirectory.get()}")
         if (testFilter.get().isNotEmpty()) add("-Dtest=${testFilter.get()}")
       }
-    }
-    val command =
-      listOf(
-        java,
-        "-Dhmc.gamedir=${runtime.absolutePath}",
-        "-Dhmc.mcdir=${minecraftHome.absolutePath}",
-        "-Dhmc.offline=true",
-        "-Dhmc.assets.dummy=true",
-        "-Dhmc.jline.enabled=false",
-        "-Dhmc.rethrow.launch.exceptions=true",
-        "-Dhmc.exit.on.failed.command=true",
-        "-Dhmc.jvmargs=${gameJvmArguments.joinToString(" ")}",
-        "-jar",
-        launcher.get().asFile.absolutePath,
-        "--command",
-        "launch",
-        "${loader.get()}:${minecraft.get()}",
-        "-lwjgl",
+      processExitCode =
+        runHmc(
+          runtime,
+          minecraftHome,
+          listOf("launch", "${loader.get()}:${minecraft.get()}:${loaderVersion.get()}", "-lwjgl"),
+          output,
+          gameJvmArguments,
+        )
+
+      val logText = output.toString()
+      val crashReports =
+        runtime.walkTopDown().filter { it.isFile && it.parentFile.name == "crash-reports" }.toList()
+      if (crashReports.isNotEmpty()) {
+        throw GradleException("Runtime crash report(s) found for $path: $crashReports")
+      }
+      val executed = completedGameTests(logText, completionMarkers.get(), testFilter.get())
+      status = "passed"
+      logger.lifecycle(
+        "Client GameTests passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
       )
+    } catch (error: Throwable) {
+      failure = error.message ?: error.javaClass.name
+      output.appendLine("runtime failure: $failure")
+      throw error
+    } finally {
+      val log = launchLog.get().asFile
+      log.parentFile.mkdirs()
+      log.writeText(output.toString())
+      val manifestFile = File(pack, "runtime-test-manifest.json")
+      val manifest =
+        if (manifestFile.isFile) JsonSlurper().parseText(manifestFile.readText())
+        else emptyMap<String, Any>()
+      val result =
+        mapOf(
+          "loader" to loader.get(),
+          "loaderVersion" to loaderVersion.get(),
+          "minecraft" to minecraft.get(),
+          "javaVersion" to javaVersion.get(),
+          "scenario" to scenario.get(),
+          "graphics" to "HeadlessMC LWJGL stubs; Distant Horizons rendering disabled",
+          "testModId" to clientGametestMod.get(),
+          "testFilter" to testFilter.get(),
+          "expectedTests" to expectedGameTests(completionMarkers.get(), testFilter.get()).keys,
+          "executedTests" to
+            matchedGameTests(output.toString(), completionMarkers.get(), testFilter.get()),
+          "exitCode" to processExitCode,
+          "status" to status,
+          "failure" to failure,
+          "modpack" to manifest,
+          "log" to log.absolutePath,
+        )
+      val resultFile = resultFile.get().asFile
+      resultFile.parentFile.mkdirs()
+      resultFile.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(result)) + "\n")
+    }
+  }
+
+  private fun runHmc(
+    runtime: File,
+    minecraftHome: File,
+    hmcArguments: List<String>,
+    output: StringBuilder,
+    jvmArguments: List<String>,
+  ): Int {
+    val java = File(System.getProperty("java.home"), "bin/java").absolutePath
+    val runtimeId = "-Dterrasect.runtime.id=${UUID.randomUUID()}"
+    val command = buildList {
+      add(java)
+      add(runtimeId)
+      add("-Dhmc.gamedir=${runtime.absolutePath}")
+      add("-Dhmc.mcdir=${minecraftHome.absolutePath}")
+      add("-Dhmc.java.versions=${gameJavaExecutable.get()}")
+      add("-Dhmc.java.use.current=false")
+      add("-Dhmc.offline=true")
+      add("-Dhmc.assets.dummy=true")
+      add("-Dhmc.jline.enabled=false")
+      add("-Dhmc.rethrow.launch.exceptions=true")
+      add("-Dhmc.exit.on.failed.command=true")
+      add("-Dhmc.jvmargs=${(jvmArguments + runtimeId).joinToString(" ")}")
+      add("-jar")
+      add(launcher.get().asFile.absolutePath)
+      add("--command")
+      addAll(hmcArguments)
+    }
+    output.appendLine("command: ${command.joinToString(" ")}")
     val process = ProcessBuilder(command).directory(runtime).redirectErrorStream(true).start()
-    val output = StringBuilder()
-    val markerSeen = AtomicBoolean(false)
+    val fatal = AtomicReference<Pair<String, Long>>()
     val reader =
       Thread {
           try {
@@ -223,40 +443,54 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
               lines.forEach {
                 output.appendLine(it)
                 logger.lifecycle(it)
-                if (
-                  successMarker.get().isNotEmpty() &&
-                    it.contains(successMarker.get()) &&
-                    markerSeen.compareAndSet(false, true)
-                ) {
-                  process.descendants().forEach(ProcessHandle::destroy)
-                  process.destroy()
+                runtimeFailure(it)?.let { reason ->
+                  fatal.compareAndSet(null, reason to System.nanoTime())
                 }
               }
             }
           } catch (error: IOException) {
-            if (!markerSeen.get()) output.appendLine("HeadlessMC output failed: ${error.message}")
+            output.appendLine("HeadlessMC output failed: ${error.message}")
           }
         }
         .apply { start() }
-    val finished = process.waitFor(timeoutSeconds.get(), TimeUnit.SECONDS)
-    if (!finished) {
-      process.descendants().forEach(ProcessHandle::destroyForcibly)
-      process.destroyForcibly()
+    var finished = false
+    val children = mutableSetOf<ProcessHandle>()
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds.get())
+    try {
+      while (!finished && System.nanoTime() < deadline) {
+        children.addAll(process.descendants().toList())
+        finished = process.waitFor(200, TimeUnit.MILLISECONDS)
+        val detected = fatal.get()
+        if (detected != null && System.nanoTime() - detected.second > TimeUnit.SECONDS.toNanos(3))
+          break
+      }
+    } finally {
+      children.addAll(process.descendants().toList())
+      children.addAll(
+        ProcessHandle.allProcesses()
+          .filter { it.info().arguments().orElse(emptyArray()).contains(runtimeId) }
+          .toList()
+      )
+      children.filter(ProcessHandle::isAlive).forEach(ProcessHandle::destroyForcibly)
+      if (process.isAlive) {
+        process.destroyForcibly()
+        process.waitFor(10, TimeUnit.SECONDS)
+      }
+      children.forEach { runCatching { it.onExit().get(5, TimeUnit.SECONDS) } }
+      reader.join(30_000)
     }
-    reader.join(30_000)
-
-    val log = launchLog.get().asFile
-    log.parentFile.mkdirs()
-    log.writeText(output.toString())
-    if (!finished)
-      throw GradleException("HeadlessMC timed out for ${loader.get()} ${minecraft.get()}")
-    if (process.exitValue() != 0) {
+    if (!finished) {
+      fatal.get()?.let { throw GradleException(it.first) }
       throw GradleException(
-        "HeadlessMC exited ${process.exitValue()} for ${loader.get()} ${minecraft.get()}"
+        "HeadlessMC timed out for ${loader.get()} ${minecraft.get()} ${scenario.get()} after ${timeoutSeconds.get()} seconds"
       )
     }
-    if (successMarker.get().isNotEmpty() && !markerSeen.get()) {
-      throw GradleException("'${successMarker.get()}' was not found in ${log.absolutePath}")
+    val exitCode = process.exitValue()
+    if (exitCode != 0) {
+      throw GradleException(
+        "HeadlessMC exited $exitCode for ${loader.get()} ${minecraft.get()} ${scenario.get()}"
+      )
     }
+    return exitCode
   }
 }

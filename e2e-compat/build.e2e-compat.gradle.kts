@@ -1,3 +1,5 @@
+import net.fabricmc.loom.task.RemapJarTask
+
 plugins {
   id("terrasect-mod")
   alias(libs.plugins.loom.back.compat)
@@ -120,20 +122,35 @@ tasks {
       from(sourceSets["gametest"].output)
     }
 
-  register<Jar>("gametestModJar") {
-    archiveBaseName.set("terrasect-compat-tests")
-    archiveVersion.set("${version}+$mcVersion")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(gametestThinJar.flatMap { it.archiveFile }.map { zipTree(it) })
-    from({ gametestLibraries.map(::zipTree) })
-    exclude(
-      "META-INF/MANIFEST.MF",
-      "META-INF/*.DSA",
-      "META-INF/*.RSA",
-      "META-INF/*.SF",
-      "module-info.class",
-    )
-  }
+  val gametestFatJar =
+    register<Jar>("gametestFatJar") {
+      archiveBaseName.set("terrasect-compat-tests")
+      archiveVersion.set("${version}+$mcVersion")
+      duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+      from(gametestThinJar.flatMap { it.archiveFile }.map { zipTree(it) })
+      from({ gametestLibraries.map(::zipTree) })
+      exclude(
+        "META-INF/MANIFEST.MF",
+        "META-INF/*.DSA",
+        "META-INF/*.RSA",
+        "META-INF/*.SF",
+        "module-info.class",
+      )
+    }
+
+  if (mcVersion.startsWith("26.")) {
+    gametestFatJar.configure { archiveClassifier.set("gametest") }
+    register("gametestModJar") { dependsOn(gametestFatJar) }
+  } else
+    register<RemapJarTask>("gametestModJar") {
+      inputFile.set(gametestFatJar.flatMap { it.archiveFile })
+      archiveBaseName.set("terrasect-compat-tests")
+      archiveVersion.set("${version}+$mcVersion")
+      archiveClassifier.set("gametest")
+      sourceNamespace.set("named")
+      targetNamespace.set("intermediary")
+      classpath.from(sourceSets["gametest"].compileClasspath)
+    }
 
   named<JavaExec>("runClientGameTest") {
     systemProperty("terrasect.e2eDir", e2eCompatDir.absolutePath)

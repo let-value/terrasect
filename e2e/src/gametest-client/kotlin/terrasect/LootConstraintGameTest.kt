@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -165,6 +165,7 @@ object LootConstraintBlockAllGameTest : FabricClientGameTest {
         "[block_all] blockMods(minecraft) on Region.loot must suppress every vanilla-namespaced " +
           "loot item; found $constrainedItems item(s) across $ROLL_COUNT rolls.",
       )
+      log.info("loot constraints: OK — vanilla loot was suppressed")
     } finally {
       PresetRegistry.forcePresetId = null
       PresetRegistry.presets.remove(BLOCK_ALL_PRESET)

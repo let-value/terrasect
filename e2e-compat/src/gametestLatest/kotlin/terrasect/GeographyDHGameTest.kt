@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import java.nio.file.Path
 import kotlin.math.abs
@@ -271,7 +271,7 @@ object GeographyDHGameTest : FabricClientGameTest {
       )
       log.info("geography-dh: screenshot captured")
     } finally {
-      game.close()
+      closeCompatWorld(game)
       PresetRegistry.forcePresetId = null
       PresetRegistry.presets.remove(Presets.GEOGRAPHY.id)
     }

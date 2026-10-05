@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -90,7 +90,7 @@ object TerraBlenderCompatGameTest : FabricClientGameTest {
       )
       log.info("terrablender compat: OK — {} distinct biomes", distinctBiomes.size)
     } finally {
-      game.close()
+      closeCompatWorld(game)
       PresetRegistry.forcePresetId = originalPresetId
       PresetRegistry.presets.remove(COMPAT_PRESET)
     }

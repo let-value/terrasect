@@ -1,5 +1,5 @@
 //? if latest {
-package terrasect
+package terrasect.gametest
 
 import de.skuzzle.test.snapshots.SnapshotFile
 import de.skuzzle.test.snapshots.SnapshotFile.SnapshotHeader

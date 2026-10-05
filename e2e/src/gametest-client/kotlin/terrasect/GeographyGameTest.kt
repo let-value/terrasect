@@ -1,5 +1,5 @@
 //? if latest {
-package terrasect
+package terrasect.gametest
 
 import java.awt.Color
 import java.awt.image.BufferedImage

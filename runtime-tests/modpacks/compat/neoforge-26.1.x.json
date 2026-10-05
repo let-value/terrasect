@@ -3,10 +3,10 @@
   "active_modpack": 0,
   "profiles": [
     {
-      "name": "Terrasect compat Fabric 1.21.11",
+      "name": "Terrasect compat NeoForge 26.1",
       "output_dir": ".",
-      "game_version": "1.21.11",
-      "mod_loader": "Fabric",
+      "game_version": "26.1.2",
+      "mod_loader": "NeoForge",
       "mods": [
         {
           "name": "glitchcore",

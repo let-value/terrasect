@@ -10,9 +10,16 @@ MinecraftTestDsl(rootProject)
 allprojects {
   repositories {
     mavenCentral()
+    maven("https://maven.fabricmc.net/") {
+      content { includeGroupAndSubgroups("net.fabricmc") }
+    }
     exclusiveContent {
       forRepository { maven("https://api.modrinth.com/maven") { name = "Modrinth" } }
       filter { includeGroup("maven.modrinth") }
+    }
+    exclusiveContent {
+      forRepository { maven("https://maven.sinytra.org") { name = "Sinytra" } }
+      filter { includeGroupAndSubgroups("org.sinytra") }
     }
     exclusiveContent {
       forRepository {

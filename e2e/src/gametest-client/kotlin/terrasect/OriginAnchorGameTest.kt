@@ -1,5 +1,5 @@
 //? if latest {
-package terrasect
+package terrasect.gametest
 
 import kotlin.math.abs
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest

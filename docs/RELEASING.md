@@ -1,32 +1,54 @@
 # Releasing
 
+Release readiness requires passing build checks and clean/third-party **client** tests for all
+nine production variants. Missing upstream test capabilities block release; see
+[`runtime-tests/SUPPORT.md`](../runtime-tests/SUPPORT.md).
+
 Four workflows in `.github/workflows/`:
-
-## `runtime-tests.yml` — Minecraft artifact tests
-
-GitHub Actions only sets up Java and invokes `./gradlew minecraftTest`. Gradle resolves and caches
-the complete modpacks, downloads the pinned HeadlessMC launcher, and runs three pipelines:
-
-- `minecraftTestBuild` — locally built Terrasect jars for every Fabric and NeoForge lane.
-- `minecraftTestPublished` — the matching published Terrasect jars from Modrinth.
-- `minecraftTestCompat` — locally built Fabric jars with all compatibility mods supported by the
-  existing `e2e-compat` matrix.
-
-Each version project also exposes the singular tasks, for example
-`:fabric:26.2.x:minecraftTestBuild`, `:fabric:26.2.x:minecraftTestPublished`, and
-`:fabric:26.2.x:minecraftTestCompat`. Prepared packs, persistent Minecraft installations, and logs
-live under `build/minecraft-test/`. The checked-in modpack definitions live under
-`runtime-tests/modpacks/{artifact,published,compat}`; compatibility coordinates come from the
-existing `e2e-compat` Gradle configurations.
-Modern Fabric lanes package the existing client gametests as a `terrasect-tests` mod beside the
-production jar before HeadlessMC starts Minecraft.
 
 ## `ci.yml` — PR verification
 
-Runs on every PR (and pushes to `main`):
+The build job runs formatting, unit tests, and all nine production builds. The runtime matrix
+invokes version-qualified Gradle tasks with `--continue`, so every lane produces evidence:
 
-- `build` job: `spotlessCheck`, all unit tests, and every loader jar (`:<version>-fabric:build` / `:<version>-neoforge:build` across the full matrix).
-- `smoke` job (per-version matrix): the portable smoke gametests only. Old-paradigm versions (1.20.1, 1.21.1) run the headless server smoke via `runGameTest`; client-capable versions run `runClientGameTest -Ptest=SmokeGameTest,LootConstraintBlockAllGameTest` under Xvfb. The heavy client gametests (terrain digests, constraint suites, dimension/archetype probes) never run on GitHub — they stay local (`./gradlew :e2e:26.2.x:runClientGameTest` with no `-Ptest` filter).
+```sh
+./gradlew :fabric:26.2.x:minecraftTestBuild :fabric:26.2.x:minecraftTestCompat --continue
+./gradlew :neoforge:26.1.x:minecraftTestBuild :neoforge:26.1.x:minecraftTestCompat --continue
+./gradlew minecraftTest --continue
+```
+
+Leave `TERRASECT_SKIP_COMPAT` unset for runtime tasks. Ordinary builds and checks do not configure
+third-party compatibility projects. `minecraftTestSupport` lists upstream blockers without launching.
+The aggregate deliberately fails while any required lane is incomplete; a successful build alone
+is not release evidence.
+
+Gradle builds the final production jar and a separate installable GameTest mod, resolves dependencies,
+and starts a real Minecraft client through pinned HeadlessMC. Fabric uses the Fabric client GameTest
+API. NeoForge uses native NeoForge Terrasect plus the Fabric test mod through Sinytra Connector,
+Forgified Fabric API, Launchpad, and Kotlin runtimes. It never substitutes dedicated-server startup.
+Mapped versions remap the test jar; unobfuscated 26.x versions package it directly.
+
+`minecraftTestBuild` runs the clean Smoke and LootConstraintBlockAll tests. `minecraftTestCompat`
+runs the pinned third-party packs and assertions listed in SUPPORT.md. Gradle rejects missing/zero
+executions, assertion failures, crashes, and timeouts, even if earlier tests completed. Launches
+always start with fresh worlds; launcher/dependency downloads and prepared packs can be cached.
+
+Runtime evidence lives in `build/minecraft-test/`:
+
+- `results/<loader>-<version>-<build|compat>.json`: outcome, executed tests, exact jars and SHA-256,
+  dependencies, graphics limitation, and log path.
+- `logs/<loader>-<version>-<build|compat>.log`: command and captured client output.
+- `modpacks/<loader>-<version>-<build|compat>/runtime-test-manifest.json`: installed pack inventory.
+- `runtime/<loader>-<version>-<build|compat>/`: client logs and crash reports.
+
+CI uploads these diagnostics on success and failure, excluding authentication data. Compatibility
+profiles live in `runtime-tests/modpacks/compat`; Gradle coordinates in `stonecutter.properties.toml`
+replace Ferium's selected versions with exact pins. Tool versions/checksums live in
+`buildSrc/src/main/resources/minecraft-test.properties`.
+
+HeadlessMC uses LWJGL stubs and dummy assets. Distant Horizons rendering is disabled; tests cover
+world generation, LOD data and Ponder screen state. GPU rendering and screenshot correctness require
+a separate graphical client run and are not established by this pipeline.
 
 ## `release.yml` — build artifacts
 Triggered by pushing a `v*` tag or manually via workflow dispatch. Builds all loader jars (named `terrasect-<loader>-<modversion>+<mcversion>.jar`), uploads them as a `terrasect-jars` workflow artifact, and attaches them to a draft GitHub release (`v<mod.version>` if not tag-triggered). Publish the draft release manually after review.
@@ -73,7 +95,8 @@ Repo settings:
 
 ### Cutting a release
 
-1. Bump `mod.version` in `stonecutter.properties.toml`.
-2. Tag and push: `git tag v<version> && git push origin v<version>`. This also triggers `pages.yml`.
-3. Review the draft GitHub release `release.yml` creates; publish it.
-4. Run `publish.yml` with that tag (target `both`).
+1. Require complete passing evidence for every lane in SUPPORT.md and review CI artifacts.
+2. Bump `mod.version` in `stonecutter.properties.toml`.
+3. Tag and push: `git tag v<version> && git push origin v<version>`. This also triggers `pages.yml`.
+4. Review the draft GitHub release `release.yml` creates; publish it.
+5. Run `publish.yml` with that tag (target `both`).

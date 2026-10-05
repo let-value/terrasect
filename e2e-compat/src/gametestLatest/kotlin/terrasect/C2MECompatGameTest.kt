@@ -1,4 +1,4 @@
-package terrasect
+package terrasect.gametest
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -99,7 +99,7 @@ object C2MECompatGameTest : FabricClientGameTest {
       )
       log.info("c2me compat: OK — {} chunks loaded concurrently with no errors", requested)
     } finally {
-      game.close()
+      closeCompatWorld(game)
       PresetRegistry.forcePresetId = originalPresetId
       PresetRegistry.presets.remove(COMPAT_PRESET)
     }

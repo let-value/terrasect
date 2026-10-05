@@ -9,34 +9,29 @@
       "mod_loader": "Fabric",
       "mods": [
         {
-          "name": "Fabric API",
-          "identifier": { "ModrinthProject": "fabric-api" }
+          "name": "glitchcore",
+          "identifier": {
+            "ModrinthProject": "glitchcore"
+          }
         },
         {
-          "name": "Fabric Language Kotlin",
-          "identifier": { "ModrinthProject": "fabric-language-kotlin" }
+          "name": "biomes-o-plenty",
+          "identifier": {
+            "ModrinthProject": "biomes-o-plenty"
+          }
         },
         {
-          "name": "GlitchCore",
-          "identifier": { "ModrinthProject": "glitchcore" }
+          "name": "terrablender",
+          "identifier": {
+            "ModrinthProject": "terrablender"
+          }
         },
         {
-          "name": "Biomes O Plenty",
-          "identifier": { "ModrinthProject": "biomes-o-plenty" }
-        },
-        {
-          "name": "TerraBlender",
-          "identifier": { "ModrinthProject": "terrablender" }
-        },
-        {
-          "name": "Distant Horizons",
-          "identifier": { "ModrinthProject": "distanthorizons" }
-        },
-        {
-          "name": "Create Fly",
-          "identifier": { "ModrinthProject": "create-fly" }
-        },
-        { "name": "C2ME", "identifier": { "ModrinthProject": "c2me-fabric" } }
+          "name": "distanthorizons",
+          "identifier": {
+            "ModrinthProject": "distanthorizons"
+          }
+        }
       ]
     }
   ],
