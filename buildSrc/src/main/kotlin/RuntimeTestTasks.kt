@@ -413,7 +413,7 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       val executed = completedGameTests(logText, completionMarkers.get(), testFilter.get())
       status = "passed"
       logger.lifecycle(
-        "${if (clientTests.get()) "Client GameTests" else "Server smoke"} passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
+        "${if (clientTests.get()) "Client tests" else "Server smoke"} passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
       )
     } catch (error: Throwable) {
       failure = error.message ?: error.javaClass.name

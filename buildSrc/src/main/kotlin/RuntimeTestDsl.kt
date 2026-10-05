@@ -148,6 +148,31 @@ fun MinecraftTestDsl(root: Project) {
         completionMarkers = if (client) compatMarkers(lane) else serverMarkers,
         testFilter = if (client) compatFilter(lane) else "ServerSmokeGameTest",
       )
+
+    if (lane.loader == "neoforge" && lane.segment == "1.21.1") {
+      val kubejsNotations =
+        listOf("kubejs", "rhino").map {
+          "maven.modrinth:$it:${project.property("deps.compat_$it")}"
+        }
+      compatTests +=
+        registerPipeline(
+          root = root,
+          project = project,
+          lane = lane,
+          scenario = "KubejsClient",
+          dependencies = root.files(base.configuration, configuration(project, kubejsNotations)),
+          requestedDependencies = base.notations + kubejsNotations,
+          bootstrap = bootstrap,
+          artifacts = root.files(productionArtifact, testArtifact),
+          clientGametestMod = "terrasect_server_tests",
+          clientTests = true,
+          e2eDirectory = root.file("e2e"),
+          modpackDefinition = null,
+          resolveWithFerium = false,
+          completionMarkers = linkedMapOf("ClientStartupSmokeTest" to "client startup smoke: OK"),
+          testFilter = "ClientStartupSmokeTest",
+        )
+    }
   }
 
   root.tasks.register("minecraftTestSupport") {
@@ -244,6 +269,10 @@ private fun compatDependencies(project: Project, lane: MinecraftTestLane): TestD
   if (lane.loader == "fabric" && lane.supportsClientGameTests()) {
     notationByProperty["create"] = "create-fly"
     if (lane.segment == "26.2.x") notationByProperty["c2me"] = "c2me-fabric"
+  }
+  if (lane.loader == "neoforge" && lane.segment == "1.21.1") {
+    notationByProperty["kubejs"] = "kubejs"
+    notationByProperty["rhino"] = "rhino"
   }
   val notations = notationByProperty.map { (property, slug) ->
     "maven.modrinth:$slug:${project.property("deps.compat_$property")}"

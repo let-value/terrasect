@@ -50,11 +50,15 @@ All client-mode compatibility lanes run `CompatSmokeGameTest` and `ModdedBiomeCo
 (allow/block BOP biomes). Fabric lanes also run `CreatePonderCompatGameTest`.
 Fabric 26.2 adds `BiomesOPlentyCompatGameTest`, `TerraBlenderCompatGameTest`,
 `DistantHorizonsCompatGameTest` (LOD database) and `C2MECompatGameTest` (concurrent generation).
-Server-mode clean/compat packs each execute `ServerSmokeGameTest`. Client-mode clean/compat test counts are 2/3 for Fabric 1.21.11 and 26.1.2, 2/7 for Fabric 26.2,
+Server-mode clean/compat packs each execute `ServerSmokeGameTest`. NeoForge 1.21.1 additionally
+pins KubeJS/Rhino in its server pack and runs `minecraftTestKubejsClient`, a native main-menu and
+configuration check without Connector. See [KUBEJS.md](KUBEJS.md) for reproduction evidence and
+exact scope. Client-mode clean/compat test counts are 2/3 for Fabric 1.21.11 and 26.1.2, 2/7 for Fabric 26.2,
 and 2/2 for NeoForge 26.1.2. These bounded scenarios do not cover every possible mod combination.
 
-NeoForge installs **native NeoForge Terrasect**, not its Fabric production jar. On client-mode lanes,
-the separate Fabric test mod and required Fabric runtime travel through Connector. Test classes use the
+NeoForge installs **native NeoForge Terrasect**. Its 26.1.2 client GameTest lane sends the
+separate Fabric test mod and required Fabric runtime through Connector. The additional 1.21.1
+main-menu check uses a native NeoForge test mod. Test classes use the
 `terrasect.gametest` package to avoid a split package with the native mod under NeoForge's module loader.
 
 HeadlessMC 2.10.0 and Ferium 4.7.1 are checksum pinned. Each client launch uses the version's Java

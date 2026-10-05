@@ -10,6 +10,10 @@ smoke.compileClasspath += main.compileClasspath + main.output
 
 smoke.java.srcDir(rootProject.file("e2e/src/server-$loader/java"))
 
+if (loader == "neoforge" && project.version.toString().endsWith("+1.21.1")) {
+  smoke.java.srcDir(rootProject.file("e2e/src/client-neoforge/java"))
+}
+
 smoke.resources.srcDir(rootProject.file("e2e/src/server-$loader/resources"))
 
 extensions

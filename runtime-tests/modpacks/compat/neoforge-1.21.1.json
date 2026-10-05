@@ -31,6 +31,18 @@
           "identifier": {
             "ModrinthProject": "distanthorizons"
           }
+        },
+        {
+          "name": "kubejs",
+          "identifier": {
+            "ModrinthProject": "kubejs"
+          }
+        },
+        {
+          "name": "rhino",
+          "identifier": {
+            "ModrinthProject": "rhino"
+          }
         }
       ]
     }
