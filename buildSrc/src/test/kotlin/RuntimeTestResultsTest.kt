@@ -8,7 +8,11 @@ class RuntimeTestResultsTest {
   fun `rejects runner failures and child exit failures after assertion markers`() {
     val markers = mapOf("SmokeGameTest" to "smoke: OK")
     for (failure in
-      listOf("Client gametests failed with an exception", "Minecraft exited with code: 1")) {
+      listOf(
+        "Client gametests failed with an exception",
+        "Server smoke failed",
+        "Minecraft exited with code: 1",
+      )) {
       assertThrows(GradleException::class.java) {
         completedGameTests("smoke: OK\n$failure", markers, "SmokeGameTest")
       }

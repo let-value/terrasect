@@ -247,8 +247,12 @@ abstract class MinecraftTestPrepareTask : DefaultTask() {
   private fun jarRole(jar: File, ids: List<String>): String {
     val name = jar.name.lowercase()
     return when {
+      ids.any {
+        it.startsWith("terrasect-e2e") ||
+          it == "terrasect-server-tests" ||
+          it == "terrasect_server_tests"
+      } -> "test-mod"
       "terrasect" in ids -> "production"
-      ids.any { it.startsWith("terrasect-e2e") } -> "test-mod"
       ids.any { it in RUNTIME_MOD_IDS } || RUNTIME_JAR_NAMES.any(name::contains) ->
         "runtime-dependency"
       else -> "third-party"
@@ -286,6 +290,12 @@ abstract class MinecraftTestPrepareTask : DefaultTask() {
 }
 
 abstract class MinecraftTestLaunchTask : DefaultTask() {
+  @get:Input abstract val clientTests: Property<Boolean>
+
+  init {
+    clientTests.convention(true)
+  }
+
   @get:Input abstract val loader: Property<String>
   @get:Input abstract val minecraft: Property<String>
   @get:Input abstract val loaderVersion: Property<String>
@@ -344,16 +354,52 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       jars.forEach { it.copyTo(File(mods, it.name), overwrite = true) }
       val gameJvmArguments = buildList {
         add("-Djava.awt.headless=true")
-        add("-Dfabric.client.gametest=true")
-        add("-Dfabric.client.gametest.modid=${clientGametestMod.get()}")
-        add("-Dterrasect.e2eDir=${e2eDirectory.get()}")
-        if (testFilter.get().isNotEmpty()) add("-Dtest=${testFilter.get()}")
+        if (clientTests.get()) {
+          add("-Dfabric.client.gametest=true")
+          add("-Dfabric.client.gametest.modid=${clientGametestMod.get()}")
+          add("-Dterrasect.e2eDir=${e2eDirectory.get()}")
+          if (testFilter.get().isNotEmpty()) add("-Dtest=${testFilter.get()}")
+        } else add("-Dterrasect.serverSmoke=true")
+      }
+      if (!clientTests.get()) {
+        runHmc(
+          runtime,
+          minecraftHome,
+          listOf(
+            "server",
+            "add",
+            loader.get(),
+            minecraft.get(),
+            "terrasect-runtime",
+            loaderVersion.get(),
+          ),
+          output,
+          emptyList(),
+        )
+        runHmc(
+          runtime,
+          minecraftHome,
+          listOf("server", "cache", "terrasect-runtime"),
+          output,
+          emptyList(),
+        )
+        val server =
+          runtime.walkTopDown().single { it.isDirectory && it.name == "terrasect-runtime" }
+        val serverMods = File(server, "mods").apply { mkdirs() }
+        jars.forEach { it.copyTo(File(serverMods, it.name), overwrite = true) }
+        File(server, "eula.txt").writeText("eula=true\n")
+        File(server, "server.properties")
+          .writeText(
+            "online-mode=false\nserver-port=0\nview-distance=2\nsimulation-distance=2\nlevel-seed=terrasect-server-smoke\n"
+          )
       }
       processExitCode =
         runHmc(
           runtime,
           minecraftHome,
-          listOf("launch", "${loader.get()}:${minecraft.get()}:${loaderVersion.get()}", "-lwjgl"),
+          if (clientTests.get())
+            listOf("launch", "${loader.get()}:${minecraft.get()}:${loaderVersion.get()}", "-lwjgl")
+          else listOf("server", "launch", "terrasect-runtime"),
           output,
           gameJvmArguments,
         )
@@ -367,7 +413,7 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       val executed = completedGameTests(logText, completionMarkers.get(), testFilter.get())
       status = "passed"
       logger.lifecycle(
-        "Client GameTests passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
+        "${if (clientTests.get()) "Client GameTests" else "Server smoke"} passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
       )
     } catch (error: Throwable) {
       failure = error.message ?: error.javaClass.name
@@ -388,7 +434,10 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
           "minecraft" to minecraft.get(),
           "javaVersion" to javaVersion.get(),
           "scenario" to scenario.get(),
-          "graphics" to "HeadlessMC LWJGL stubs; Distant Horizons rendering disabled",
+          "testMode" to if (clientTests.get()) "client" else "server",
+          "graphics" to
+            if (clientTests.get()) "HeadlessMC LWJGL stubs; Distant Horizons rendering disabled"
+            else "Dedicated Minecraft server; no client rendering coverage",
           "testModId" to clientGametestMod.get(),
           "testFilter" to testFilter.get(),
           "expectedTests" to expectedGameTests(completionMarkers.get(), testFilter.get()).keys,
@@ -415,6 +464,24 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
   ): Int {
     val java = File(System.getProperty("java.home"), "bin/java").absolutePath
     val runtimeId = "-Dterrasect.runtime.id=${UUID.randomUUID()}"
+    val serverArgument =
+      if (
+        !clientTests.get() && loader.get() == "neoforge" && hmcArguments.getOrNull(1) == "launch"
+      ) {
+        val server =
+          runtime.walkTopDown().single { it.isDirectory && it.name == "terrasect-runtime" }
+        val argumentFile = File(runtime, "server-${UUID.randomUUID()}.args").canonicalFile
+        argumentFile.writeText((jvmArguments + runtimeId).joinToString("\n") + "\n")
+        val script = File(server, "run.sh")
+        val contents = script.readText()
+        check(contents.contains("@user_jvm_args.txt")) {
+          "NeoForge launch script has no JVM argfile"
+        }
+        script.writeText(
+          contents.replace("@user_jvm_args.txt", "@\"${argumentFile.absolutePath}\"")
+        )
+        "@${argumentFile.absolutePath}"
+      } else null
     val command = buildList {
       add(java)
       add(runtimeId)
@@ -424,6 +491,11 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       add("-Dhmc.java.use.current=false")
       add("-Dhmc.offline=true")
       add("-Dhmc.assets.dummy=true")
+      if (!clientTests.get()) {
+        if (hmcArguments.getOrNull(1) != "launch") add("-Dhmc.server.test=true")
+        add("-Dhmc.server.test.cache=true")
+        add("-Dhmc.server.test.cache.use.mc.dir=true")
+      }
       add("-Dhmc.jline.enabled=false")
       add("-Dhmc.rethrow.launch.exceptions=true")
       add("-Dhmc.exit.on.failed.command=true")
@@ -432,6 +504,10 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       add(launcher.get().asFile.absolutePath)
       add("--command")
       addAll(hmcArguments)
+      if (!clientTests.get() && hmcArguments.getOrNull(1) == "launch" && loader.get() == "fabric") {
+        add("--jvm")
+        add("\"${(jvmArguments + runtimeId).joinToString(" ")}\"")
+      }
     }
     output.appendLine("command: ${command.joinToString(" ")}")
     val process = ProcessBuilder(command).directory(runtime).redirectErrorStream(true).start()
@@ -468,7 +544,11 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       children.addAll(process.descendants().toList())
       children.addAll(
         ProcessHandle.allProcesses()
-          .filter { it.info().arguments().orElse(emptyArray()).contains(runtimeId) }
+          .filter {
+            val arguments = it.info().arguments().orElse(emptyArray())
+            arguments.contains(runtimeId) ||
+              (serverArgument != null && arguments.contains(serverArgument))
+          }
           .toList()
       )
       children.filter(ProcessHandle::isAlive).forEach(ProcessHandle::destroyForcibly)

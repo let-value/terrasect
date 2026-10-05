@@ -51,7 +51,7 @@ stonecutter parameters
 
 spotless {
   java {
-    target("common/src/**/*.java")
+    target("common/src/**/*.java", "e2e/src/**/*.java")
     toggleOffOn()
     googleJavaFormat()
   }
@@ -81,6 +81,7 @@ spotless {
       "neoforge/*.gradle.kts",
       "e2e/*.gradle.kts",
       "e2e-compat/*.gradle.kts",
+      "gradle/server-smoke.gradle.kts",
       "buildSrc/*.gradle.kts",
       "buildSrc/src/**/*.gradle.kts",
     )

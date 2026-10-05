@@ -51,7 +51,11 @@ val gametestEntrypoints =
   if (clientGameTestsAvailable) {
     entrypointBlock("fabric-client-gametest", clientGametestEntries().map { kotlinEntry(it) })
   } else {
-    ""
+    listOf(
+        entrypointBlock("main", listOf(kotlinEntry("ServerSmokeInit"))),
+        entrypointBlock("fabric-gametest", listOf(kotlinEntry("ServerSmokeGameTest"))),
+      )
+      .joinToString(",\n")
   }
 
 fabricApi {
@@ -59,7 +63,7 @@ fabricApi {
     createSourceSet = true
     modId = gametestModId
     eula = true
-    enableGameTests = false
+    enableGameTests = !clientGameTestsAvailable
     enableClientGameTests = clientGameTestsAvailable
     clearRunDirectory = true
   }
@@ -76,7 +80,6 @@ sourceSets {
       kotlin.setSrcDirs(
         listOf(e2eDir.resolve("src/gametest/kotlin"), processGametestClientKotlin())
       )
-      kotlin.exclude("**/ServerSmoke*.kt")
       java.setSrcDirs(listOf(e2eDir.resolve("src/gametest-client/java")))
       resources.setSrcDirs(
         listOf(
@@ -85,9 +88,19 @@ sourceSets {
         )
       )
     } else {
-      kotlin.setSrcDirs(emptyList<File>())
-      java.setSrcDirs(emptyList<File>())
-      resources.setSrcDirs(listOf(e2eDir.resolve("src/gametest/resources")))
+      kotlin.setSrcDirs(
+        listOf(
+          e2eDir.resolve("src/server/kotlin"),
+          e2eDir.resolve("src/gametest-server-old/kotlin"),
+        )
+      )
+      java.setSrcDirs(listOf(e2eDir.resolve("src/gametest-server-old/java")))
+      resources.setSrcDirs(
+        listOf(
+          e2eDir.resolve("src/gametest/resources"),
+          e2eDir.resolve("src/gametest-server-old/resources"),
+        )
+      )
     }
   }
 }
@@ -134,7 +147,8 @@ val resourceProps =
     "gametest_mod_id" to gametestModId,
     "gametest_entrypoints" to gametestEntrypoints,
     "gametest_mixins" to
-      if (clientGameTestsAvailable) "\"terrasect-e2e-client.mixins.json\"" else "",
+      if (clientGameTestsAvailable) "\"terrasect-e2e-client.mixins.json\""
+      else "\"terrasect-e2e.mixins.json\"",
     "mixin_compat_level" to "JAVA_${minOf(prop("java").toInt(), 21)}",
   )
 
@@ -205,7 +219,7 @@ tasks {
       onlyIf { clientGameTestsAvailable }
     }
 
-  matching { it.name == "runClientGameTest" }
+  matching { it.name == "runClientGameTest" || it.name == "runGameTest" }
     .configureEach {
       this as JavaExec
       systemProperty("terrasect.e2eDir", e2eDir.absolutePath)
@@ -219,6 +233,7 @@ tasks {
           }
         }
       }
+      if (name == "runGameTest") systemProperty("terrasect.serverSmoke", "true")
       if (project.hasProperty("updateSnapshots")) {
         systemProperty("updateSnapshots", "true")
       }

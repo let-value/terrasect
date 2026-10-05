@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="terrasect_server_tests"
+version="${version}"
+displayName="Terrasect server smoke tests"
+[[dependencies.terrasect_server_tests]]
+modId="terrasect"
+type="required"
+versionRange="[0,)"
+ordering="AFTER"
+side="SERVER"

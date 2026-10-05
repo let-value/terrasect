@@ -1,0 +1,72 @@
+name: Modpack runtime tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Packs to test
+        type: choice
+        options: [both, build, compat]
+        default: both
+
+concurrency:
+  group: modpack-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    name: Modpack tests ${{ matrix.loader }} ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TERRASECT_SKIP_COMPAT: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { loader: fabric, version: "1.20.1" }
+          - { loader: fabric, version: "1.21.1" }
+          - { loader: fabric, version: "1.21.11" }
+          - { loader: fabric, version: "26.1.x" }
+          - { loader: fabric, version: "26.2.x" }
+          - { loader: neoforge, version: "1.21.1" }
+          - { loader: neoforge, version: "1.21.11" }
+          - { loader: neoforge, version: "26.1.x" }
+          - { loader: neoforge, version: "26.2.x" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          cache-cleanup: on-success
+      - name: Test packaged production and test mods
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+        run: |
+          tasks=()
+          if [[ "$SCENARIO" != "compat" ]]; then
+            tasks+=(":${{ matrix.loader }}:${{ matrix.version }}:minecraftTestBuild")
+          fi
+          if [[ "$SCENARIO" != "build" ]]; then
+            tasks+=(":${{ matrix.loader }}:${{ matrix.version }}:minecraftTestCompat")
+          fi
+          ./gradlew "${tasks[@]}" --continue --no-parallel --console=plain
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modpack-tests-${{ matrix.loader }}-${{ matrix.version }}
+          path: |
+            build/minecraft-test/results/
+            build/minecraft-test/logs/
+            build/minecraft-test/modpacks/**/runtime-test-manifest.json
+            build/minecraft-test/runtime/**/logs/
+            build/minecraft-test/runtime/**/crash-reports/
+          if-no-files-found: warn

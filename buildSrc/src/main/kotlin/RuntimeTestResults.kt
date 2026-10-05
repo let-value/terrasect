@@ -29,6 +29,7 @@ internal fun runtimeFailure(logText: String): String? {
         "NoClassDefFoundError",
         "Uncaught exception",
         "Client gametests stalled",
+        "Server smoke failed",
         "Game crashed! Crash report saved to:",
       )
       .firstOrNull { logText.contains(it, ignoreCase = true) }
@@ -52,8 +53,7 @@ internal fun completedGameTests(
   val missing = expected.keys - completed.toSet()
   if (completed.isEmpty() || missing.isNotEmpty()) {
     val reason =
-      if (completed.isEmpty()) "No client GameTests executed"
-      else "Client GameTests missing completion markers"
+      if (completed.isEmpty()) "No GameTests executed" else "GameTests missing completion markers"
     throw GradleException(
       "$reason: missing=$missing completed=$completed expected=${expected.keys}"
     )

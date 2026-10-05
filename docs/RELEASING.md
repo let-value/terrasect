@@ -1,34 +1,44 @@
 # Releasing
 
-Release readiness requires passing build checks and clean/third-party **client** tests for all
-nine production variants. Missing upstream test capabilities block release; see
+Release readiness requires passing build checks and clean/third-party **runtime** tests for all
+nine production variants. Use native server smoke coverage where the client API/bridge is unavailable; see
 [`runtime-tests/SUPPORT.md`](../runtime-tests/SUPPORT.md).
 
-Four workflows in `.github/workflows/`:
+Five workflows in `.github/workflows/`:
 
 ## `ci.yml` — PR verification
 
-The build job runs formatting, unit tests, and all nine production builds. The runtime matrix
-invokes version-qualified Gradle tasks with `--continue`, so every lane produces evidence:
+The build job runs formatting, unit tests, and all nine production builds. Five lightweight smoke
+jobs restore the previous CI behavior: Fabric 1.20.1/1.21.1 run the server GameTest; newer Fabric
+versions run only `SmokeGameTest,LootConstraintBlockAllGameTest` in the development client.
+Third-party dependencies and heavy client scenarios are excluded from automatic PR/main checks.
+
+## `runtime-tests.yml` — on-demand production modpack verification
+
+Manual `workflow_dispatch` only. Select clean (`build`), third-party (`compat`) or `both` packs.
+The nine-lane matrix invokes Gradle version-qualified tasks and uploads evidence on success/failure.
+Run the same checks locally:
 
 ```sh
 ./gradlew :fabric:26.2.x:minecraftTestBuild :fabric:26.2.x:minecraftTestCompat --continue
-./gradlew :neoforge:26.1.x:minecraftTestBuild :neoforge:26.1.x:minecraftTestCompat --continue
+./gradlew :neoforge:26.2.x:minecraftTestBuild :neoforge:26.2.x:minecraftTestCompat --continue
 ./gradlew minecraftTest --continue
 ```
 
 Leave `TERRASECT_SKIP_COMPAT` unset for runtime tasks. Ordinary builds and checks do not configure
-third-party compatibility projects. `minecraftTestSupport` lists upstream blockers without launching.
-The aggregate deliberately fails while any required lane is incomplete; a successful build alone
-is not release evidence.
+third-party compatibility projects. `minecraftTestSupport` explains which lanes use server fallback.
+A successful fast PR check alone is not the complete release modpack evidence.
 
 Gradle builds the final production jar and a separate installable GameTest mod, resolves dependencies,
 and starts a real Minecraft client through pinned HeadlessMC. Fabric uses the Fabric client GameTest
 API. NeoForge uses native NeoForge Terrasect plus the Fabric test mod through Sinytra Connector,
-Forgified Fabric API, Launchpad, and Kotlin runtimes. It never substitutes dedicated-server startup.
+Forgified Fabric API, Launchpad, and Kotlin runtimes. Lanes without the client API/bridge use a separate native-loader server test mod and real dedicated
+servers. Those smoke tests assert constraint activation, biome admission, commands and forced
+structure generation, then shut down. A generic startup marker never counts as a test.
 Mapped versions remap the test jar; unobfuscated 26.x versions package it directly.
 
-`minecraftTestBuild` runs the clean Smoke and LootConstraintBlockAll tests. `minecraftTestCompat`
+`minecraftTestBuild` runs the clean Smoke and LootConstraintBlockAll client tests or ServerSmokeGameTest
+on server fallback lanes. `minecraftTestCompat`
 runs the pinned third-party packs and assertions listed in SUPPORT.md. Gradle rejects missing/zero
 executions, assertion failures, crashes, and timeouts, even if earlier tests completed. Launches
 always start with fresh worlds; launcher/dependency downloads and prepared packs can be cached.

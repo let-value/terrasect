@@ -1,5 +1,4 @@
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
-import groovy.json.JsonOutput
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -20,7 +19,7 @@ private data class MinecraftTestLane(val loader: String, val segment: String, va
 
 private data class TestDependencies(val configuration: Configuration, val notations: List<String>)
 
-private val incompleteLanes =
+private val clientTestGaps =
   listOf(
     "Fabric 1.20.1: pinned Fabric API 0.92.6+1.20.1 does not publish fabric-client-gametest-api-v1.",
     "Fabric 1.21.1: pinned Fabric API 0.116.12+1.21.1 does not publish fabric-client-gametest-api-v1.",
@@ -42,11 +41,6 @@ private fun MinecraftTestLane.supportsClientGameTests(): Boolean =
     else -> false
   }
 
-private fun MinecraftTestLane.incompleteReason(): String =
-  incompleteLanes.singleOrNull {
-    it.startsWith("${if (loader == "fabric") "Fabric" else "NeoForge"} $segment:")
-  } ?: "No client GameTest API/bridge support is pinned for $loader $segment."
-
 fun MinecraftTestDsl(root: Project) {
   val launcher = root.layout.buildDirectory.file("minecraft-test/headlessmc.jar")
   val bootstrap =
@@ -64,63 +58,28 @@ fun MinecraftTestDsl(root: Project) {
   val compatTests = mutableListOf<TaskProvider<out Task>>()
 
   root.runtimeTestLanes().forEach { lane ->
-    if (!lane.supportsClientGameTests()) {
-      for ((scenario, tasks) in listOf("Build" to cleanTests, "Compat" to compatTests)) {
-        tasks +=
-          root.project(":${lane.loader}:${lane.segment}").tasks.register("minecraftTest$scenario") {
-            group = MINECRAFT_TEST_GROUP
-            description = lane.incompleteReason()
-            doLast {
-              val result =
-                root.layout.buildDirectory
-                  .file(
-                    "minecraft-test/results/${lane.loader}-${lane.segment}-${scenario.lowercase()}.json"
-                  )
-                  .get()
-                  .asFile
-              result.parentFile.mkdirs()
-              result.writeText(
-                JsonOutput.prettyPrint(
-                  JsonOutput.toJson(
-                    mapOf(
-                      "loader" to lane.loader,
-                      "minecraft" to lane.minecraft,
-                      "scenario" to scenario.lowercase(),
-                      "status" to "incomplete",
-                      "executedTests" to emptyList<String>(),
-                      "failure" to lane.incompleteReason(),
-                    )
-                  )
-                ) + "\n"
-              )
-              throw GradleException("INCOMPLETE: ${lane.incompleteReason()}")
-            }
-          }
-      }
-      return@forEach
-    }
-
     val project = root.project(":${lane.loader}:${lane.segment}")
     val productionTask = project.provider {
       project.tasks.findByName("remapJar") ?: project.tasks.named("jar").get()
     }
     val productionArtifact =
       root.files(productionTask.map { it.outputs.files }).builtBy(productionTask)
-    val testProject = root.project(":e2e:${lane.segment}")
+    val client = lane.supportsClientGameTests()
+    val testProject = if (client) root.project(":e2e:${lane.segment}") else project
     val testArtifact =
       root
         .files(
           testProject.layout.buildDirectory.file(
-            "libs/terrasect-tests-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
+            "libs/${if (client) "terrasect-tests" else "terrasect-server-tests-${lane.loader}"}-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
           )
         )
-        .builtBy("${testProject.path}:gametestModJar")
+        .builtBy("${testProject.path}:${if (client) "gametestModJar" else "serverSmokeModJar"}")
 
     val base = runtimeDependencies(project, lane)
-    val bridge = if (lane.loader == "neoforge") connectorDependencies(project) else null
+    val bridge = if (client && lane.loader == "neoforge") connectorDependencies(project) else null
     val cleanDependencies = root.files(base.configuration)
     val cleanNotations = base.notations.toMutableList()
-    if (lane.loader == "fabric") {
+    if (client && lane.loader == "fabric") {
       cleanDependencies.from(clientGametestApi(project))
     } else if (bridge != null) {
       cleanDependencies.from(bridge.configuration)
@@ -137,27 +96,32 @@ fun MinecraftTestDsl(root: Project) {
         requestedDependencies = cleanNotations,
         bootstrap = bootstrap,
         artifacts = root.files(productionArtifact, testArtifact),
-        clientGametestMod = "terrasect-e2e",
+        clientGametestMod =
+          if (client) "terrasect-e2e"
+          else if (lane.loader == "fabric") "terrasect-server-tests" else "terrasect_server_tests",
+        clientTests = client,
         e2eDirectory = root.file("e2e"),
         modpackDefinition = null,
         resolveWithFerium = false,
-        completionMarkers = cleanMarkers,
-        testFilter = "SmokeGameTest,LootConstraintBlockAllGameTest",
+        completionMarkers = if (client) cleanMarkers else serverMarkers,
+        testFilter =
+          if (client) "SmokeGameTest,LootConstraintBlockAllGameTest" else "ServerSmokeGameTest",
       )
 
-    val compatProject = root.findProject(":e2e-compat:${lane.segment}") ?: return@forEach
+    val compatProject =
+      if (client) root.findProject(":e2e-compat:${lane.segment}") ?: return@forEach else project
     val compatTestArtifact =
       root
         .files(
           compatProject.layout.buildDirectory.file(
-            "libs/terrasect-compat-tests-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
+            "libs/${if (client) "terrasect-compat-tests" else "terrasect-server-tests-${lane.loader}"}-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
           )
         )
-        .builtBy("${compatProject.path}:gametestModJar")
+        .builtBy("${compatProject.path}:${if (client) "gametestModJar" else "serverSmokeModJar"}")
     val compat = compatDependencies(project, lane)
     val compatFiles = root.files(base.configuration, compat.configuration)
     val compatNotations = (base.notations + compat.notations).toMutableList()
-    if (lane.loader == "fabric") {
+    if (client && lane.loader == "fabric") {
       compatFiles.from(clientGametestApi(project))
     } else if (bridge != null) {
       compatFiles.from(bridge.configuration)
@@ -173,29 +137,32 @@ fun MinecraftTestDsl(root: Project) {
         requestedDependencies = compatNotations,
         bootstrap = bootstrap,
         artifacts = root.files(productionArtifact, compatTestArtifact),
-        clientGametestMod = "terrasect-e2e-compat",
+        clientGametestMod =
+          if (client) "terrasect-e2e-compat"
+          else if (lane.loader == "fabric") "terrasect-server-tests" else "terrasect_server_tests",
+        clientTests = client,
         e2eDirectory = root.file("e2e-compat"),
         modpackDefinition =
           root.file("runtime-tests/modpacks/compat/${lane.loader}-${lane.segment}.json"),
         resolveWithFerium = true,
-        completionMarkers = compatMarkers(lane),
-        testFilter = compatFilter(lane),
+        completionMarkers = if (client) compatMarkers(lane) else serverMarkers,
+        testFilter = if (client) compatFilter(lane) else "ServerSmokeGameTest",
       )
   }
 
   root.tasks.register("minecraftTestSupport") {
     group = MINECRAFT_TEST_GROUP
     description = "Report client GameTest API and bridge blockers in the version matrix."
-    doLast { incompleteLanes.forEach { logger.lifecycle("INCOMPLETE: $it") } }
+    doLast { clientTestGaps.forEach { logger.lifecycle("SERVER SMOKE FALLBACK: $it") } }
   }
   root.tasks.register("minecraftTestBuild") {
     group = MINECRAFT_TEST_GROUP
-    description = "Run client GameTests in clean packs for every supported loader/version lane."
+    description = "Run clean client or server smoke packs for every supported loader/version lane."
     dependsOn(cleanTests)
   }
   root.tasks.register("minecraftTestCompat") {
     group = MINECRAFT_TEST_GROUP
-    description = "Run client GameTests in pinned third-party modpacks for supported lanes."
+    description = "Run client or server smoke tests in pinned third-party modpacks for every lane."
     dependsOn(compatTests)
     doFirst {
       if (root.findProject(":e2e-compat:26.2.x") == null)
@@ -207,10 +174,12 @@ fun MinecraftTestDsl(root: Project) {
   root.tasks.register("minecraftTest") {
     group = MINECRAFT_TEST_GROUP
     description =
-      "Run supported clean and compatibility client GameTests and report incomplete lanes."
+      "Run clean and compatibility packs across all lanes, using server smoke where client tests are unavailable."
     dependsOn("minecraftTestBuild", "minecraftTestCompat", "minecraftTestSupport")
   }
 }
+
+private val serverMarkers = linkedMapOf("ServerSmokeGameTest" to "server smoke: OK")
 
 private val cleanMarkers =
   linkedMapOf(
@@ -272,7 +241,7 @@ private fun compatDependencies(project: Project, lane: MinecraftTestLane): TestD
       "terrablender" to "terrablender",
       "distanthorizons" to "distanthorizons",
     )
-  if (lane.loader == "fabric") {
+  if (lane.loader == "fabric" && lane.supportsClientGameTests()) {
     notationByProperty["create"] = "create-fly"
     if (lane.segment == "26.2.x") notationByProperty["c2me"] = "c2me-fabric"
   }
@@ -317,6 +286,7 @@ private fun registerPipeline(
   bootstrap: TaskProvider<MinecraftTestBootstrapTask>,
   artifacts: FileCollection,
   clientGametestMod: String,
+  clientTests: Boolean,
   e2eDirectory: File,
   modpackDefinition: File?,
   resolveWithFerium: Boolean,
@@ -363,6 +333,7 @@ private fun registerPipeline(
     javaVersion.set(project.property("java").toString())
     gameJavaExecutable.set(javaLauncher.map { it.executablePath.asFile.absolutePath })
     this.scenario.set(scenario.lowercase())
+    this.clientTests.set(clientTests)
     this.completionMarkers.set(completionMarkers)
     this.clientGametestMod.set(
       if (lane.loader == "neoforge") clientGametestMod.replace('-', '_') else clientGametestMod

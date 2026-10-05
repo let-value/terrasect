@@ -118,3 +118,5 @@ tasks {
     }
   }
 }
+
+apply(from = rootProject.file("gradle/server-smoke.gradle.kts"))

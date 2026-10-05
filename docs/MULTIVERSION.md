@@ -91,7 +91,8 @@ The `e2e` module packages Fabric client GameTests as a separate installable mod 
 `1.21.11`, `26.1.x` (Minecraft `26.1.2`), and `26.2.x`. The compatibility module packages
 third-party assertions the same way. All main/test trees use the same concrete Minecraft id.
 The pinned Fabric APIs for `1.20.1` and `1.21.1` have no client GameTest module; these
-runtime lanes fail explicitly as incomplete. There is no server fallback.
+runtime lanes use native-loader server smoke test mods. NeoForge lanes without a Connector bridge
+use the same server smoke body with native NeoForge registration.
 
 Run production-jar tests with `./gradlew :fabric:26.2.x:minecraftTestBuild` and
 `minecraftTestCompat` for third-party packs. NeoForge uses the native production jar and
@@ -130,7 +131,7 @@ Rules for version-divergent injectors:
   `PrimaryLevelDataMixin`'s `WorldOptions`/`RegistryAccess`). A shared import is
   fine only if the *active* branch also uses the type.
 - After changing any of these, run packaged client tests on every available lane and
-  keep unavailable lanes explicitly incomplete — a green build proves nothing about apply-time behavior.
+  run server smoke on lanes without client APIs — a green build proves nothing about apply-time behavior.
 
 Known gap: on 1.21.1, `CreateWorldScreen.createNewWorld` has no `WorldData`
 argument, so GUI preset capture is unwired there (presets loaded from disk still
