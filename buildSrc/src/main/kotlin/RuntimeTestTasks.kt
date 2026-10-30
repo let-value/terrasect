@@ -390,7 +390,7 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
         File(server, "eula.txt").writeText("eula=true\n")
         File(server, "server.properties")
           .writeText(
-            "online-mode=false\nserver-port=0\nview-distance=2\nsimulation-distance=2\nlevel-seed=terrasect-server-smoke\n"
+            "online-mode=false\nserver-port=0\nuse-native-transport=false\nview-distance=2\nsimulation-distance=2\nlevel-seed=terrasect-server-smoke\n"
           )
       }
       processExitCode =

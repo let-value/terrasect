@@ -8,15 +8,16 @@ Five workflows in `.github/workflows/`:
 
 ## `ci.yml` — PR verification
 
-The build job runs formatting, unit tests, and all nine production builds. Five lightweight smoke
+The build job runs formatting, buildSrc harness tests, common unit tests, and all nine production builds. Five lightweight smoke
 jobs restore the previous CI behavior: Fabric 1.20.1/1.21.1 run the server GameTest; newer Fabric
 versions run only `SmokeGameTest,LootConstraintBlockAllGameTest` in the development client.
-Third-party dependencies and heavy client scenarios are excluded from automatic PR/main checks.
+Packaged 26.2 clean and compatibility checks run separately in `runtime-tests.yml`.
 
-## `runtime-tests.yml` — on-demand production modpack verification
+## `runtime-tests.yml` — production modpack verification
 
-Manual `workflow_dispatch` only. Select clean (`build`), third-party (`compat`) or `both` packs.
-The nine-lane matrix invokes Gradle version-qualified tasks and uploads evidence on success/failure.
+Every PR and push to main tests both clean and compatibility packs for Fabric and NeoForge 26.2.
+Manual `workflow_dispatch` runs all nine lanes with clean (`build`), third-party (`compat`) or `both`
+packs. Each job invokes Gradle version-qualified tasks and uploads evidence on success/failure.
 Run the same checks locally:
 
 ```sh

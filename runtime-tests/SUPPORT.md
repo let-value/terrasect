@@ -32,10 +32,14 @@ requires the assertion-completion marker and successful exit; startup or `Done` 
 These lanes establish server coverage, not unavailable client API/GUI coverage. No bridge is needed
 for native NeoForge server tests.
 
-PR CI retains its previous lightweight build/unit/style and five Fabric smoke jobs. The full
-production-jar/modpack layer runs locally with `./gradlew minecraftTest --continue` or through the
-manual **Modpack runtime tests** workflow (`runtime-tests.yml`), with build/compat/both selection.
-Heavy third-party/client tests are not triggered on PRs or pushes to main.
+Every PR and push to main runs clean and compatibility production packs for the active 26.2
+version on both Fabric and NeoForge, alongside build/unit/style checks and Fabric development
+smoke tests. Manual **Modpack runtime tests** dispatch retains the full nine-lane matrix and
+build/compat/both selection. Run the complete matrix locally with `./gradlew minecraftTest --continue`.
+
+Native server smoke checks also reload startup-created configuration and default presets,
+round-trip their TOML, and execute `/ts print`. Test servers use Java NIO networking to avoid
+unsupported platform-native transport probes. Runtime failures remain fatal.
 
 ## Assertions and third-party packs
 
