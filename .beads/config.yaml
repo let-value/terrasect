@@ -72,4 +72,6 @@
 # - github.token    → use GITHUB_TOKEN env var instead
 
 sync:
-    remote: "git+https://github.com/let-value/terrasect.git"
+    # remote: "git+https://github.com/let-value/terrasect.git"
+dolt:
+    local-only: true
