@@ -11,6 +11,7 @@ Install Beads with `brew install beads` on macOS. In this initialized checkout, 
 
 ```sh
 bd prime
+bd dolt pull
 bd status
 bd ready
 ```
@@ -20,19 +21,17 @@ file. Project hooks load Beads context for Claude and Codex; restart existing
 sessions after setup. Agents with shell access use the CLI; no MCP server is
 required for this workflow.
 
-For a new clone without a database, initialize with:
+For a new clone without a database, retrieve the shared history with:
 
 ```sh
-bd init --prefix terrasect --server --skip-agents --non-interactive
-bd config set dolt.local-only true
-bd dolt remote remove origin
+bd bootstrap
 bd setup claude
 bd setup codex
 ```
 
-Initialization may create a local Git commit. This creates a new empty database,
-not a copy of another checkout's tasks. Restore a Dolt backup when continuing an
-existing project database on another machine.
+`bd bootstrap` retrieves the Dolt history stored under `refs/dolt/data` on the
+GitHub origin. A normal `git clone` alone does not retrieve the database.
+Do not run `bd init` to replace an existing shared database.
 
 ## Work on a task
 
@@ -84,17 +83,27 @@ each command without storing it in Beads:
 GITHUB_TOKEN="$(gh auth token --hostname github.com)" GITHUB_REPOSITORY=let-value/terrasect bd github sync --pull-only
 ```
 
-Plain `bd github sync` is bidirectional. This does not enable Dolt replication.
+Plain `bd github sync` is bidirectional and changes GitHub issue records.
+Database replication uses the separate Dolt commands below.
 
 The local Dolt server supports concurrent clients. `.beads/metadata.json` and
 `.beads/config.yaml` describe the setup; `.beads/dolt/` is ignored by Git and
 contains the live database. Git commits of source/configuration do not back up
 issues. JSONL exports are interchange files, not full database backups.
 
-Remote synchronization is disabled for this initial local setup. Do not assume
-another machine or a fresh clone has these tasks. Configure a shared Dolt remote
-explicitly before enabling cross-machine sync. Do not commit or push source or
-tracker data without authorization.
+The Dolt remote is `git+https://github.com/let-value/terrasect.git`. Database
+history lives under `refs/dolt/data`, separate from source branches. Pull before
+starting work and push durable updates and handoffs:
+
+```sh
+bd dolt pull
+bd dolt push
+```
+
+Automatic push is disabled. Normal `git push` does not publish database changes.
+Replicas on different machines are synchronized rather than one live database:
+coordinate ownership before simultaneous work, and stop on merge conflicts
+instead of forcing a push. Source commits and pushes still require authorization.
 
 This machine has a local backup at
 `/Users/alex/.local/share/beads/backups/terrasect`; the initial backup was verified.

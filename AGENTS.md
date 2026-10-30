@@ -91,5 +91,6 @@ Project-specific setup and handoff rules are in `docs/AGENT_WORKFLOW.md`. All
 agents and worktrees share this checkout's local Dolt server. Beads is the sole
 project task and lifecycle record for every executor. Record plans, ownership,
 blockers, verification, and handoffs in the issue. GitHub issues are imported
-through `bd github`; Dolt remote replication is disabled. Git commits do not
-back up issues.
+through `bd github`. Dolt database history is shared through `refs/dolt/data` on
+the GitHub origin: pull with `bd dolt pull`, publish with `bd dolt push`, and run
+`bd bootstrap` after a fresh clone. Normal Git commits do not include issues.

@@ -7,4 +7,6 @@ claiming work, handoffs, agent setup, worktrees, and backups.
 GitHub issues are imported through `bd github` using a token retrieved from gh
 for each operation. The live Dolt database is local and ignored by Git.
 Configuration and agent hooks are tracked; source commits do not contain the
-tasks. Dolt remote replication is disabled until a shared remote is chosen.
+tasks. Dolt history is shared on the GitHub origin under `refs/dolt/data`.
+Use `bd dolt pull` and `bd dolt push` to synchronize, and `bd bootstrap` after
+cloning. Normal source pushes do not synchronize the database.

@@ -96,4 +96,16 @@ The existing gh login remains managed by gh.
 Default to `status` or `--dry-run` when investigating. A bare `sync` is
 bidirectional and can publish local tasks and change remote issues; use the
 direction and issue selection authorized by the user. GitHub issue sync is
-separate from Dolt database replication, which remains disabled here.
+separate from Dolt database replication.
+
+## Database synchronization
+
+Terrasect shares its Dolt history through the GitHub origin under
+`refs/dolt/data`. Run `bd bootstrap` after a fresh clone. For an existing
+database, pull with `bd dolt pull` before starting work and publish durable
+updates with `bd dolt push`. Automatic push is disabled. Worktrees on one machine
+already share the local database and need no separate initialization.
+
+Pull/push synchronize separate replicas; claims on different machines are not
+a global lock. Coordinate task ownership across machines and stop on merge
+conflicts rather than force-pushing or discarding another agent's changes.
