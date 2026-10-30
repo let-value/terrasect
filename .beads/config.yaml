@@ -1,5 +1,7 @@
 dolt:
-  local-only: true
-  auto-push: false
+    local-only: false
+    auto-push: false
 export:
-  auto: false
+    auto: false
+sync:
+    remote: "git+https://github.com/let-value/terrasect.git"
