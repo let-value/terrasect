@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "terrasect",
+  "project_id": "6be389e2-d1e7-405f-b293-18bf568fcc65"
+}
