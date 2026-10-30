@@ -274,7 +274,7 @@ object TerrasectTomlWriter {
     private fun CommentedConfig.structures(structures: StructureConstraints) {
       structures.selection?.let {
         selection(it)
-        if (it.isEmpty()) value("allow_names", emptyList<String>())
+        if (!it.hasRules()) value("allow_names", emptyList<String>())
       }
       optional("spacing", structures.spacing)
       optional("separation", structures.separation)
@@ -367,14 +367,6 @@ object TerrasectTomlWriter {
 
   private fun terrasect.definition.ClimateRange.tomlValue(): Any =
     if (hasVariation()) listOf(min, max) else min
-
-  private fun SelectionConstraints.isEmpty(): Boolean =
-    allowedMods.isEmpty() &&
-      allowedTags.isEmpty() &&
-      allowedNames.isEmpty() &&
-      blockedMods.isEmpty() &&
-      blockedTags.isEmpty() &&
-      blockedNames.isEmpty()
 
   private const val PRESET_COMMENT =
     "Preset file name without .toml. Leave empty to keep Terrasect inactive."

@@ -120,15 +120,14 @@ private constructor(
       root: Region,
       registry: RegistryAccess.Frozen,
     ): CompiledStructureLookup? {
-      if (!anyRegionHasStructures(root)) {
+      val constraints = collectAllConstraints(root)
+      if (constraints.isEmpty()) {
         structureLog.debug { "build: no structure-constrained regions under root=${root.name}" }
         return null
       }
       val index = buildIndex(allSets, registry)
       val lookup = CompiledStructureLookup(allSets, index)
-      // Pre-bake filtered sets for every unique StructureConstraints in the region tree so that
-      // the per-chunk hot path (getFilteredSets) always hits the cache and never recomputes.
-      collectAllConstraints(root).forEach { lookup.getFilteredSets(it) }
+      constraints.forEach { lookup.getFilteredSets(it) }
       structureLog.debug {
         "build: ${index.size} structures indexed; structure constraints active under root=${root.name}"
       }
@@ -171,11 +170,6 @@ private constructor(
         }
       }
       return index
-    }
-
-    private fun anyRegionHasStructures(region: Region): Boolean {
-      if (region.structures != null) return true
-      return region.children.any { anyRegionHasStructures(it) }
     }
   }
 }

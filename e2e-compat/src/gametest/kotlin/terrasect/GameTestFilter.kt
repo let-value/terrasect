@@ -3,23 +3,17 @@ package terrasect.gametest
 import kotlin.reflect.KClass
 
 object GameTestFilter {
-  val FOCUS: String? = null
-
-  private val included: Set<String>? by lazy {
-    (FOCUS ?: System.getProperty("test"))
-      ?.takeIf { it.isNotBlank() }
-      ?.split(",")
-      ?.map { it.trim().lowercase() }
-      ?.toSet()
+  private val included by lazy {
+    System.getProperty("test")
+      .orEmpty()
+      .split(',')
+      .map { it.trim().lowercase() }
+      .filter(String::isNotEmpty)
+      .toSet()
   }
 
-  fun shouldRun(klass: KClass<*>): Boolean {
-    val name = klass.simpleName ?: return true
-    return included == null || name.lowercase() in included!!
-  }
+  fun shouldRun(klass: KClass<*>): Boolean =
+    included.isEmpty() || klass.simpleName?.lowercase() in included
 
-  fun isFocused(klass: KClass<*>): Boolean {
-    val name = klass.simpleName ?: return false
-    return included != null && name.lowercase() in included!!
-  }
+  fun isFocused(klass: KClass<*>): Boolean = klass.simpleName?.lowercase() in included
 }

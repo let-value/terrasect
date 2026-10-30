@@ -1,4 +1,3 @@
-//? if latest {
 package terrasect.gametest
 
 import java.awt.Color
@@ -36,11 +35,12 @@ private val SCREENSHOTS_BASE: Path by lazy { e2eScreenshotsBase(object {}.javaCl
 private val REGION_COLORS: Map<String, Int> by lazy {
   val golden = 0.618033988749895
   GEOGRAPHY_REGIONS.mapIndexed { i, name ->
-    val hue = (i * golden) % 1.0
-    val sat = 0.65f + (i % 3) * 0.1f
-    val bri = 0.75f + (i % 2) * 0.15f
-    name to (Color.getHSBColor(hue.toFloat(), sat, bri).rgb and 0xFFFFFF)
-  }.toMap()
+      val hue = (i * golden) % 1.0
+      val sat = 0.65f + (i % 3) * 0.1f
+      val bri = 0.75f + (i % 2) * 0.15f
+      name to (Color.getHSBColor(hue.toFloat(), sat, bri).rgb and 0xFFFFFF)
+    }
+    .toMap()
 }
 
 private fun generateRegionMap(screenshotDir: Path) {
@@ -139,9 +139,7 @@ private fun visitRegion(
   context.waitTicks(10)
   game.clientLevel.waitForChunksRender(false, CHUNK_TIMEOUT)
 
-  context.takeScreenshot(
-    TestScreenshotOptions.of(regionName).withDestinationDir(screenshotDir)
-  )
+  context.takeScreenshot(TestScreenshotOptions.of(regionName).withDestinationDir(screenshotDir))
   log.info("screenshot taken for .{}", regionName)
 }
 
@@ -187,4 +185,3 @@ object GeographyGameTest : FabricClientGameTest {
     }
   }
 }
-//?}

@@ -1,4 +1,3 @@
-//? if latest {
 package terrasect.gametest
 
 import java.nio.file.Path
@@ -304,4 +303,3 @@ object ForcedStructureGameTest : FabricClientGameTest {
     return site
   }
 }
-//?}

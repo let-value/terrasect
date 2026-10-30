@@ -12,34 +12,20 @@ val gametestModId = "${mod.id}-e2e"
 val clientGameTestsAvailable = mcVersion !in listOf("1.20.1", "1.21.1")
 val gametestLibraries = configurations.create("gametestLibraries")
 
-// Files under gametest-client wrap latest-only tests in `//? if latest { ... //?}`; Stonecutter
-// strips that content from the compiled source for non-latest versions, so the entrypoint list is
-// derived from the same marker instead of a hand-maintained class name array.
-val latestOnlyMarker = Regex("""//\?\s*if\s+latest\s*\{""")
 val gametestObjectDeclaration = Regex("""object\s+(\w+)\s*:\s*FabricClientGameTest\b""")
 
-// The "gametest" source set doesn't follow Gradle's default sourceSet convention, so Stonecutter's
-// automatic per-branch preprocessing (which only hooks conventional source set locations) doesn't
-// apply here; process it explicitly instead.
-fun processGametestClientKotlin(): File {
-  val srcDir = e2eDir.resolve("src/gametest-client/kotlin")
-  val outDir = layout.buildDirectory.dir("processed/gametest-client/kotlin").get().asFile
-  fileTree(srcDir) { include("**/*.kt") }
-    .forEach { file -> sc.process(file, "$outDir/${file.relativeTo(srcDir).path}") }
-  return outDir
+val clientTestDirectories = buildList {
+  add(e2eDir.resolve("src/gametest-client/kotlin"))
+  if (isLatest) add(e2eDir.resolve("src/gametestLatest/kotlin"))
 }
 
-fun clientGametestEntries(): List<String> =
-  e2eDir
-    .resolve("src/gametest-client/kotlin/terrasect")
-    .listFiles { file -> file.extension == "kt" }
-    .orEmpty()
-    .sortedBy { it.name }
+fun clientGametestEntries(): List<String> = clientTestDirectories.flatMap { directory ->
+  fileTree(directory) { include("**/*.kt") }
+    .sortedBy { it.path }
     .flatMap { file ->
-      val text = file.readText()
-      if (!isLatest && latestOnlyMarker.containsMatchIn(text)) emptyList()
-      else gametestObjectDeclaration.findAll(text).map { it.groupValues[1] }.toList()
+      gametestObjectDeclaration.findAll(file.readText()).map { it.groupValues[1] }.toList()
     }
+}
 
 fun kotlinEntry(value: String) =
   "      { \"value\": \"terrasect.gametest.$value\", \"adapter\": \"kotlin\" }"
@@ -77,9 +63,7 @@ sourceSets {
   }
   named("gametest") {
     if (clientGameTestsAvailable) {
-      kotlin.setSrcDirs(
-        listOf(e2eDir.resolve("src/gametest/kotlin"), processGametestClientKotlin())
-      )
+      kotlin.setSrcDirs(listOf(e2eDir.resolve("src/gametest/kotlin")) + clientTestDirectories)
       java.setSrcDirs(listOf(e2eDir.resolve("src/gametest-client/java")))
       resources.setSrcDirs(
         listOf(
@@ -226,6 +210,17 @@ tasks {
       if (name == "runClientGameTest") {
         val optionsFile = layout.buildDirectory.file("run/clientGameTest/options.txt")
         doFirst {
+          val requested =
+            project
+              .findProperty("test")
+              ?.toString()
+              .orEmpty()
+              .split(',')
+              .map(String::trim)
+              .filter(String::isNotBlank)
+          val available = clientGametestEntries().map(String::lowercase).toSet()
+          val unknown = requested.filter { it.lowercase() !in available }
+          require(unknown.isEmpty()) { "Unknown client GameTests: $unknown" }
           val file = optionsFile.get().asFile
           file.parentFile.mkdirs()
           if (!file.exists()) {

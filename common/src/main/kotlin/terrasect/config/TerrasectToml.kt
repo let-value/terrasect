@@ -451,24 +451,23 @@ object TerrasectToml {
   }
 
   private fun applySelection(builder: SelectionConstraints.Builder, table: Table) {
-    val selection = parseSelection(table)
-    selection.allowMods?.let { builder.allowMods(*it) }
-    selection.allowTags?.let { builder.allowTags(*it) }
-    selection.allowNames?.let { builder.allowNames(*it) }
-    selection.blockMods?.let { builder.blockMods(*it) }
-    selection.blockTags?.let { builder.blockTags(*it) }
-    selection.blockNames?.let { builder.blockNames(*it) }
+    table.rejectUnknown(*SELECTION_KEYS)
+    table.stringArray("allow_mods")?.let { builder.allowMods(*it) }
+    table.stringArray("allow_tags")?.let { builder.allowTags(*it) }
+    table.stringArray("allow_names")?.let { builder.allowNames(*it) }
+    table.stringArray("block_mods")?.let { builder.blockMods(*it) }
+    table.stringArray("block_tags")?.let { builder.blockTags(*it) }
+    table.stringArray("block_names")?.let { builder.blockNames(*it) }
   }
 
   private fun applyStructures(builder: StructureConstraints.Builder, table: Table) {
     table.rejectUnknown(*(SELECTION_KEYS + arrayOf("spacing", "separation", "frequency", "force")))
-    val selection = parseSelection(table, rejectUnknown = false)
-    selection.allowMods?.let { builder.allowMods(*it) }
-    selection.allowTags?.let { builder.allowTags(*it) }
-    selection.allowNames?.let { builder.allowNames(*it) }
-    selection.blockMods?.let { builder.blockMods(*it) }
-    selection.blockTags?.let { builder.blockTags(*it) }
-    selection.blockNames?.let { builder.blockNames(*it) }
+    table.stringArray("allow_mods")?.let { builder.allowMods(*it) }
+    table.stringArray("allow_tags")?.let { builder.allowTags(*it) }
+    table.stringArray("allow_names")?.let { builder.allowNames(*it) }
+    table.stringArray("block_mods")?.let { builder.blockMods(*it) }
+    table.stringArray("block_tags")?.let { builder.blockTags(*it) }
+    table.stringArray("block_names")?.let { builder.blockNames(*it) }
     table.int("spacing")?.let(builder::spacing)
     table.int("separation")?.let(builder::separation)
     table.float("frequency")?.let(builder::frequency)
@@ -491,27 +490,6 @@ object TerrasectToml {
     }
   }
 
-  private fun parseSelection(table: Table, rejectUnknown: Boolean = true): SelectionSpec {
-    if (rejectUnknown) table.rejectUnknown(*SELECTION_KEYS)
-    return SelectionSpec(
-      allowMods = table.stringArray("allow_mods"),
-      allowTags = table.stringArray("allow_tags"),
-      allowNames = table.stringArray("allow_names"),
-      blockMods = table.stringArray("block_mods"),
-      blockTags = table.stringArray("block_tags"),
-      blockNames = table.stringArray("block_names"),
-    )
-  }
-
   private val SELECTION_KEYS =
     arrayOf("allow_mods", "allow_tags", "allow_names", "block_mods", "block_tags", "block_names")
 }
-
-private data class SelectionSpec(
-  val allowMods: Array<String>?,
-  val allowTags: Array<String>?,
-  val allowNames: Array<String>?,
-  val blockMods: Array<String>?,
-  val blockTags: Array<String>?,
-  val blockNames: Array<String>?,
-)

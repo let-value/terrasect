@@ -165,7 +165,7 @@ Coverage areas: SDF geometry (`sdf/`), strategies (`strategies/`), generation pi
 
 `e2e` is a separate Stonecutter tree of Fabric gametests covering all five main versions. See [`docs/MULTIVERSION.md`](MULTIVERSION.md) for the version list and old/new registration split. Two tiers:
 - `e2e/src/gametest*` — portable smoke coverage (`SmokeGameTest` and `ServerSmokeGameTest`) that asserts actual desert-biome admission as well as the rest of the constraint pipeline.
-- `e2e/src/gametest-client` files marked `//? if latest` — heavy tests (terrain digests, structure/mob/archetype/dimension probes, screenshots) compiled only on the latest matrix version.
+- `e2e/src/gametestLatest` files — heavy tests (terrain digests, structure/mob/archetype/dimension probes, screenshots) compiled only on the latest matrix version.
 
 `e2e-compat` holds third-party mod compatibility gametests, kept in its own tree so the core suite never depends on a third-party mod jar being resolvable.
 
