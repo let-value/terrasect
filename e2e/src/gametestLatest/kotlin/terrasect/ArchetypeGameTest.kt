@@ -1,4 +1,3 @@
-//? if latest {
 package terrasect.gametest
 
 import java.nio.file.Path
@@ -232,4 +231,3 @@ object HighlandsArchetypeGameTest : FabricClientGameTest {
     }
   }
 }
-//?}

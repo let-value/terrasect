@@ -121,11 +121,7 @@ object SmokeGameTest : FabricClientGameTest {
           for (qx in 0 until 16) {
             for (qz in 0 until 16) {
               val holder = biomeSource.getNoiseBiome(qx, 0, qz, sampler)
-              val id =
-                holder
-                  .unwrapKey()
-                  .map { ResourceKeyCompat.getKeyId(it) }
-                  .orElse("unknown")
+              val id = holder.unwrapKey().map { ResourceKeyCompat.getKeyId(it) }.orElse("unknown")
               sampledBiomes += id
               val region =
                 biomeContext.traverser.traverse(qx shl 2, qz shl 2, biomeContext.cache).region

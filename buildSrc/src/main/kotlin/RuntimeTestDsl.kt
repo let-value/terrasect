@@ -65,89 +65,59 @@ fun MinecraftTestDsl(root: Project) {
     val productionArtifact =
       root.files(productionTask.map { it.outputs.files }).builtBy(productionTask)
     val client = lane.supportsClientGameTests()
-    val testProject = if (client) root.project(":e2e:${lane.segment}") else project
-    val testArtifact =
-      root
-        .files(
-          testProject.layout.buildDirectory.file(
-            "libs/${if (client) "terrasect-tests" else "terrasect-server-tests-${lane.loader}"}-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
-          )
-        )
-        .builtBy("${testProject.path}:${if (client) "gametestModJar" else "serverSmokeModJar"}")
-
     val base = runtimeDependencies(project, lane)
     val bridge = if (client && lane.loader == "neoforge") connectorDependencies(project) else null
-    val cleanDependencies = root.files(base.configuration)
-    val cleanNotations = base.notations.toMutableList()
-    if (client && lane.loader == "fabric") {
-      cleanDependencies.from(clientGametestApi(project))
-    } else if (bridge != null) {
-      cleanDependencies.from(bridge.configuration)
-      cleanNotations += bridge.notations
-    }
-
-    cleanTests +=
-      registerPipeline(
-        root = root,
-        project = project,
-        lane = lane,
-        scenario = "Build",
-        dependencies = cleanDependencies,
-        requestedDependencies = cleanNotations,
-        bootstrap = bootstrap,
-        artifacts = root.files(productionArtifact, testArtifact),
-        clientGametestMod =
-          if (client) "terrasect-e2e"
-          else if (lane.loader == "fabric") "terrasect-server-tests" else "terrasect_server_tests",
-        clientTests = client,
-        e2eDirectory = root.file("e2e"),
-        modpackDefinition = null,
-        resolveWithFerium = false,
-        completionMarkers = if (client) cleanMarkers else serverMarkers,
-        testFilter =
-          if (client) "SmokeGameTest,LootConstraintBlockAllGameTest" else "ServerSmokeGameTest",
-      )
-
-    val compatProject =
-      if (client) root.findProject(":e2e-compat:${lane.segment}") ?: return@forEach else project
-    val compatTestArtifact =
-      root
-        .files(
-          compatProject.layout.buildDirectory.file(
-            "libs/${if (client) "terrasect-compat-tests" else "terrasect-server-tests-${lane.loader}"}-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
+    for (scenario in listOf("Build", "Compat")) {
+      val compat = scenario == "Compat"
+      val tree = if (compat) "e2e-compat" else "e2e"
+      val testProject =
+        if (client) root.findProject(":$tree:${lane.segment}") ?: continue else project
+      val testName =
+        if (client) "terrasect-${if (compat) "compat-" else ""}tests"
+        else "terrasect-server-tests-${lane.loader}"
+      val testArtifact =
+        root
+          .files(
+            testProject.layout.buildDirectory.file(
+              "libs/$testName-${project.property("mod.version")}+${lane.minecraft}-gametest.jar"
+            )
           )
+          .builtBy("${testProject.path}:${if (client) "gametestModJar" else "serverSmokeModJar"}")
+      val dependencies = root.files(base.configuration)
+      val notations = base.notations.toMutableList()
+      if (client && lane.loader == "fabric") dependencies.from(clientGametestApi(project))
+      if (bridge != null) {
+        dependencies.from(bridge.configuration)
+        notations += bridge.notations
+      }
+      if (compat) {
+        val mods = compatDependencies(project, lane)
+        dependencies.from(mods.configuration)
+        notations += mods.notations
+      }
+      val markers =
+        if (!client) serverMarkers else if (compat) compatMarkers(lane) else cleanMarkers
+      val task =
+        registerPipeline(
+          root = root,
+          project = project,
+          lane = lane,
+          scenario = scenario,
+          dependencies = dependencies,
+          requestedDependencies = notations,
+          bootstrap = bootstrap,
+          artifacts = root.files(productionArtifact, testArtifact),
+          clientGametestMod = if (client) "terrasect-$tree" else "terrasect-server-tests",
+          clientTests = client,
+          e2eDirectory = root.file(tree),
+          modpackDefinition =
+            if (compat)
+              root.file("runtime-tests/modpacks/compat/${lane.loader}-${lane.segment}.json")
+            else null,
+          completionMarkers = markers,
         )
-        .builtBy("${compatProject.path}:${if (client) "gametestModJar" else "serverSmokeModJar"}")
-    val compat = compatDependencies(project, lane)
-    val compatFiles = root.files(base.configuration, compat.configuration)
-    val compatNotations = (base.notations + compat.notations).toMutableList()
-    if (client && lane.loader == "fabric") {
-      compatFiles.from(clientGametestApi(project))
-    } else if (bridge != null) {
-      compatFiles.from(bridge.configuration)
-      compatNotations += bridge.notations
+      (if (compat) compatTests else cleanTests) += task
     }
-    compatTests +=
-      registerPipeline(
-        root = root,
-        project = project,
-        lane = lane,
-        scenario = "Compat",
-        dependencies = compatFiles,
-        requestedDependencies = compatNotations,
-        bootstrap = bootstrap,
-        artifacts = root.files(productionArtifact, compatTestArtifact),
-        clientGametestMod =
-          if (client) "terrasect-e2e-compat"
-          else if (lane.loader == "fabric") "terrasect-server-tests" else "terrasect_server_tests",
-        clientTests = client,
-        e2eDirectory = root.file("e2e-compat"),
-        modpackDefinition =
-          root.file("runtime-tests/modpacks/compat/${lane.loader}-${lane.segment}.json"),
-        resolveWithFerium = true,
-        completionMarkers = if (client) compatMarkers(lane) else serverMarkers,
-        testFilter = if (client) compatFilter(lane) else "ServerSmokeGameTest",
-      )
   }
 
   root.tasks.register("minecraftTestSupport") {
@@ -199,9 +169,6 @@ private fun compatMarkers(lane: MinecraftTestLane): Map<String, String> = buildM
     put("C2MECompatGameTest", "c2me compat: OK")
   }
 }
-
-private fun compatFilter(lane: MinecraftTestLane): String =
-  compatMarkers(lane).keys.joinToString(",")
 
 private fun runtimeDependencies(project: Project, lane: MinecraftTestLane): TestDependencies {
   val notations =
@@ -289,9 +256,7 @@ private fun registerPipeline(
   clientTests: Boolean,
   e2eDirectory: File,
   modpackDefinition: File?,
-  resolveWithFerium: Boolean,
   completionMarkers: Map<String, String>,
-  testFilter: String,
 ): TaskProvider<MinecraftTestLaunchTask> {
   val id = "${lane.loader}-${lane.segment}-${scenario.lowercase()}"
   val prepare =
@@ -310,7 +275,7 @@ private fun registerPipeline(
           .toString()
       )
       this.requestedDependencies.set(requestedDependencies)
-      this.resolveWithFerium.set(resolveWithFerium)
+      this.resolveWithFerium.set(modpackDefinition != null)
       if (modpackDefinition != null) this.modpackDefinition.set(modpackDefinition)
       ferium.set(bootstrap.flatMap { it.ferium })
       modpackDirectory.set(root.layout.buildDirectory.dir("minecraft-test/modpacks/$id"))
@@ -338,7 +303,9 @@ private fun registerPipeline(
     this.clientGametestMod.set(
       if (lane.loader == "neoforge") clientGametestMod.replace('-', '_') else clientGametestMod
     )
-    this.testFilter.set(root.providers.gradleProperty("test").orElse(testFilter))
+    this.testFilter.set(
+      root.providers.gradleProperty("test").orElse(completionMarkers.keys.joinToString(","))
+    )
     this.e2eDirectory.set(e2eDirectory.absolutePath)
     timeoutSeconds.set(1800L)
     launcher.set(bootstrap.flatMap { it.launcher })

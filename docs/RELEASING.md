@@ -8,9 +8,12 @@ Five workflows in `.github/workflows/`:
 
 ## `ci.yml` — PR verification
 
-The build job runs formatting, buildSrc harness tests, common unit tests, and all nine production builds. Five lightweight smoke
-jobs restore the previous CI behavior: Fabric 1.20.1/1.21.1 run the server GameTest; newer Fabric
-versions run only `SmokeGameTest,LootConstraintBlockAllGameTest` in the development client.
+The build job runs formatting, buildSrc harness tests, common unit tests, and all nine production builds.
+Five GameTest jobs cover the supported Fabric versions: 1.20.1/1.21.1 run server GameTests; newer Fabric
+versions run `SmokeGameTest,LootConstraintBlockAllGameTest` in the development client.
+The active 26.2 lane also runs noise, structure-selection/statistics, terrain-digest, Nether/End,
+and dimension-isolation regressions. Scenario/probe screenshots are retained in the
+`client-screenshots-26.2.x` artifact on success and failure.
 Packaged 26.2 clean and compatibility checks run separately in `runtime-tests.yml`.
 
 ## `runtime-tests.yml` — production modpack verification

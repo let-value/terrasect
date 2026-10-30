@@ -1,4 +1,3 @@
-//? if latest {
 package terrasect.gametest
 
 import kotlin.math.abs
@@ -111,4 +110,3 @@ object OriginAnchorGameTest : FabricClientGameTest {
     }
   }
 }
-//?}

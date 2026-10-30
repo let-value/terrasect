@@ -1,4 +1,3 @@
-//? if latest {
 package terrasect.gametest
 
 import java.nio.file.Path
@@ -62,10 +61,11 @@ private fun enableBiomeInstrumentation(): MetricsBackend {
     if (scope != TerrasectInstrScope.BIOME) MetricsConfig.setScopeEnabled(scope, false)
   }
   for (event in TerrasectMetricEvent.entries) {
-    if (event != TerrasectMetricEvent.BIOME_APPLIED &&
-      event != TerrasectMetricEvent.BIOME_REJECTED &&
-      event != TerrasectMetricEvent.BIOME_FALLBACK_APPLIED &&
-      event != TerrasectMetricEvent.BIOME_REJECTED_NO_FALLBACK
+    if (
+      event != TerrasectMetricEvent.BIOME_APPLIED &&
+        event != TerrasectMetricEvent.BIOME_REJECTED &&
+        event != TerrasectMetricEvent.BIOME_FALLBACK_APPLIED &&
+        event != TerrasectMetricEvent.BIOME_REJECTED_NO_FALLBACK
     ) {
       MetricsConfig.setEventCountersEnabled(event, false)
     }
@@ -238,4 +238,3 @@ object BiomeConstraintBlockByNameGameTest : FabricClientGameTest {
     }
   }
 }
-//?}

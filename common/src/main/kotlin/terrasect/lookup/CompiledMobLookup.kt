@@ -15,8 +15,7 @@ private constructor(
   private val decisions: IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>>
 ) {
   fun allowSpawn(region: Region, entityType: EntityType<*>): Boolean {
-    val regionDecisions = decisions[region] ?: return true
-    return regionDecisions[entityType] ?: true
+    return decisions[region]?.get(entityType) ?: true
   }
 
   companion object {
@@ -27,10 +26,24 @@ private constructor(
         log.debug { "build: no mob-constrained regions under root=${root.name}" }
         return null
       }
-      val entityTypeIndex = buildEntityTypeIndex(registry)
-      val decisions = collectDecisions(mobRegions, entityTypeIndex)
+      val entries =
+        registry
+          .lookupOrThrow(Registries.ENTITY_TYPE)
+          .listElements()
+          .map { holder ->
+            Triple(holder.value(), ResourceKeyCompat.getKeyId(holder.key()), tagsOf(holder))
+          }
+          .toList()
+      val decisions = IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>>()
+      for (region in mobRegions) {
+        val selection = checkNotNull(region.mobs)
+        decisions[region] =
+          IdentityHashMap<EntityType<*>, Boolean>().apply {
+            for ((value, id, tags) in entries) put(value, selection.evaluate(id, tags))
+          }
+      }
       log.debug {
-        "build: ${decisions.size} mob-constrained region(s) under root=${root.name}; ${entityTypeIndex.size} entity types indexed"
+        "build: ${decisions.size} mob-constrained region(s) under root=${root.name}; ${entries.size} entity types indexed"
       }
       return CompiledMobLookup(decisions)
     }
@@ -41,36 +54,5 @@ private constructor(
       }
       region.children.forEach { collectMobRegions(it, mobRegions) }
     }
-
-    private fun collectDecisions(
-      mobRegions: List<Region>,
-      entityTypeIndex: IdentityHashMap<EntityType<*>, EntityTypeEntry>,
-    ): IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>> {
-      val map = IdentityHashMap<Region, IdentityHashMap<EntityType<*>, Boolean>>()
-      for (region in mobRegions) {
-        val mobs = region.mobs ?: continue
-        val regionDecisions = IdentityHashMap<EntityType<*>, Boolean>()
-        entityTypeIndex.forEach { (entityType, entry) ->
-          regionDecisions[entityType] = mobs.evaluate(entry.id, entry.tags)
-        }
-        map[region] = regionDecisions
-      }
-      return map
-    }
-
-    private fun buildEntityTypeIndex(
-      registry: RegistryAccess.Frozen
-    ): IdentityHashMap<EntityType<*>, EntityTypeEntry> {
-      val index = IdentityHashMap<EntityType<*>, EntityTypeEntry>()
-      val entityTypeRegistry = registry.lookupOrThrow(Registries.ENTITY_TYPE)
-      entityTypeRegistry.listElements().forEach { holder ->
-        val id = ResourceKeyCompat.getKeyId(holder.key())
-        val tags = tagsOf(holder)
-        index[holder.value()] = EntityTypeEntry(id, tags)
-      }
-      return index
-    }
   }
 }
-
-private data class EntityTypeEntry(val id: String, val tags: Set<String>)
