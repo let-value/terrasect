@@ -8,15 +8,16 @@ Five workflows in `.github/workflows/`:
 
 ## `ci.yml` — PR verification
 
-The build job runs formatting, unit tests, and all nine production builds. Five lightweight smoke
+The build job runs formatting, buildSrc harness tests, common unit tests, and all nine production builds. Five lightweight smoke
 jobs restore the previous CI behavior: Fabric 1.20.1/1.21.1 run the server GameTest; newer Fabric
 versions run only `SmokeGameTest,LootConstraintBlockAllGameTest` in the development client.
-Third-party dependencies and heavy client scenarios are excluded from automatic PR/main checks.
+Packaged 26.2 clean and compatibility checks run separately in `runtime-tests.yml`.
 
-## `runtime-tests.yml` — on-demand production modpack verification
+## `runtime-tests.yml` — production modpack verification
 
-Manual `workflow_dispatch` only. Select clean (`build`), third-party (`compat`) or `both` packs.
-The nine-lane matrix invokes Gradle version-qualified tasks and uploads evidence on success/failure.
+Every PR and push to main tests both clean and compatibility packs for Fabric and NeoForge 26.2.
+Manual `workflow_dispatch` runs all nine lanes with clean (`build`), third-party (`compat`) or `both`
+packs. Each job invokes Gradle version-qualified tasks and uploads evidence on success/failure.
 Run the same checks locally:
 
 ```sh
@@ -39,19 +40,17 @@ Mapped versions remap the test jar; unobfuscated 26.x versions package it direct
 
 `minecraftTestBuild` runs the clean Smoke and LootConstraintBlockAll client tests or ServerSmokeGameTest
 on server fallback lanes. `minecraftTestCompat`
-runs the pinned third-party packs and assertions listed in SUPPORT.md. NeoForge 1.21.1 also runs
-`minecraftTestKubejsClient`, a native main-menu/configuration regression check; see
-[`runtime-tests/KUBEJS.md`](../runtime-tests/KUBEJS.md). Gradle rejects missing/zero
+runs the pinned third-party packs and assertions listed in SUPPORT.md. Gradle rejects missing/zero
 executions, assertion failures, crashes, and timeouts, even if earlier tests completed. Launches
 always start with fresh worlds; launcher/dependency downloads and prepared packs can be cached.
 
 Runtime evidence lives in `build/minecraft-test/`:
 
-- `results/<loader>-<version>-<build|compat|kubejsclient>.json`: outcome, executed tests, exact jars and SHA-256,
+- `results/<loader>-<version>-<build|compat>.json`: outcome, executed tests, exact jars and SHA-256,
   dependencies, graphics limitation, and log path.
-- `logs/<loader>-<version>-<build|compat|kubejsclient>.log`: command and captured client output.
-- `modpacks/<loader>-<version>-<build|compat|kubejsclient>/runtime-test-manifest.json`: installed pack inventory.
-- `runtime/<loader>-<version>-<build|compat|kubejsclient>/`: client logs and crash reports.
+- `logs/<loader>-<version>-<build|compat>.log`: command and captured client output.
+- `modpacks/<loader>-<version>-<build|compat>/runtime-test-manifest.json`: installed pack inventory.
+- `runtime/<loader>-<version>-<build|compat>/`: client logs and crash reports.
 
 CI uploads these diagnostics on success and failure, excluding authentication data. Compatibility
 profiles live in `runtime-tests/modpacks/compat`; Gradle coordinates in `stonecutter.properties.toml`

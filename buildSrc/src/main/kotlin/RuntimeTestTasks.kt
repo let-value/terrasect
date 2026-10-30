@@ -390,7 +390,7 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
         File(server, "eula.txt").writeText("eula=true\n")
         File(server, "server.properties")
           .writeText(
-            "online-mode=false\nserver-port=0\nview-distance=2\nsimulation-distance=2\nlevel-seed=terrasect-server-smoke\n"
+            "online-mode=false\nserver-port=0\nuse-native-transport=false\nview-distance=2\nsimulation-distance=2\nlevel-seed=terrasect-server-smoke\n"
           )
       }
       processExitCode =
@@ -413,7 +413,7 @@ abstract class MinecraftTestLaunchTask : DefaultTask() {
       val executed = completedGameTests(logText, completionMarkers.get(), testFilter.get())
       status = "passed"
       logger.lifecycle(
-        "${if (clientTests.get()) "Client tests" else "Server smoke"} passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
+        "${if (clientTests.get()) "Client GameTests" else "Server smoke"} passed: ${loader.get()} ${minecraft.get()} ${scenario.get()} $executed"
       )
     } catch (error: Throwable) {
       failure = error.message ?: error.javaClass.name

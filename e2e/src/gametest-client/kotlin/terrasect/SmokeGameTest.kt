@@ -111,7 +111,8 @@ object SmokeGameTest : FabricClientGameTest {
             val commandSource = server.createCommandSourceStack()
             commandResult =
               dispatcher.execute("ts locate .overworld_root", commandSource) +
-                dispatcher.execute("ts query", commandSource)
+                dispatcher.execute("ts query", commandSource) +
+                dispatcher.execute("ts print .overworld_root", commandSource)
           }
           val biomeContext = checkNotNull(context)
           val biomeLookup = checkNotNull(biomeContext.biomeLookup)
@@ -165,8 +166,8 @@ object SmokeGameTest : FabricClientGameTest {
         "'/ts' is not in the vanilla dispatcher — the Commands mixin did not run on this version",
       )
       assertTrue(
-        commandResult == 2,
-        "'/ts locate .overworld_root' or '/ts query' failed on $dimensionId",
+        commandResult == 3,
+        "'/ts locate .overworld_root', '/ts query' or '/ts print' failed on $dimensionId",
       )
       assertTrue(
         sampledBiomes.isNotEmpty() && sampledBiomes.all(ALLOWED_BIOMES::contains),

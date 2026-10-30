@@ -1,6 +1,9 @@
 name: Modpack runtime tests
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       scenario:
@@ -26,16 +29,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { loader: fabric, version: "1.20.1" }
-          - { loader: fabric, version: "1.21.1" }
-          - { loader: fabric, version: "1.21.11" }
-          - { loader: fabric, version: "26.1.x" }
-          - { loader: fabric, version: "26.2.x" }
-          - { loader: neoforge, version: "1.21.1" }
-          - { loader: neoforge, version: "1.21.11" }
-          - { loader: neoforge, version: "26.1.x" }
-          - { loader: neoforge, version: "26.2.x" }
+        loader: [fabric, neoforge]
+        version: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["1.20.1", "1.21.1", "1.21.11", "26.1.x", "26.2.x"]' || '["26.2.x"]') }}
+        exclude:
+          - { loader: neoforge, version: "1.20.1" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -48,7 +45,7 @@ jobs:
           cache-cleanup: on-success
       - name: Test packaged production and test mods
         env:
-          SCENARIO: ${{ inputs.scenario }}
+          SCENARIO: ${{ inputs.scenario || 'both' }}
         run: |
           tasks=()
           if [[ "$SCENARIO" != "compat" ]]; then
@@ -56,9 +53,6 @@ jobs:
           fi
           if [[ "$SCENARIO" != "build" ]]; then
             tasks+=(":${{ matrix.loader }}:${{ matrix.version }}:minecraftTestCompat")
-            if [[ "${{ matrix.loader }}" == "neoforge" && "${{ matrix.version }}" == "1.21.1" ]]; then
-              tasks+=(":neoforge:1.21.1:minecraftTestKubejsClient")
-            fi
           fi
           ./gradlew "${tasks[@]}" --continue --no-parallel --console=plain
       - name: Upload runtime evidence

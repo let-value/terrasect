@@ -87,9 +87,8 @@ object ServerSmokeGuard {
     log.info("server smoke: OK — all constraints active on {} status={}", dimensionId, status)
   }
 
-  @JvmStatic
-  fun assertConfiguration(configRoot: Path) {
-    val loaded = TerrasectConfigManager.initialize(configRoot)
+  private fun assertConfiguration() {
+    val loaded = TerrasectConfigManager.initialize(Path.of("config"))
     check(loaded.createdFiles.isEmpty()) { "startup did not create the default configuration" }
     check(loaded.presets.keys.containsAll(listOf("example", "climate_debug"))) {
       "default presets were not loaded: ${loaded.presets.keys}"
@@ -100,16 +99,7 @@ object ServerSmokeGuard {
     for ((name, preset) in loaded.presets) {
       val exported = TerrasectTomlWriter.write(preset)
       val parsed = TerrasectToml.parsePreset(exported, "$name-export.toml")
-      check(parsed.drafts.keys == preset.drafts.keys) { "$name preset TOML round trip failed" }
-    }
-    for (name in listOf("core.CommentedConfig", "toml.TomlParser", "toml.TomlWriter")) {
-      val type = Class.forName("com.electronwill.nightconfig.$name")
-      log.info(
-        "Night Config {} module={} source={}",
-        name,
-        type.module.name,
-        type.protectionDomain.codeSource?.location,
-      )
+      check(TerrasectTomlWriter.write(parsed) == exported) { "$name preset TOML round trip failed" }
     }
     log.info("configuration smoke: OK — existing config, presets and TOML export")
   }
@@ -149,7 +139,7 @@ object ServerSmokeGuard {
     }
     check(dispatcher.execute("ts query", source) == 1) { "'/ts query' failed" }
     check(dispatcher.execute("ts print .overworld_root", source) == 1) { "'/ts print' failed" }
-    log.info("server smoke: /ts locate and /ts query confirmed")
+    log.info("server smoke: /ts locate, /ts query and /ts print confirmed")
   }
 
   private fun assertForcedStart(level: ServerLevel, context: DimensionContext) {
@@ -172,6 +162,7 @@ object ServerSmokeGuard {
   @JvmStatic
   fun run(server: net.minecraft.server.MinecraftServer) {
     try {
+      assertConfiguration()
       assertPipeline(server.overworld())
       server.halt(false)
     } catch (failure: Throwable) {

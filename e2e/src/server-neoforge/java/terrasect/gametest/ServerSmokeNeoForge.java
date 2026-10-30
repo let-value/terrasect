@@ -1,7 +1,6 @@
 package terrasect.gametest;
 
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 
@@ -13,7 +12,6 @@ public class ServerSmokeNeoForge {
   }
 
   private void started(ServerStartedEvent event) {
-    ServerSmokeGuard.assertConfiguration(FMLPaths.CONFIGDIR.get());
     ServerSmokeGuard.run(event.getServer());
   }
 }

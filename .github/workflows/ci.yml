@@ -41,7 +41,7 @@ jobs:
 
       - name: Spotless, unit tests, all loader jars
         run: >
-          ./gradlew spotlessCheck test
+          ./gradlew spotlessCheck :buildSrc:test test
           :fabric:1.20.1:build
           :fabric:1.21.1:build :neoforge:1.21.1:build
           :fabric:1.21.11:build :neoforge:1.21.11:build
