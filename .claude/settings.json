@@ -4,11 +4,23 @@
       {
         "hooks": [
           {
-            "command": "bd prime --hook-json",
-            "type": "command"
+            "command": "BD_DOLT_AUTO_PUSH=false bd sync --no-adopt >&2 && bd prime --hook-json",
+            "type": "command",
+            "timeout": 120
           }
         ],
         "matcher": ""
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "BD_DOLT_AUTO_PUSH=false bd sync --no-adopt",
+            "timeout": 120
+          }
+        ]
       }
     ]
   }

@@ -96,11 +96,16 @@ history lives under `refs/dolt/data`, separate from source branches. Pull before
 starting work and push durable updates and handoffs:
 
 ```sh
-bd dolt pull
-bd dolt push
+bd sync
 ```
 
-Automatic push is disabled. Normal `git push` does not publish database changes.
+Native auto-push is enabled after eligible Beads commands, with the default
+five-minute throttle. Claude and Codex session-start and turn-end hooks run
+`BD_DOLT_AUTO_PUSH=false bd sync --no-adopt` to pull, check conflicts, repair
+blocker state, and push. Sync failures surface as hook failures. Restart existing
+agent sessions after changing hooks. There is no background polling: terminal-only
+work and long-running sessions can use `bd sync` to refresh immediately.
+Normal `git push` does not publish database changes.
 Replicas on different machines are synchronized rather than one live database:
 coordinate ownership before simultaneous work, and stop on merge conflicts
 instead of forcing a push. Source commits and pushes still require authorization.

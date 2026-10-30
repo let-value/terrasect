@@ -1,6 +1,6 @@
 dolt:
     local-only: false
-    auto-push: false
+    auto-push: true
 export:
     auto: false
 sync:

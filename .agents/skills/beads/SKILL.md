@@ -103,7 +103,10 @@ separate from Dolt database replication.
 Terrasect shares its Dolt history through the GitHub origin under
 `refs/dolt/data`. Run `bd bootstrap` after a fresh clone. For an existing
 database, pull with `bd dolt pull` before starting work and publish durable
-updates with `bd dolt push`. Automatic push is disabled. Worktrees on one machine
+updates with `bd sync`. Native auto-push is enabled, with its default five-minute
+throttle. Claude and Codex hooks also run `bd sync` at session start and turn end,
+so they pull remote changes and flush pending updates. Hook sync temporarily
+disables native auto-push to avoid a redundant push. Worktrees on one machine
 already share the local database and need no separate initialization.
 
 Pull/push synchronize separate replicas; claims on different machines are not
